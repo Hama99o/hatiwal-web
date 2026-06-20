@@ -1,0 +1,47 @@
+# =============================================================================
+# hatiwal-web — Next.js, containerized.
+#
+#   docker compose up web                  # → http://localhost:8500
+#   WEB_PORT=8600 docker compose up web     # pick any free host port
+#
+# Requires the Rails API (hatiwal-api) running on the host at :3007 — the web
+# container reaches it via host.docker.internal. The browser only ever talks to
+# the web container (all data is proxied through it), so ONE host port is enough.
+#
+# Port map (this machine): api 3007 · cable 3098 · mobile/expo 3008 · web(local) 3011
+# · web(docker) 8500. 8501 is free if you want a second instance.
+# =============================================================================
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${WEB_PORT:-8500}:${WEB_PORT:-8500}"
+    environment:
+      - PORT=${WEB_PORT:-8500}
+      - NODE_ENV=development
+      # Server-side (RSC / ISR / route handlers + the /api proxies) → host's Rails.
+      # NOTE: Rails host-authorization blocks the "host.docker.internal" Host header
+      # (config.hosts), but allows all IPs in dev — so we use the docker0 gateway IP.
+      # Override RAILS_API_URL if your Docker bridge gateway isn't 172.17.0.1
+      # (`docker network inspect bridge | grep Gateway`).
+      - API_URL=${RAILS_API_URL:-http://172.17.0.1:3007/api/v1}
+      - NEXT_PUBLIC_API_URL=${RAILS_API_URL:-http://172.17.0.1:3007/api/v1}
+      - NEXT_PUBLIC_SITE_URL=http://localhost:${WEB_PORT:-8500}
+      - NEXT_PUBLIC_APP_NAME=Hatiwal
+      - NEXT_PUBLIC_DEFAULT_LOCALE=en
+      - NEXT_PUBLIC_DEFAULT_THEME=system
+      - NEXT_PUBLIC_DEEP_LINK_SCHEME=hatiwal
+      # Reliable file-watching for HMR on a mounted volume.
+      - WATCHPACK_POLLING=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

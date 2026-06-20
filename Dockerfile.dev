@@ -1,0 +1,19 @@
+# Hatiwal Web — development image (Next.js dev server).
+# Source is volume-mounted by docker-compose; node_modules/.next live in anonymous
+# volumes so the container keeps its own platform-correct native deps.
+FROM node:18-bookworm-slim
+WORKDIR /app
+
+# Install deps in a cached layer. The Tailwind v4 native engine (@tailwindcss/oxide)
+# ships its binary as an OPTIONAL dep that npm sometimes skips (npm bug #4828), so
+# re-assert the matching platform binary explicitly (no-op if already present).
+COPY package.json package-lock.json* ./
+RUN npm install --legacy-peer-deps \
+ && OXIDE_VER="$(node -p "require('@tailwindcss/oxide/package.json').version")" \
+ && npm install --no-save --legacy-peer-deps "@tailwindcss/oxide-linux-x64-gnu@${OXIDE_VER}" || true
+
+COPY . .
+
+EXPOSE 8500
+# Port comes from $PORT (set by compose); -H 0.0.0.0 makes it reachable from the host.
+CMD npx next dev -H 0.0.0.0 -p ${PORT:-8500}
