@@ -88,6 +88,32 @@ export function BrowseClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  // Adopt filters that change from OUTSIDE this island — the navbar search
+  // pushes `/bazaar?q=…`, and browser back/forward rewrites the URL. The server
+  // re-renders with new `initialFilters`, but this client instance persists, so
+  // without re-syncing its state would stay stale (URL updates, results don't).
+  // The echo of our OWN edits serializes identically, so we skip it — a debounced
+  // keystroke never clobbers the text being typed.
+  const externalKey = filtersToSearchString(initialFilters);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  useEffect(() => {
+    if (filtersToSearchString(filtersRef.current) === externalKey) return;
+    setFilters(initialFilters);
+    setSearchInput(initialFilters.q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalKey]);
+
+  // Debounced live search: typing filters the results after a short pause —
+  // no Enter required. (Enter via submitSearch still applies immediately.)
+  useEffect(() => {
+    const next = searchInput.trim();
+    const id = setTimeout(() => {
+      setFilters((prev) => (prev.q === next ? prev : { ...prev, q: next }));
+    }, 350);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
   const query = useInfiniteQuery({
     queryKey: ["listings", filters],
     initialPageParam: 1,
@@ -168,7 +194,7 @@ export function BrowseClient({
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           {t("nav.categories")}
         </h3>
-        <ul className="space-y-0.5">
+        <ul className="max-h-64 space-y-0.5 overflow-y-auto pe-1 [scrollbar-width:thin]">
           <li>
             <button
               type="button"
@@ -350,7 +376,7 @@ export function BrowseClient({
     <div className="mx-auto max-w-7xl px-4 py-6">
       <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-8">
         {/* Sidebar (desktop) / collapsible (mobile) */}
-        <aside className="lg:sticky lg:top-20 lg:h-fit">
+        <aside className="lg:sticky lg:top-20">
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button
               type="button"
@@ -362,7 +388,15 @@ export function BrowseClient({
               {t("browse.filters")}
             </Button>
           </div>
-          <div className={cn(showFilters ? "block" : "hidden", "lg:block")}>
+          {/* Independent-scroll panel: filters scroll inside this card on
+              desktop (capped to viewport height), so the page scrolls the
+              results and the bottom filters stay reachable. */}
+          <div
+            className={cn(
+              showFilters ? "block" : "hidden",
+              "rounded-xl border bg-card p-4 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]",
+            )}
+          >
             {sidebar}
           </div>
         </aside>

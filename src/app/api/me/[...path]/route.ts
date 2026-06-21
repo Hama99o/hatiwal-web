@@ -85,9 +85,16 @@ async function handle(
   if (req.method !== "GET" && req.method !== "HEAD") {
     // Forward the original Content-Type (incl. the multipart boundary) and the
     // RAW bytes — reading as text would corrupt binary photo uploads.
-    const contentType = req.headers.get("content-type");
-    if (contentType) headers["Content-Type"] = contentType;
-    init.body = await req.arrayBuffer();
+    // Only attach a body when one actually exists: forwarding a zero-length
+    // body (e.g. a body-less DELETE / lifecycle PUT) makes undici throw
+    // UND_ERR_REQ_CONTENT_LENGTH_MISMATCH → the proxy 502s. Omitting it is
+    // correct HTTP and lets those requests through.
+    const buf = await req.arrayBuffer();
+    if (buf.byteLength > 0) {
+      const contentType = req.headers.get("content-type");
+      if (contentType) headers["Content-Type"] = contentType;
+      init.body = buf;
+    }
   }
 
   let upstream: Response;

@@ -63,7 +63,7 @@ export default async function CategoryPage({ params }: { params: Params }) {
           <EmptyState
             icon={PackageOpen}
             title={t("categoriesPage.empty")}
-            action={{ label: t("nav.browse"), href: "/browse" }}
+            action={{ label: t("nav.browse"), href: "/bazaar" }}
           />
         )}
       </div>

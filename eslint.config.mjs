@@ -8,7 +8,19 @@ const __dirname = dirname(__filename);
 const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
-  { ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"] },
+  // .next-e2e is the isolated build dir the Playwright E2E run produces; like
+  // .next it is generated output and must never be linted.
+  {
+    ignores: [
+      ".next/**",
+      ".next-e2e/**",
+      "out/**",
+      "build/**",
+      "test-results/**",
+      "playwright-report/**",
+      "next-env.d.ts",
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

@@ -40,7 +40,7 @@ export default async function HomePage({
               {t("home.hero.subtitle")}
             </p>
             <form
-              action={`/${locale}/browse`}
+              action={`/${locale}/bazaar`}
               method="get"
               role="search"
               className="mt-8 flex max-w-xl gap-2"
@@ -93,7 +93,7 @@ export default async function HomePage({
               {t("home.recent")}
             </h2>
             <Button asChild variant="ghost" size="sm">
-              <Link href="/browse">
+              <Link href="/bazaar">
                 {t("home.viewAll")}
                 <ArrowRight className="size-4 rtl:-scale-x-100" />
               </Link>
@@ -106,7 +106,7 @@ export default async function HomePage({
               icon={Search}
               title={t("browse.empty.title")}
               description={t("browse.empty.description")}
-              action={{ label: t("home.hero.browseCta"), href: "/browse" }}
+              action={{ label: t("home.hero.browseCta"), href: "/bazaar" }}
             />
           )}
         </section>

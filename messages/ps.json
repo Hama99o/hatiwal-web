@@ -474,7 +474,7 @@
     }
   },
   "nav": {
-    "browse": "وپلټئ",
+    "browse": "بازار",
     "categories": "کټګورۍ",
     "getApp": "اپ ترلاسه کړئ",
     "searchPlaceholder": "په هتیوال کې لټون…",
@@ -713,5 +713,14 @@
     "title": "د حساب خبرتیا",
     "body": "تاسو {count} فعالې خبرتیاوې لرئ. {threshold} خبرتیاوې د بندیدو لامل کیږي.",
     "acknowledge": "پوهیږم"
+  },
+  "sidebar": {
+    "browse": "بازار",
+    "saved": "خوندي شوي",
+    "chat": "چټونه",
+    "profile": "زه",
+    "myListings": "زما هټۍ",
+    "createListing": "نوی اعلان",
+    "sellerDashboard": "د پلورونکي ډشبورډ"
   }
 }

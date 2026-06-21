@@ -20,7 +20,7 @@ export function SiteFooter() {
             {t("footer.explore")}
           </span>
           <Link
-            href="/browse"
+            href="/bazaar"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             {t("nav.browse")}

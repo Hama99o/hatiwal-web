@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
@@ -13,6 +13,14 @@ import "../globals.css";
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
+
+// Browser chrome / address-bar color, matched to the page background per scheme.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
+  ],
+};
 
 export async function generateMetadata({
   params,
@@ -49,7 +57,14 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir(locale)} suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col antialiased">
+      {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) inject
+          attributes like data-gr-ext-installed onto <body> after SSR, which
+          would otherwise trip a hydration warning. next-themes also sets the
+          class/style on the html element pre-hydration. */}
+      <body
+        className="flex min-h-screen flex-col antialiased"
+        suppressHydrationWarning
+      >
         <NextIntlClientProvider>
           <Providers>
             <SiteHeader />

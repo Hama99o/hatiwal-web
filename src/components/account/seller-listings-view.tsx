@@ -45,7 +45,7 @@ export function SellerListingsView() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {t("profile.quickActions.myListings")}
+            {t("sidebar.myListings")}
           </h1>
           {!isPending && (
             <p className="text-sm text-muted-foreground">
@@ -56,7 +56,7 @@ export function SellerListingsView() {
         <Button asChild>
           <Link href="/listings/new">
             <Plus className="size-4" />
-            {t("listing.postListing")}
+            {t("sidebar.createListing")}
           </Link>
         </Button>
       </div>
@@ -102,7 +102,7 @@ export function SellerListingsView() {
           }
           action={
             all.length === 0
-              ? { label: t("listing.postListing"), href: "/listings/new" }
+              ? { label: t("sidebar.createListing"), href: "/listings/new" }
               : undefined
           }
         />

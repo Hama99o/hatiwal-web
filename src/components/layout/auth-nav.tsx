@@ -56,7 +56,7 @@ export function AuthNav() {
         variant="ghost"
         size="icon"
         className="relative"
-        aria-label={t("chat.title")}
+        aria-label={t("sidebar.chat")}
       >
         <Link href="/conversations">
           <MessageSquare className="size-5" />
@@ -67,12 +67,27 @@ export function AuthNav() {
           )}
         </Link>
       </Button>
-      <Button asChild size="sm" className="hidden sm:inline-flex">
-        <Link href="/listings/new">
-          <Plus className="size-4" />
-          {t("listing.postListing")}
-        </Link>
-      </Button>
+      {user.sellerMode && (
+        <>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden sm:inline-flex"
+          >
+            <Link href="/my-listings">
+              <Tag className="size-4" />
+              {t("sidebar.myListings")}
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="hidden sm:inline-flex">
+            <Link href="/listings/new">
+              <Plus className="size-4" />
+              {t("sidebar.createListing")}
+            </Link>
+          </Button>
+        </>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -88,25 +103,25 @@ export function AuthNav() {
           <DropdownMenuItem asChild>
             <Link href="/profile">
               <UserIcon className="size-4" />
-              {t("profile.title")}
+              {t("sidebar.profile")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/my-listings">
               <Tag className="size-4" />
-              {t("profile.quickActions.myListings")}
+              {t("sidebar.myListings")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/conversations">
               <MessageSquare className="size-4" />
-              {t("chat.title")}
+              {t("sidebar.chat")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/saved">
               <Heart className="size-4" />
-              {t("saved.title")}
+              {t("sidebar.saved")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
@@ -115,10 +130,13 @@ export function AuthNav() {
               {t("profile.blockedUsers")}
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="sm:hidden">
+          <DropdownMenuItem
+            asChild
+            className={user.sellerMode ? "sm:hidden" : undefined}
+          >
             <Link href="/listings/new">
               <Plus className="size-4" />
-              {t("listing.postListing")}
+              {t("sidebar.createListing")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

@@ -1,0 +1,65 @@
+# Kamal deployment configuration for hatiwal_web (Next.js front-end)
+#
+# Co-hosted on one OVH VPS (51.254.130.18) with multi_magic, edu_safi and
+# hatiwal_api, in its own isolated Docker network (hatiwal_web-net). The shared
+# kamal-proxy routes by hostname. This app has NO database/redis — it is a second
+# client of the Rails API (hatiwal_api), which it reaches over its public HTTPS URL.
+service: hatiwal_web
+
+image: <%= ENV.fetch("KAMAL_IMAGE", "hama99o/hatiwal_web") %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("KAMAL_HOST") %>
+    options:
+      network: hatiwal_web-net
+
+# Shared kamal-proxy terminates TLS and routes hatiwal.<host>.nip.io to the Next
+# standalone server (listens on :3000 inside the container).
+proxy:
+  ssl: true
+  host: <%= ENV.fetch("KAMAL_PROXY_HOST") %>
+  app_port: 3000
+  healthcheck:
+    path: /api/health
+    interval: 5
+
+ssh:
+  user: <%= ENV.fetch("SSH_USER", "kamal") %>
+  keys_only: true
+  keys:
+    - <%= ENV.fetch("SSH_KEY_PATH", "~/.ssh/id_ed25519") %>
+
+registry:
+  username: <%= ENV.fetch("KAMAL_REGISTRY_USERNAME", "hama99o") %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# Runtime env. NEXT_PUBLIC_* are baked at build (see builder.args) — only the
+# server-side runtime vars belong here.
+env:
+  clear:
+    NODE_ENV: production
+    PORT: 3000
+    HOSTNAME: "0.0.0.0"
+    # Server-side (RSC/ISR + the /api/proxy route) fetches Rails directly here.
+    API_URL: <%= ENV.fetch("API_URL", "https://api.hatiwal.51.254.130.18.nip.io/api/v1") %>
+
+aliases:
+  logs: app logs -f
+  shell: app exec --interactive --reuse "sh"
+
+# NEXT_PUBLIC_* must be present at BUILD time (baked into the client JS bundle).
+builder:
+  dockerfile: Dockerfile
+  arch: amd64
+  driver: docker
+  args:
+    NEXT_PUBLIC_API_URL: <%= ENV.fetch("NEXT_PUBLIC_API_URL", "https://api.hatiwal.51.254.130.18.nip.io/api/v1") %>
+    NEXT_PUBLIC_RAILS_ORIGIN: <%= ENV.fetch("NEXT_PUBLIC_RAILS_ORIGIN", "https://api.hatiwal.51.254.130.18.nip.io") %>
+    NEXT_PUBLIC_SITE_URL: <%= ENV.fetch("NEXT_PUBLIC_SITE_URL", "https://hatiwal.51.254.130.18.nip.io") %>
+    NEXT_PUBLIC_APP_NAME: Hatiwal
+    NEXT_PUBLIC_DEFAULT_LOCALE: en
+    NEXT_PUBLIC_DEFAULT_THEME: system
+    NEXT_PUBLIC_DEEP_LINK_SCHEME: hatiwal

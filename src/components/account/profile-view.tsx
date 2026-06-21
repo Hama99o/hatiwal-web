@@ -12,6 +12,7 @@ import {
   RestoreAccountBanner,
 } from "./delete-account-section";
 import { WarningsBanner } from "./warnings-banner";
+import { ModeToggle } from "./mode-toggle";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -62,6 +63,8 @@ export function ProfileView() {
         </Button>
       </div>
 
+      <ModeToggle className="w-full" />
+
       <div className="grid grid-cols-3 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="rounded-lg border bg-card p-4 text-center">
@@ -88,7 +91,7 @@ export function ProfileView() {
           <Link href="/saved">{t("saved.title")}</Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href="/browse">{t("profile.quickActions.browse")}</Link>
+          <Link href="/bazaar">{t("profile.quickActions.browse")}</Link>
         </Button>
       </div>
 

@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const locale of routing.locales) {
     entries.push({ url: `${SITE}/${locale}`, changeFrequency: "daily", priority: 1 });
     entries.push({
-      url: `${SITE}/${locale}/browse`,
+      url: `${SITE}/${locale}/bazaar`,
       changeFrequency: "hourly",
       priority: 0.9,
     });

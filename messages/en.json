@@ -474,7 +474,7 @@
     }
   },
   "nav": {
-    "browse": "Browse",
+    "browse": "Bazaar",
     "categories": "Categories",
     "getApp": "Get the app",
     "searchPlaceholder": "Search Hatiwal…",
@@ -713,5 +713,14 @@
     "title": "Account warning",
     "body": "You have {count} active warning(s). {threshold} warnings lead to a suspension.",
     "acknowledge": "I understand"
+  },
+  "sidebar": {
+    "browse": "Bazaar",
+    "saved": "Saved",
+    "chat": "Chats",
+    "profile": "Me",
+    "myListings": "My Shop",
+    "createListing": "New Listing",
+    "sellerDashboard": "Seller Dashboard"
   }
 }

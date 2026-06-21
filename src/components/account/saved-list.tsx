@@ -33,7 +33,7 @@ export function SavedList() {
           icon={Heart}
           title={t("saved.empty")}
           description={t("saved.emptyDescription")}
-          action={{ label: t("saved.browseButton"), href: "/browse" }}
+          action={{ label: t("saved.browseButton"), href: "/bazaar" }}
         />
       ) : (
         <ListingGrid listings={data} priorityCount={4} />

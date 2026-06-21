@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# bin/kms — Kamal Management Script for hatiwal-web (Next.js).
+# No database/redis/rails here — this is a stateless front-end container.
+
+set -e
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+
+# Load env (.env.production preferred, then .env)
+if [ -f .env.production ]; then set -a; source .env.production; set +a
+elif [ -f .env ]; then set -a; source .env; set +a; fi
+
+need_kamal() { command -v kamal >/dev/null 2>&1 || { echo -e "${RED}kamal not installed — run: gem install kamal${NC}"; exit 1; }; }
+
+help() {
+cat <<EOF
+$(echo -e "${CYAN}hatiwal-web · Kamal Management Script${NC}")
+$(echo -e "${YELLOW}Usage:${NC}) bin/kms <command> [args]
+
+$(echo -e "${GREEN}Deploy${NC})
+  deploy, d        Build, push and deploy (zero-downtime)
+  redeploy         Force rebuild + deploy
+  rollback         Roll back to the previous version
+  status, s        Show deployment details
+  version          Show the running version
+  lock <args>      Manage deploy locks (e.g. lock release)
+
+$(echo -e "${GREEN}Logs / shell${NC})
+  logs, l          Follow app logs
+  logs:N           Last N lines (e.g. logs:200)
+  logs:proxy       Follow kamal-proxy logs
+  logs:grep <pat>  Grep the last 1000 app log lines
+  sh, bash         Open a shell in the container
+  exec '<cmd>'     Run a command in the container
+
+$(echo -e "${GREEN}App${NC})
+  ps               List app containers
+  restart, boot    Reboot the app
+  stop / start     Stop / start the app
+  clean            Prune old containers + images
+  audit            Kamal security audit
+EOF
+}
+
+case "${1:-help}" in
+  d|deploy)     need_kamal; kamal deploy ;;
+  redeploy)     need_kamal; kamal redeploy ;;
+  rollback)     need_kamal; kamal rollback ;;
+  s|status)     need_kamal; kamal details ;;
+  version)      need_kamal; kamal app version ;;
+  lock)         need_kamal; shift; kamal lock "$@" ;;
+
+  l|logs)       need_kamal; kamal app logs -f ;;
+  logs:[0-9]*)  need_kamal; kamal app logs -n "${1#logs:}" ;;
+  logs:proxy)   need_kamal; kamal proxy logs -f ;;
+  logs:grep)    need_kamal; shift; kamal app logs -n 1000 | grep -i "$*" ;;
+  sh|bash)      need_kamal; kamal app exec -i --reuse "sh" ;;
+  exec)         need_kamal; shift; kamal app exec "$*" ;;
+
+  ps)           need_kamal; kamal app containers ;;
+  restart|boot) need_kamal; kamal app boot ;;
+  stop)         need_kamal; kamal app stop ;;
+  start)        need_kamal; kamal app start ;;
+  clean)        need_kamal; kamal prune all ;;
+  audit)        need_kamal; kamal audit ;;
+
+  -h|--help|help|"") help ;;
+  *) echo -e "${RED}Unknown command: $1${NC}"; echo "Run: bin/kms help"; exit 1 ;;
+esac

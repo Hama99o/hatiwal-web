@@ -79,7 +79,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
           icon={MessageSquare}
           title={t("chat.noConversations")}
           description={t("chat.noConversationsDescription")}
-          action={{ label: t("chat.empty.browseAction"), href: "/browse" }}
+          action={{ label: t("chat.empty.browseAction"), href: "/bazaar" }}
         />
       ) : (
         <ul className="divide-y overflow-hidden rounded-lg border bg-card">

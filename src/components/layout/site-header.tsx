@@ -21,7 +21,7 @@ export function SiteHeader() {
 
         <nav className="ms-auto flex items-center gap-1">
           <Button asChild variant="ghost" className="hidden sm:inline-flex">
-            <Link href="/browse">{t("browse")}</Link>
+            <Link href="/bazaar">{t("browse")}</Link>
           </Button>
           <Button asChild variant="ghost" className="hidden lg:inline-flex">
             <Link href="/categories">{t("categories")}</Link>

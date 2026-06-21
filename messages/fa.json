@@ -474,7 +474,7 @@
     }
   },
   "nav": {
-    "browse": "مرور",
+    "browse": "بازار",
     "categories": "دسته‌بندی‌ها",
     "getApp": "دریافت اپ",
     "searchPlaceholder": "جستجو در هتیوال…",
@@ -713,5 +713,14 @@
     "title": "هشدار حساب",
     "body": "شما {count} هشدار فعال دارید. {threshold} هشدار منجر به تعلیق حساب می‌شود.",
     "acknowledge": "متوجه شدم"
+  },
+  "sidebar": {
+    "browse": "بازار",
+    "saved": "ذخیره‌شده‌ها",
+    "chat": "گفتگوها",
+    "profile": "من",
+    "myListings": "دکان من",
+    "createListing": "آگهی جدید",
+    "sellerDashboard": "داشبورد فروشنده"
   }
 }

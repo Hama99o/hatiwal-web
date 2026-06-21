@@ -31,6 +31,8 @@
   --border: hsl(214 32% 91%);
   --input: hsl(214 32% 91%);
   --ring: hsl(221 83% 53%);
+  /* Brand accent — saffron / lapis-fleck gold (#E8B23A). Same in light & dark. */
+  --brand-gold: hsl(41 80% 57%);
   --radius: 0.75rem;
 }
 
@@ -58,6 +60,7 @@
   --border: hsl(217 33% 22%);
   --input: hsl(217 33% 17%);
   --ring: hsl(224 76% 48%);
+  --brand-gold: hsl(41 80% 57%);
 }
 
 @theme inline {
@@ -84,6 +87,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand-gold: var(--brand-gold);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
