@@ -1,17 +1,21 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { updateProfile } from "@/lib/api/me";
+import { updateAvatar, updateProfile } from "@/lib/api/me";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const SELECT_CLASS =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -20,6 +24,31 @@ export function EditProfileForm() {
   const t = useTranslations();
   const router = useRouter();
   const { user, setUser } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error(t("profile.edit.photoTooLarge"));
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const updated = await updateAvatar(file);
+      setUser(updated);
+      toast.success(t("profile.edit.photoUpdated"));
+    } catch {
+      toast.error(t("profile.edit.photoError"));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  const displayName =
+    user?.fullName || `${user?.firstname ?? ""} ${user?.lastname ?? ""}`.trim();
 
   const schema = z.object({
     firstname: z.string().min(1, t("profile.edit.validation.firstnameRequired")),
@@ -71,6 +100,42 @@ export function EditProfileForm() {
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">{t("profile.edit.title")}</h1>
+
+      {/* Avatar */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="relative">
+          <UserAvatar
+            name={displayName}
+            avatarUrl={user?.avatarUrl}
+            size={72}
+          />
+          {uploadingAvatar && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+              <Loader2 className="size-5 animate-spin text-white" />
+            </div>
+          )}
+        </div>
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onPickAvatar}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploadingAvatar}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Camera className="size-4" />
+            {t("profile.edit.changePhoto")}
+          </Button>
+        </div>
+      </div>
+
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="grid grid-cols-2 gap-3">
           <Field

@@ -24,6 +24,23 @@ export async function POST(req: Request) {
   });
 
   if (!res.ok) {
+    // Distinguish a blocked/suspended account (Rails 403 with a status+reason)
+    // from genuinely wrong credentials (401).
+    const data = await res.json().catch(() => ({}));
+    if (
+      res.status === 403 ||
+      data?.status === "suspended" ||
+      data?.status === "banned"
+    ) {
+      return NextResponse.json(
+        {
+          error: "blocked",
+          status: data?.status ?? "blocked",
+          reason: data?.reason ?? null,
+        },
+        { status: 403 },
+      );
+    }
     return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
   }
 

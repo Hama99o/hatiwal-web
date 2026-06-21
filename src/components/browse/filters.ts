@@ -15,6 +15,10 @@ export interface BrowseFilters {
   sort: ListingSort;
   priceMin: string;
   priceMax: string;
+  /** Location filter — set together (lat+lng), radius in km. */
+  lat: string;
+  lng: string;
+  radius: string;
 }
 
 export const DEFAULT_FILTERS: BrowseFilters = {
@@ -24,7 +28,13 @@ export const DEFAULT_FILTERS: BrowseFilters = {
   sort: "newest",
   priceMin: "",
   priceMax: "",
+  lat: "",
+  lng: "",
+  radius: "",
 };
+
+/** Default search radius (km) when a location is picked without an explicit radius. */
+export const DEFAULT_RADIUS_KM = 10;
 
 const SORTS: ListingSort[] = ["newest", "oldest", "price_asc", "price_desc"];
 
@@ -47,6 +57,9 @@ export function filtersFromParams(source: ParamSource): BrowseFilters {
     sort,
     priceMin: read(source, "min"),
     priceMax: read(source, "max"),
+    lat: read(source, "lat"),
+    lng: read(source, "lng"),
+    radius: read(source, "radius"),
   };
 }
 
@@ -59,6 +72,11 @@ export function filtersToSearchString(f: BrowseFilters): string {
   if (f.sort && f.sort !== "newest") sp.set("sort", f.sort);
   if (f.priceMin) sp.set("min", f.priceMin);
   if (f.priceMax) sp.set("max", f.priceMax);
+  if (f.lat && f.lng) {
+    sp.set("lat", f.lat);
+    sp.set("lng", f.lng);
+    if (f.radius) sp.set("radius", f.radius);
+  }
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -73,6 +91,7 @@ export function filtersToQuery(
   const category = f.categorySlug
     ? findCategoryBySlug(categories, f.categorySlug)
     : undefined;
+  const hasLocation = Boolean(f.lat && f.lng);
   return {
     page,
     pageSize,
@@ -83,6 +102,9 @@ export function filtersToQuery(
     sort: f.sort,
     priceMin: f.priceMin ? Number(f.priceMin) : undefined,
     priceMax: f.priceMax ? Number(f.priceMax) : undefined,
+    latitude: hasLocation ? Number(f.lat) : undefined,
+    longitude: hasLocation ? Number(f.lng) : undefined,
+    radius: hasLocation ? Number(f.radius) || DEFAULT_RADIUS_KM : undefined,
   };
 }
 
@@ -93,6 +115,7 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
       f.condition ||
       f.priceMin ||
       f.priceMax ||
+      f.lat ||
       f.sort !== "newest",
   );
 }

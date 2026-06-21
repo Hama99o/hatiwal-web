@@ -16,4 +16,5 @@ COPY . .
 
 EXPOSE 8500
 # Port comes from $PORT (set by compose); -H 0.0.0.0 makes it reachable from the host.
-CMD npx next dev -H 0.0.0.0 -p ${PORT:-8500}
+# --turbopack: much faster on-demand route compilation in dev.
+CMD npx next dev -H 0.0.0.0 -p ${PORT:-8500} --turbopack

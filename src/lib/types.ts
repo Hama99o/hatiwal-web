@@ -66,6 +66,8 @@ export interface Listing {
   thumbnailUrl: string | null;
   /** Unified, non-empty-when-possible list of full-size image urls. */
   images: string[];
+  /** {signed-id, url} pairs (detail view only) — needed to remove photos on edit. */
+  imageAttachments?: { id: string; url: string }[];
   viewsCount: number;
   conversationsCount?: number;
   isSaved?: boolean;
@@ -92,6 +94,62 @@ export interface ListingsResult {
   pagination: Pagination;
 }
 
+// ── Chat (Phase 4) ──────────────────────────────────────────────────────────
+
+export type MessageKind =
+  | "text"
+  | "meetup_proposal"
+  | "meetup_accepted"
+  | "meetup_declined"
+  | "offer"
+  | "offer_accepted"
+  | "offer_declined"
+  | "system"
+  | "document"
+  | "image_message";
+
+export interface Message {
+  id: number;
+  body: string;
+  kind: MessageKind;
+  readAt: string | null;
+  createdAt: string;
+  respondsToId: number | null;
+  sender: { id: number; name: string; avatarUrl?: string | null };
+  attachmentUrl?: string | null;
+}
+
+export interface ConversationParticipant {
+  id: number;
+  name: string;
+  city?: string | null;
+  verified?: boolean;
+  avatarUrl?: string | null;
+}
+
+export interface Conversation {
+  id: number;
+  status: "open" | "closed";
+  lastMessageAt: string | null;
+  createdAt: string;
+  listing: {
+    id: number;
+    title: string;
+    thumbnailUrl: string | null;
+    status: string;
+    price?: number;
+    currency?: string;
+    location?: string | null;
+  };
+  otherParticipant?: ConversationParticipant;
+  buyer?: ConversationParticipant;
+  seller?: ConversationParticipant;
+  lastMessageBody?: string | null;
+  lastMessageKind?: MessageKind | null;
+  unreadCount?: number;
+  blockedWithParticipant?: boolean;
+}
+
 /** The signed-in user (camelCase of the Rails `/users/me` `:me` serializer view). */
 export interface User {
   id: number;
@@ -115,5 +173,6 @@ export interface User {
   itemsSoldCount?: number;
   savedItemsCount?: number;
   unreadMessageCount?: number;
+  deletionScheduledAt?: string | null;
   createdAt: string;
 }

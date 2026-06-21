@@ -5,9 +5,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
 import { safe } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
-import { MessageSellerButton } from "@/components/listing/message-seller-button";
 import { ListingGrid } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ReportButton } from "@/components/shared/report-button";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -61,7 +61,7 @@ export default async function SellerPage({ params }: { params: Params }) {
             {t("seller.activeListings")}
           </span>
         </div>
-        <MessageSellerButton />
+        <ReportButton reportableType="User" reportableId={seller.id} />
       </div>
 
       <h2 className="mb-4 mt-8 text-lg font-semibold">

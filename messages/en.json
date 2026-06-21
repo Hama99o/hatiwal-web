@@ -237,7 +237,13 @@
       "discardTitle": "Discard changes?",
       "discardMessage": "Your unsaved changes will be lost.",
       "discardConfirm": "Discard",
-      "locationRequired": "Location is required — buyers filter listings by area"
+      "locationRequired": "Location is required — buyers filter listings by area",
+      "useMyLocation": "Use my location"
+    },
+    "analytics": {
+      "title": "Views (last 7 days)",
+      "totalViews": "{count} views in the last 7 days",
+      "noData": "No views yet"
     }
   },
   "browse": {
@@ -288,7 +294,13 @@
       "oldest": "Oldest first",
       "priceAsc": "Price: low to high",
       "priceDesc": "Price: high to low"
-    }
+    },
+    "saveSearch": "Save this search",
+    "savedSearches": "Saved searches",
+    "savedSearchCreated": "Search saved",
+    "noSavedSearches": "No saved searches yet",
+    "deleteSavedSearch": "Delete saved search",
+    "savedSearchAll": "All listings"
   },
   "profile": {
     "title": "Profile",
@@ -415,7 +427,11 @@
       },
       "saveButton": "Save Changes",
       "saving": "Saving…",
-      "province": "Province"
+      "province": "Province",
+      "changePhoto": "Change photo",
+      "photoUpdated": "Photo updated",
+      "photoError": "Could not update photo",
+      "photoTooLarge": "Image must be under 5 MB"
     }
   },
   "report": {
@@ -468,7 +484,10 @@
   "footer": {
     "tagline": "Afghanistan's local marketplace — buy and sell near you.",
     "explore": "Explore",
-    "rights": "© {year} Hatiwal. All rights reserved."
+    "rights": "© {year} Hatiwal. All rights reserved.",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "deleteAccount": "Delete account"
   },
   "openInApp": {
     "cta": "Open in the Hatiwal app",
@@ -544,6 +563,155 @@
     "whatHappensTitle": "What gets deleted",
     "whatHappensBody": "Your name, contact details, photo and listings are removed. Messages you sent are kept but shown as “Deleted user” so other people keep their conversation history.",
     "noAppTitle": "Don’t have the app?",
-    "noAppBody": "Email us at {email} from your account’s email address and we’ll delete your account and data."
+    "noAppBody": "Email us at {email} from your account’s email address and we’ll delete your account and data.",
+    "deleteButton": "Delete my account",
+    "confirmTitle": "Delete account?",
+    "confirmBody": "Your account and listings will be scheduled for deletion. You have 30 days to restore it by logging back in before it's permanently removed.",
+    "deletedToast": "Account scheduled for deletion",
+    "restoreTitle": "Your account is scheduled for deletion",
+    "restoreBody": "Restore it now to keep your account, listings, and messages.",
+    "restoreButton": "Restore my account",
+    "restoredToast": "Welcome back — your account is restored"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: June 2026",
+    "intro": "Hatiwal is a local marketplace for Afghanistan. This policy explains what we collect, how we use it, and your choices. We do not sell your data, and there is no online payment or advertising tracking.",
+    "collectTitle": "Information we collect",
+    "collectBody": "Account details you provide (name, email, phone); your listings and the photos you upload; your approximate location when you set it on a listing or filter by nearby items; and the messages you send to other users.",
+    "useTitle": "How we use it",
+    "useBody": "To run the marketplace: show your listings to buyers, let you and other users chat and arrange in-person meetups, and keep the service safe.",
+    "shareTitle": "What others see",
+    "shareBody": "Your name, photo, listings and messages are visible to the people you interact with, as part of using a marketplace. We never sell your personal data to third parties.",
+    "retentionTitle": "Keeping and deleting your data",
+    "retentionBody": "You can delete your account anytime from Profile → Delete account. Your account is hidden immediately and permanently deleted after 30 days — log back in within 30 days to restore it. After that your personal information is removed; messages you sent are kept but shown as “Deleted user” so other people keep their conversation history.",
+    "choicesTitle": "Your choices",
+    "choicesBody": "You control location, photo and notification permissions from your device settings, and can edit or remove your listings and account at any time.",
+    "contactTitle": "Contact us",
+    "contactBody": "For privacy questions, or to request deletion without the app, email us at {email}."
+  },
+  "chat": {
+    "title": "Messages",
+    "searchPlaceholder": "Search conversations...",
+    "messagePlaceholder": "Type a message...",
+    "send": "Send",
+    "empty": {
+      "title": "No conversations",
+      "description": "Start chatting with sellers to negotiate and arrange meetups.",
+      "browseAction": "Browse Listings"
+    },
+    "about": "About: {title}",
+    "proposeMeetup": "Propose Meetup",
+    "meetupProposal": "Meetup proposed",
+    "openListing": "View Listing",
+    "noConversations": "No conversations yet",
+    "noConversationsDescription": "Start chatting with sellers to negotiate and arrange meetups.",
+    "deleteConversation": "Delete Conversation",
+    "deleteConversationDescription": "This will permanently remove the conversation and all messages.",
+    "unknownUser": "Unknown User",
+    "noMessages": "No messages yet",
+    "preview": {
+      "meetup": "Meetup proposal",
+      "meetupAccepted": "Meetup accepted",
+      "meetupDeclined": "Meetup declined",
+      "offer": "Offer: {amount} {currency}",
+      "offerAccepted": "Offer accepted",
+      "offerDeclined": "Offer declined",
+      "photo": "Photo",
+      "file": "File"
+    },
+    "thread": {
+      "closedNotice": "This conversation is closed.",
+      "closedInput": "Conversation closed — replies disabled.",
+      "sendFailed": "Failed to send message. Please try again.",
+      "loadFailed": "Could not load messages.",
+      "meetupSent": "Meetup proposal sent!",
+      "meetupFailed": "Failed to send meetup proposal.",
+      "startFailed": "Could not start conversation.",
+      "duplicateConversation": "You already have a conversation about this listing.",
+      "inactiveListing": "This listing is no longer active.",
+      "selfConversation": "You cannot message your own listing.",
+      "sending": "Sending...",
+      "you": "You",
+      "read": "Read",
+      "delivered": "Delivered",
+      "emptyTitle": "No messages yet",
+      "emptyDescription": "Send a message to start the conversation.",
+      "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker"
+    },
+    "meetup": {
+      "title": "Propose a Meetup",
+      "placePlaceholder": "Where? (e.g. Shahr-e-Naw market)",
+      "timePlaceholder": "When? (e.g. Tomorrow 3pm)",
+      "place": "Place",
+      "time": "Time",
+      "propose": "Propose Meetup",
+      "proposed": "Meetup Proposal",
+      "placeRequired": "Please enter a meeting place.",
+      "timeRequired": "Please enter a meeting time.",
+      "accept": "Accept",
+      "decline": "Decline",
+      "accepted": "Meetup accepted",
+      "declined": "Meetup declined",
+      "acceptedToast": "You accepted the meetup",
+      "declinedToast": "You declined the meetup"
+    },
+    "startConversation": {
+      "title": "Message Seller",
+      "placeholder": "Ask about this item...",
+      "send": "Send Message",
+      "sending": "Sending..."
+    },
+    "attachFile": "Attach file",
+    "document": {
+      "tap": "Tap to open",
+      "notAvailable": "File not available"
+    },
+    "filter": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "noUnread": "All caught up!",
+      "noUnreadDescription": "No unread messages right now."
+    },
+    "offer": {
+      "label": "Price Offer",
+      "yourOffer": "Your Offer",
+      "listedAt": "Listed at {price}",
+      "noPayment": "No payment — this is just a message to the seller.",
+      "accept": "Accept offer",
+      "decline": "Decline",
+      "accepted": "Offer accepted",
+      "declined": "Offer declined",
+      "acceptedToast": "You accepted the offer",
+      "declinedToast": "You declined the offer"
+    },
+    "block": {
+      "blockUser": "Block User",
+      "unblockUser": "Unblock User",
+      "blockConfirmTitle": "Block this user?",
+      "blockConfirmDescription": "They won't be able to message you and you won't see their listings.",
+      "blocked": "You have blocked this user.",
+      "blockSuccess": "User blocked.",
+      "unblockSuccess": "User unblocked.",
+      "blockFailed": "Could not block user. Try again.",
+      "unblockFailed": "Could not unblock user. Try again."
+    },
+    "search": {
+      "placeholder": "Search messages...",
+      "matchCount": "{current} of {total}",
+      "partialResults": "Showing results in loaded messages only",
+      "noResults": "No messages match your search"
+    },
+    "listingFilter": {
+      "title": "Conversations for this listing",
+      "viewAll": "View all conversations",
+      "viewConversations": "View conversations"
+    }
+  },
+  "warnings": {
+    "title": "Account warning",
+    "body": "You have {count} active warning(s). {threshold} warnings lead to a suspension.",
+    "acknowledge": "I understand"
   }
 }

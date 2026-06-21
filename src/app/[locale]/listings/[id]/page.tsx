@@ -12,9 +12,12 @@ import { ConditionBadge } from "@/components/shared/condition-badge";
 import { PriceDropBadge } from "@/components/shared/price-drop-badge";
 import { CategoryBadge } from "@/components/shared/category-badge";
 import { UserIdentity } from "@/components/shared/user-identity";
-import { MessageSellerButton } from "@/components/listing/message-seller-button";
+import { StartConversationButton } from "@/components/chat/start-conversation-button";
+import { ReportButton } from "@/components/shared/report-button";
+import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { ListingGrid } from "@/components/shared/listing-grid";
+import { LocationMap } from "@/components/map/location-map";
 import { Separator } from "@/components/ui/separator";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
@@ -76,10 +79,6 @@ export default async function ListingDetailPage({
     : [];
 
   const isActive = listing.status === "active";
-  const mapsUrl =
-    listing.latitude != null && listing.longitude != null
-      ? `https://www.google.com/maps/search/?api=1&query=${listing.latitude},${listing.longitude}`
-      : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -147,22 +146,22 @@ export default async function ListingDetailPage({
           </div>
 
           {listing.location && (
-            <div className="flex items-start gap-2 rounded-lg border bg-card p-3 text-sm">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{t("listing.detail.location")}</p>
-                <p className="text-muted-foreground">{listing.location}</p>
-                {mapsUrl && (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-block text-primary hover:underline"
-                  >
-                    {t("listing.detail.location")} →
-                  </a>
-                )}
+            <div className="space-y-2 rounded-lg border bg-card p-3">
+              <div className="flex items-start gap-2 text-sm">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{t("listing.detail.location")}</p>
+                  <p className="text-muted-foreground">{listing.location}</p>
+                </div>
               </div>
+              {listing.latitude != null && listing.longitude != null && (
+                <LocationMap
+                  lat={listing.latitude}
+                  lng={listing.longitude}
+                  zoom={14}
+                  className="h-48"
+                />
+              )}
             </div>
           )}
 
@@ -185,7 +184,18 @@ export default async function ListingDetailPage({
 
           {/* Actions */}
           {isActive ? (
-            <MessageSellerButton className="w-full" />
+            <div className="space-y-2">
+              <StartConversationButton
+                listingId={listing.id}
+                sellerId={listing.seller?.id}
+                price={listing.price}
+                currency={listing.currency}
+              />
+              <SellerPhoneReveal
+                phone={listing.seller?.phone}
+                sellerId={listing.seller?.id}
+              />
+            </div>
           ) : (
             <div className="rounded-lg border bg-muted/50 p-4 text-center text-sm font-medium text-muted-foreground">
               {listing.status === "sold"
@@ -207,6 +217,14 @@ export default async function ListingDetailPage({
           </p>
         </section>
       )}
+
+      <div className="mt-8 max-w-3xl">
+        <ReportButton
+          reportableType="Listing"
+          reportableId={listing.id}
+          ownerId={listing.seller?.id}
+        />
+      </div>
 
       {similar.length > 0 && (
         <section className="mt-12">

@@ -1,5 +1,5 @@
 import { convertKeysToCamel } from "../api/case";
-import { RAILS_SERVER_BASE } from "../env";
+import { RAILS_SERVER_BASE, rewriteRailsHost } from "../env";
 import type { User } from "../types";
 import {
   deviseRequestHeaders,
@@ -21,7 +21,13 @@ export async function fetchMe(
   });
   if (!res.ok) return null;
   // Guard against a 2xx with a non-JSON body (proxy/maintenance page, etc.).
-  const json: unknown = await res.json().catch(() => null);
+  const raw = await res.text().catch(() => "");
+  let json: unknown = null;
+  try {
+    json = raw ? JSON.parse(rewriteRailsHost(raw)) : null;
+  } catch {
+    json = null;
+  }
   if (!json) return null;
   const { user } = convertKeysToCamel<{ user: User }>(json);
   return { user, tokens: tokensFromResponse(res) ?? tokens };

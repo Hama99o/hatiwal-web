@@ -7,6 +7,11 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  DeleteAccountButton,
+  RestoreAccountBanner,
+} from "./delete-account-section";
+import { WarningsBanner } from "./warnings-banner";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -39,6 +44,8 @@ export function ProfileView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+      <WarningsBanner />
+      <RestoreAccountBanner />
       <div className="flex items-start justify-between gap-4">
         <UserIdentity
           name={name}
@@ -93,6 +100,9 @@ export function ProfileView() {
         <LogOut className="size-4" />
         {t("profile.logout")}
       </Button>
+
+      <Separator />
+      <DeleteAccountButton />
     </div>
   );
 }

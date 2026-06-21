@@ -1,5 +1,5 @@
 import { convertKeysToCamel } from "./case";
-import { PROXY_BASE, RAILS_SERVER_BASE } from "../env";
+import { PROXY_BASE, RAILS_SERVER_BASE, rewriteRailsHost } from "../env";
 
 /**
  * Isomorphic API access to the Rails backend.
@@ -64,6 +64,7 @@ export async function apiGet<T>(
   if (!res.ok) {
     throw new ApiError(res.status, `GET ${path} failed (${res.status})`);
   }
-  const json: unknown = await res.json();
+  const text = await res.text();
+  const json: unknown = text ? JSON.parse(rewriteRailsHost(text)) : null;
   return convertKeysToCamel<T>(json);
 }

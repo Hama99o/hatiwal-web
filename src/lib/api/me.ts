@@ -35,8 +35,9 @@ export async function meRequest<T>(
     err.status = res.status;
     throw err;
   }
-  const json: unknown = await res.json();
-  return convertKeysToCamel<T>(json);
+  // Tolerate empty bodies (e.g. 204 from DELETE).
+  const text = await res.text();
+  return (text ? convertKeysToCamel<T>(JSON.parse(text)) : undefined) as T;
 }
 
 export async function getSavedListings(): Promise<Listing[]> {
@@ -60,6 +61,40 @@ export async function updateProfile(input: ProfileUpdate): Promise<User> {
   const data = await meRequest<{ user: User }>("users/me", {
     method: "PUT",
     json: { user: input },
+  });
+  return data.user;
+}
+
+/** Upload a new avatar — multipart PUT /users/me, mirroring mobile's updateAvatar. */
+export async function updateAvatar(file: File): Promise<User> {
+  const form = new FormData();
+  form.append("user[avatar]", file);
+  const data = await meRequest<{ user: User }>("users/me", {
+    method: "PUT",
+    form,
+  });
+  return data.user;
+}
+
+export interface AnalyticsEntry {
+  date: string;
+  count: number;
+}
+
+/** Per-day view counts for a listing (7 entries, oldest→newest) — mobile parity. */
+export async function getListingAnalytics(
+  id: number | string,
+): Promise<AnalyticsEntry[]> {
+  const d = await meRequest<{ analytics: AnalyticsEntry[] }>(
+    `my/listings/${id}/analytics`,
+  );
+  return d.analytics ?? [];
+}
+
+/** Undo a scheduled account deletion within the grace window (mobile parity). */
+export async function restoreAccount(): Promise<User> {
+  const data = await meRequest<{ user: User }>("users/me/restore", {
+    method: "POST",
   });
   return data.user;
 }

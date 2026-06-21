@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { SlidersHorizontal, X } from "lucide-react";
+import { MapPin, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { getListings } from "@/lib/api/listings";
 import { categoryName } from "@/lib/api/categories";
@@ -15,6 +15,8 @@ import {
 } from "@/lib/types";
 import {
   type BrowseFilters,
+  DEFAULT_FILTERS,
+  DEFAULT_RADIUS_KM,
   filtersToQuery,
   filtersToSearchString,
   hasActiveFilters,
@@ -25,6 +27,8 @@ import {
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchField } from "@/components/shared/search-field";
+import { SavedSearches } from "./saved-searches";
+import { LocationMap } from "@/components/map/location-map";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -114,15 +118,22 @@ export function BrowseClient({
 
   const reset = () => {
     setSearchInput("");
-    setFilters({
-      q: "",
-      categorySlug: "",
-      condition: "",
-      sort: "newest",
-      priceMin: "",
-      priceMax: "",
-    });
+    setFilters({ ...DEFAULT_FILTERS });
   };
+
+  // "Use my location" — set the zone center to the browser's geolocation.
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((pos) =>
+      update({
+        lat: String(pos.coords.latitude),
+        lng: String(pos.coords.longitude),
+        radius: filters.radius || String(DEFAULT_RADIUS_KM),
+      }),
+    );
+  };
+
+  const RADIUS_PRESETS = [5, 10, 25, 50];
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -234,6 +245,97 @@ export function BrowseClient({
           />
         </div>
       </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">
+            {t("browse.location")}
+          </h3>
+          {filters.lat && (
+            <button
+              type="button"
+              onClick={() => update({ lat: "", lng: "", radius: "" })}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3" />
+              {t("browse.resetFilters")}
+            </button>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mb-2 w-full"
+          onClick={useMyLocation}
+        >
+          <MapPin className="size-4" />
+          {t("listing.form.useMyLocation")}
+        </Button>
+
+        <LocationMap
+          editable
+          lat={filters.lat ? Number(filters.lat) : null}
+          lng={filters.lng ? Number(filters.lng) : null}
+          radiusKm={
+            filters.lat ? Number(filters.radius) || DEFAULT_RADIUS_KM : undefined
+          }
+          onChange={(la, ln) =>
+            update({
+              lat: String(la),
+              lng: String(ln),
+              radius: filters.radius || String(DEFAULT_RADIUS_KM),
+            })
+          }
+          className="h-40"
+        />
+
+        {filters.lat ? (
+          <div className="mt-3 space-y-2">
+            {/* Zone presets (like mobile) */}
+            <div className="flex flex-wrap gap-1.5">
+              {RADIUS_PRESETS.map((km) => {
+                const active = (Number(filters.radius) || DEFAULT_RADIUS_KM) === km;
+                return (
+                  <Chip
+                    key={km}
+                    active={active}
+                    onClick={() => update({ radius: String(km) })}
+                  >
+                    {km} {t("browse.km")}
+                  </Chip>
+                );
+              })}
+            </div>
+            {/* Fine-tune slider */}
+            <label className="flex justify-between text-xs text-muted-foreground">
+              <span>{t("browse.distance")}</span>
+              <span>
+                {filters.radius || DEFAULT_RADIUS_KM} {t("browse.km")}
+              </span>
+            </label>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              value={Number(filters.radius) || DEFAULT_RADIUS_KM}
+              onChange={(e) => update({ radius: e.target.value })}
+              className="w-full accent-primary"
+            />
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("listing.form.tapToSetLocation")}
+          </p>
+        )}
+      </div>
+
+      <SavedSearches
+        filters={filters}
+        categories={categories}
+        onApply={(patch) => update(patch)}
+      />
 
       {filtersActive && (
         <Button variant="ghost" size="sm" onClick={reset}>

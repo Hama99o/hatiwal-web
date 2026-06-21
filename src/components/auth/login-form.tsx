@@ -43,8 +43,16 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     const res = await login(values.email, values.password);
-    // On success the redirect effect fires (status → "authed").
-    if (!res.ok) setFormError(t("auth.loginError"));
+    if (res.ok) return; // redirect effect fires (status → "authed")
+    if (res.error === "blocked") {
+      const key = res.status === "banned" ? "banned" : "suspended";
+      const reason = res.reason
+        ? ` ${t("auth.blocked.reason", { reason: res.reason })}`
+        : "";
+      setFormError(`${t(`auth.blocked.${key}`)}${reason}`);
+    } else {
+      setFormError(t("auth.loginError"));
+    }
   });
 
   return (

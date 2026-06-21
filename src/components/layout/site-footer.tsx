@@ -32,6 +32,21 @@ export function SiteFooter() {
             {t("nav.categories")}
           </Link>
         </nav>
+        <nav className="flex flex-col gap-2 text-sm">
+          <span className="font-semibold text-foreground">{t("footer.legal")}</span>
+          <Link
+            href="/privacy"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("footer.privacy")}
+          </Link>
+          <Link
+            href="/delete-account"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("footer.deleteAccount")}
+          </Link>
+        </nav>
       </div>
       <div className="border-t py-4 text-center text-xs text-muted-foreground">
         {t("footer.rights", { year })}

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ImageOff } from "lucide-react";
+import { Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RemoteImageProps {
@@ -29,16 +29,19 @@ export function RemoteImage({
   priority,
 }: RemoteImageProps) {
   if (!src) {
+    // Intentional "item has no photo" tile — a calm solid fill with a neutral
+    // marketplace glyph, deliberately NOT the image/mountain icon (which reads
+    // as a *broken* image).
     return (
       <div
         role="img"
         aria-label={alt}
         className={cn(
-          "flex items-center justify-center bg-muted text-muted-foreground",
+          "flex items-center justify-center bg-muted text-muted-foreground/40",
           className,
         )}
       >
-        <ImageOff className="size-6 opacity-40" />
+        <Package className="size-7" strokeWidth={1.5} />
       </div>
     );
   }

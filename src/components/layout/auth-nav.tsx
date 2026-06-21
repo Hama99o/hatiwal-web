@@ -1,7 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Heart, LogOut, Plus, Tag, User as UserIcon } from "lucide-react";
+import {
+  Heart,
+  LogOut,
+  MessageSquare,
+  Plus,
+  ShieldOff,
+  Tag,
+  User as UserIcon,
+} from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
@@ -39,8 +47,26 @@ export function AuthNav() {
     router.push("/");
   }
 
+  const unread = user.unreadMessageCount ?? 0;
+
   return (
     <>
+      <Button
+        asChild
+        variant="ghost"
+        size="icon"
+        className="relative"
+        aria-label={t("chat.title")}
+      >
+        <Link href="/conversations">
+          <MessageSquare className="size-5" />
+          {unread > 0 && (
+            <span className="absolute end-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Link>
+      </Button>
       <Button asChild size="sm" className="hidden sm:inline-flex">
         <Link href="/listings/new">
           <Plus className="size-4" />
@@ -72,9 +98,21 @@ export function AuthNav() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
+            <Link href="/conversations">
+              <MessageSquare className="size-4" />
+              {t("chat.title")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link href="/saved">
               <Heart className="size-4" />
               {t("saved.title")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings/blocked-users">
+              <ShieldOff className="size-4" />
+              {t("profile.blockedUsers")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="sm:hidden">

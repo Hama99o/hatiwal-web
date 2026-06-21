@@ -25,7 +25,12 @@ interface AuthContextValue {
   login: (
     email: string,
     password: string,
-  ) => Promise<{ ok: boolean }>;
+  ) => Promise<{
+    ok: boolean;
+    error?: string;
+    status?: string;
+    reason?: string | null;
+  }>;
   register: (
     input: RegisterInput,
   ) => Promise<{ ok: boolean; errors?: Record<string, string[]> }>;
@@ -62,7 +67,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) return { ok: false };
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return {
+        ok: false,
+        error: err?.error,
+        status: err?.status,
+        reason: err?.reason,
+      };
+    }
     const data = await res.json();
     setUser(data.user);
     setStatus("authed");

@@ -40,6 +40,8 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
+    # Override the image CMD so an existing image picks up Turbopack without a rebuild.
+    command: sh -c "npx next dev -H 0.0.0.0 -p ${WEB_PORT:-8500} --turbopack"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     stdin_open: true

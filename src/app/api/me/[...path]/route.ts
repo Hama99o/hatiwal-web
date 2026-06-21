@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { RAILS_SERVER_BASE } from "@/lib/env";
+import { RAILS_SERVER_BASE, rewriteRailsHost } from "@/lib/env";
 import { deviseRequestHeaders, tokensFromResponse } from "@/lib/auth/devise";
 import {
   clearTokenCookies,
@@ -30,6 +30,28 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["DELETE", /^my\/listings\/\d+$/],
   ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew)$/],
   ["GET", /^my\/listings\/\d+\/analytics$/],
+  // Chat (Phase 4):
+  ["GET", /^conversations$/],
+  ["GET", /^conversations\/\d+$/],
+  ["DELETE", /^conversations\/\d+$/],
+  ["POST", /^listings\/\d+\/conversations$/],
+  ["GET", /^conversations\/\d+\/messages$/],
+  ["POST", /^conversations\/\d+\/messages$/],
+  ["PUT", /^conversations\/\d+\/messages\/mark_read$/],
+  ["GET", /^blocks$/],
+  ["POST", /^users\/\d+\/block$/],
+  ["DELETE", /^users\/\d+\/block$/],
+  // Reports (report a listing or user):
+  ["POST", /^reports$/],
+  // Saved searches:
+  ["GET", /^users\/saved_searches$/],
+  ["POST", /^users\/saved_searches$/],
+  ["DELETE", /^users\/saved_searches\/\d+$/],
+  // Restore a scheduled-for-deletion account:
+  ["POST", /^users\/me\/restore$/],
+  // Moderation warnings:
+  ["GET", /^users\/warnings$/],
+  ["PUT", /^users\/warnings\/mark_seen$/],
 ];
 
 async function handle(
@@ -75,8 +97,9 @@ async function handle(
     return NextResponse.json({ error: "upstream_failed" }, { status: 502 });
   }
 
-  const text = await upstream.text();
-  const out = new NextResponse(text, {
+  const text = rewriteRailsHost(await upstream.text());
+  // 204/empty responses must have a null body (e.g. DELETE) — passing "" throws.
+  const out = new NextResponse(text || null, {
     status: upstream.status,
     headers: {
       "content-type":
