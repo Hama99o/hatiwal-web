@@ -44,7 +44,7 @@ env:
     PORT: 3000
     HOSTNAME: "0.0.0.0"
     # Server-side (RSC/ISR + the /api/proxy route) fetches Rails directly here.
-    API_URL: <%= ENV.fetch("API_URL", "https://api.hatiwal.51.254.130.18.nip.io/api/v1") %>
+    API_URL: <%= ENV.fetch("API_URL", "https://hatiwal-api.multimagics.com/api/v1") %>
 
 aliases:
   logs: app logs -f
@@ -56,12 +56,12 @@ builder:
   arch: amd64
   driver: docker
   args:
-    NEXT_PUBLIC_API_URL: <%= ENV.fetch("NEXT_PUBLIC_API_URL", "https://api.hatiwal.51.254.130.18.nip.io/api/v1") %>
-    NEXT_PUBLIC_RAILS_ORIGIN: <%= ENV.fetch("NEXT_PUBLIC_RAILS_ORIGIN", "https://api.hatiwal.51.254.130.18.nip.io") %>
-    NEXT_PUBLIC_SITE_URL: <%= ENV.fetch("NEXT_PUBLIC_SITE_URL", "https://hatiwal.51.254.130.18.nip.io") %>
+    NEXT_PUBLIC_API_URL: <%= ENV.fetch("NEXT_PUBLIC_API_URL", "https://hatiwal-api.multimagics.com/api/v1") %>
+    NEXT_PUBLIC_RAILS_ORIGIN: <%= ENV.fetch("NEXT_PUBLIC_RAILS_ORIGIN", "https://hatiwal-api.multimagics.com") %>
+    NEXT_PUBLIC_SITE_URL: <%= ENV.fetch("NEXT_PUBLIC_SITE_URL", "https://hatiwal.multimagics.com") %>
     # ActionCable WebSocket (live chat). Must be wss:// (page is https) and point
     # at the API's cable mount (/hatiwal-cable).
-    NEXT_PUBLIC_CABLE_URL: <%= ENV.fetch("NEXT_PUBLIC_CABLE_URL", "wss://api.hatiwal.51.254.130.18.nip.io/hatiwal-cable") %>
+    NEXT_PUBLIC_CABLE_URL: <%= ENV.fetch("NEXT_PUBLIC_CABLE_URL", "wss://hatiwal-api.multimagics.com/hatiwal-cable") %>
     NEXT_PUBLIC_APP_NAME: Hatiwal
     NEXT_PUBLIC_DEFAULT_LOCALE: en
     NEXT_PUBLIC_DEFAULT_THEME: system
