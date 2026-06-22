@@ -37,6 +37,18 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   setUser: (user: User) => void;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (
+    token: string,
+    password: string,
+    passwordConfirmation: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  googleLogin: (idToken: string) => Promise<{
+    ok: boolean;
+    error?: string;
+    status?: string;
+    reason?: string | null;
+  }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -104,9 +116,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus("guest");
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  }, []);
+
+  const resetPassword = useCallback(
+    async (
+      token: string,
+      password: string,
+      passwordConfirmation: string,
+    ) => {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password, passwordConfirmation }),
+      });
+      if (!res.ok) return { ok: false, error: "invalid_token" };
+      return { ok: true };
+    },
+    [],
+  );
+
+  const googleLogin = useCallback(async (idToken: string) => {
+    const res = await fetch("/api/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return {
+        ok: false,
+        error: err?.error,
+        status: err?.status,
+        reason: err?.reason,
+      };
+    }
+    const data = await res.json();
+    setUser(data.user);
+    setStatus("authed");
+    return { ok: true };
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, status, login, register, logout, refresh, setUser }}
+      value={{
+        user,
+        status,
+        login,
+        register,
+        logout,
+        refresh,
+        setUser,
+        forgotPassword,
+        resetPassword,
+        googleLogin,
+      }}
     >
       {children}
     </AuthContext.Provider>

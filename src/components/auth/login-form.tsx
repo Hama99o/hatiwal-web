@@ -1,17 +1,81 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "@/i18n/navigation";
+import Script from "next/script";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    google: any;
+  }
+}
+
+function GoogleSignInButton() {
+  const t = useTranslations();
+  const { googleLogin } = useAuth();
+  const router = useRouter();
+  const divRef = useRef<HTMLDivElement>(null);
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const [googleError, setGoogleError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!clientId || !divRef.current) return;
+
+    const init = () => {
+      if (!window.google) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response: { credential: string }) => {
+          setGoogleError(null);
+          const res = await googleLogin(response.credential);
+          if (res.ok) {
+            router.replace("/profile");
+          } else {
+            setGoogleError(t("auth.googleSignInFailed"));
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(divRef.current, {
+        theme: "outline",
+        size: "large",
+        width: divRef.current?.offsetWidth || 300,
+        text: "continue_with",
+      });
+    };
+
+    if (window.google) {
+      init();
+    } else {
+      window.addEventListener("load", init);
+    }
+    return () => window.removeEventListener("load", init);
+  }, [clientId, googleLogin, router, t]);
+
+  if (!clientId) return null;
+
+  return (
+    <>
+      <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
+      {googleError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {googleError}
+        </p>
+      )}
+      <div ref={divRef} className="w-full" />
+    </>
+  );
+}
 
 export function LoginForm() {
   const t = useTranslations();
@@ -89,10 +153,29 @@ export function LoginForm() {
             {...register("password")}
           />
         </Field>
+        <div className="flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-primary hover:underline"
+          >
+            {t("auth.forgotPassword")}
+          </Link>
+        </div>
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="size-4 animate-spin" />}
           {t("auth.loginButton")}
         </Button>
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              {t("auth.orDivider")}
+            </span>
+          </div>
+        </div>
+        <GoogleSignInButton />
       </form>
     </AuthCard>
   );

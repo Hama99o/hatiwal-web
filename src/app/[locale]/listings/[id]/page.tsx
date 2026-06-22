@@ -31,7 +31,7 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { id } = await params;
-  const listing = await safe(getListing(id, { revalidate: 60 }), null);
+  const listing = await safe(getListing(id), null);
   if (!listing) return { title: "Hatiwal" };
 
   const description =
@@ -57,20 +57,19 @@ export default async function ListingDetailPage({
   setRequestLocale(locale);
   const t = await getTranslations();
 
-  const listing = await safe(getListing(id, { revalidate: 60 }), null);
+  // No revalidate: these payloads carry short-lived signed Active Storage image
+  // URLs; caching them serves expired URLs → 404 broken photos. Page is dynamic.
+  const listing = await safe(getListing(id), null);
   if (!listing) notFound();
 
   const similar = listing.categoryId
     ? (
         await safe(
-          getListings(
-            {
-              categoryId: listing.categoryId,
-              status: "active",
-              pageSize: 12,
-            },
-            { revalidate: 60 },
-          ),
+          getListings({
+            categoryId: listing.categoryId,
+            status: "active",
+            pageSize: 12,
+          }),
           EMPTY_LISTINGS,
         )
       ).items

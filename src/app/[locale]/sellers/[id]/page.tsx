@@ -37,7 +37,7 @@ export default async function SellerPage({ params }: { params: Params }) {
   const t = await getTranslations();
 
   const { seller, listings, totalCount } = await safe(
-    getPublicSeller(id, { revalidate: 60 }),
+    getPublicSeller(id),
     EMPTY_SELLER,
   );
   if (!seller) notFound();

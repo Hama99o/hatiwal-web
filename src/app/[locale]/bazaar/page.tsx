@@ -48,11 +48,12 @@ export default async function BrowsePage({
 
   // Pass null (not empty) on failure so the client island can retry via the
   // proxy and surface a real error/loading state instead of a false "no results".
+  // NOTE: no `revalidate` here — the payload contains short-lived signed Active
+  // Storage image URLs. Caching them (even 60s) serves expired URLs → 404 broken
+  // thumbnails. The page is force-dynamic, so fetch fresh every request.
   let initialResult: ListingsResult | null = null;
   try {
-    initialResult = await getListings(filtersToQuery(filters, categories, 1), {
-      revalidate: 60,
-    });
+    initialResult = await getListings(filtersToQuery(filters, categories, 1));
   } catch {
     initialResult = null;
   }

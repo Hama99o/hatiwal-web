@@ -1,6 +1,6 @@
 # Kamal deployment configuration for hatiwal_web (Next.js front-end)
 #
-# Co-hosted on one OVH VPS (51.254.130.18) with multi_magic, edu_safi and
+# Co-hosted on one OVH VPS (host/domains in .env.production) with multi_magic, edu_safi and
 # hatiwal_api, in its own isolated Docker network (hatiwal_web-net). The shared
 # kamal-proxy routes by hostname. This app has NO database/redis — it is a second
 # client of the Rails API (hatiwal_api), which it reaches over its public HTTPS URL.
@@ -44,7 +44,8 @@ env:
     PORT: 3000
     HOSTNAME: "0.0.0.0"
     # Server-side (RSC/ISR + the /api/proxy route) fetches Rails directly here.
-    API_URL: <%= ENV.fetch("API_URL", "https://hatiwal-api.multimagics.com/api/v1") %>
+    # All real values come from .env.production (gitignored) — never hardcoded here.
+    API_URL: <%= ENV.fetch("API_URL") %>
 
 aliases:
   logs: app logs -f
@@ -56,12 +57,13 @@ builder:
   arch: amd64
   driver: docker
   args:
-    NEXT_PUBLIC_API_URL: <%= ENV.fetch("NEXT_PUBLIC_API_URL", "https://hatiwal-api.multimagics.com/api/v1") %>
-    NEXT_PUBLIC_RAILS_ORIGIN: <%= ENV.fetch("NEXT_PUBLIC_RAILS_ORIGIN", "https://hatiwal-api.multimagics.com") %>
-    NEXT_PUBLIC_SITE_URL: <%= ENV.fetch("NEXT_PUBLIC_SITE_URL", "https://hatiwal.multimagics.com") %>
+    # All real values come from .env.production (gitignored) — never hardcoded here.
+    NEXT_PUBLIC_API_URL: <%= ENV.fetch("NEXT_PUBLIC_API_URL") %>
+    NEXT_PUBLIC_RAILS_ORIGIN: <%= ENV.fetch("NEXT_PUBLIC_RAILS_ORIGIN") %>
+    NEXT_PUBLIC_SITE_URL: <%= ENV.fetch("NEXT_PUBLIC_SITE_URL") %>
     # ActionCable WebSocket (live chat). Must be wss:// (page is https) and point
     # at the API's cable mount (/hatiwal-cable).
-    NEXT_PUBLIC_CABLE_URL: <%= ENV.fetch("NEXT_PUBLIC_CABLE_URL", "wss://hatiwal-api.multimagics.com/hatiwal-cable") %>
+    NEXT_PUBLIC_CABLE_URL: <%= ENV.fetch("NEXT_PUBLIC_CABLE_URL") %>
     NEXT_PUBLIC_APP_NAME: Hatiwal
     NEXT_PUBLIC_DEFAULT_LOCALE: en
     NEXT_PUBLIC_DEFAULT_THEME: system

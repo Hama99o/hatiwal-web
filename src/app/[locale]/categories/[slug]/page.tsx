@@ -38,11 +38,10 @@ export default async function CategoryPage({ params }: { params: Params }) {
   const category = findCategoryBySlug(categories, slug);
   if (!category) notFound();
 
+  // No revalidate: listing payloads carry short-lived signed image URLs that
+  // 404 if cached. Category page is force-dynamic, so fetch fresh.
   const { items } = await safe(
-    getListings(
-      { categoryId: category.id, status: "active", pageSize: 24 },
-      { revalidate: 60 },
-    ),
+    getListings({ categoryId: category.id, status: "active", pageSize: 24 }),
     EMPTY_LISTINGS,
   );
   const name = categoryName(category, locale);
