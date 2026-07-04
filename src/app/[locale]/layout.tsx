@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Rubik, Zain, Noto_Sans_Arabic } from "next/font/google";
+import localFont from "next/font/local";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -11,23 +11,33 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import "../globals.css";
 
-// Brand fonts. Rubik (Latin + Arabic) is the primary; Zain adds the Arabic
-// display character; Noto Sans Arabic is the guaranteed Pashto/Dari cover for
-// the extended letters (ټ ډ ړ ږ ښ ګ ڼ ې) that Rubik/Zain may lack. Browsers do
-// per-glyph fallback across the stack, so en/ps/fa all render correctly.
-const rubik = Rubik({
-  subsets: ["latin", "arabic"],
+// Brand fonts — SELF-HOSTED (next/font/local) so there is NO build-time fetch to
+// Google Fonts. That build-time fetch is unreliable in CI (it hangs the E2E dev
+// server), and self-hosting is faster + privacy-friendly in production anyway.
+// Rubik = Latin primary; Zain = Arabic display; Noto Sans Arabic = the guaranteed
+// Pashto/Dari cover for extended letters (ټ ډ ړ ږ ښ ګ ڼ ې). Browsers fall back
+// per-glyph across the stack, so en/ps/fa all render.
+const rubik = localFont({
+  src: [
+    { path: "../fonts/Rubik_400Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/Rubik_700Bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-rubik",
   display: "swap",
 });
-const zain = Zain({
-  subsets: ["latin", "arabic"],
-  weight: ["400", "700"],
+const zain = localFont({
+  src: [
+    { path: "../fonts/Zain_400Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/Zain_700Bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-zain",
   display: "swap",
 });
-const notoArabic = Noto_Sans_Arabic({
-  subsets: ["arabic"],
+const notoArabic = localFont({
+  src: [
+    { path: "../fonts/NotoSansArabic_400Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/NotoSansArabic_700Bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-noto-arabic",
   display: "swap",
 });
