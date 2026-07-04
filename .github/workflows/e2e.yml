@@ -26,6 +26,18 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # npm 9 + --legacy-peer-deps skips @tailwindcss/oxide's optional
+      # platform bindings (npm/cli#4828) — verified: without this, next dev
+      # 500s every page ("Cannot find native binding") and the Playwright
+      # webServer times out. Plain `npm ci` isn't an option (real ERESOLVE
+      # peer conflicts), so install the Linux binding explicitly, pinned to
+      # whatever oxide version the lockfile resolved.
+      - name: Install Tailwind oxide native binding (npm/cli#4828 workaround)
+        run: |
+          OXV=$(node -p "require('@tailwindcss/oxide/package.json').version")
+          npm i --no-save --legacy-peer-deps "@tailwindcss/oxide-linux-x64-gnu@${OXV}"
+          node -e "require('@tailwindcss/oxide')" && echo "oxide native binding OK"
+
       - name: Install Playwright browsers (chromium)
         run: npx playwright install --with-deps chromium
 
