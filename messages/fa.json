@@ -241,7 +241,9 @@
       "discardMessage": "تغییرات ذخیره‌نشده شما از دست خواهد رفت.",
       "discardConfirm": "انصراف",
       "locationRequired": "موقعیت الزامی است — خریداران بر اساس منطقه فیلتر می‌کنند",
-      "useMyLocation": "از موقعیت فعلی من استفاده کن"
+      "useMyLocation": "از موقعیت فعلی من استفاده کن",
+      "searchPlacePlaceholder": "شهر یا منطقه را جستجو کنید…",
+      "searchAttribution": "جستجو توسط OpenStreetMap"
     },
     "analytics": {
       "title": "بازدیدها (۷ روز اخیر)",

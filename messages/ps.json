@@ -241,7 +241,9 @@
       "discardMessage": "ستاسو ناخوندي شوي بدلونونه به له لاسه لاړ شي.",
       "discardConfirm": "لغوه کول",
       "locationRequired": "موقعیت اړین دی — پیرودونکي د سیمې له مخې فلټر کوي",
-      "useMyLocation": "زما اوسنی موقعیت وکاروئ"
+      "useMyLocation": "زما اوسنی موقعیت وکاروئ",
+      "searchPlacePlaceholder": "ښار يا سيمه ولټوئ…",
+      "searchAttribution": "لټون د OpenStreetMap لخوا"
     },
     "analytics": {
       "title": "کتنې (تېرې ۷ ورځې)",

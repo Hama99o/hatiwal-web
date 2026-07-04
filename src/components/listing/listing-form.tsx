@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { LocationMap } from "@/components/map/location-map";
+import { LocationSearch, reverseGeocode } from "@/components/map/location-search";
 import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["AFN", "USD", "EUR"] as const;
@@ -51,11 +52,22 @@ export function ListingForm({
   const [lat, setLat] = useState<number | null>(listing?.latitude ?? null);
   const [lng, setLng] = useState<number | null>(listing?.longitude ?? null);
 
+  // Keep the location LABEL and the pin in sync (mirrors mobile's picker
+  // contract: choosing a place sets label + coords together). Moving the pin
+  // reverse-geocodes so the text can never contradict the map — the old
+  // disconnected input/map let a listing say "Jalalabad" while the pin saved
+  // another country's coordinates.
+  async function setPoint(la: number, ln: number) {
+    setLat(la);
+    setLng(ln);
+    const label = await reverseGeocode(la, ln, locale);
+    if (label) setValue("location", label, { shouldValidate: true });
+  }
+
   function useMyLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
-      setLat(pos.coords.latitude);
-      setLng(pos.coords.longitude);
+      void setPoint(pos.coords.latitude, pos.coords.longitude);
     });
   }
 
@@ -302,42 +314,50 @@ export function ListingForm({
           />
         </Field>
 
+        {/* ONE location control: search a place (Nominatim, same geocoder as
+            mobile) OR tap/drag the pin — both keep the label and coordinates
+            in sync, so the text can never contradict the map. */}
         <Field
           label={t("common.location")}
           htmlFor="location"
           error={errors.location?.message}
         >
-          <Input
+          <LocationSearch
             id="location"
-            placeholder={t("listing.locationPlaceholder")}
-            {...register("location")}
-          />
-        </Field>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              {t("listing.form.tapToSetLocation")}
-            </span>
-            <Button type="button" variant="ghost" size="sm" onClick={useMyLocation}>
-              <MapPin className="size-4" />
-              {t("listing.form.useMyLocation")}
-            </Button>
-          </div>
-          <LocationMap
-            editable
-            lat={lat}
-            lng={lng}
-            onChange={(la, ln) => {
-              setLat(la);
-              setLng(ln);
+            value={watch("location")}
+            placeholder={t("listing.form.searchPlacePlaceholder")}
+            onTextChange={(text) =>
+              setValue("location", text, { shouldValidate: true })
+            }
+            onSelect={(place) => {
+              setValue("location", place.label, { shouldValidate: true });
+              setLat(place.lat);
+              setLng(place.lng);
             }}
-            className="h-64"
           />
-          {lat != null && lng != null && (
-            <p className="text-xs text-success">{t("listing.form.locationSet")}</p>
-          )}
-        </div>
+          <div className="space-y-2 pt-2">
+            <LocationMap
+              editable
+              lat={lat}
+              lng={lng}
+              onChange={(la, ln) => void setPoint(la, ln)}
+              className="h-64"
+            />
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                {lat != null && lng != null ? (
+                  <span className="text-success">{t("listing.form.locationSet")}</span>
+                ) : (
+                  t("listing.form.tapToSetLocation")
+                )}
+              </p>
+              <Button type="button" variant="ghost" size="sm" onClick={useMyLocation}>
+                <MapPin className="size-4" />
+                {t("listing.form.useMyLocation")}
+              </Button>
+            </div>
+          </div>
+        </Field>
 
         <Field
           label={t("listing.form.addressLabel")}

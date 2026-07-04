@@ -241,7 +241,9 @@
       "discardMessage": "Your unsaved changes will be lost.",
       "discardConfirm": "Discard",
       "locationRequired": "Location is required — buyers filter listings by area",
-      "useMyLocation": "Use my location"
+      "useMyLocation": "Use my location",
+      "searchPlacePlaceholder": "Search city or area…",
+      "searchAttribution": "Search by OpenStreetMap"
     },
     "analytics": {
       "title": "Views (last 7 days)",
