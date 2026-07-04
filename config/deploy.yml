@@ -64,6 +64,9 @@ builder:
     # ActionCable WebSocket (live chat). Must be wss:// (page is https) and point
     # at the API's cable mount (/hatiwal-cable).
     NEXT_PUBLIC_CABLE_URL: <%= ENV.fetch("NEXT_PUBLIC_CABLE_URL") %>
+    # Google Identity Services web client id (a public identifier, not a secret)
+    # — gates the "Continue with Google" button; when absent the button is null.
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: <%= ENV.fetch("NEXT_PUBLIC_GOOGLE_CLIENT_ID") %>
     NEXT_PUBLIC_APP_NAME: Hatiwal
     NEXT_PUBLIC_DEFAULT_LOCALE: en
     NEXT_PUBLIC_DEFAULT_THEME: system

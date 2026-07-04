@@ -28,45 +28,59 @@ function GoogleSignInButton() {
   const divRef = useRef<HTMLDivElement>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [googleError, setGoogleError] = useState<string | null>(null);
+  // Flips when the GIS script is available — either via <Script onReady> or,
+  // on remounts where the script tag already exists, via the effect below.
+  const [gsiReady, setGsiReady] = useState(false);
 
   useEffect(() => {
-    if (!clientId || !divRef.current) return;
-
-    const init = () => {
-      if (!window.google) return;
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response: { credential: string }) => {
-          setGoogleError(null);
-          const res = await googleLogin(response.credential);
-          if (res.ok) {
-            router.replace("/profile");
-          } else {
-            setGoogleError(t("auth.googleSignInFailed"));
-          }
-        },
-      });
-      window.google.accounts.id.renderButton(divRef.current, {
-        theme: "outline",
-        size: "large",
-        width: divRef.current?.offsetWidth || 300,
-        text: "continue_with",
-      });
-    };
-
+    // lazyOnload loads AFTER the window "load" event, so a load-listener
+    // fallback never fires and the button silently never renders. Poll for
+    // window.google instead (covers remounts + slow networks), and let
+    // <Script onReady> flip the flag on the normal first-load path.
     if (window.google) {
-      init();
-    } else {
-      window.addEventListener("load", init);
+      setGsiReady(true);
+      return;
     }
-    return () => window.removeEventListener("load", init);
-  }, [clientId, googleLogin, router, t]);
+    const timer = setInterval(() => {
+      if (window.google) {
+        setGsiReady(true);
+        clearInterval(timer);
+      }
+    }, 250);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!clientId || !gsiReady || !divRef.current || !window.google) return;
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: async (response: { credential: string }) => {
+        setGoogleError(null);
+        const res = await googleLogin(response.credential);
+        if (res.ok) {
+          router.replace("/profile");
+        } else {
+          setGoogleError(t("auth.googleSignInFailed"));
+        }
+      },
+    });
+    window.google.accounts.id.renderButton(divRef.current, {
+      theme: "outline",
+      size: "large",
+      width: divRef.current?.offsetWidth || 300,
+      text: "continue_with",
+    });
+  }, [clientId, gsiReady, googleLogin, router, t]);
 
   if (!clientId) return null;
 
   return (
     <>
-      <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onReady={() => setGsiReady(true)}
+      />
       {googleError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {googleError}
