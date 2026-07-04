@@ -9,7 +9,12 @@ test.describe("Conversation thread", () => {
     await expect(
       page.getByText("Hello, I'm interested in the iPhone."),
     ).toBeVisible();
-    await expect(page.getByText("Is this still available?")).toBeVisible();
+    // "Is this still available?" is ALSO a quick-reply chip in the composer
+    // (chat.quickReplies.stillAvailable), so target the message bubble's <p>
+    // specifically to avoid a strict-mode violation (2 matches).
+    await expect(
+      page.locator("p", { hasText: "Is this still available?" }),
+    ).toBeVisible();
     await expect(page.getByPlaceholder("Type a message...")).toBeVisible();
     await expect(page.getByRole("button", { name: "Send" })).toBeVisible();
   });

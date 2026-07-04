@@ -15,7 +15,11 @@ test.describe("Signup", () => {
     await expect(
       page.getByRole("button", { name: "Create Account" }),
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: /Login/i })).toBeVisible();
+    // Scope to main content — the site header also carries a Login link for
+    // guests, so an unscoped lookup is a strict-mode violation (2 matches).
+    await expect(
+      page.getByRole("main").getByRole("link", { name: /Login/i }),
+    ).toBeVisible();
   });
 
   test("client-side validation: mismatched passwords", async ({ page }) => {

@@ -12,8 +12,10 @@ test.describe("Home", () => {
     // Recent listings section + fixture data.
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(page.getByText("Toyota Corolla 2015")).toBeVisible();
-    // Price-drop badge surfaces.
-    await expect(page.getByText(/12% price drop/i)).toBeVisible();
+    // Price-drop badge surfaces. Listing cards render the short variant
+    // ("-12%", listing.priceDrop.badgeCardShort) — the long "12% price drop"
+    // copy is the detail-page variant.
+    await expect(page.getByText("-12%")).toBeVisible();
   });
 
   test("hero CTA navigates to the listings feed", async ({ page }) => {
