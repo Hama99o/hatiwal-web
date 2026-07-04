@@ -2,21 +2,25 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   CalendarPlus,
   Loader2,
   Paperclip,
+  Search,
   Send,
   ShieldBan,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   blockUser,
+  deleteMessage,
   getConversation,
   getMessages,
   markRead,
@@ -27,6 +31,7 @@ import {
 import { useConversationCable } from "@/lib/cable";
 import type { Message } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { ReportButton } from "@/components/shared/report-button";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -34,10 +39,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MessageBubble } from "./message-bubble";
+import { QuickReplies } from "./quick-replies";
+import { filterMessages, searchableCount } from "@/lib/message-search";
+import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { ListingStatus } from "@/lib/types";
 
 export function ConversationThread({ id }: { id: string }) {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -58,11 +68,19 @@ export function ConversationThread({ id }: { id: string }) {
   const [sending, setSending] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [place, setPlace] = useState("");
   const [time, setTime] = useState("");
+  // Counter-offer dialog (seller responds to the buyer's offer with a new price).
+  const [counterTarget, setCounterTarget] = useState<Message | null>(null);
+  const [counterAmount, setCounterAmount] = useState("");
+  const [sendingCounter, setSendingCounter] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,22 +97,87 @@ export function ConversationThread({ id }: { id: string }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Live updates over the WebSocket.
+  // Live updates over the WebSocket. Upsert by id so a re-broadcast of an
+  // existing message (e.g. a soft-delete tombstone flip) replaces it in place
+  // rather than being ignored as a duplicate.
   useConversationCable(cid, (m) => {
-    setMessages((prev) =>
-      prev.some((x) => x.id === m.id) ? prev : [...prev, m],
-    );
+    setMessages((prev) => {
+      const idx = prev.findIndex((x) => x.id === m.id);
+      if (idx === -1) return [...prev, m];
+      const next = prev.slice();
+      next[idx] = m;
+      return next;
+    });
     markRead(cid).catch(() => undefined);
   });
+
+  // Retract (soft-delete) one of my own messages: optimistic tombstone flip,
+  // roll back the original message on failure.
+  async function doDelete(messageId: number) {
+    setConfirmDeleteId(null);
+    const original = messages.find((x) => x.id === messageId);
+    setMessages((prev) =>
+      prev.map((x) =>
+        x.id === messageId
+          ? { ...x, deleted: true, body: "", attachmentUrl: null }
+          : x,
+      ),
+    );
+    try {
+      const updated = await deleteMessage(cid, messageId);
+      setMessages((prev) =>
+        prev.map((x) => (x.id === messageId ? updated : x)),
+      );
+      qc.invalidateQueries({ queryKey: ["messages", id] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    } catch {
+      if (original) {
+        setMessages((prev) =>
+          prev.map((x) => (x.id === messageId ? original : x)),
+        );
+      }
+      toast.error(t("chat.message.deleteFailed"));
+    }
+  }
 
   const respondedIds = useMemo(
     () => new Set(messages.map((m) => m.respondsToId).filter(Boolean)),
     [messages],
   );
 
+  // In-thread search (client-side only) — filters the loaded messages by the
+  // typed query. Outcome lookups (respondedIds) stay on the full list.
+  const trimmedQuery = searchQuery.trim();
+  const searching = searchOpen && trimmedQuery.length > 0;
+  const visibleMessages = useMemo(
+    () => (searching ? filterMessages(messages, trimmedQuery) : messages),
+    [searching, messages, trimmedQuery],
+  );
+  const totalSearchable = useMemo(
+    () => searchableCount(messages),
+    [messages],
+  );
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery("");
+  }
+
+  // Insert a quick-reply phrase into the draft (append with a space if the
+  // draft is non-empty, mirroring mobile) and focus the input — no auto-send.
+  function handleQuickReply(phrase: string) {
+    setInput((prev) => {
+      const trimmed = prev.trimEnd();
+      return trimmed.length > 0 ? `${trimmed} ${phrase}` : phrase;
+    });
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
   const conversation = convQ.data;
   const other = conversation?.otherParticipant;
   const closed = conversation?.status === "closed";
+  // The seller (listing owner) is the one who can counter a buyer's offer.
+  const isSeller = conversation?.seller?.id != null && conversation.seller.id === me;
 
   async function send(
     body: string,
@@ -142,6 +225,43 @@ export function ConversationThread({ id }: { id: string }) {
     setPlace("");
     setTime("");
     toast.success(t("chat.thread.meetupSent"));
+  }
+
+  // Open the counter-offer dialog, seeded with the buyer's offer amount.
+  function openCounter(offer: Message) {
+    const buyerAmount = offer.offerAmount ?? Number(offer.body.split("|")[0] ?? 0);
+    setCounterTarget(offer);
+    setCounterAmount(buyerAmount > 0 ? String(buyerAmount) : "");
+  }
+
+  function closeCounter() {
+    setCounterTarget(null);
+    setCounterAmount("");
+  }
+
+  // Send the counter-offer as an `offer_counter` message that responds to the
+  // buyer's original offer. Body reuses the same "amount|currency|listedPrice"
+  // encoding as a regular offer so both clients render it identically.
+  async function sendCounter() {
+    if (!counterTarget) return;
+    const amount = counterAmount.trim();
+    if (!amount || Number(amount) <= 0) return;
+    const [, currencyPart, listedPart] = counterTarget.body.split("|");
+    const currency = counterTarget.offerCurrency || currencyPart || "AFN";
+    const body = `${amount}|${currency}|${listedPart ?? "0"}`;
+    setSendingCounter(true);
+    try {
+      const m = await sendMessage(cid, body, "offer_counter", counterTarget.id);
+      setMessages((prev) =>
+        prev.some((x) => x.id === m.id) ? prev : [...prev, m],
+      );
+      closeCounter();
+      toast.success(t("chat.offer.counterSentToast"));
+    } catch {
+      toast.error(t("chat.thread.sendFailed"));
+    } finally {
+      setSendingCounter(false);
+    }
   }
 
   async function toggleBlock() {
@@ -199,6 +319,22 @@ export function ConversationThread({ id }: { id: string }) {
         <Button
           variant="ghost"
           size="icon"
+          className={cn("shrink-0", searchOpen && "text-primary")}
+          aria-label={t("chat.search.placeholder")}
+          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+        >
+          <Search className="size-5" />
+        </Button>
+        {other && (
+          <ReportButton
+            reportableType="User"
+            reportableId={other.id}
+            className="size-9 shrink-0 justify-center gap-0 rounded-md hover:bg-accent [&>span]:sr-only"
+          />
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
           className={blocked ? "text-destructive" : ""}
           aria-label={t(blocked ? "chat.block.unblockUser" : "chat.block.blockUser")}
           onClick={() => setConfirmBlock(true)}
@@ -210,6 +346,44 @@ export function ConversationThread({ id }: { id: string }) {
           )}
         </Button>
       </div>
+
+      {/* In-thread search (client-side only) */}
+      {searchOpen && (
+        <div className="flex items-center gap-2 border-b bg-card px-3 py-2">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <Input
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("chat.search.placeholder")}
+            aria-label={t("chat.search.placeholder")}
+            className="h-9 flex-1 text-start"
+          />
+          {trimmedQuery && (
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {t("chat.search.matchCount", {
+                current: visibleMessages.length,
+                total: totalSearchable,
+              })}
+            </span>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0"
+            aria-label={t("common.cancel")}
+            onClick={closeSearch}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+      {searching && (
+        <div className="border-b bg-muted/40 px-3 py-1 text-center text-xs text-muted-foreground">
+          {t("chat.search.partialResults")}
+        </div>
+      )}
 
       {/* Pinned listing */}
       <Link
@@ -246,13 +420,31 @@ export function ConversationThread({ id }: { id: string }) {
           <p className="py-10 text-center text-sm text-muted-foreground">
             {t("chat.thread.emptyDescription")}
           </p>
+        ) : searching && visibleMessages.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            {t("chat.search.noResults")}
+          </p>
         ) : (
-          messages.map((m) => (
+          visibleMessages.map((m) => (
             <MessageBubble
               key={m.id}
               message={m}
               mine={m.sender.id === me}
               responded={respondedIds.has(m.id)}
+              highlight={searching ? trimmedQuery : undefined}
+              onCounter={
+                m.kind === "offer" &&
+                m.sender.id !== me &&
+                isSeller &&
+                !respondedIds.has(m.id)
+                  ? () => openCounter(m)
+                  : undefined
+              }
+              onDelete={
+                m.sender.id === me && !m.deleted && m.kind !== "system"
+                  ? () => setConfirmDeleteId(m.id)
+                  : undefined
+              }
               onRespond={(kind, respondsToId) => {
                 // Rails requires a non-empty body; the bubble renders by `kind`.
                 const label = {
@@ -268,6 +460,14 @@ export function ConversationThread({ id }: { id: string }) {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Quick-reply preset chips (hidden on a closed conversation) */}
+      {!closed && (
+        <QuickReplies
+          role={isSeller ? "seller" : "buyer"}
+          onSelect={handleQuickReply}
+        />
+      )}
 
       {/* Composer */}
       {closed ? (
@@ -319,6 +519,7 @@ export function ConversationThread({ id }: { id: string }) {
             <CalendarPlus className="size-5" />
           </Button>
           <Input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={t("chat.messagePlaceholder")}
@@ -369,6 +570,72 @@ export function ConversationThread({ id }: { id: string }) {
         </div>
       )}
 
+      {/* Counter-offer dialog (seller) */}
+      {counterTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={closeCounter} />
+          <div className="relative z-10 w-full max-w-sm space-y-4 rounded-lg border bg-card p-6 shadow-lg">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <ArrowLeftRight className="size-5 text-brand-gold" />
+              {t("chat.offer.counterTitle")}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t("chat.offer.buyerOfferedAt", {
+                price: formatPrice(
+                  counterTarget.offerAmount ??
+                    Number(counterTarget.body.split("|")[0] ?? 0),
+                  counterTarget.offerCurrency ||
+                    counterTarget.body.split("|")[1] ||
+                    "AFN",
+                  locale,
+                ),
+              })}
+            </p>
+            <div>
+              <label
+                htmlFor="counter-amount"
+                className="mb-1.5 block text-sm font-medium"
+              >
+                {t("chat.offer.yourCounterOffer")}
+              </label>
+              <Input
+                id="counter-amount"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                autoFocus
+                value={counterAmount}
+                onChange={(e) => setCounterAmount(e.target.value)}
+                placeholder="0"
+                className="text-start"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("chat.offer.counterNote")}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeCounter}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                onClick={sendCounter}
+                disabled={
+                  sendingCounter ||
+                  !counterAmount.trim() ||
+                  Number(counterAmount) <= 0
+                }
+              >
+                {sendingCounter ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  t("chat.offer.sendCounter")
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         open={confirmBlock}
         title={t(blocked ? "chat.block.unblockUser" : "chat.block.blockConfirmTitle")}
@@ -378,6 +645,19 @@ export function ConversationThread({ id }: { id: string }) {
         destructive={!blocked}
         onConfirm={toggleBlock}
         onCancel={() => setConfirmBlock(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteId != null}
+        title={t("chat.message.deleteConfirm")}
+        description={t("chat.message.deleteConfirmDescription")}
+        confirmLabel={t("chat.message.deleteConfirmCta")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={() => {
+          if (confirmDeleteId != null) doDelete(confirmDeleteId);
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
       />
     </div>
   );

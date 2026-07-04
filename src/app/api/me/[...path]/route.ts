@@ -18,6 +18,7 @@ import { isSameOrigin } from "@/lib/auth/origin";
  */
 const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^my\/saved_listings$/],
+  ["GET", /^my\/viewed_listings$/],
   ["PUT", /^users\/me$/],
   ["POST", /^listings\/\d+\/save$/],
   ["DELETE", /^listings\/\d+\/unsave$/],
@@ -37,12 +38,18 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^listings\/\d+\/conversations$/],
   ["GET", /^conversations\/\d+\/messages$/],
   ["POST", /^conversations\/\d+\/messages$/],
+  ["DELETE", /^conversations\/\d+\/messages\/\d+$/],
   ["PUT", /^conversations\/\d+\/messages\/mark_read$/],
+  ["PUT", /^conversations\/\d+\/mark_read$/],
+  ["PUT", /^conversations\/\d+\/mark_unread$/],
+  ["PUT", /^conversations\/\d+\/archive$/],
+  ["PUT", /^conversations\/\d+\/unarchive$/],
   ["GET", /^blocks$/],
   ["POST", /^users\/\d+\/block$/],
   ["DELETE", /^users\/\d+\/block$/],
-  // Reports (report a listing or user):
+  // Reports (report a listing or user; list your own submitted reports):
   ["POST", /^reports$/],
+  ["GET", /^reports$/],
   // Saved searches:
   ["GET", /^users\/saved_searches$/],
   ["POST", /^users\/saved_searches$/],

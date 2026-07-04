@@ -46,6 +46,29 @@ export function formatNumber(value: number, locale: string): string {
   }
 }
 
+/**
+ * Absolute, locale-aware calendar date (e.g. "Jul 4, 2026"). Used where an exact
+ * day matters — e.g. the seller "away until <date>" banner. Returns "" for a
+ * missing/invalid date so callers can guard on emptiness.
+ */
+export function formatDate(
+  isoDate: string | null | undefined,
+  locale: string,
+): string {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(INTL_TAG[locale] ?? "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(INTL_TAG[locale] ?? "en-US");
+  }
+}
+
 export function formatRelativeDate(
   isoDate: string | null | undefined,
   locale: string,

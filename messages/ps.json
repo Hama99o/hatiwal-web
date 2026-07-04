@@ -43,6 +43,7 @@
     "confirm": "تایید",
     "language": "ژبه",
     "retry": "بیا هڅه",
+    "loadMore": "نور ښکاره کړئ",
     "notFound": "ونه موندل شو",
     "required": "اړین دی",
     "comingSoon": "ژر راځي",
@@ -112,6 +113,8 @@
     "unsave": "د خوندي شویو څخه لرې کول",
     "postedAgo": "خپور شو {date}",
     "viewsCount": "{count} لیدنې",
+    "savesCount": "{count, plural, one {د # کس لخوا خوندي شوی} other {د # کسانو لخوا خوندي شوی}}",
+    "firmPrice": "ثابت قیمت",
     "conversationsCount": "{count} خبرې",
     "publishSuccess": "اعلان خپور شو!",
     "reserveSuccess": "اعلان خوندي شوی ښودل شو",
@@ -293,8 +296,11 @@
       "newest": "لومړی نوی",
       "oldest": "لومړی زوړ",
       "priceAsc": "نرخ: لږ لومړی",
-      "priceDesc": "نرخ: ډیر لومړی"
+      "priceDesc": "نرخ: ډیر لومړی",
+      "mostViewed": "ډیر لیدل شوي",
+      "nearest": "نږدې لومړی"
     },
+    "nearestLocationLoading": "ستاسو ځای موندل کیږي…",
     "saveSearch": "دا لټون خوندي کړئ",
     "savedSearches": "خوندي شوي لټونونه",
     "savedSearchCreated": "لټون خوندي شو",
@@ -432,7 +438,14 @@
       "photoUpdated": "انځور تازه شو",
       "photoError": "انځور تازه نشو",
       "photoTooLarge": "انځور باید له ۵ MB څخه کوچنی وي"
-    }
+    },
+    "away": {
+      "sectionTitle": "غیر حاضري حالت",
+      "toggle": "زه غایب یم (لنډمهاله موجود نه یم)",
+      "untilLabel": "تر کله پورې غایب",
+      "youAreAway": "تاسو تر {date} پورې غایب یاست — پیرودونکي د غیر حاضري اطلاع ویني"
+    },
+    "modeToggleLabel": "د اخیستونکي یا پلورونکي حالت"
   },
   "report": {
     "title": "راپور",
@@ -456,7 +469,18 @@
       "duplicate": "تاسو دمخه دا راپور کړی دی.",
       "generic": "راپور نه شو سپارل. بیا هڅه وکړئ."
     },
-    "reasonRequired": "مهرباني وکړئ یوه دلیل وټاکئ."
+    "reasonRequired": "مهرباني وکړئ یوه دلیل وټاکئ.",
+    "status": {
+      "pending": "پاتې",
+      "reviewed": "بیاکتل شوی",
+      "resolved": "حل شوی",
+      "dismissed": "رد شوی"
+    },
+    "myReports": {
+      "title": "زما راپورونه",
+      "empty": "تاسو تر اوسه هیڅ راپور نه دی ورکړی.",
+      "reportedOn": "{date} ته راپور شو"
+    }
   },
   "home": {
     "hero": {
@@ -508,7 +532,19 @@
     "title": "د پلورونکي پروفایل",
     "activeListings": "فعال توکي",
     "noListings": "تر اوسه فعال توکي نشته",
-    "memberOnHatiwal": "د هتیوال غړی"
+    "memberOnHatiwal": "د هتیوال غړی",
+    "tabs": {
+      "label": "توکي",
+      "active": "فعال",
+      "sold": "پلورل شوي"
+    },
+    "noSoldListings": "لا هیڅ پلورل شوی توکی نشته",
+    "activeRecently": {
+      "today": "نن فعال",
+      "thisWeek": "دا اونۍ فعال",
+      "thisMonth": "دا میاشت فعال"
+    },
+    "awayBanner": "پلورونکی تر {date} پورې غایب دی"
   },
   "auth": {
     "login": "ننوتل",
@@ -565,6 +601,12 @@
     "browseButton": "اعلانونه وګورئ",
     "unsaveError": "اعلان لرې نشو — بیا هڅه وکړئ",
     "saveError": "اعلان خوندي نشو — بیا هڅه وکړئ"
+  },
+  "recentlyViewed": {
+    "title": "وروستي لیدل شوي",
+    "empty": "لاهم هیڅ نه دي لیدل شوي",
+    "emptyDescription": "هغه توکي چې تاسو یې خلاص کوئ دلته به ښکاره شي ترڅو بیا یې ومومئ.",
+    "browseButton": "توکي وګورئ"
   },
   "deleteAccount": {
     "title": "خپل د هاتیوال ګڼون ړنګ کړئ",
@@ -697,7 +739,16 @@
       "accepted": "وړاندیز ومنل شو",
       "declined": "وړاندیز رد شو",
       "acceptedToast": "تاسو وړاندیز ومانه",
-      "declinedToast": "تاسو وړاندیز رد کړ"
+      "declinedToast": "تاسو وړاندیز رد کړ",
+      "counter": "مقابل وړاندیز",
+      "counterTitle": "مقابل قیمت وړاندیز",
+      "counterLabel": "مقابل قیمت وړاندیز",
+      "buyerOfferedAt": "پیرودونکي {price} وړاندیز وکړ",
+      "yourCounterOffer": "ستاسو مقابل قیمت",
+      "counterNote": "هیڅ تادیه نشته — دا یوازې د قیمت وړاندیز دی. د پایلې لپاره مخامخ لیدنه وکړئ.",
+      "sendCounter": "مقابل وړاندیز ولیږئ",
+      "counteredAt": "مقابل قیمت",
+      "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!"
     },
     "block": {
       "blockUser": "کارونکی بند کړئ",
@@ -710,6 +761,14 @@
       "blockFailed": "کارونکی بند کول ونه شو. بیا هڅه وکړئ.",
       "unblockFailed": "بندیز لرې کول ونه شو. بیا هڅه وکړئ."
     },
+    "message": {
+      "deleted": "دا پیغام ړنګ شو",
+      "deleteAction": "پیغام حذف کړئ",
+      "deleteConfirm": "دا پیغام حذف کړئ؟",
+      "deleteConfirmCta": "حذف",
+      "deleteConfirmDescription": "دا بیرته نه شي کیدی. بل کس به وویني چې یو پیغام ړنګ شوی دی.",
+      "deleteFailed": "پیغام حذف نشو. مهرباني وکړئ بیا هڅه وکړئ."
+    },
     "search": {
       "placeholder": "پیغامونه ولټوئ...",
       "matchCount": "{current} له {total} نه",
@@ -720,6 +779,41 @@
       "title": "د دې لیست لپاره خبرې اترې",
       "viewAll": "ټولې خبرې اترې وګورئ",
       "viewConversations": "خبرې اترې وګورئ"
+    },
+    "tabs": {
+      "inbox": "ان باکس",
+      "archived": "ذخیره شوي",
+      "label": "د خبرو اترو فولډرونه"
+    },
+    "archive": {
+      "archive": "ذخیره کول",
+      "unarchive": "له ذخیره وایستل",
+      "empty": "هیڅ ذخیره شوي خبرې نشته",
+      "emptyDescription": "هغه خبرې چې تاسو یې ذخیره کوئ دلته به ښکاره شي.",
+      "error": "د ذخیره کولو حالت تازه نه شو. بیا هڅه وکړئ."
+    },
+    "actions": {
+      "options": "د خبرو اترو اختیارونه",
+      "markRead": "لوستل شوی نښه کړئ",
+      "markUnread": "نه لوستل شوی نښه کړئ",
+      "markReadError": "د لوستلو حالت تازه نه شو. بیا هڅه وکړئ."
+    },
+    "quickReplies": {
+      "toolbarLabel": "ګړندي ځوابونه",
+      "buyer": {
+        "stillAvailable": "ایا دا لاهم شته؟",
+        "lowestPrice": "ستاسو ترټولو ټیټ قیمت څومره دی؟",
+        "whereMeet": "چیرته یو بل سره لیدنه کولی شو؟",
+        "morePhotos": "ایا نور انځورونه لیدلی شم؟",
+        "negotiable": "ایا قیمت د خبرو وړ دی؟"
+      },
+      "seller": {
+        "yesAvailable": "هو، شته",
+        "meetAtPlace": "راځئ چې [ځای] کې سره ووینو",
+        "priceFirm": "قیمت ثابت دی",
+        "whenFree": "کله فارغ یاست چې سره ووینو؟",
+        "sendMorePhotos": "زه کولی شم نور انځورونه درولیږم"
+      }
     }
   },
   "warnings": {

@@ -94,8 +94,8 @@ export function ReportButton({
           className,
         )}
       >
-        <Flag className="size-4" />
-        {t("report.title")}
+        <Flag className="size-4 shrink-0" />
+        <span>{t("report.title")}</span>
       </button>
 
       {open && (

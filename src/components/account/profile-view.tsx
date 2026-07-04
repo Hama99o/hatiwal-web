@@ -5,6 +5,7 @@ import { LogOut, Pencil } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { AwayBanner } from "@/components/shared/away-banner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -47,6 +48,7 @@ export function ProfileView() {
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <WarningsBanner />
       <RestoreAccountBanner />
+      <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
         <UserIdentity
           name={name}
@@ -89,6 +91,9 @@ export function ProfileView() {
       <div className="grid grid-cols-2 gap-3">
         <Button asChild variant="secondary">
           <Link href="/saved">{t("saved.title")}</Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href="/recently-viewed">{t("recentlyViewed.title")}</Link>
         </Button>
         <Button asChild variant="secondary">
           <Link href="/bazaar">{t("profile.quickActions.browse")}</Link>

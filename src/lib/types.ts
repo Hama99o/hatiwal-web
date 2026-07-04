@@ -20,7 +20,16 @@ export const LISTING_CONDITIONS: ListingCondition[] = [
   "fair",
 ];
 
-export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc";
+// "nearest" orders by proximity to the buyer's coordinates — it additionally
+// requires latitude/longitude (the browser Geolocation fix). Rails falls back
+// to the default order if coordinates are absent. Matches mobile's ListingSort.
+export type ListingSort =
+  | "newest"
+  | "oldest"
+  | "price_asc"
+  | "price_desc"
+  | "most_viewed"
+  | "nearest";
 
 export interface SellerSummary {
   id: number;
@@ -31,6 +40,14 @@ export interface SellerSummary {
   phone?: string | null;
   responseRatePercent?: number | null;
   responseTimeLabel?: string | null;
+  lastActiveLabel?: "today" | "this_week" | "this_month" | null;
+  /**
+   * Away mode (mobile W628/W713). Present on the listing `:detailed` view seller
+   * sub-object, and only when the seller is CURRENTLY away (a future datetime).
+   * Both are absent/nil otherwise — never a stale past date.
+   */
+  sellerIsAway?: boolean;
+  sellerAwayUntil?: string | null;
 }
 
 export interface CategoryRef {
@@ -69,6 +86,8 @@ export interface Listing {
   /** {signed-id, url} pairs (detail view only) — needed to remove photos on edit. */
   imageAttachments?: { id: string; url: string }[];
   viewsCount: number;
+  /** How many people have saved this listing (detail view — from saves_count). */
+  savesCount?: number;
   conversationsCount?: number;
   isSaved?: boolean;
   isViewed?: boolean;
@@ -76,6 +95,12 @@ export interface Listing {
   expired?: boolean;
   priceDropPercent?: number | null;
   priceDroppedAt?: string | null;
+  /**
+   * Whether the seller is open to offers. `false` = firm price (mirrors mobile
+   * N071): show the "Firm price" badge and hide the make-offer affordance.
+   * Undefined/true = negotiable (the default when the flag is absent).
+   */
+  negotiable?: boolean;
   createdAt: string;
   updatedAt?: string;
   seller: SellerSummary | null;
@@ -102,6 +127,7 @@ export type MessageKind =
   | "meetup_accepted"
   | "meetup_declined"
   | "offer"
+  | "offer_counter"
   | "offer_accepted"
   | "offer_declined"
   | "system"
@@ -117,6 +143,15 @@ export interface Message {
   respondsToId: number | null;
   sender: { id: number; name: string; avatarUrl?: string | null };
   attachmentUrl?: string | null;
+  /**
+   * For `offer` and `offer_counter` kinds, the server pre-parses the pipe-encoded
+   * body ("amount|currency|listedPrice") into these fields. Absent on other kinds.
+   */
+  offerAmount?: number | null;
+  offerCurrency?: string | null;
+  /** Soft-delete tombstone: when true, body/attachment are suppressed server-side. */
+  deleted?: boolean;
+  deletedAt?: string | null;
 }
 
 export interface ConversationParticipant {
@@ -174,5 +209,12 @@ export interface User {
   savedItemsCount?: number;
   unreadMessageCount?: number;
   deletionScheduledAt?: string | null;
+  /**
+   * Away mode (mobile W713). `isAway` is the computed flag (true only when
+   * `awayUntil` is a future datetime); `awayUntil` is the ISO end datetime, or
+   * null when not away. Set via `PUT /users/me { user: { awayUntil } }`.
+   */
+  isAway?: boolean;
+  awayUntil?: string | null;
   createdAt: string;
 }

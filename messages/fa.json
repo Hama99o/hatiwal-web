@@ -43,6 +43,7 @@
     "confirm": "تأیید",
     "language": "زبان",
     "retry": "تلاش مجدد",
+    "loadMore": "نمایش بیشتر",
     "notFound": "یافت نشد",
     "required": "الزامی است",
     "comingSoon": "به زودی",
@@ -112,6 +113,8 @@
     "unsave": "حذف از ذخیره‌شده‌ها",
     "postedAgo": "ارسال شده {date}",
     "viewsCount": "{count} بازدید",
+    "savesCount": "{count, plural, one {ذخیره شده توسط # نفر} other {ذخیره شده توسط # نفر}}",
+    "firmPrice": "قیمت ثابت",
     "conversationsCount": "{count} گفتگو",
     "publishSuccess": "آگهی منتشر شد!",
     "reserveSuccess": "آگهی به عنوان رزرو شده علامت‌گذاری شد",
@@ -293,8 +296,11 @@
       "newest": "جدیدترین اول",
       "oldest": "قدیمی‌ترین اول",
       "priceAsc": "قیمت: کم به زیاد",
-      "priceDesc": "قیمت: زیاد به کم"
+      "priceDesc": "قیمت: زیاد به کم",
+      "mostViewed": "پربازدیدترین",
+      "nearest": "نزدیک‌ترین اول"
     },
+    "nearestLocationLoading": "در حال یافتن مکان شما…",
     "saveSearch": "ذخیره این جستجو",
     "savedSearches": "جستجوهای ذخیره‌شده",
     "savedSearchCreated": "جستجو ذخیره شد",
@@ -432,7 +438,14 @@
       "photoUpdated": "عکس به‌روزرسانی شد",
       "photoError": "عکس به‌روزرسانی نشد",
       "photoTooLarge": "عکس باید کمتر از ۵ مگابایت باشد"
-    }
+    },
+    "away": {
+      "sectionTitle": "حالت غیرحضور",
+      "toggle": "من غیرحاضر هستم (موقتاً در دسترس نیستم)",
+      "untilLabel": "غیرحاضر تا",
+      "youAreAway": "شما تا {date} غیرحاضر هستید — خریداران اطلاعیه غیرحضور را می‌بینند"
+    },
+    "modeToggleLabel": "حالت خریدار یا فروشنده"
   },
   "report": {
     "title": "گزارش",
@@ -456,7 +469,18 @@
       "duplicate": "قبلاً این مورد را گزارش داده‌اید.",
       "generic": "گزارش ارسال نشد. لطفاً دوباره تلاش کنید."
     },
-    "reasonRequired": "لطفاً یک دلیل انتخاب کنید."
+    "reasonRequired": "لطفاً یک دلیل انتخاب کنید.",
+    "status": {
+      "pending": "در انتظار",
+      "reviewed": "بررسی شده",
+      "resolved": "حل شده",
+      "dismissed": "رد شده"
+    },
+    "myReports": {
+      "title": "گزارش‌های من",
+      "empty": "هنوز هیچ گزارشی ثبت نکرده‌اید.",
+      "reportedOn": "گزارش در {date}"
+    }
   },
   "home": {
     "hero": {
@@ -508,7 +532,19 @@
     "title": "نمایه فروشنده",
     "activeListings": "آگهی‌های فعال",
     "noListings": "هنوز آگهی فعالی نیست",
-    "memberOnHatiwal": "عضو هتیوال"
+    "memberOnHatiwal": "عضو هتیوال",
+    "tabs": {
+      "label": "آگهی‌ها",
+      "active": "فعال",
+      "sold": "فروخته شده"
+    },
+    "noSoldListings": "هنوز آگهی فروخته‌ای وجود ندارد",
+    "activeRecently": {
+      "today": "امروز فعال",
+      "thisWeek": "این هفته فعال",
+      "thisMonth": "این ماه فعال"
+    },
+    "awayBanner": "فروشنده تا {date} در دسترس نیست"
   },
   "auth": {
     "login": "ورود",
@@ -565,6 +601,12 @@
     "browseButton": "مرور آگهی‌ها",
     "unsaveError": "حذف آگهی ممکن نشد — دوباره تلاش کنید",
     "saveError": "ذخیره آگهی ممکن نشد — دوباره تلاش کنید"
+  },
+  "recentlyViewed": {
+    "title": "اخیراً مشاهده‌شده",
+    "empty": "هنوز چیزی مشاهده نشده",
+    "emptyDescription": "آگهی‌هایی که باز می‌کنید اینجا نشان داده می‌شوند تا دوباره راحت‌تر پیدا کنید.",
+    "browseButton": "مرور آگهی‌ها"
   },
   "deleteAccount": {
     "title": "حساب هاتیوال خود را حذف کنید",
@@ -697,7 +739,16 @@
       "accepted": "پیشنهاد پذیرفته شد",
       "declined": "پیشنهاد رد شد",
       "acceptedToast": "شما پیشنهاد را پذیرفتید",
-      "declinedToast": "شما پیشنهاد را رد کردید"
+      "declinedToast": "شما پیشنهاد را رد کردید",
+      "counter": "پیشنهاد متقابل",
+      "counterTitle": "پیشنهاد قیمت متقابل",
+      "counterLabel": "پیشنهاد متقابل",
+      "buyerOfferedAt": "خریدار {price} پیشنهاد داد",
+      "yourCounterOffer": "قیمت متقابل شما",
+      "counterNote": "بدون پرداخت — این فقط یک پیشنهاد قیمت است. برای نهایی کردن حضوری ملاقات کنید.",
+      "sendCounter": "ارسال پیشنهاد متقابل",
+      "counteredAt": "قیمت متقابل",
+      "counterSentToast": "پیشنهاد متقابل ارسال شد!"
     },
     "block": {
       "blockUser": "مسدود کردن کاربر",
@@ -710,6 +761,14 @@
       "blockFailed": "مسدود کردن ناموفق بود. دوباره امتحان کنید.",
       "unblockFailed": "رفع مسدودیت ناموفق بود. دوباره امتحان کنید."
     },
+    "message": {
+      "deleted": "این پیام حذف شد",
+      "deleteAction": "حذف پیام",
+      "deleteConfirm": "این پیام را حذف کنید؟",
+      "deleteConfirmCta": "حذف",
+      "deleteConfirmDescription": "این کار قابل بازگشت نیست. طرف مقابل می‌بیند که یک پیام حذف شده است.",
+      "deleteFailed": "حذف پیام ناموفق بود. لطفاً دوباره تلاش کنید."
+    },
     "search": {
       "placeholder": "جستجو در پیام‌ها...",
       "matchCount": "{current} از {total}",
@@ -720,6 +779,41 @@
       "title": "گفتگوهای این آگهی",
       "viewAll": "مشاهده همه گفتگوها",
       "viewConversations": "مشاهده گفتگوها"
+    },
+    "tabs": {
+      "inbox": "صندوق ورودی",
+      "archived": "بایگانی‌شده",
+      "label": "پوشه‌های گفتگو"
+    },
+    "archive": {
+      "archive": "بایگانی",
+      "unarchive": "خارج از بایگانی",
+      "empty": "هیچ گفتگوی بایگانی‌شده‌ای وجود ندارد",
+      "emptyDescription": "گفتگوهایی که بایگانی می‌کنید اینجا نشان داده می‌شوند.",
+      "error": "وضعیت بایگانی به‌روزرسانی نشد. دوباره امتحان کنید."
+    },
+    "actions": {
+      "options": "گزینه‌های گفتگو",
+      "markRead": "علامت‌گذاری به عنوان خوانده شده",
+      "markUnread": "علامت‌گذاری به عنوان خوانده نشده",
+      "markReadError": "وضعیت خواندن به‌روزرسانی نشد. دوباره امتحان کنید."
+    },
+    "quickReplies": {
+      "toolbarLabel": "پاسخ‌های سریع",
+      "buyer": {
+        "stillAvailable": "آیا هنوز موجود است؟",
+        "lowestPrice": "کمترین قیمت شما چقدر است؟",
+        "whereMeet": "کجا می‌توانیم ملاقات کنیم؟",
+        "morePhotos": "می‌توانم عکس‌های بیشتری ببینم؟",
+        "negotiable": "آیا قیمت قابل مذاکره است؟"
+      },
+      "seller": {
+        "yesAvailable": "بله، موجود است",
+        "meetAtPlace": "بیایید در [مکان] ملاقات کنیم",
+        "priceFirm": "قیمت ثابت است",
+        "whenFree": "کِی برای ملاقات آزاد هستید؟",
+        "sendMorePhotos": "می‌توانم عکس‌های بیشتری بفرستم"
+      }
     }
   },
   "warnings": {

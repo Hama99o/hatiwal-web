@@ -27,11 +27,14 @@ export function StartConversationButton({
   sellerId,
   price,
   currency,
+  negotiable,
 }: {
   listingId: number;
   sellerId?: number;
   price?: number | null;
   currency?: string | null;
+  /** false = firm price: hide the make-offer affordance (mirrors mobile N071). */
+  negotiable?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -42,6 +45,9 @@ export function StartConversationButton({
   const [msg, setMsg] = useState("");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Negotiable by default: only firm (offer hidden) when explicitly false.
+  const isNegotiable = negotiable !== false;
 
   if (status === "authed" && user && sellerId && user.id === sellerId) {
     return null; // your own listing
@@ -109,14 +115,17 @@ export function StartConversationButton({
         <MessageCircle className="size-4" />
         {t("listing.detail.messageSeller")}
       </Button>
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => setOfferOpen(true)}
-      >
-        <Tag className="size-4" />
-        {t("listing.detail.makeOffer")}
-      </Button>
+      {/* Make an offer — hidden when the listing is firm-priced (N071). */}
+      {isNegotiable && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setOfferOpen(true)}
+        >
+          <Tag className="size-4" />
+          {t("listing.detail.makeOffer")}
+        </Button>
+      )}
 
       {/* Message dialog */}
       {open && (

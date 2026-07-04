@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Eye, MapPin } from "lucide-react";
+import { Eye, Heart, MapPin } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListing, getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
 import { categoryName } from "@/lib/api/categories";
@@ -10,8 +10,11 @@ import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
 import { PriceDropBadge } from "@/components/shared/price-drop-badge";
+import { FirmPriceBadge } from "@/components/shared/firm-price-badge";
 import { CategoryBadge } from "@/components/shared/category-badge";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
+import { AwayBanner } from "@/components/shared/away-banner";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
 import { ReportButton } from "@/components/shared/report-button";
 import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
@@ -124,6 +127,8 @@ export default async function ListingDetailPage({
               currency={listing.currency}
               size="lg"
             />
+            {/* Firm-price badge — quiet trust signal when negotiable is false */}
+            <FirmPriceBadge negotiable={listing.negotiable} />
             <h1 className="text-pretty text-xl font-bold sm:text-2xl">
               {listing.title}
             </h1>
@@ -137,6 +142,12 @@ export default async function ListingDetailPage({
               <Eye className="size-4" />
               {t("listing.viewsCount", { count: listing.viewsCount })}
             </span>
+            {listing.savesCount != null && listing.savesCount > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Heart className="size-4" />
+                {t("listing.savesCount", { count: listing.savesCount })}
+              </span>
+            )}
             <span>
               {t("listing.postedAgo", {
                 date: formatRelativeDate(listing.createdAt, locale),
@@ -178,6 +189,14 @@ export default async function ListingDetailPage({
                 href={`/sellers/${listing.seller.id}`}
                 size={48}
               />
+              <ResponseRateBadge
+                responseRatePercent={listing.seller.responseRatePercent}
+                responseTimeLabel={listing.seller.responseTimeLabel}
+              />
+              <AwayBanner
+                awayUntil={listing.seller.sellerAwayUntil}
+                className="mt-3"
+              />
             </div>
           )}
 
@@ -189,6 +208,7 @@ export default async function ListingDetailPage({
                 sellerId={listing.seller?.id}
                 price={listing.price}
                 currency={listing.currency}
+                negotiable={listing.negotiable}
               />
               <SellerPhoneReveal
                 phone={listing.seller?.phone}

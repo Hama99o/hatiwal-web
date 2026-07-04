@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PackageOpen } from "lucide-react";
+import { Clock } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
 import { safe } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
-import { ListingGrid } from "@/components/shared/listing-grid";
-import { EmptyState } from "@/components/shared/empty-state";
+import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
+import { AwayBanner } from "@/components/shared/away-banner";
 import { ReportButton } from "@/components/shared/report-button";
+import { SellerListingsTabs } from "@/components/seller/seller-listings-tabs";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -18,6 +19,15 @@ const EMPTY_SELLER: PublicSellerProfile = {
   seller: null,
   listings: [],
   totalCount: 0,
+};
+
+// Maps the privacy-safe `lastActiveLabel` recency bucket from Rails to a
+// localized string key. Unknown/null buckets omit the label entirely (no raw
+// timestamp is ever shown). Mirrors mobile's activeLabelUtil.
+const ACTIVE_LABEL_KEYS: Record<string, string> = {
+  today: "seller.activeRecently.today",
+  this_week: "seller.activeRecently.thisWeek",
+  this_month: "seller.activeRecently.thisMonth",
 };
 
 export async function generateMetadata({
@@ -53,6 +63,17 @@ export default async function SellerPage({ params }: { params: Params }) {
           layout="stacked"
           size={88}
         />
+        <ResponseRateBadge
+          responseRatePercent={seller.responseRatePercent}
+          responseTimeLabel={seller.responseTimeLabel}
+          className="mt-0 justify-center"
+        />
+        {ACTIVE_LABEL_KEYS[seller.lastActiveLabel ?? ""] && (
+          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="size-3.5 shrink-0" />
+            <span>{t(ACTIVE_LABEL_KEYS[seller.lastActiveLabel!])}</span>
+          </div>
+        )}
         <div className="text-sm">
           <span className="block text-2xl font-bold text-foreground">
             {totalCount}
@@ -62,16 +83,13 @@ export default async function SellerPage({ params }: { params: Params }) {
           </span>
         </div>
         <ReportButton reportableType="User" reportableId={seller.id} />
+        <AwayBanner
+          awayUntil={seller.sellerAwayUntil}
+          className="w-full justify-center text-start"
+        />
       </div>
 
-      <h2 className="mb-4 mt-8 text-lg font-semibold">
-        {t("seller.activeListings")}
-      </h2>
-      {listings.length > 0 ? (
-        <ListingGrid listings={listings} priorityCount={5} />
-      ) : (
-        <EmptyState icon={PackageOpen} title={t("seller.noListings")} />
-      )}
+      <SellerListingsTabs sellerId={seller.id} activeListings={listings} />
     </div>
   );
 }

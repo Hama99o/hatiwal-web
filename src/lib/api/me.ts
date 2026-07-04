@@ -55,6 +55,12 @@ export interface ProfileUpdate {
   city?: string | null;
   province?: string | null;
   preferredLanguage?: "en" | "ps" | "fa";
+  /**
+   * Away mode (mobile W713). ISO datetime to set the away period, or explicit
+   * `null` to clear it. Omit the key entirely to leave the current value
+   * untouched (e.g. away toggle on but no date entered yet).
+   */
+  awayUntil?: string | null;
 }
 
 export async function updateProfile(input: ProfileUpdate): Promise<User> {

@@ -1,17 +1,47 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { MessageSquare } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  CheckCheck,
+  Inbox,
+  MailOpen,
+  MessageSquare,
+  MoreVertical,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
-import { getConversations } from "@/lib/api/chat";
+import {
+  archiveConversation,
+  getConversations,
+  markConversationRead,
+  markConversationUnread,
+  unarchiveConversation,
+} from "@/lib/api/chat";
+import { useAuth } from "@/components/auth/auth-provider";
 import type { Conversation } from "@/lib/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SegmentedControl } from "@/components/shared/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+type TabMode = "inbox" | "archived";
 
 function preview(c: Conversation, t: ReturnType<typeof useTranslations>): string {
   switch (c.lastMessageKind) {
@@ -45,9 +75,76 @@ function preview(c: Conversation, t: ReturnType<typeof useTranslations>): string
 export function ConversationsView({ listingId }: { listingId?: number } = {}) {
   const t = useTranslations();
   const locale = useLocale();
+  const queryClient = useQueryClient();
+  const { refresh } = useAuth();
+  const [tab, setTab] = useState<TabMode>("inbox");
+
+  // The Inbox/Archived partition only applies to the full inbox, not the
+  // per-listing filtered view (which mirrors mobile's listing-scoped list).
+  const archived = !listingId && tab === "archived";
+  const queryKey = [
+    "conversations",
+    listingId ?? "all",
+    archived ? "archived" : "inbox",
+  ];
+
   const { data, isPending, isError } = useQuery({
-    queryKey: ["conversations", listingId ?? "all"],
-    queryFn: () => getConversations(listingId),
+    queryKey,
+    queryFn: () => getConversations(listingId, archived),
+  });
+
+  // Optimistically drop the row from the current list; on error restore it and
+  // toast. Invalidate both partitions so the moved row appears on the other tab.
+  const mutation = useMutation({
+    mutationFn: ({ id, action }: { id: number; action: "archive" | "unarchive" }) =>
+      action === "archive"
+        ? archiveConversation(id)
+        : unarchiveConversation(id),
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Conversation[]>(queryKey);
+      queryClient.setQueryData<Conversation[]>(queryKey, (old) =>
+        (old ?? []).filter((c) => c.id !== id),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(queryKey, ctx.previous);
+      toast.error(t("chat.archive.error"));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+
+  // Mark a conversation read/unread from the list without opening it.
+  // Optimistically flip the row's unreadCount (0 = read, 1 = unread) so the
+  // row + badge update instantly; roll back + toast on error. On success we
+  // also refresh the user so the header's aggregate unread badge stays in sync.
+  const readMutation = useMutation({
+    mutationFn: ({ id, action }: { id: number; action: "read" | "unread" }) =>
+      action === "read"
+        ? markConversationRead(id)
+        : markConversationUnread(id),
+    onMutate: async ({ id, action }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Conversation[]>(queryKey);
+      queryClient.setQueryData<Conversation[]>(queryKey, (old) =>
+        (old ?? []).map((c) =>
+          c.id === id ? { ...c, unreadCount: action === "read" ? 0 : 1 } : c,
+        ),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(queryKey, ctx.previous);
+      toast.error(t("chat.actions.markReadError"));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      // Keep the header's aggregate unread badge (user.unreadMessageCount) fresh.
+      refresh().catch(() => undefined);
+    },
   });
 
   return (
@@ -63,7 +160,17 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
           {t("chat.listingFilter.viewAll")}
         </Link>
       ) : (
-        <div className="mb-4" />
+        // Inbox / Archived segmented control
+        <SegmentedControl<TabMode>
+          className="mb-4 mt-2"
+          ariaLabel={t("chat.tabs.label")}
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "inbox", label: t("chat.tabs.inbox"), icon: Inbox },
+            { value: "archived", label: t("chat.tabs.archived"), icon: Archive },
+          ]}
+        />
       )}
 
       {isError ? (
@@ -75,22 +182,30 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
           ))}
         </div>
       ) : !data || data.length === 0 ? (
-        <EmptyState
-          icon={MessageSquare}
-          title={t("chat.noConversations")}
-          description={t("chat.noConversationsDescription")}
-          action={{ label: t("chat.empty.browseAction"), href: "/bazaar" }}
-        />
+        archived ? (
+          <EmptyState
+            icon={Archive}
+            title={t("chat.archive.empty")}
+            description={t("chat.archive.emptyDescription")}
+          />
+        ) : (
+          <EmptyState
+            icon={MessageSquare}
+            title={t("chat.noConversations")}
+            description={t("chat.noConversationsDescription")}
+            action={{ label: t("chat.empty.browseAction"), href: "/bazaar" }}
+          />
+        )
       ) : (
         <ul className="divide-y overflow-hidden rounded-lg border bg-card">
           {data.map((c) => {
             const who = c.otherParticipant;
             const unread = (c.unreadCount ?? 0) > 0;
             return (
-              <li key={c.id}>
+              <li key={c.id} className="relative flex items-center">
                 <Link
                   href={`/conversations/${c.id}`}
-                  className="flex items-center gap-3 p-3 transition-colors hover:bg-accent"
+                  className="flex min-w-0 flex-1 items-center gap-3 p-3 transition-colors hover:bg-accent"
                 >
                   <UserAvatar
                     name={who?.name ?? t("chat.unknownUser")}
@@ -146,6 +261,54 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                     )}
                   </div>
                 </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    aria-label={t("chat.actions.options")}
+                    className="me-2 flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <MoreVertical className="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {unread ? (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          readMutation.mutate({ id: c.id, action: "read" })
+                        }
+                      >
+                        <CheckCheck className="size-4" />
+                        {t("chat.actions.markRead")}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          readMutation.mutate({ id: c.id, action: "unread" })
+                        }
+                      >
+                        <MailOpen className="size-4" />
+                        {t("chat.actions.markUnread")}
+                      </DropdownMenuItem>
+                    )}
+                    {archived ? (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          mutation.mutate({ id: c.id, action: "unarchive" })
+                        }
+                      >
+                        <ArchiveRestore className="size-4" />
+                        {t("chat.archive.unarchive")}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          mutation.mutate({ id: c.id, action: "archive" })
+                        }
+                      >
+                        <Archive className="size-4" />
+                        {t("chat.archive.archive")}
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </li>
             );
           })}

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import {
+  Flag,
   Heart,
   LogOut,
   MessageSquare,
@@ -128,6 +129,12 @@ export function AuthNav() {
             <Link href="/settings/blocked-users">
               <ShieldOff className="size-4" />
               {t("profile.blockedUsers")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings/reports">
+              <Flag className="size-4" />
+              {t("report.myReports.title")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem

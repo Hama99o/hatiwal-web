@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { MapPin, SlidersHorizontal, X } from "lucide-react";
+import { toast } from "sonner";
+import {
+  LayoutGrid,
+  List,
+  Loader2,
+  MapPin,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { getListings } from "@/lib/api/listings";
 import { categoryName } from "@/lib/api/categories";
@@ -24,6 +32,7 @@ import {
 import {
   ListingGrid,
   ListingGridSkeleton,
+  type ListingViewMode,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchField } from "@/components/shared/search-field";
@@ -41,6 +50,61 @@ interface BrowseClientProps {
 
 const SELECT_CLASS =
   "h-9 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+// Client-only view-mode preference (not in the URL), same ephemeral pattern as
+// the nearest-sort coords. Mirrors mobile's `browse-view-mode` store.
+const VIEW_MODE_KEY = "hatiwal.bazaar.viewMode";
+
+function readViewMode(): ListingViewMode {
+  if (typeof window === "undefined") return "grid";
+  const saved = window.localStorage.getItem(VIEW_MODE_KEY);
+  return saved === "list" ? "list" : "grid";
+}
+
+/** Compact segmented Grid/List toggle for the Bazaar toolbar. */
+function ViewModeToggle({
+  value,
+  onChange,
+}: {
+  value: ListingViewMode;
+  onChange: (mode: ListingViewMode) => void;
+}) {
+  const t = useTranslations();
+  const options: { mode: ListingViewMode; label: string; Icon: typeof LayoutGrid }[] =
+    [
+      { mode: "grid", label: t("browse.viewGrid"), Icon: LayoutGrid },
+      { mode: "list", label: t("browse.viewList"), Icon: List },
+    ];
+  return (
+    <div
+      role="group"
+      aria-label={t("browse.viewGrid")}
+      className="inline-flex items-center rounded-md border border-input bg-background p-0.5"
+    >
+      {options.map(({ mode, label, Icon }) => {
+        const active = value === mode;
+        return (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => onChange(mode)}
+            aria-pressed={active}
+            aria-label={label}
+            title={label}
+            className={cn(
+              "inline-flex size-11 items-center justify-center rounded transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4" aria-hidden />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function Chip({
   active,
@@ -80,6 +144,24 @@ export function BrowseClient({
   const [filters, setFilters] = useState<BrowseFilters>(initialFilters);
   const [searchInput, setSearchInput] = useState(initialFilters.q);
   const [showFilters, setShowFilters] = useState(false);
+  // True while the "Nearest first" sort is acquiring a browser Geolocation fix.
+  const [nearestLoading, setNearestLoading] = useState(false);
+
+  // Grid/list view mode — client-only preference persisted to localStorage.
+  // SSR-safe: always start "grid" so server and first client render match, then
+  // hydrate the saved choice on mount (avoids a hydration mismatch).
+  const [viewMode, setViewMode] = useState<ListingViewMode>("grid");
+  useEffect(() => {
+    setViewMode(readViewMode());
+  }, []);
+  const changeViewMode = useCallback((mode: ListingViewMode) => {
+    setViewMode(mode);
+    try {
+      window.localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      /* localStorage unavailable (private mode) — keep in-memory only */
+    }
+  }, []);
 
   useEffect(() => {
     router.replace(`${pathname}${filtersToSearchString(filters)}`, {
@@ -158,6 +240,53 @@ export function BrowseClient({
       }),
     );
   };
+
+  // "Nearest first" sort — acquires a fresh browser Geolocation fix, then sets
+  // sort=nearest with those coords (kept separate from the manual zone filter).
+  // Denial/failure shows a friendly toast and leaves the current sort unchanged,
+  // so the <select> snaps back to its prior value — a clean fallback to default.
+  // Mirrors mobile's handleToggleNearest (Browse.tsx).
+  const acquireNearest = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error(t("browse.locationUnsupported"));
+      return;
+    }
+    setNearestLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setNearestLoading(false);
+        update({
+          sort: "nearest",
+          nearestLat: String(pos.coords.latitude),
+          nearestLng: String(pos.coords.longitude),
+        });
+      },
+      (err) => {
+        setNearestLoading(false);
+        const key =
+          err.code === err.PERMISSION_DENIED
+            ? "browse.locationDenied"
+            : err.code === err.TIMEOUT
+              ? "browse.locationTimeout"
+              : "browse.locationUnavailable";
+        toast.error(t(key));
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
+  }, [t, update]);
+
+  // Sort change: "Nearest first" triggers the geolocation request; any other
+  // option applies immediately and drops the GPS fix so it isn't left dangling.
+  const handleSortChange = useCallback(
+    (value: ListingSort) => {
+      if (value === "nearest") {
+        acquireNearest();
+      } else {
+        update({ sort: value, nearestLat: "", nearestLng: "" });
+      }
+    },
+    [acquireNearest, update],
+  );
 
   const RADIUS_PRESETS = [5, 10, 25, 50];
 
@@ -409,23 +538,44 @@ export function BrowseClient({
                 ? t("listing.shopCount", { count: totalCount })
                 : " "}
             </p>
-            <label className="flex items-center gap-2 text-sm">
-              <span className="hidden text-muted-foreground sm:inline">
-                {t("browse.sort.label")}
-              </span>
-              <select
-                value={filters.sort}
-                onChange={(e) =>
-                  update({ sort: e.target.value as ListingSort })
-                }
-                className={SELECT_CLASS}
-              >
-                <option value="newest">{t("browse.sort.newest")}</option>
-                <option value="oldest">{t("browse.sort.oldest")}</option>
-                <option value="price_asc">{t("browse.sort.priceAsc")}</option>
-                <option value="price_desc">{t("browse.sort.priceDesc")}</option>
-              </select>
-            </label>
+            <div className="flex items-center gap-2">
+              {nearestLoading && (
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                  role="status"
+                >
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  <span className="hidden sm:inline">
+                    {t("browse.nearestLocationLoading")}
+                  </span>
+                </span>
+              )}
+              <label className="flex items-center gap-2 text-sm">
+                <span className="hidden text-muted-foreground sm:inline">
+                  {t("browse.sort.label")}
+                </span>
+                <select
+                  value={filters.sort}
+                  onChange={(e) =>
+                    handleSortChange(e.target.value as ListingSort)
+                  }
+                  disabled={nearestLoading}
+                  className={cn(SELECT_CLASS, nearestLoading && "opacity-70")}
+                >
+                  <option value="newest">{t("browse.sort.newest")}</option>
+                  <option value="oldest">{t("browse.sort.oldest")}</option>
+                  <option value="price_asc">{t("browse.sort.priceAsc")}</option>
+                  <option value="price_desc">
+                    {t("browse.sort.priceDesc")}
+                  </option>
+                  <option value="most_viewed">
+                    {t("browse.sort.mostViewed")}
+                  </option>
+                  <option value="nearest">{t("browse.sort.nearest")}</option>
+                </select>
+              </label>
+              <ViewModeToggle value={viewMode} onChange={changeViewMode} />
+            </div>
           </div>
 
           {query.isError ? (
@@ -444,7 +594,11 @@ export function BrowseClient({
             />
           ) : (
             <>
-              <ListingGrid listings={items} priorityCount={6} />
+              <ListingGrid
+                listings={items}
+                viewMode={viewMode}
+                priorityCount={6}
+              />
               <div ref={sentinelRef} className="h-1" />
               {query.hasNextPage && (
                 <div className="flex justify-center py-6">

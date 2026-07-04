@@ -98,6 +98,27 @@ export async function getListings(
   };
 }
 
+/**
+ * Sold listings for a seller's public profile (F742).
+ *
+ * Reuses the same guest-accessible endpoint mobile uses
+ * (`GET /users/:id/sold_listings`, `:list` view) — no contract change.
+ */
+export async function getSoldListings(
+  userId: number | string,
+  page?: number,
+  opts: { revalidate?: number } = {},
+): Promise<ListingsResult> {
+  const data = await apiGet<ListingsEnvelope>(
+    `users/${userId}/sold_listings`,
+    { params: { "page[number]": page }, revalidate: opts.revalidate },
+  );
+  return {
+    items: data.listings.map(normalizeListing),
+    pagination: data.meta.pagination,
+  };
+}
+
 export async function getListing(
   id: number | string,
   opts: { revalidate?: number } = {},

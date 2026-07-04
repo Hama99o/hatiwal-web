@@ -19,6 +19,15 @@ export interface BrowseFilters {
   lat: string;
   lng: string;
   radius: string;
+  /**
+   * Proximity fix for the "Nearest first" sort — acquired from the browser
+   * Geolocation API and kept SEPARATE from the manual location/zone filter
+   * above (lat/lng/radius) so the two never fight. Ephemeral + client-only:
+   * never serialized to the URL, so a reload or shared link cleanly falls back
+   * to the default sort. Mirrors mobile's separate `nearestCoords` state.
+   */
+  nearestLat: string;
+  nearestLng: string;
 }
 
 export const DEFAULT_FILTERS: BrowseFilters = {
@@ -31,12 +40,23 @@ export const DEFAULT_FILTERS: BrowseFilters = {
   lat: "",
   lng: "",
   radius: "",
+  nearestLat: "",
+  nearestLng: "",
 };
 
 /** Default search radius (km) when a location is picked without an explicit radius. */
 export const DEFAULT_RADIUS_KM = 10;
 
-const SORTS: ListingSort[] = ["newest", "oldest", "price_asc", "price_desc"];
+// "nearest" is intentionally omitted: it is an ephemeral, browser-only sort
+// that depends on a live Geolocation fix, so it is never read from (or written
+// to) the URL. A direct `?sort=nearest` link therefore falls back to "newest".
+const SORTS: ListingSort[] = [
+  "newest",
+  "oldest",
+  "price_asc",
+  "price_desc",
+  "most_viewed",
+];
 
 type ParamSource = Record<string, string | undefined> | URLSearchParams;
 
@@ -60,6 +80,9 @@ export function filtersFromParams(source: ParamSource): BrowseFilters {
     lat: read(source, "lat"),
     lng: read(source, "lng"),
     radius: read(source, "radius"),
+    // Nearest coords are client-only (live GPS fix) — never sourced from the URL.
+    nearestLat: "",
+    nearestLng: "",
   };
 }
 
@@ -69,7 +92,10 @@ export function filtersToSearchString(f: BrowseFilters): string {
   if (f.q) sp.set("q", f.q);
   if (f.categorySlug) sp.set("category", f.categorySlug);
   if (f.condition) sp.set("condition", f.condition);
-  if (f.sort && f.sort !== "newest") sp.set("sort", f.sort);
+  // "nearest" is client-only and never persisted to the URL (see SORTS above),
+  // so a reload/shared link falls back to the default order.
+  if (f.sort && f.sort !== "newest" && f.sort !== "nearest")
+    sp.set("sort", f.sort);
   if (f.priceMin) sp.set("min", f.priceMin);
   if (f.priceMax) sp.set("max", f.priceMax);
   if (f.lat && f.lng) {
@@ -91,6 +117,8 @@ export function filtersToQuery(
   const category = f.categorySlug
     ? findCategoryBySlug(categories, f.categorySlug)
     : undefined;
+  const isNearest = f.sort === "nearest";
+  const hasNearest = Boolean(f.nearestLat && f.nearestLng);
   const hasLocation = Boolean(f.lat && f.lng);
   return {
     page,
@@ -102,9 +130,29 @@ export function filtersToQuery(
     sort: f.sort,
     priceMin: f.priceMin ? Number(f.priceMin) : undefined,
     priceMax: f.priceMax ? Number(f.priceMax) : undefined,
-    latitude: hasLocation ? Number(f.lat) : undefined,
-    longitude: hasLocation ? Number(f.lng) : undefined,
-    radius: hasLocation ? Number(f.radius) || DEFAULT_RADIUS_KM : undefined,
+    // "nearest" takes over the location params with its own GPS fix and drops
+    // the radius (nearest across the whole feed); otherwise the manual zone
+    // filter applies. Kept independent so clearing "nearest" restores the
+    // manual zone untouched. Mirrors mobile's Browse fetcher.
+    latitude: isNearest
+      ? hasNearest
+        ? Number(f.nearestLat)
+        : undefined
+      : hasLocation
+        ? Number(f.lat)
+        : undefined,
+    longitude: isNearest
+      ? hasNearest
+        ? Number(f.nearestLng)
+        : undefined
+      : hasLocation
+        ? Number(f.lng)
+        : undefined,
+    radius: isNearest
+      ? undefined
+      : hasLocation
+        ? Number(f.radius) || DEFAULT_RADIUS_KM
+        : undefined,
   };
 }
 

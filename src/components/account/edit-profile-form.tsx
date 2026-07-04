@@ -6,10 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, PlaneTakeoff } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { updateAvatar, updateProfile } from "@/lib/api/me";
+import { updateAvatar, updateProfile, type ProfileUpdate } from "@/lib/api/me";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -66,12 +66,16 @@ export function EditProfileForm() {
     city: z.string().optional().or(z.literal("")),
     province: z.string().optional().or(z.literal("")),
     preferredLanguage: z.enum(["en", "ps", "fa"]),
+    // Away mode (W713): toggle + a YYYY-MM-DD end date from the native picker.
+    isAway: z.boolean(),
+    awayUntilDate: z.string().optional().or(z.literal("")),
   });
   type Values = z.infer<typeof schema>;
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -83,12 +87,30 @@ export function EditProfileForm() {
       city: user?.city ?? "",
       province: user?.province ?? "",
       preferredLanguage: user?.preferredLanguage ?? "en",
+      // Backend only surfaces awayUntil while the seller is currently away, so
+      // its presence is the source of truth for the toggle's initial state.
+      isAway: !!user?.awayUntil,
+      awayUntilDate: user?.awayUntil ? user.awayUntil.slice(0, 10) : "",
     },
   });
 
+  // Today (YYYY-MM-DD) as the min selectable away date — the backend rejects a
+  // past away_until, so we prevent it in the picker too.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const isAway = watch("isAway");
+
   const onSubmit = handleSubmit(async (values) => {
+    const { isAway: away, awayUntilDate, ...rest } = values;
+    const payload: ProfileUpdate = { ...rest };
+    // Mirror mobile: away on + date → set end-of-day UTC; away off → clear
+    // (explicit null); away on but no date → omit so we don't overwrite.
+    if (away && awayUntilDate) {
+      payload.awayUntil = `${awayUntilDate}T23:59:59.000Z`;
+    } else if (!away) {
+      payload.awayUntil = null;
+    }
     try {
-      const updated = await updateProfile(values);
+      const updated = await updateProfile(payload);
       setUser(updated);
       toast.success(t("profile.edit.saved"));
       router.push("/profile");
@@ -207,6 +229,34 @@ export function EditProfileForm() {
             <option value="fa">{t("profile.edit.language.fa")}</option>
           </select>
         </Field>
+
+        {/* Away mode (W713) — set/clear a temporary away-until date. */}
+        <div className="space-y-3 rounded-lg border bg-card p-4">
+          <div className="flex items-center gap-2">
+            <PlaneTakeoff className="size-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">
+              {t("profile.away.sectionTitle")}
+            </h2>
+          </div>
+          <label className="flex cursor-pointer items-center justify-between gap-4">
+            <span className="text-sm">{t("profile.away.toggle")}</span>
+            <input
+              type="checkbox"
+              className="size-5 shrink-0 accent-primary"
+              {...register("isAway")}
+            />
+          </label>
+          {isAway && (
+            <Field label={t("profile.away.untilLabel")} htmlFor="awayUntilDate">
+              <Input
+                id="awayUntilDate"
+                type="date"
+                min={todayIso}
+                {...register("awayUntilDate")}
+              />
+            </Field>
+          )}
+        </div>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={isSubmitting} className="flex-1">

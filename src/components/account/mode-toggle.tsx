@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { setSellerMode } from "@/lib/api/me";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/shared/segmented-control";
+
+type Mode = "buyer" | "seller";
 
 /**
  * Buyer ↔ Seller mode toggle (mobile parity). Persists `sellerMode` to the
@@ -38,39 +40,18 @@ export function ModeToggle({ className }: { className?: string }) {
     }
   }
 
-  const btn = (active: boolean) =>
-    cn(
-      "inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-      active
-        ? "bg-card text-foreground shadow-sm"
-        : "text-muted-foreground hover:text-foreground",
-    );
-
   return (
-    <div
-      role="group"
-      className={cn("inline-flex rounded-full border bg-muted p-0.5", className)}
-    >
-      <button
-        type="button"
-        onClick={() => switchTo(false)}
-        disabled={busy}
-        aria-pressed={!seller}
-        className={btn(!seller)}
-      >
-        <ShoppingBag className="size-4" />
-        {t("profile.buyerMode")}
-      </button>
-      <button
-        type="button"
-        onClick={() => switchTo(true)}
-        disabled={busy}
-        aria-pressed={seller}
-        className={btn(seller)}
-      >
-        <Store className="size-4" />
-        {t("profile.sellerMode")}
-      </button>
-    </div>
+    <SegmentedControl<Mode>
+      className={className}
+      fullWidth
+      disabled={busy}
+      ariaLabel={t("profile.modeToggleLabel")}
+      value={seller ? "seller" : "buyer"}
+      onChange={(mode) => switchTo(mode === "seller")}
+      options={[
+        { value: "buyer", label: t("profile.buyerMode"), icon: ShoppingBag },
+        { value: "seller", label: t("profile.sellerMode"), icon: Store },
+      ]}
+    />
   );
 }

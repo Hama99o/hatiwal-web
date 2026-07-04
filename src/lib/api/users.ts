@@ -1,4 +1,4 @@
-import { getListings } from "./listings";
+import { getListing, getListings } from "./listings";
 import type { Listing, SellerSummary } from "../types";
 
 /**
@@ -32,9 +32,45 @@ export async function getPublicSeller(
     result.items[0]?.seller ??
     null;
 
+  // The listings index (`:list` view) seller sub-object is intentionally lean —
+  // it omits the response-rate trust fields because computing them per card
+  // would N+1 the browse feed. They live on the listing `:detailed` view seller,
+  // so fetch one listing's detail to enrich the profile's response-rate badge.
+  // Guest-accessible (the listing detail page renders for guests); no mobile
+  // contract change and no per-card cost.
+  const enrichedSeller = seller
+    ? await enrichSellerResponseRate(seller, result.items[0]?.id, opts.revalidate)
+    : null;
+
   return {
-    seller,
+    seller: enrichedSeller,
     listings: result.items,
     totalCount: result.pagination.totalCount,
   };
+}
+
+async function enrichSellerResponseRate(
+  seller: SellerSummary,
+  listingId: number | undefined,
+  revalidate?: number,
+): Promise<SellerSummary> {
+  if (listingId == null) return seller;
+  try {
+    const detail = await getListing(listingId, { revalidate });
+    if (detail.seller?.id === seller.id) {
+      return {
+        ...seller,
+        responseRatePercent: detail.seller.responseRatePercent,
+        responseTimeLabel: detail.seller.responseTimeLabel,
+        lastActiveLabel: detail.seller.lastActiveLabel,
+        // Away mode (W628) lives only on the `:detailed` seller sub-object, so
+        // carry it over here to power the public-profile away banner.
+        sellerIsAway: detail.seller.sellerIsAway,
+        sellerAwayUntil: detail.seller.sellerAwayUntil,
+      };
+    }
+  } catch {
+    // Non-fatal: the badge simply won't render if the detail fetch fails.
+  }
+  return seller;
 }

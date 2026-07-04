@@ -94,7 +94,11 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* Brand fonts (loaded via next/font in [locale]/layout.tsx): Rubik → Latin,
+     Zain → Arabic display, Noto Sans Arabic → guaranteed Pashto/Dari glyphs.
+     Browsers fall back per-glyph across the stack, so en/ps/fa all render. */
   --font-sans:
+    var(--font-rubik), var(--font-zain), var(--font-noto-arabic),
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
     "Noto Naskh Arabic", "Vazirmatn", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "Roboto Mono", monospace;

@@ -43,6 +43,7 @@
     "confirm": "Confirm",
     "language": "Language",
     "retry": "Retry",
+    "loadMore": "Load more",
     "notFound": "Not found",
     "required": "is required",
     "comingSoon": "Coming soon",
@@ -112,6 +113,8 @@
     "unsave": "Remove from saved",
     "postedAgo": "posted {date}",
     "viewsCount": "{count} views",
+    "savesCount": "{count, plural, one {Saved by # person} other {Saved by # people}}",
+    "firmPrice": "Firm price",
     "conversationsCount": "{count} chats",
     "publishSuccess": "Listing published!",
     "reserveSuccess": "Listing marked as reserved",
@@ -293,8 +296,11 @@
       "newest": "Newest first",
       "oldest": "Oldest first",
       "priceAsc": "Price: low to high",
-      "priceDesc": "Price: high to low"
+      "priceDesc": "Price: high to low",
+      "mostViewed": "Most viewed",
+      "nearest": "Nearest first"
     },
+    "nearestLocationLoading": "Finding your location…",
     "saveSearch": "Save this search",
     "savedSearches": "Saved searches",
     "savedSearchCreated": "Search saved",
@@ -432,7 +438,14 @@
       "photoUpdated": "Photo updated",
       "photoError": "Could not update photo",
       "photoTooLarge": "Image must be under 5 MB"
-    }
+    },
+    "away": {
+      "sectionTitle": "Away Mode",
+      "toggle": "I'm away (temporarily unavailable)",
+      "untilLabel": "Away until",
+      "youAreAway": "You're marked away until {date} — buyers see the away notice"
+    },
+    "modeToggleLabel": "Buyer or seller mode"
   },
   "report": {
     "title": "Report",
@@ -456,7 +469,18 @@
       "duplicate": "You have already reported this.",
       "generic": "Could not submit report. Please try again."
     },
-    "reasonRequired": "Please select a reason."
+    "reasonRequired": "Please select a reason.",
+    "status": {
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed"
+    },
+    "myReports": {
+      "title": "My Reports",
+      "empty": "You haven't reported anything yet.",
+      "reportedOn": "Reported on {date}"
+    }
   },
   "home": {
     "hero": {
@@ -508,7 +532,19 @@
     "title": "Seller profile",
     "activeListings": "Active listings",
     "noListings": "No active listings yet",
-    "memberOnHatiwal": "Member on Hatiwal"
+    "memberOnHatiwal": "Member on Hatiwal",
+    "tabs": {
+      "label": "Listings",
+      "active": "Active",
+      "sold": "Sold"
+    },
+    "noSoldListings": "No sold items yet",
+    "activeRecently": {
+      "today": "Active today",
+      "thisWeek": "Active this week",
+      "thisMonth": "Active this month"
+    },
+    "awayBanner": "Seller is away until {date}"
   },
   "auth": {
     "login": "Login",
@@ -565,6 +601,12 @@
     "browseButton": "Browse listings",
     "unsaveError": "Could not remove listing — please try again",
     "saveError": "Could not save listing — please try again"
+  },
+  "recentlyViewed": {
+    "title": "Recently Viewed",
+    "empty": "Nothing viewed yet",
+    "emptyDescription": "Listings you open will appear here so you can easily find them again.",
+    "browseButton": "Browse Listings"
   },
   "deleteAccount": {
     "title": "Delete your Hatiwal account",
@@ -697,7 +739,16 @@
       "accepted": "Offer accepted",
       "declined": "Offer declined",
       "acceptedToast": "You accepted the offer",
-      "declinedToast": "You declined the offer"
+      "declinedToast": "You declined the offer",
+      "counter": "Counter",
+      "counterTitle": "Counter Offer",
+      "counterLabel": "Counter Offer",
+      "buyerOfferedAt": "Buyer offered {price}",
+      "yourCounterOffer": "Your Counter Price",
+      "counterNote": "No payment — this counter is a price suggestion. Meet in person to finalize.",
+      "sendCounter": "Send Counter",
+      "counteredAt": "Counter Price",
+      "counterSentToast": "Counter offer sent!"
     },
     "block": {
       "blockUser": "Block User",
@@ -710,6 +761,14 @@
       "blockFailed": "Could not block user. Try again.",
       "unblockFailed": "Could not unblock user. Try again."
     },
+    "message": {
+      "deleted": "This message was deleted",
+      "deleteAction": "Delete message",
+      "deleteConfirm": "Delete this message?",
+      "deleteConfirmCta": "Delete",
+      "deleteConfirmDescription": "This can't be undone. The other person will see that a message was deleted.",
+      "deleteFailed": "Couldn't delete the message. Please try again."
+    },
     "search": {
       "placeholder": "Search messages...",
       "matchCount": "{current} of {total}",
@@ -720,6 +779,41 @@
       "title": "Conversations for this listing",
       "viewAll": "View all conversations",
       "viewConversations": "View conversations"
+    },
+    "tabs": {
+      "inbox": "Inbox",
+      "archived": "Archived",
+      "label": "Conversation folders"
+    },
+    "archive": {
+      "archive": "Archive",
+      "unarchive": "Unarchive",
+      "empty": "No archived chats",
+      "emptyDescription": "Conversations you archive will appear here.",
+      "error": "Could not update archive status. Please try again."
+    },
+    "actions": {
+      "options": "Conversation options",
+      "markRead": "Mark as read",
+      "markUnread": "Mark as unread",
+      "markReadError": "Could not update read status. Please try again."
+    },
+    "quickReplies": {
+      "toolbarLabel": "Quick replies",
+      "buyer": {
+        "stillAvailable": "Is this still available?",
+        "lowestPrice": "What's your lowest price?",
+        "whereMeet": "Where can we meet?",
+        "morePhotos": "Can I see more photos?",
+        "negotiable": "Is the price negotiable?"
+      },
+      "seller": {
+        "yesAvailable": "Yes, it's available",
+        "meetAtPlace": "Let's meet at [place]",
+        "priceFirm": "The price is firm",
+        "whenFree": "When are you free to meet?",
+        "sendMorePhotos": "I can send more photos"
+      }
     }
   },
   "warnings": {
