@@ -55,7 +55,10 @@ export default defineConfig({
       command: `npx next dev -p ${WEB_PORT}`,
       url: `http://localhost:${WEB_PORT}/en`,
       reuseExistingServer: false,
-      timeout: 180_000,
+      // Cold dev compile of the whole /en route tree + first-hit next/font
+      // downloads (Rubik/Zain/Noto) can exceed 3 min on a loaded CI runner.
+      // 5 min gives margin so the webServer isn't declared "not ready" mid-compile.
+      timeout: 300_000,
       env: {
         NEXT_DIST_DIR: ".next-e2e",
         API_URL: API_BASE,
