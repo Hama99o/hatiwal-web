@@ -34,10 +34,10 @@ services:
       - NEXT_PUBLIC_DEFAULT_LOCALE=en
       - NEXT_PUBLIC_DEFAULT_THEME=system
       - NEXT_PUBLIC_DEEP_LINK_SCHEME=hatiwal
-      # Google Identity Services web client id — a PUBLIC identifier (baked into
-      # every client bundle; mobile commits the same one in its compose). Gates
-      # the "Continue with Google" button on /login.
-      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=1090253359225-k3eobrph3t1e99q3aq2r252jk4ob9i6v.apps.googleusercontent.com
+      # Google Identity Services web client id — gates the "Continue with
+      # Google" button on /login. Value comes from the gitignored .env file
+      # (compose interpolation) — never hardcoded here.
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
       # Reliable file-watching for HMR on a mounted volume.
       - WATCHPACK_POLLING=true
     volumes:
