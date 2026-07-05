@@ -90,7 +90,7 @@ export function ReportButton({
         type="button"
         onClick={onTrigger}
         className={cn(
-          "inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-destructive",
+          "inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           className,
         )}
       >

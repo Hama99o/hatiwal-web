@@ -32,11 +32,17 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx",
+    ".next-b2save/types/**/*.ts",
+    ".next-b617/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
+    ".next-r483/types/**/*.ts",
+    ".next-taskbuild/types/**/*.ts",
+    ".next-verify/types/**/*.ts",
+    ".next-web-b2offer/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-r483/types/**/*.ts"
+    ".next-b617-verify/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

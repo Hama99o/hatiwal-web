@@ -54,6 +54,7 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^users\/saved_searches$/],
   ["POST", /^users\/saved_searches$/],
   ["DELETE", /^users\/saved_searches\/\d+$/],
+  ["PUT", /^users\/saved_searches\/\d+\/mark_seen$/],
   // Restore a scheduled-for-deletion account:
   ["POST", /^users\/me\/restore$/],
   // Moderation warnings:

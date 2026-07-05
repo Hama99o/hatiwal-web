@@ -68,7 +68,7 @@ mark-unread, away mode, counter-offer, etc.).
 | B617 | "Active sellers" filter (signed in ≤7d) | ⬜ | Add toggle chip to `/bazaar` filters; param already served |
 | C481 | "Filters active (N) · Clear all" pill | ❓ | Verify the redesigned filter sidebar already shows an active-count + clear-all; add if missing |
 | B4 | Saved searches / filter history | ✅ | |
-| N612 | Saved-search "new matches" badge | ⬜ | Per-saved-search new-match count on the saved-searches UI |
+| N612 | Saved-search "new matches" badge | ✅ | Badge + mark_seen on the browse saved-searches sidebar |
 | B6 | "Seen / already viewed" indicator | ⬜ | Dim card + "Seen" badge from per-user `ListingView`; endpoint exists |
 | B-VIEW | Grid / list view-mode toggle | ⬜ | Persisted grid↔list toggle on `/bazaar` |
 | B-STATES | Feed states (skeleton/empty/error) | ✅ | |
@@ -100,7 +100,7 @@ mark-unread, away mode, counter-offer, etc.).
 | N071 | Firm / negotiable badge (gates offer) | ✅ | Shared `firm-price-badge.tsx` (muted Badge + Lock, `listing.firmPrice`); shown on `/listings/[id]` beside the price and on every `ListingCard` when `negotiable === false`. `StartConversationButton` hides the Make-offer CTA + offer dialog when firm (`negotiable !== false` = negotiable default, mirrors mobile). Reuses the existing `negotiable` field (served on list/detailed views) — no contract change; 3 locales; RTL + dark |
 | C3b | Expiry badge (owner detail) | ⬜ | 30-day countdown on owner's own listing detail |
 | W628 | Seller "away" banner | ✅ | Shared `away-banner.tsx` ("Seller is away until [date]", `PlaneTakeoff`, primary/info tone). Shown on `/listings/[id]` (buyer, `seller.sellerAwayUntil`), `/sellers/[id]` (public profile, enriched from listing detail), and the seller's own `/profile` (`profile.away.youAreAway`). Guards past dates client-side; reuses `is_away`/`away_until` from the serializer — no contract change. 3 locales; RTL + dark |
-| L824 | Shareable listing link | 🌐 | Web has real URLs already; native share sheet is 📱, "copy link" is trivial |
+| L824 | Shareable listing link | ✅ | Shared `share-button.tsx` (Share2 + `common.share`) in the `/listings/[id]` badge row, all statuses. Web Share API when available (localized `listing.share.body` "{title} — {price}" + page URL); otherwise copies `window.location.href` + `common.linkCopied` sonner toast (label flips to `common.copyLink` on desktop). No contract change; 3 locales; RTL + dark |
 | B2-STATE | Detail states (skeleton/not-found/sold) | ✅ | |
 
 ## C — Seller: Listings & Lifecycle
@@ -135,11 +135,11 @@ mark-unread, away mode, counter-offer, etc.).
 | D3-MEET | Meetup propose + accept/decline | ✅ | |
 | D3-OFFER | Offer accept/decline | ✅ | |
 | O829 | Counter-offer | ✅ | Seller counters a buyer's offer with a new price from the thread. A "Counter" outline button shows on the buyer's original `offer` bubble only to the seller when it's unanswered; opens a shadcn dialog seeded with the buyer's amount. Sends an `offer_counter` message (same kind mobile uses) reusing the pipe-encoded `amount\|currency\|listedPrice` body over the existing `POST /conversations/:id/messages` — no contract change. Counter bubbles render with the ArrowLeftRight icon + `counterLabel`/`counteredAt` on both sides, and support accept/decline like a normal offer. 3 locales · RTL · light/dark |
-| G083 | Offer quick-amount chips | ❓ | Verify offer composer has suggested-amount chips |
+| G083 | Offer quick-amount chips | ✅ | Make-offer dialog shows 95/90/85% chips (`shared/offer-quick-chips.tsx`, same `computeChipAmount` as mobile); tap fills the amount without sending, matching chip highlighted, hidden when price is 0/null. Reusable for the in-thread counter composer |
 | M482 | In-chat photo/file messages | ✅ | web file upload (photo + document) |
 | M913 | **Delete / retract message** (tombstone) | ✅ | Own-message delete behind confirm-dialog; optimistic tombstone + rollback; live flip over ActionCable. Reuses `DELETE /conversations/:id/messages/:id` |
 | Q374 | Quick-reply presets | ✅ | Localized canned-phrase chips above the composer on `/conversations/[id]` (shared `quick-replies.tsx`). Buyer/seller phrase set chosen by whether the current user is the listing seller; tapping a chip appends the phrase to the draft (space-separated) and focuses the input — no auto-send. Reuses the mobile `chat.quickReplies.*` keys verbatim in en/ps/fa; hidden on a closed conversation; RTL + dark. No API/contract change |
-| C739 | Composer draft persistence (per-convo) | ⬜ | Save unsent draft per conversation, restore on reopen |
+| C739 | Composer draft persistence (per-convo) | ✅ | Unsent composer text on `/conversations/[id]` persists to a per-conversation localStorage key (`hatiwal.chat.draft:<id>`) via `use-composer-draft.ts` (web port of mobile's `useComposerDraft`): hydrates on open/switch, debounced ~400ms write (flushed on navigate-away), key removed on clear/successful send. Disabled for closed conversations; localStorage failures (private mode) degrade to in-memory. No API/i18n change |
 | N803 | **Message search within thread** | ✅ | Header search toggle expands an input; filters loaded messages (text, non-deleted, case-insensitive), highlights matches, shows "X of Y" + loaded-only note. Client-side; RTL + dark |
 | F084 | Lifecycle actions from chat header | ❓ | Verify seller can Reserve/Mark-sold from the pinned listing header |
 | D2-BLOCK | Block / unblock in thread | ✅ | |
@@ -167,7 +167,7 @@ mark-unread, away mode, counter-offer, etc.).
 | F742 | Seller **sold-items showcase** tab | ✅ | Active/Sold segmented control on `/sellers/[id]` (`seller-listings-tabs.tsx`). Active grid is server-rendered; Sold grid lazy-loads via TanStack Query on first Sold-tab open, reusing the guest-accessible `GET /users/:id/sold_listings` (same endpoint mobile uses) — no contract change. Sold cards show a dimmed status badge; empty state when none; 3 locales; RTL + dark |
 | V613 | **Verified seller badge** | ✅ | Shared `verified-badge.tsx` (BadgeCheck, `common.verified` title, `text-primary` token) reused via `UserIdentity` at all three sites — listing detail seller card (`/listings/[id]`), public seller profile (`/sellers/[id]`), and conversation thread header. Driven by the existing `verified` boolean on the User payload; no contract change. 3 locales · RTL · dark |
 | A356 | "Active recently" label | ⬜ | Privacy-safe last-active label on public profile |
-| S392 | Shareable seller-profile link | 🌐 | Web URLs are shareable already |
+| S392 | Shareable seller-profile link | ✅ | Same shared `share-button.tsx` in the `/sellers/[id]` profile header row (beside Report), body `seller.share.body` ("Check out {name} on Hatiwal", mirrors mobile `profile.share.body`). Web Share API → native sheet; fallback copy-link + toast. 3 locales; RTL + dark |
 | B047 | Blocked-users management | ✅ | `/settings/blocked-users` |
 
 ## G — Safety, Reporting & Moderation
@@ -226,7 +226,7 @@ house. **First batch seeded** = the recent post-audit features with the clearest
 
 **P2 — chat depth**
 - ~~`WEB-O829` Counter-offer~~ ✅ shipped · ~~`WEB-K741` Mark read/unread from list~~ ✅ shipped · ~~`WEB-A618` Archive conversation~~ ✅ shipped
-- ~~`WEB-Q374` Quick-reply presets~~ ✅ shipped · `WEB-C739` Composer draft · `WEB-R483` Report from thread
+- ~~`WEB-Q374` Quick-reply presets~~ ✅ shipped · ~~`WEB-C739` Composer draft~~ ✅ shipped · `WEB-R483` Report from thread
 
 **P3 — discovery & re-engagement**
 - `WEB-B931` Most-viewed sort · `WEB-B617` Active-sellers filter · `WEB-B6` Seen indicator

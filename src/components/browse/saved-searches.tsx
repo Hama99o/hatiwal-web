@@ -11,10 +11,12 @@ import {
   createSavedSearch,
   deleteSavedSearch,
   getSavedSearches,
+  markSeenSavedSearch,
   type SavedSearch,
 } from "@/lib/api/saved-searches";
 import type { BrowseFilters } from "./filters";
 import type { Category } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +71,19 @@ export function SavedSearches({
     onError: () => toast.error(t("common.error")),
   });
 
+  // Running a search with new matches resets its counter (mobile parity).
+  // Optimistically clear the badge, then re-sync the list from the server.
+  const markSeenMut = useMutation({
+    mutationFn: (id: number) => markSeenSavedSearch(id),
+    onMutate: async (id: number) => {
+      await qc.cancelQueries({ queryKey: ["saved-searches"] });
+      qc.setQueryData<SavedSearch[]>(["saved-searches"], (prev) =>
+        prev?.map((s) => (s.id === id ? { ...s, newMatchesCount: 0 } : s)),
+      );
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
+  });
+
   if (status !== "authed") return null;
 
   // Something worth saving = at least one of category / price / location set.
@@ -95,6 +110,7 @@ export function SavedSearches({
   }
 
   function apply(s: SavedSearch) {
+    if ((s.newMatchesCount ?? 0) > 0) markSeenMut.mutate(s.id);
     const cat = s.categoryId
       ? flat.find((c) => c.id === s.categoryId)
       : undefined;
@@ -152,6 +168,11 @@ export function SavedSearches({
               >
                 {summarize(s)}
               </button>
+              {(s.newMatchesCount ?? 0) > 0 && (
+                <Badge className="shrink-0 px-1.5 tabular-nums">
+                  {t("browse.newMatches", { count: s.newMatchesCount })}
+                </Badge>
+              )}
               <button
                 type="button"
                 aria-label={t("browse.deleteSavedSearch")}

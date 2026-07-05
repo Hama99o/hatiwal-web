@@ -3,11 +3,15 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type EmptyStateAction =
+  | { label: string; href: string }
+  | { label: string; onClick: () => void };
+
 interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
   description?: string;
-  action?: { label: string; href: string };
+  action?: EmptyStateAction;
   className?: string;
 }
 
@@ -36,11 +40,16 @@ export function EmptyState({
           </p>
         )}
       </div>
-      {action && (
-        <Button asChild variant="outline" size="sm">
-          <Link href={action.href}>{action.label}</Link>
-        </Button>
-      )}
+      {action &&
+        ("href" in action ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={action.href}>{action.label}</Link>
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" onClick={action.onClick}>
+            {action.label}
+          </Button>
+        ))}
     </div>
   );
 }

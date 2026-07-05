@@ -10,7 +10,6 @@ import {
   ListingGridSkeleton,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Button } from "@/components/ui/button";
 import type { Listing } from "@/lib/types";
 
 export function RecentlyViewedList() {
@@ -61,28 +60,12 @@ export function RecentlyViewedList() {
       <h1 className="mb-6 text-2xl font-bold">{t("recentlyViewed.title")}</h1>
 
       {query.isError ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <History className="size-6" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">
-              {t("common.errorTitle")}
-            </p>
-            <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-              {t("common.errorDescription")}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
-          >
-            {query.isFetching && <Loader2 className="size-4 animate-spin" />}
-            {t("common.retry")}
-          </Button>
-        </div>
+        <EmptyState
+          icon={History}
+          title={t("common.errorTitle")}
+          description={t("common.errorDescription")}
+          action={{ label: t("common.retry"), onClick: () => query.refetch() }}
+        />
       ) : query.isPending ? (
         <ListingGridSkeleton count={8} />
       ) : listings.length === 0 ? (

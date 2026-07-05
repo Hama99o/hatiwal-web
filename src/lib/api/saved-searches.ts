@@ -14,6 +14,8 @@ export interface SavedSearch {
   radius: number | null;
   locationBased: boolean;
   createdAt: string;
+  lastViewedAt: string | null;
+  newMatchesCount: number;
 }
 
 export interface SavedSearchInput {
@@ -46,4 +48,13 @@ export async function createSavedSearch(
 
 export async function deleteSavedSearch(id: number): Promise<void> {
   await meRequest(`users/saved_searches/${id}`, { method: "DELETE" });
+}
+
+/** Reset the new-matches counter after the user runs the search (mobile parity). */
+export async function markSeenSavedSearch(id: number): Promise<SavedSearch> {
+  const d = await meRequest<{ savedSearch: SavedSearch }>(
+    `users/saved_searches/${id}/mark_seen`,
+    { method: "PUT" },
+  );
+  return d.savedSearch;
 }
