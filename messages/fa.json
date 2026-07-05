@@ -301,6 +301,7 @@
     "clearHistory": "پاک کردن همه",
     "filtersActive": "{count, plural, one {# فیلتر فعال} other {# فیلتر فعال}}",
     "resetFilters": "بازنشانی فیلترها",
+    "clearAllFilters": "پاک کردن همه",
     "viewModeLabel": "نما",
     "viewGrid": "نمای شبکه‌ای",
     "viewList": "نمای فهرست",

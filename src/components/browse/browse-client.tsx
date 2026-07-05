@@ -601,7 +601,7 @@ export function BrowseClient({
                   className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                 >
                   <X className="size-3.5" aria-hidden />
-                  {t("browse.resetFilters")}
+                  {t("browse.clearAllFilters")}
                 </button>
               </div>
             </div>

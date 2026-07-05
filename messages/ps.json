@@ -301,6 +301,7 @@
     "clearHistory": "ټول پاک کړئ",
     "filtersActive": "{count, plural, one {# فلټر فعال} other {# فلټرونه فعال}}",
     "resetFilters": "فلټرونه بیا تنظیم کړئ",
+    "clearAllFilters": "ټول پاک کړئ",
     "viewModeLabel": "لید",
     "viewGrid": "ګریډ لید",
     "viewList": "لست لید",

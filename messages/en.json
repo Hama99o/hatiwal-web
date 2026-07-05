@@ -301,6 +301,7 @@
     "clearHistory": "Clear all",
     "filtersActive": "{count, plural, one {# filter active} other {# filters active}}",
     "resetFilters": "Reset filters",
+    "clearAllFilters": "Clear all",
     "viewModeLabel": "View",
     "viewGrid": "Grid view",
     "viewList": "List view",
