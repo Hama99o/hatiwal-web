@@ -16,6 +16,11 @@
 # next.js
 /.next/
 /out/
+# Turbopack-in-Docker artifact: when the dev server (running as root in the
+# container) can't remove a .next it doesn't own, it renames the old one to
+# .next-root-owned-orphan-<pid> instead of failing. Pure build cache, and
+# often root-owned on disk — never commit it, whatever suffix it has.
+/.next-root-owned-orphan-*
 
 # production
 /build
