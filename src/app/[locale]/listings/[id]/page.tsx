@@ -5,7 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListing, getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
 import { categoryName } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
-import { formatRelativeDate } from "@/lib/format";
+import { formatPrice, formatRelativeDate } from "@/lib/format";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
@@ -16,7 +16,9 @@ import { UserIdentity } from "@/components/shared/user-identity";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
+import { SaveButton } from "@/components/shared/save-button";
 import { ReportButton } from "@/components/shared/report-button";
+import { ShareButton } from "@/components/shared/share-button";
 import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { ListingGrid } from "@/components/shared/listing-grid";
@@ -119,6 +121,15 @@ export default async function ListingDetailPage({
             {listing.condition && (
               <ConditionBadge condition={listing.condition} />
             )}
+            {/* Share / copy-link — shown for every status (mirrors mobile). */}
+            <ShareButton
+              shareTitle={listing.title}
+              text={t("listing.share.body", {
+                title: listing.title,
+                price: formatPrice(listing.price, listing.currency, locale),
+              })}
+              className="ms-auto"
+            />
           </div>
 
           <div className="space-y-2">
@@ -201,6 +212,12 @@ export default async function ListingDetailPage({
           )}
 
           {/* Actions */}
+          <SaveButton
+            listingId={listing.id}
+            initialSaved={listing.isSaved}
+            ownerId={listing.seller?.id}
+            variant="detail"
+          />
           {isActive ? (
             <div className="space-y-2">
               <StartConversationButton

@@ -14,6 +14,7 @@ export function ListingGrid({
   listings,
   viewMode = "grid",
   showStatus,
+  showSave,
   priorityCount = 0,
   hrefFor,
   className,
@@ -22,6 +23,8 @@ export function ListingGrid({
   /** `grid` (default) = multi-column photo cards; `list` = compact rows. */
   viewMode?: ListingViewMode;
   showStatus?: boolean;
+  /** Save-heart on each card (default true). Turn off in owner contexts. */
+  showSave?: boolean;
   priorityCount?: number;
   /** Override each card's link target (e.g. seller dashboard → /my-listings/[id]). */
   hrefFor?: (listing: Listing) => string;
@@ -35,6 +38,7 @@ export function ListingGrid({
           listing={listing}
           variant={viewMode}
           showStatus={showStatus}
+          showSave={showSave}
           priority={i < priorityCount}
           href={hrefFor?.(listing)}
         />
@@ -45,15 +49,18 @@ export function ListingGrid({
 
 export function ListingGridSkeleton({
   count = 10,
+  viewMode = "grid",
   className,
 }: {
   count?: number;
+  /** Match the layout being loaded so the skeleton doesn't jump shape. */
+  viewMode?: ListingViewMode;
   className?: string;
 }) {
   return (
-    <div className={cn(GRID, className)}>
+    <div className={cn(viewMode === "list" ? LIST : GRID, className)}>
       {Array.from({ length: count }).map((_, i) => (
-        <ListingCardSkeleton key={i} />
+        <ListingCardSkeleton key={i} variant={viewMode} />
       ))}
     </div>
   );

@@ -24,6 +24,8 @@
     "verified": "تایید شوی",
     "report": "راپور ورکول",
     "share": "شریکول",
+    "copyLink": "لینک کاپي کړئ",
+    "linkCopied": "لینک کاپي شو",
     "sold": "خرڅ شو",
     "reserved": "خوندي شوی",
     "active": "فعال",
@@ -114,6 +116,9 @@
     "postedAgo": "خپور شو {date}",
     "viewsCount": "{count} لیدنې",
     "savesCount": "{count, plural, one {د # کس لخوا خوندي شوی} other {د # کسانو لخوا خوندي شوی}}",
+    "share": {
+      "body": "{title} — {price}"
+    },
     "firmPrice": "ثابت قیمت",
     "conversationsCount": "{count} خبرې",
     "publishSuccess": "اعلان خپور شو!",
@@ -149,6 +154,8 @@
       "badgeCardShort": "-{percent}٪"
     },
     "detail": {
+      "save": "اعلان خوندي کول",
+      "unsave": "د خوندي شویو څخه لرې کول",
       "contactSeller": "پلورونکي سره اړیکه",
       "makeOffer": "وړاندیز وکړئ",
       "description": "تفصیل",
@@ -255,6 +262,8 @@
     "title": "لټول",
     "searchPlaceholder": "توکي لټوئ...",
     "allCategories": "ټولې ډلې",
+    "activeSellers": "فعال پلورونکي",
+    "activeSellersHint": "یوازې هغه توکي وګورئ چې پلورونکي یې د تېرو ۷ ورځو کې ننوتلي وي",
     "empty": {
       "title": "هیڅ توکي ونه موندل شول",
       "description": "لټون یا چاڼ بدل کړئ."
@@ -290,7 +299,9 @@
     "locationUnsupported": "په دې وسیله کې ځای شتون نلري.",
     "recentSearches": "وروستي لټونونه",
     "clearHistory": "ټول پاک کړئ",
+    "filtersActive": "{count, plural, one {# فلټر فعال} other {# فلټرونه فعال}}",
     "resetFilters": "فلټرونه بیا تنظیم کړئ",
+    "viewModeLabel": "لید",
     "viewGrid": "ګریډ لید",
     "viewList": "لست لید",
     "sort": {
@@ -308,7 +319,8 @@
     "savedSearchCreated": "لټون خوندي شو",
     "noSavedSearches": "تر اوسه خوندي لټون نشته",
     "deleteSavedSearch": "خوندي لټون ړنګ کړئ",
-    "savedSearchAll": "ټول لیست‌ونه"
+    "savedSearchAll": "ټول لیست‌ونه",
+    "newMatches": "{count, plural, one {# نوی} other {# نوي}}"
   },
   "profile": {
     "title": "پروفایل",
@@ -535,6 +547,9 @@
     "activeListings": "فعال توکي",
     "noListings": "تر اوسه فعال توکي نشته",
     "memberOnHatiwal": "د هتیوال غړی",
+    "share": {
+      "body": "د هاتیوال پر {name} وګورئ"
+    },
     "tabs": {
       "label": "توکي",
       "active": "فعال",
@@ -750,7 +765,8 @@
       "counterNote": "هیڅ تادیه نشته — دا یوازې د قیمت وړاندیز دی. د پایلې لپاره مخامخ لیدنه وکړئ.",
       "sendCounter": "مقابل وړاندیز ولیږئ",
       "counteredAt": "مقابل قیمت",
-      "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!"
+      "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!",
+      "quickChipsHint": "ګړندي مبلغونه"
     },
     "block": {
       "blockUser": "کارونکی بند کړئ",

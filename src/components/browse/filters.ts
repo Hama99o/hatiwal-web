@@ -28,6 +28,12 @@ export interface BrowseFilters {
    */
   nearestLat: string;
   nearestLng: string;
+  /**
+   * Trust filter — only listings whose seller signed in within the last 7 days
+   * (Rails `seller_active_days=7`). Mirrors mobile's Active sellers chip
+   * (BrowseHeader). Persisted to the URL as `active_sellers=1`.
+   */
+  activeSellers: boolean;
 }
 
 export const DEFAULT_FILTERS: BrowseFilters = {
@@ -42,6 +48,7 @@ export const DEFAULT_FILTERS: BrowseFilters = {
   radius: "",
   nearestLat: "",
   nearestLng: "",
+  activeSellers: false,
 };
 
 /** Default search radius (km) when a location is picked without an explicit radius. */
@@ -83,6 +90,7 @@ export function filtersFromParams(source: ParamSource): BrowseFilters {
     // Nearest coords are client-only (live GPS fix) — never sourced from the URL.
     nearestLat: "",
     nearestLng: "",
+    activeSellers: read(source, "active_sellers") === "1",
   };
 }
 
@@ -103,6 +111,7 @@ export function filtersToSearchString(f: BrowseFilters): string {
     sp.set("lng", f.lng);
     if (f.radius) sp.set("radius", f.radius);
   }
+  if (f.activeSellers) sp.set("active_sellers", "1");
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -153,7 +162,29 @@ export function filtersToQuery(
       : hasLocation
         ? Number(f.radius) || DEFAULT_RADIUS_KM
         : undefined,
+    // Trust filter: 7 days matches mobile's Active sellers chip and the Rails
+    // `seller_active_within` scope default the product spec settled on.
+    sellerActiveDays: f.activeSellers ? 7 : undefined,
   };
+}
+
+/**
+ * Number of meaningful filters currently set — category, condition, price
+ * min/max, location (lat present), and the search query. Deliberately
+ * EXCLUDES sort and the client-only view mode: changing how results are
+ * ordered/displayed isn't "filtering". Mirrors mobile's active-filter count
+ * (TASK-C481) so the two clients surface the same number.
+ */
+export function activeFilterCount(f: BrowseFilters): number {
+  return [
+    f.categorySlug,
+    f.condition,
+    f.priceMin,
+    f.priceMax,
+    f.lat,
+    f.q,
+    f.activeSellers,
+  ].filter(Boolean).length;
 }
 
 export function hasActiveFilters(f: BrowseFilters): boolean {
@@ -164,6 +195,7 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
       f.priceMin ||
       f.priceMax ||
       f.lat ||
+      f.activeSellers ||
       f.sort !== "newest",
   );
 }

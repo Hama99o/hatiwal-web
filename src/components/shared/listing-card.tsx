@@ -7,6 +7,7 @@ import { StatusBadge } from "./status-badge";
 import { ConditionBadge } from "./condition-badge";
 import { PriceDropBadge } from "./price-drop-badge";
 import { FirmPriceBadge } from "./firm-price-badge";
+import { SaveButton } from "./save-button";
 import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/lib/types";
@@ -20,6 +21,8 @@ interface ListingCardProps {
   variant?: ListingCardVariant;
   /** Show the lifecycle badge for non-active listings (seller/owner contexts). */
   showStatus?: boolean;
+  /** Save-heart overlay on the photo (default). Turn off in owner contexts. */
+  showSave?: boolean;
   priority?: boolean;
   /** Override the link target (defaults to the public /listings/[id]). */
   href?: string;
@@ -35,6 +38,7 @@ export function ListingCard({
   listing,
   variant = "grid",
   showStatus = false,
+  showSave = true,
   priority = false,
   href,
   className,
@@ -42,6 +46,20 @@ export function ListingCard({
   const locale = useLocale();
   const cover = listing.thumbnailUrl ?? listing.images[0] ?? null;
   const showStatusBadge = showStatus && listing.status !== "active";
+
+  const saveHeart = showSave ? (
+    <SaveButton
+      listingId={listing.id}
+      initialSaved={listing.isSaved}
+      ownerId={listing.seller?.id}
+      className={cn(
+        // Kept at the SaveButton's 40px default (touch-target minimum) in both
+        // variants — only the inset shifts for the smaller list thumbnail.
+        "absolute",
+        variant === "list" ? "end-1 top-1" : "end-2 top-2",
+      )}
+    />
+  ) : null;
 
   const meta = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -79,10 +97,16 @@ export function ListingCard({
             priority={priority}
           />
           {listing.priceDropPercent ? (
-            <div className="absolute inset-x-1 top-1 flex flex-wrap gap-1">
+            <div
+              className={cn(
+                "absolute inset-x-1 top-1 flex flex-wrap gap-1",
+                showSave && "pe-12",
+              )}
+            >
               <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
             </div>
           ) : null}
+          {saveHeart}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -128,7 +152,12 @@ export function ListingCard({
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           priority={priority}
         />
-        <div className="absolute inset-x-2 top-2 flex flex-wrap gap-1">
+        <div
+          className={cn(
+            "absolute inset-x-2 top-2 flex flex-wrap gap-1",
+            showSave && "pe-12",
+          )}
+        >
           {showStatusBadge && <StatusBadge status={listing.status} />}
           {listing.priceDropPercent ? (
             <PriceDropBadge
@@ -137,6 +166,7 @@ export function ListingCard({
             />
           ) : null}
         </div>
+        {saveHeart}
       </div>
       <div className="space-y-1 p-3">
         <PriceTag price={listing.price} currency={listing.currency} size="md" />

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ImagePlus, Loader2, MapPin, X } from "lucide-react";
+import { History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { createListing, updateListing, listingLifecycle } from "@/lib/api/me";
 import { categoryName } from "@/lib/api/categories";
@@ -25,6 +25,25 @@ import { cn } from "@/lib/utils";
 
 const CURRENCIES = ["AFN", "USD", "EUR"] as const;
 const MAX_PHOTOS = 8;
+// Autosaved NEW-listing draft (mirrors mobile ListingForm's AsyncStorage draft).
+// Text fields + selected category + location label only — never photos.
+const DRAFT_KEY = "hatiwal.listing.newDraft";
+
+interface DraftSnapshot {
+  values: {
+    title?: string;
+    price?: string;
+    currency?: string;
+    categoryId?: string;
+    condition?: string;
+    description?: string;
+    location?: string;
+    address?: string;
+  };
+  lat: number | null;
+  lng: number | null;
+  savedAt: number;
+}
 const SELECT_CLASS =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -51,6 +70,9 @@ export function ListingForm({
   const [submitting, setSubmitting] = useState(false);
   const [lat, setLat] = useState<number | null>(listing?.latitude ?? null);
   const [lng, setLng] = useState<number | null>(listing?.longitude ?? null);
+  const [restorableDraft, setRestorableDraft] = useState<DraftSnapshot | null>(
+    null,
+  );
 
   // Keep the location LABEL and the pin in sync (mirrors mobile's picker
   // contract: choosing a place sets label + coords together). Moving the pin
@@ -97,6 +119,7 @@ export function ListingForm({
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -114,6 +137,86 @@ export function ListingForm({
 
   const condition = watch("condition");
   const totalPhotos = existing.length + newPhotos.length;
+
+  // ── Draft autosave (new listings only — mirrors mobile ListingForm) ────────
+  // Offer to restore a previously autosaved draft on first open.
+  useEffect(() => {
+    if (isEdit) return;
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const snap = JSON.parse(raw) as DraftSnapshot;
+      const v = snap?.values ?? {};
+      if (v.title || v.description || v.price || v.categoryId) {
+        setRestorableDraft(snap);
+      }
+    } catch {
+      /* corrupt draft — ignore */
+    }
+  }, [isEdit]);
+
+  // Persist the form (debounced 800ms) as the user types. Photos are never
+  // persisted — the seller re-adds them after a restore.
+  useEffect(() => {
+    if (isEdit) return;
+    let handle: ReturnType<typeof setTimeout> | null = null;
+    const sub = watch((values) => {
+      if (handle) clearTimeout(handle);
+      handle = setTimeout(() => {
+        if (
+          !values.title &&
+          !values.description &&
+          !values.price &&
+          !values.categoryId
+        ) {
+          return;
+        }
+        const snap: DraftSnapshot = { values, lat, lng, savedAt: Date.now() };
+        try {
+          window.localStorage.setItem(DRAFT_KEY, JSON.stringify(snap));
+        } catch {
+          /* storage unavailable/full — autosave is best-effort */
+        }
+      }, 800);
+    });
+    return () => {
+      sub.unsubscribe();
+      if (handle) clearTimeout(handle);
+    };
+  }, [isEdit, watch, lat, lng]);
+
+  const clearDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* storage unavailable — nothing to clear */
+    }
+  }, []);
+
+  function restoreDraft() {
+    if (!restorableDraft) return;
+    const v = restorableDraft.values;
+    reset({
+      title: v.title ?? "",
+      price: v.price ?? "",
+      currency: CURRENCIES.includes(v.currency as (typeof CURRENCIES)[number])
+        ? (v.currency as (typeof CURRENCIES)[number])
+        : "AFN",
+      categoryId: v.categoryId ?? "",
+      condition: v.condition ?? "",
+      description: v.description ?? "",
+      location: v.location ?? "",
+      address: v.address ?? "",
+    });
+    setLat(restorableDraft.lat ?? null);
+    setLng(restorableDraft.lng ?? null);
+    setRestorableDraft(null);
+  }
+
+  function discardDraft() {
+    clearDraft();
+    setRestorableDraft(null);
+  }
 
   function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -162,6 +265,8 @@ export function ListingForm({
         router.push(`/my-listings/${listing.id}`);
       } else {
         const created = await createListing(input, files);
+        // The listing was saved on the server — drop the autosaved draft.
+        clearDraft();
         if (publish) {
           await listingLifecycle(created.id, "publish");
           toast.success(t("listing.form.published"));
@@ -183,6 +288,31 @@ export function ListingForm({
       <h1 className="mb-6 text-2xl font-bold tracking-tight">
         {isEdit ? t("listing.edit") : t("listing.create")}
       </h1>
+
+      {restorableDraft && (
+        <div
+          role="status"
+          className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4"
+        >
+          <History className="size-5 shrink-0 text-primary" aria-hidden />
+          <p className="min-w-[10rem] flex-1 text-sm">
+            {t("listing.form.draftFound")}
+          </p>
+          <div className="flex gap-2">
+            <Button type="button" size="sm" onClick={restoreDraft}>
+              {t("listing.form.draftRestore")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={discardDraft}
+            >
+              {t("listing.form.draftDiscard")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit((v) => save(v, false))}

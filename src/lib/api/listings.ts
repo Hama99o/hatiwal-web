@@ -22,6 +22,8 @@ export interface ListingsQuery {
   longitude?: number;
   radius?: number;
   location?: string;
+  /** Trust filter — only listings whose seller signed in within the last N days. */
+  sellerActiveDays?: number;
 }
 
 /** Raw listing as it arrives (after snake→camel) — price/lat/lng are strings. */
@@ -76,6 +78,7 @@ function toParams(q: ListingsQuery): QueryParams {
     longitude: q.longitude,
     radius: q.radius,
     location: q.location,
+    seller_active_days: q.sellerActiveDays,
   };
 }
 

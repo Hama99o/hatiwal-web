@@ -110,6 +110,7 @@ export function SellerListingsView() {
         <ListingGrid
           listings={filtered}
           showStatus
+          showSave={false}
           hrefFor={(l) => `/my-listings/${l.id}`}
         />
       )}

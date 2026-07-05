@@ -24,6 +24,8 @@
     "verified": "Verified",
     "report": "Report",
     "share": "Share",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
     "sold": "Sold",
     "reserved": "Reserved",
     "active": "Active",
@@ -114,6 +116,9 @@
     "postedAgo": "posted {date}",
     "viewsCount": "{count} views",
     "savesCount": "{count, plural, one {Saved by # person} other {Saved by # people}}",
+    "share": {
+      "body": "{title} — {price}"
+    },
     "firmPrice": "Firm price",
     "conversationsCount": "{count} chats",
     "publishSuccess": "Listing published!",
@@ -149,6 +154,8 @@
       "badgeCardShort": "-{percent}%"
     },
     "detail": {
+      "save": "Save listing",
+      "unsave": "Remove from saved",
       "contactSeller": "Contact Seller",
       "makeOffer": "Make an Offer",
       "description": "Description",
@@ -255,6 +262,8 @@
     "title": "Browse",
     "searchPlaceholder": "Search listings...",
     "allCategories": "All Categories",
+    "activeSellers": "Active sellers",
+    "activeSellersHint": "Show only listings from sellers who signed in within the last 7 days",
     "empty": {
       "title": "No listings found",
       "description": "Try changing your search or filter."
@@ -290,7 +299,9 @@
     "locationUnsupported": "Location isn't available on this device.",
     "recentSearches": "Recent searches",
     "clearHistory": "Clear all",
+    "filtersActive": "{count, plural, one {# filter active} other {# filters active}}",
     "resetFilters": "Reset filters",
+    "viewModeLabel": "View",
     "viewGrid": "Grid view",
     "viewList": "List view",
     "sort": {
@@ -308,7 +319,8 @@
     "savedSearchCreated": "Search saved",
     "noSavedSearches": "No saved searches yet",
     "deleteSavedSearch": "Delete saved search",
-    "savedSearchAll": "All listings"
+    "savedSearchAll": "All listings",
+    "newMatches": "{count, plural, one {# new} other {# new}}"
   },
   "profile": {
     "title": "Profile",
@@ -535,6 +547,9 @@
     "activeListings": "Active listings",
     "noListings": "No active listings yet",
     "memberOnHatiwal": "Member on Hatiwal",
+    "share": {
+      "body": "Check out {name} on Hatiwal"
+    },
     "tabs": {
       "label": "Listings",
       "active": "Active",
@@ -750,7 +765,8 @@
       "counterNote": "No payment — this counter is a price suggestion. Meet in person to finalize.",
       "sendCounter": "Send Counter",
       "counteredAt": "Counter Price",
-      "counterSentToast": "Counter offer sent!"
+      "counterSentToast": "Counter offer sent!",
+      "quickChipsHint": "Quick amounts"
     },
     "block": {
       "blockUser": "Block User",

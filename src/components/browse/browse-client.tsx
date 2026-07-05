@@ -10,6 +10,7 @@ import {
   Loader2,
   MapPin,
   SlidersHorizontal,
+  UserCheck,
   X,
 } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
@@ -25,6 +26,7 @@ import {
   type BrowseFilters,
   DEFAULT_FILTERS,
   DEFAULT_RADIUS_KM,
+  activeFilterCount,
   filtersToQuery,
   filtersToSearchString,
   hasActiveFilters,
@@ -35,9 +37,11 @@ import {
   type ListingViewMode,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SearchField } from "@/components/shared/search-field";
 import { SavedSearches } from "./saved-searches";
 import { LocationMap } from "@/components/map/location-map";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -61,64 +65,23 @@ function readViewMode(): ListingViewMode {
   return saved === "list" ? "list" : "grid";
 }
 
-/** Compact segmented Grid/List toggle for the Bazaar toolbar. */
-function ViewModeToggle({
-  value,
-  onChange,
-}: {
-  value: ListingViewMode;
-  onChange: (mode: ListingViewMode) => void;
-}) {
-  const t = useTranslations();
-  const options: { mode: ListingViewMode; label: string; Icon: typeof LayoutGrid }[] =
-    [
-      { mode: "grid", label: t("browse.viewGrid"), Icon: LayoutGrid },
-      { mode: "list", label: t("browse.viewList"), Icon: List },
-    ];
-  return (
-    <div
-      role="group"
-      aria-label={t("browse.viewGrid")}
-      className="inline-flex items-center rounded-md border border-input bg-background p-0.5"
-    >
-      {options.map(({ mode, label, Icon }) => {
-        const active = value === mode;
-        return (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => onChange(mode)}
-            aria-pressed={active}
-            aria-label={label}
-            title={label}
-            className={cn(
-              "inline-flex size-11 items-center justify-center rounded transition-colors",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            <Icon className="size-4" aria-hidden />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function Chip({
   active,
   onClick,
   children,
+  title,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
+      title={title}
       className={cn(
         "rounded-full border px-3 py-1 text-sm transition-colors",
         active
@@ -307,6 +270,9 @@ export function BrowseClient({
   }, [query.hasNextPage, query.isFetchingNextPage, query]);
 
   const filtersActive = hasActiveFilters(filters);
+  // Count of meaningful filters (category, condition, price, location, query)
+  // — excludes sort + view mode. Drives the toggle badge and the summary pill.
+  const filterCount = activeFilterCount(filters);
 
   const sidebar = (
     <div className="space-y-6">
@@ -372,6 +338,30 @@ export function BrowseClient({
             </Chip>
           ))}
         </div>
+      </div>
+
+      {/* Active sellers — trust filter, mirrors mobile's BrowseHeader chip:
+          only listings whose seller signed in within the last 7 days
+          (seller_active_days=7). Persisted to the URL as active_sellers=1. */}
+      <div>
+        <div className="flex flex-wrap gap-2">
+          <Chip
+            active={filters.activeSellers}
+            onClick={() => update({ activeSellers: !filters.activeSellers })}
+            title={t("browse.activeSellersHint")}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <UserCheck className="size-3.5" aria-hidden />
+              {t("browse.activeSellers")}
+              {filters.activeSellers && (
+                <X className="size-3" aria-hidden />
+              )}
+            </span>
+          </Chip>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t("browse.activeSellersHint")}
+        </p>
       </div>
 
       <div>
@@ -515,6 +505,11 @@ export function BrowseClient({
             >
               <SlidersHorizontal className="size-4" />
               {t("browse.filters")}
+              {filterCount > 0 && (
+                <Badge className="min-w-5 justify-center px-1.5 py-0">
+                  {filterCount}
+                </Badge>
+              )}
             </Button>
           </div>
           {/* Independent-scroll panel: filters scroll inside this card on
@@ -574,9 +569,43 @@ export function BrowseClient({
                   <option value="nearest">{t("browse.sort.nearest")}</option>
                 </select>
               </label>
-              <ViewModeToggle value={viewMode} onChange={changeViewMode} />
+              <SegmentedControl<ListingViewMode>
+                iconOnly
+                ariaLabel={t("browse.viewModeLabel")}
+                value={viewMode}
+                onChange={changeViewMode}
+                options={[
+                  { value: "grid", label: t("browse.viewGrid"), icon: LayoutGrid },
+                  { value: "list", label: t("browse.viewList"), icon: List },
+                ]}
+              />
             </div>
           </div>
+
+          {/* Active-filter summary pill — makes it obvious results are
+              filtered and offers a one-tap clear-all, on mobile AND desktop
+              (the sidebar's reset button is easy to miss). Counts only
+              meaningful filters, never sort/view mode. Mirrors mobile C481. */}
+          {filterCount > 0 && (
+            <div className="mb-4">
+              <div className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border bg-card px-3 py-1.5">
+                <span className="text-sm text-muted-foreground">
+                  {t("browse.filtersActive", { count: filterCount })}
+                </span>
+                <span aria-hidden className="text-border">
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                >
+                  <X className="size-3.5" aria-hidden />
+                  {t("browse.resetFilters")}
+                </button>
+              </div>
+            </div>
+          )}
 
           {query.isError ? (
             <EmptyState
@@ -585,7 +614,7 @@ export function BrowseClient({
               description={t("browse.empty.description")}
             />
           ) : query.isPending ? (
-            <ListingGridSkeleton count={12} />
+            <ListingGridSkeleton count={12} viewMode={viewMode} />
           ) : items.length === 0 ? (
             <EmptyState
               icon={SlidersHorizontal}

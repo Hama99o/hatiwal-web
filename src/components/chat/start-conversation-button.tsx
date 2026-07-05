@@ -14,6 +14,7 @@ import {
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
 
 /**
  * Listing-detail buyer actions: message the seller or make a price offer.
@@ -181,10 +182,20 @@ export function StartConversationButton({
                 })}
               </p>
             )}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
+            <div className="space-y-3">
+              <label className="block text-sm font-medium">
                 {t("listing.detail.yourOffer")}
               </label>
+              {/* Quick-amount chips (95/90/85% of asking) — tapping fills the
+                  input without sending; hidden when the price is 0/unknown.
+                  Mirrors mobile's OfferSheet (TASK-G083). */}
+              <OfferQuickChips
+                price={price}
+                currency={currency}
+                value={amount}
+                onSelect={setAmount}
+                disabled={busy}
+              />
               <div className="flex items-center gap-2">
                 <span className="rounded-md border bg-muted px-3 py-2 text-sm font-medium">
                   {currency || "AFN"}

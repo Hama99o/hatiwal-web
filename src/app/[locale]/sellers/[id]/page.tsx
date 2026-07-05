@@ -8,6 +8,7 @@ import { UserIdentity } from "@/components/shared/user-identity";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { ReportButton } from "@/components/shared/report-button";
+import { ShareButton } from "@/components/shared/share-button";
 import { SellerListingsTabs } from "@/components/seller/seller-listings-tabs";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
@@ -82,7 +83,14 @@ export default async function SellerPage({ params }: { params: Params }) {
             {t("seller.activeListings")}
           </span>
         </div>
-        <ReportButton reportableType="User" reportableId={seller.id} />
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {/* Share / copy-link for the public profile (mirrors mobile). */}
+          <ShareButton
+            shareTitle={seller.name}
+            text={t("seller.share.body", { name: seller.name })}
+          />
+          <ReportButton reportableType="User" reportableId={seller.id} />
+        </div>
         <AwayBanner
           awayUntil={seller.sellerAwayUntil}
           className="w-full justify-center text-start"

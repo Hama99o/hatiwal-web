@@ -40,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { MessageBubble } from "./message-bubble";
 import { QuickReplies } from "./quick-replies";
+import { useComposerDraft } from "./use-composer-draft";
 import { filterMessages, searchableCount } from "@/lib/message-search";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,17 @@ export function ConversationThread({ id }: { id: string }) {
   });
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  // Composer text persisted per conversation (mirrors mobile's
+  // useComposerDraft) so an unsent draft survives navigation and reload.
+  // Disabled (null id) while the conversation is loading and for a closed
+  // conversation — a closed thread has no composer and must never persist.
+  const draftEnabled =
+    convQ.data != null && convQ.data.status !== "closed";
+  const {
+    draft: input,
+    setDraft: setInput,
+    clearDraft,
+  } = useComposerDraft(draftEnabled ? cid : null);
   const [sending, setSending] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
@@ -166,10 +177,8 @@ export function ConversationThread({ id }: { id: string }) {
   // Insert a quick-reply phrase into the draft (append with a space if the
   // draft is non-empty, mirroring mobile) and focus the input — no auto-send.
   function handleQuickReply(phrase: string) {
-    setInput((prev) => {
-      const trimmed = prev.trimEnd();
-      return trimmed.length > 0 ? `${trimmed} ${phrase}` : phrase;
-    });
+    const trimmed = input.trimEnd();
+    setInput(trimmed.length > 0 ? `${trimmed} ${phrase}` : phrase);
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
@@ -191,7 +200,12 @@ export function ConversationThread({ id }: { id: string }) {
       setMessages((prev) =>
         prev.some((x) => x.id === m.id) ? prev : [...prev, m],
       );
-      if (kind === "text") setInput("");
+      if (kind === "text") {
+        // Successful send — wipe the persisted draft too. A failed send
+        // (catch below) keeps both the input and the stored draft intact.
+        clearDraft();
+        setInput("");
+      }
     } catch {
       toast.error(t("chat.thread.sendFailed"));
     } finally {
@@ -329,7 +343,7 @@ export function ConversationThread({ id }: { id: string }) {
           <ReportButton
             reportableType="User"
             reportableId={other.id}
-            className="size-9 shrink-0 justify-center gap-0 rounded-md hover:bg-accent [&>span]:sr-only"
+            className="size-10 shrink-0 justify-center gap-0 rounded-md hover:bg-accent [&>span]:sr-only"
           />
         )}
         <Button

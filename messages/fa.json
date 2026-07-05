@@ -24,6 +24,8 @@
     "verified": "تأیید شده",
     "report": "گزارش",
     "share": "اشتراک‌گذاری",
+    "copyLink": "کپی لینک",
+    "linkCopied": "لینک کپی شد",
     "sold": "فروخته شد",
     "reserved": "رزرو شده",
     "active": "فعال",
@@ -114,6 +116,9 @@
     "postedAgo": "ارسال شده {date}",
     "viewsCount": "{count} بازدید",
     "savesCount": "{count, plural, one {ذخیره شده توسط # نفر} other {ذخیره شده توسط # نفر}}",
+    "share": {
+      "body": "{title} — {price}"
+    },
     "firmPrice": "قیمت ثابت",
     "conversationsCount": "{count} گفتگو",
     "publishSuccess": "آگهی منتشر شد!",
@@ -149,6 +154,8 @@
       "badgeCardShort": "-{percent}٪"
     },
     "detail": {
+      "save": "ذخیره آگهی",
+      "unsave": "حذف از ذخیره‌شده‌ها",
       "contactSeller": "تماس با فروشنده",
       "makeOffer": "پیشنهاد قیمت",
       "description": "توضیحات",
@@ -255,6 +262,8 @@
     "title": "مرور",
     "searchPlaceholder": "جستجوی آگهی‌ها...",
     "allCategories": "همه دسته‌بندی‌ها",
+    "activeSellers": "فروشندگان فعال",
+    "activeSellersHint": "فقط آگهی‌هایی که فروشنده‌شان در ۷ روز گذشته وارد سیستم شده نشان داده شود",
     "empty": {
       "title": "آگهی‌ای یافت نشد",
       "description": "جستجو یا فیلتر خود را تغییر دهید."
@@ -290,7 +299,9 @@
     "locationUnsupported": "مکان در این دستگاه در دسترس نیست.",
     "recentSearches": "جستجوهای اخیر",
     "clearHistory": "پاک کردن همه",
+    "filtersActive": "{count, plural, one {# فیلتر فعال} other {# فیلتر فعال}}",
     "resetFilters": "بازنشانی فیلترها",
+    "viewModeLabel": "نما",
     "viewGrid": "نمای شبکه‌ای",
     "viewList": "نمای فهرست",
     "sort": {
@@ -308,7 +319,8 @@
     "savedSearchCreated": "جستجو ذخیره شد",
     "noSavedSearches": "هنوز جستجوی ذخیره‌شده‌ای نیست",
     "deleteSavedSearch": "حذف جستجوی ذخیره‌شده",
-    "savedSearchAll": "همه آگهی‌ها"
+    "savedSearchAll": "همه آگهی‌ها",
+    "newMatches": "{count, plural, one {# جدید} other {# جدید}}"
   },
   "profile": {
     "title": "پروفایل",
@@ -535,6 +547,9 @@
     "activeListings": "آگهی‌های فعال",
     "noListings": "هنوز آگهی فعالی نیست",
     "memberOnHatiwal": "عضو هتیوال",
+    "share": {
+      "body": "{name} را در هاتیوال ببینید"
+    },
     "tabs": {
       "label": "آگهی‌ها",
       "active": "فعال",
@@ -750,7 +765,8 @@
       "counterNote": "بدون پرداخت — این فقط یک پیشنهاد قیمت است. برای نهایی کردن حضوری ملاقات کنید.",
       "sendCounter": "ارسال پیشنهاد متقابل",
       "counteredAt": "قیمت متقابل",
-      "counterSentToast": "پیشنهاد متقابل ارسال شد!"
+      "counterSentToast": "پیشنهاد متقابل ارسال شد!",
+      "quickChipsHint": "مبالغ سریع"
     },
     "block": {
       "blockUser": "مسدود کردن کاربر",
