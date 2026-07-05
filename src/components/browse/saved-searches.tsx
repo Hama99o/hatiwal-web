@@ -18,6 +18,7 @@ import type { BrowseFilters } from "./filters";
 import type { Category } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -147,7 +148,17 @@ export function SavedSearches({
         {t("browse.saveSearch")}
       </Button>
 
-      {searches.length === 0 ? (
+      {listQ.isLoading ? (
+        <div className="space-y-1">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
+      ) : listQ.isError ? (
+        <p className="text-xs text-destructive">
+          {t("common.errorDescription")}
+        </p>
+      ) : searches.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           {t("browse.noSavedSearches")}
         </p>
@@ -159,12 +170,13 @@ export function SavedSearches({
               className={cn(
                 "flex items-center gap-1 rounded-md border px-2 py-1.5",
                 "bg-card transition-colors hover:bg-accent",
+                (s.newMatchesCount ?? 0) > 0 && "border-primary",
               )}
             >
               <button
                 type="button"
                 onClick={() => apply(s)}
-                className="min-w-0 flex-1 truncate text-start text-sm"
+                className="min-w-0 flex-1 truncate rounded-md text-start text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {summarize(s)}
               </button>
@@ -178,7 +190,7 @@ export function SavedSearches({
                 aria-label={t("browse.deleteSavedSearch")}
                 onClick={() => deleteMut.mutate(s.id)}
                 disabled={deleteMut.isPending}
-                className="shrink-0 text-muted-foreground hover:text-destructive"
+                className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <X className="size-3.5" />
               </button>
