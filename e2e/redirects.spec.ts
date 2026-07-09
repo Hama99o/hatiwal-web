@@ -11,6 +11,8 @@ test.describe("Redirects", () => {
   test("/users/[id] redirects to the seller profile", async ({ page }) => {
     await page.goto("/en/users/1");
     await expect(page).toHaveURL(/\/sellers\/1/);
-    await expect(page.getByText("Ahmad Karimi")).toBeVisible();
+    // exact: true so we match the visible name span, not the page <title>
+    // ("Ahmad Karimi — Hatiwal"), which getByText would otherwise also hit.
+    await expect(page.getByText("Ahmad Karimi", { exact: true })).toBeVisible();
   });
 });
