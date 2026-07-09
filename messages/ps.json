@@ -848,5 +848,15 @@
     "myListings": "زما هټۍ",
     "createListing": "نوی اعلان",
     "sellerDashboard": "د پلورونکي ډشبورډ"
+  },
+  "reviews": {
+    "sectionTitle": "درجې او نظرونه",
+    "reviewCount": "{count, plural, =0 {تر اوسه نظر نشته} one {# نظر} other {# نظرونه}}",
+    "empty": "تر اوسه هیڅ نظر نشته",
+    "emptyDescription": "نظرونه د بریالۍ معاملې وروسته ښکاري.",
+    "asSeller": "د پلورونکي په توګه",
+    "asBuyer": "د پیرودونکي په توګه",
+    "tabsLabel": "نظرونه د رول له مخې فلټر کړئ",
+    "starsAria": "{rating} له ۵ ستوریو"
   }
 }

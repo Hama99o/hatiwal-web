@@ -35,6 +35,22 @@ const SELLERS = {
        response_rate_percent: 75, response_time_label: "within_a_day" },
 };
 
+// Revealed (double-blind) reviews for seller #1, as a seller.
+const REVIEWS_OF_SELLER_1 = [
+  { id: 101, rating: 5, comment: "Item exactly as described, met on time.", role: "of_seller",
+    visible: true, revealed_at: "2026-07-01T10:00:00Z", created_at: "2026-06-30T09:00:00Z",
+    transaction_id: 501, reviewee_id: 1,
+    reviewer: { id: 2, name: "Sara Ahmadi", avatar_url: null } },
+  { id: 102, rating: 4, comment: "Good deal, friendly seller.", role: "of_seller",
+    visible: true, revealed_at: "2026-06-20T10:00:00Z", created_at: "2026-06-19T09:00:00Z",
+    transaction_id: 502, reviewee_id: 1,
+    reviewer: { id: 3, name: "Najib Rahimi", avatar_url: null } },
+  { id: 103, rating: 5, comment: null, role: "of_seller",
+    visible: true, revealed_at: "2026-06-10T10:00:00Z", created_at: "2026-06-09T09:00:00Z",
+    transaction_id: 503, reviewee_id: 1,
+    reviewer: { id: 2, name: "Sara Ahmadi", avatar_url: null } },
+];
+
 const CATEGORIES = [
   { id: 1, slug: "electronics", icon: "📱", position: 1,
     name_en: "Electronics", name_ps: "برقي وسایل", name_fa: "وسایل برقی",
@@ -281,9 +297,29 @@ function route(req, res, method, path, q, body) {
     return send(res, 200, { listings: slice.map(listView), meta: { pagination } });
   }
 
-  // Public profile mirrors Rails: guest-forbidden.
-  if (method === "GET" && /^\/users\/\d+\/public_profile$/.test(path)) {
-    return send(res, 401, { errors: ["You need to sign in or sign up before continuing."] });
+  // Public profile — guest-readable (mirrors Rails: skip_before_action
+  // :authenticate_user!). Emits the :public view incl. the REV3 rating summary.
+  const publicProfileMatch = path.match(/^\/users\/(\d+)\/public_profile$/);
+  if (method === "GET" && publicProfileMatch) {
+    const s = SELLERS[Number(publicProfileMatch[1])];
+    if (!s) return send(res, 404, { error: "Not found" });
+    return send(res, 200, {
+      user: {
+        ...s,
+        avg_rating: s.id === 1 ? 4.7 : null,
+        review_count: s.id === 1 ? 3 : 0,
+      },
+    });
+  }
+
+  // Reviews of a user — guest-readable (public trust surface, VISIBLE only).
+  const reviewsMatch = path.match(/^\/users\/(\d+)\/reviews$/);
+  if (method === "GET" && reviewsMatch) {
+    const uid = Number(reviewsMatch[1]);
+    const role = q.get("role");
+    const items = uid === 1 && role === "of_seller" ? REVIEWS_OF_SELLER_1 : [];
+    const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
+    return send(res, 200, { reviews: slice, meta: { pagination } });
   }
 
   // ── Authenticated ─────────────────────────────────────────────────────────

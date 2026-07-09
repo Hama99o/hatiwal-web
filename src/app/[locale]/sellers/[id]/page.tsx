@@ -9,7 +9,9 @@ import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { ReportButton } from "@/components/shared/report-button";
 import { ShareButton } from "@/components/shared/share-button";
+import { RatingDisplay } from "@/components/shared/rating-display";
 import { SellerListingsTabs } from "@/components/seller/seller-listings-tabs";
+import { ReviewsSection } from "@/components/seller/reviews-section";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -69,6 +71,10 @@ export default async function SellerPage({ params }: { params: Params }) {
           responseTimeLabel={seller.responseTimeLabel}
           className="mt-0 justify-center"
         />
+        <RatingDisplay
+          avgRating={seller.avgRating}
+          reviewCount={seller.reviewCount}
+        />
         {ACTIVE_LABEL_KEYS[seller.lastActiveLabel ?? ""] && (
           <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="size-3.5 shrink-0" />
@@ -98,6 +104,12 @@ export default async function SellerPage({ params }: { params: Params }) {
       </div>
 
       <SellerListingsTabs sellerId={seller.id} activeListings={listings} />
+
+      <ReviewsSection
+        sellerId={seller.id}
+        avgRating={seller.avgRating}
+        reviewCount={seller.reviewCount}
+      />
     </div>
   );
 }

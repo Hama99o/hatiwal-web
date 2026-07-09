@@ -848,5 +848,15 @@
     "myListings": "My Shop",
     "createListing": "New Listing",
     "sellerDashboard": "Seller Dashboard"
+  },
+  "reviews": {
+    "sectionTitle": "Ratings & Reviews",
+    "reviewCount": "{count, plural, =0 {No reviews yet} one {# review} other {# reviews}}",
+    "empty": "No reviews yet",
+    "emptyDescription": "Reviews appear after a successful transaction.",
+    "asSeller": "As a seller",
+    "asBuyer": "As a buyer",
+    "tabsLabel": "Filter reviews by role",
+    "starsAria": "{rating} out of 5 stars"
   }
 }

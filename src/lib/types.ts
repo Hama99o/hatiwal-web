@@ -48,6 +48,30 @@ export interface SellerSummary {
    */
   sellerIsAway?: boolean;
   sellerAwayUntil?: string | null;
+  /**
+   * Combined double-blind rating (REV2/REV3). Emitted by the Rails
+   * `UserSerializer` `:public` view. `avgRating` is null until the seller has
+   * at least one revealed review (`reviewCount` 0).
+   */
+  avgRating?: number | null;
+  reviewCount?: number;
+}
+
+/** A user's role in the sale being reviewed (mirrors the mobile contract). */
+export type ReviewRole = "of_seller" | "of_buyer";
+
+/** A single review — mirror of the Rails `ReviewSerializer` (no field renames). */
+export interface Review {
+  id: number;
+  rating: number;
+  comment: string | null;
+  role: ReviewRole;
+  visible: boolean;
+  revealedAt: string | null;
+  createdAt: string;
+  transactionId: number;
+  revieweeId: number;
+  reviewer: { id: number; name: string; avatarUrl: string | null };
 }
 
 export interface CategoryRef {

@@ -848,5 +848,15 @@
     "myListings": "دکان من",
     "createListing": "آگهی جدید",
     "sellerDashboard": "داشبورد فروشنده"
+  },
+  "reviews": {
+    "sectionTitle": "امتیازها و نظرها",
+    "reviewCount": "{count, plural, =0 {هنوز نظری نیست} one {# نظر} other {# نظر}}",
+    "empty": "هنوز نظری وجود ندارد",
+    "emptyDescription": "نظرها پس از یک معامله موفق نمایش داده می‌شوند.",
+    "asSeller": "به عنوان فروشنده",
+    "asBuyer": "به عنوان خریدار",
+    "tabsLabel": "فیلتر نظرها بر اساس نقش",
+    "starsAria": "{rating} از ۵ ستاره"
   }
 }

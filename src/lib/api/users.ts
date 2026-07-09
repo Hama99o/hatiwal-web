@@ -1,16 +1,14 @@
+import { apiGet } from "./client";
 import { getListing, getListings } from "./listings";
 import type { Listing, SellerSummary } from "../types";
 
 /**
  * Seller profile for the PUBLIC (guest) web page.
  *
- * The Rails `/users/:id/public_profile` endpoint requires auth (401 for guests),
- * so for the crawlable seller page we derive what we can from the guest-accessible
- * listings index (`?user_id=`): the seller summary embedded on each listing, plus
- * their active listings grid.
- *
- * TODO(backend): make `public_profiles#show` guest-readable to enrich this with
- * bio, member-since, and sold count. Tracked in docs/WEB_BACKLOG.md.
+ * We derive the seller summary + active-listings grid from the guest-accessible
+ * listings index (`?user_id=`), then enrich it: response-rate trust fields from
+ * one listing's `:detailed` view, and the rating summary (`avgRating`/
+ * `reviewCount`, REV3) from the now guest-readable `/users/:id/public_profile`.
  */
 export interface PublicSellerProfile {
   seller: SellerSummary | null;
@@ -39,7 +37,11 @@ export async function getPublicSeller(
   // Guest-accessible (the listing detail page renders for guests); no mobile
   // contract change and no per-card cost.
   const enrichedSeller = seller
-    ? await enrichSellerResponseRate(seller, result.items[0]?.id, opts.revalidate)
+    ? await enrichSellerRating(
+        await enrichSellerResponseRate(seller, result.items[0]?.id, opts.revalidate),
+        userId,
+        opts.revalidate,
+      )
     : null;
 
   return {
@@ -47,6 +49,24 @@ export async function getPublicSeller(
     listings: result.items,
     totalCount: result.pagination.totalCount,
   };
+}
+
+// Rating summary lives on the public-profile `:public` view (guest-readable),
+// not on the listings-index seller sub-object. Non-fatal: on failure the
+// profile simply renders without a rating badge.
+async function enrichSellerRating(
+  seller: SellerSummary,
+  userId: number | string,
+  revalidate?: number,
+): Promise<SellerSummary> {
+  try {
+    const { user } = await apiGet<{
+      user: { avgRating?: number | null; reviewCount?: number };
+    }>(`users/${userId}/public_profile`, { revalidate });
+    return { ...seller, avgRating: user.avgRating, reviewCount: user.reviewCount };
+  } catch {
+    return seller;
+  }
 }
 
 async function enrichSellerResponseRate(
