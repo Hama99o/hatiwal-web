@@ -45,7 +45,8 @@ export async function POST(req: Request) {
   };
 
   const me = await fetchMe(tokens);
-  if (!me) return NextResponse.json({ error: "me_failed" }, { status: 502 });
+  if (me.status !== "ok")
+    return NextResponse.json({ error: "me_failed" }, { status: 502 });
 
   const out = NextResponse.json({ user: me.user });
   writeTokenCookies(out, me.tokens);

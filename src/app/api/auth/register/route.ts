@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   const me = await fetchMe(tokens);
-  if (!me) {
+  if (me.status !== "ok") {
     return NextResponse.json({ error: "me_failed" }, { status: 502 });
   }
 

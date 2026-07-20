@@ -58,14 +58,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
 
   const refresh = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auth/session", { cache: "no-store" });
-      const data = await res.json();
-      setUser(data.user ?? null);
-      setStatus(data.user ? "authed" : "guest");
-    } catch {
-      setUser(null);
-      setStatus("guest");
+    // The session probe clears cookies ONLY on an explicit 401; a transient
+    // failure (Rails 5xx/unreachable) returns 503 or {transient:true} with the
+    // cookies intact. Never demote a possibly-valid session to guest on such a
+    // blip — retry with backoff, and only fall back to guest (for a
+    // never-authed load) once retries are exhausted. A real guest is a 200 with
+    // user:null and resolves on the first attempt.
+    for (let attempt = 0; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        if (res.status === 503) throw new Error("transient");
+        const data = await res.json();
+        if (data?.transient) throw new Error("transient");
+        setUser(data.user ?? null);
+        setStatus(data.user ? "authed" : "guest");
+        return;
+      } catch {
+        if (attempt < 3) {
+          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+          continue;
+        }
+        // Retries exhausted. Cookies were NOT cleared, so keep an already-authed
+        // session; a never-resolved load falls back to guest (recoverable on reload).
+        setStatus((s) => (s === "authed" ? s : "guest"));
+      }
     }
   }, []);
 
