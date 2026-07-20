@@ -356,6 +356,30 @@ function route(req, res, method, path, q, body) {
     return send(res, 200, { ok: true });
   }
 
+  // Hidden ("not interested") listings
+  if (path === "/my/hidden_listings" && method === "GET") {
+    if (!requireAuth()) return;
+    const listings = empty ? [] : [listView(findListing(2))];
+    return send(res, 200, {
+      listings,
+      meta: {
+        pagination: {
+          current_page: 1,
+          next_page: null,
+          prev_page: null,
+          total_count: listings.length,
+          total_pages: 1,
+        },
+      },
+    });
+  }
+  const hideMatch = path.match(/^\/listings\/(\d+)\/(hide|unhide)$/);
+  if (hideMatch) {
+    if (!requireAuth()) return;
+    if (hideMatch[2] === "unhide") return send(res, 204);
+    return send(res, 200, { ok: true });
+  }
+
   // Seller dashboard
   if (path === "/my/listings" && method === "GET") {
     if (!requireAuth()) return;

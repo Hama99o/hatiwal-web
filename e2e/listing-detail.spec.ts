@@ -28,4 +28,21 @@ test.describe("Listing detail", () => {
     expect(resp?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "Mountain Bike (Reserved)" })).toBeVisible();
   });
+
+  test("meetup safety tips open in a dialog and close", async ({ page }) => {
+    await page.goto("/en/listings/1");
+    await page
+      .getByRole("button", { name: /Meetup safety tips/i })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Meetup Safety Tips" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Meet in a busy, public place/i),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Got it" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Meetup Safety Tips" }),
+    ).toHaveCount(0);
+  });
 });
