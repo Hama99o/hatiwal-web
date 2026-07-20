@@ -380,6 +380,43 @@ function route(req, res, method, path, q, body) {
     return send(res, 200, { ok: true });
   }
 
+  // Pending reviews — sold sales the caller still owes a review on (REV2).
+  if (path === "/my/reviews/pending" && method === "GET") {
+    if (!requireAuth()) return;
+    const transactions = empty
+      ? []
+      : [
+          {
+            id: 501,
+            status: "sold",
+            final_price: 8000,
+            currency: "AFN",
+            completed_at: "2026-06-25T10:00:00Z",
+            created_at: "2026-06-25T10:00:00Z",
+            role: "seller", // caller is the seller → they review the buyer
+            listing: { id: 7, title: "Leather Sofa (Sold)", thumbnail_url: null, price: 8000, currency: "AFN", status: "sold" },
+            buyer: { id: 2, name: "Sara Ahmadi", avatar_url: null },
+            seller: { id: 1, name: "Ahmad Karimi", avatar_url: null },
+          },
+        ];
+    return send(res, 200, {
+      transactions,
+      meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: transactions.length, total_pages: 1 } },
+    });
+  }
+  const createReviewMatch = path.match(/^\/transactions\/(\d+)\/reviews$/);
+  if (createReviewMatch && method === "POST") {
+    if (!requireAuth()) return;
+    return send(res, 201, {
+      review: {
+        id: 900, rating: 5, comment: null, role: "of_buyer", visible: false,
+        revealed_at: null, created_at: "2026-06-26T10:00:00Z",
+        transaction_id: Number(createReviewMatch[1]), reviewee_id: 2,
+        reviewer: { id: 1, name: "Ahmad Karimi", avatar_url: null },
+      },
+    });
+  }
+
   // Seller dashboard
   if (path === "/my/listings" && method === "GET") {
     if (!requireAuth()) return;
