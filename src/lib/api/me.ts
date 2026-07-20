@@ -126,9 +126,23 @@ export async function toggleSaved(
 
 // ── Seller dashboard (Phase 3) ──────────────────────────────────────────────
 
+/**
+ * ALL of the seller's listings across every status. Rails paginates
+ * `/my/listings` at 20/page, so page through to the end — the seller dashboard
+ * derives the shop count and every status-tab count from this full set, which
+ * would be wrong if truncated to the first 20. Safety-capped at 50 pages.
+ */
 export async function getMyListings(): Promise<Listing[]> {
-  const data = await meRequest<{ listings: RawListing[] }>("my/listings");
-  return (data.listings ?? []).map(normalizeListing);
+  const out: Listing[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const data = await meRequest<{
+      listings: RawListing[];
+      meta?: { pagination?: { nextPage?: number | null } };
+    }>(`my/listings?page[number]=${page}`);
+    out.push(...(data.listings ?? []).map(normalizeListing));
+    if (!data.meta?.pagination?.nextPage) break;
+  }
+  return out;
 }
 
 export async function getMyListing(id: number | string): Promise<Listing> {

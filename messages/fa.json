@@ -693,7 +693,8 @@
       "offerAccepted": "پیشنهاد پذیرفته شد",
       "offerDeclined": "پیشنهاد رد شد",
       "photo": "عکس",
-      "file": "فایل"
+      "file": "فایل",
+      "counterOffer": "پیشنهاد متقابل: {amount} {currency}"
     },
     "thread": {
       "closedNotice": "این گفتگو بسته شده است.",

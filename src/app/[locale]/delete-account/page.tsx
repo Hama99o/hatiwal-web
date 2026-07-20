@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { localizedAlternates } from "@/lib/seo";
 
 // Public, SEO-indexable page describing how to delete a Hatiwal account and
 // personal data — satisfies Google Play's requirement for a web-accessible
@@ -16,7 +17,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "deleteAccount" });
-  return { title: t("title") };
+  return {
+    title: t("title"),
+    alternates: localizedAlternates(locale, "/delete-account"),
+  };
 }
 
 export default async function DeleteAccountPage({

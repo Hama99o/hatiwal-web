@@ -31,13 +31,18 @@ export function RemoteImage({
   if (!src) {
     // Intentional "item has no photo" tile — a calm solid fill with a neutral
     // marketplace glyph, deliberately NOT the image/mountain icon (which reads
-    // as a *broken* image).
+    // as a *broken* image). When `fill` is requested the real <Image fill> is
+    // absolutely positioned to fill its relative parent, so the placeholder must
+    // do the same (absolute inset-0) — otherwise it collapses to the icon's
+    // height inside the aspect-ratio box. Non-fill gets an explicit size.
     return (
       <div
         role="img"
         aria-label={alt}
+        style={fill ? undefined : { width: width ?? 64, height: height ?? 64 }}
         className={cn(
           "flex items-center justify-center bg-muted text-muted-foreground/40",
+          fill && "absolute inset-0",
           className,
         )}
       >

@@ -693,7 +693,8 @@
       "offerAccepted": "وړاندیز ومنل شو",
       "offerDeclined": "وړاندیز رد شو",
       "photo": "انځور",
-      "file": "فایل"
+      "file": "فایل",
+      "counterOffer": "مقابل وړاندیز: {amount} {currency}"
     },
     "thread": {
       "closedNotice": "دا خبرې بندې دي.",

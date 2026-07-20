@@ -47,13 +47,15 @@ function preview(c: Conversation, t: ReturnType<typeof useTranslations>): string
   switch (c.lastMessageKind) {
     case "meetup_proposal":
       return t("chat.preview.meetup");
-    case "offer": {
+    case "offer":
+    case "offer_counter": {
       // Body is "amount|currency|listedPrice" — same parse as mobile's row.
       const [amount, currency] = (c.lastMessageBody || "").split("|");
-      return t("chat.preview.offer", {
-        amount: amount || "?",
-        currency: currency || "AFN",
-      });
+      const key =
+        c.lastMessageKind === "offer_counter"
+          ? "chat.preview.counterOffer"
+          : "chat.preview.offer";
+      return t(key, { amount: amount || "?", currency: currency || "AFN" });
     }
     case "meetup_accepted":
       return t("chat.preview.meetupAccepted");

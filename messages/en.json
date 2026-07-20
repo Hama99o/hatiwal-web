@@ -693,7 +693,8 @@
       "offerAccepted": "Offer accepted",
       "offerDeclined": "Offer declined",
       "photo": "Photo",
-      "file": "File"
+      "file": "File",
+      "counterOffer": "Counter-offer: {amount} {currency}"
     },
     "thread": {
       "closedNotice": "This conversation is closed.",

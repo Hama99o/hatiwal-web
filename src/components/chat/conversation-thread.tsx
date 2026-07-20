@@ -54,7 +54,7 @@ export function ConversationThread({ id }: { id: string }) {
   const qc = useQueryClient();
   const meetupTitleId = useId();
   const counterTitleId = useId();
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const me = user?.id;
   const cid = Number(id);
 
@@ -113,9 +113,14 @@ export function ConversationThread({ id }: { id: string }) {
     if (convQ.data) setBlocked(Boolean(convQ.data.blockedWithParticipant));
   }, [convQ.data]);
   useEffect(() => {
-    markRead(cid).catch(() => undefined);
+    // Opening a thread marks it read. Refresh the auth user too so the header's
+    // aggregate unread badge (user.unreadMessageCount) updates — invalidating
+    // the conversations list alone leaves the header badge stale.
+    markRead(cid)
+      .then(() => refresh())
+      .catch(() => undefined);
     qc.invalidateQueries({ queryKey: ["conversations"] });
-  }, [cid, qc]);
+  }, [cid, qc, refresh]);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);

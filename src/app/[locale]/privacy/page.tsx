@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { localizedAlternates } from "@/lib/seo";
 
 // Public, SEO-indexable privacy policy — required by the App Store and Google
 // Play (a reachable policy URL must be declared in both consoles).
@@ -17,7 +18,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "privacy" });
-  return { title: t("title") };
+  return {
+    title: t("title"),
+    alternates: localizedAlternates(locale, "/privacy"),
+  };
 }
 
 export default async function PrivacyPage({
