@@ -60,6 +60,18 @@ const ALLOWED: Array<[string, RegExp]> = [
   // Moderation warnings:
   ["GET", /^users\/warnings$/],
   ["PUT", /^users\/warnings\/mark_seen$/],
+  // Reviews (write side): rate a sold transaction, edit while hidden, and the
+  // pending "rate your recent deals" list.
+  ["POST", /^transactions\/\d+\/reviews$/],
+  ["PATCH", /^reviews\/\d+$/],
+  ["GET", /^my\/reviews\/pending$/],
+  // Authed listing show — fired client-side on the detail page so Rails records
+  // a Recently-Viewed entry (the SSR fetch is a guest and never attributes it).
+  ["GET", /^listings\/\d+$/],
+  // Hidden ("not interested") listings — hide/restore + the management list.
+  ["POST", /^listings\/\d+\/hide$/],
+  ["DELETE", /^listings\/\d+\/unhide$/],
+  ["GET", /^my\/hidden_listings$/],
 ];
 
 async function handle(

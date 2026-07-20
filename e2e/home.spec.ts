@@ -21,7 +21,7 @@ test.describe("Home", () => {
   test("hero CTA navigates to the listings feed", async ({ page }) => {
     await page.goto("/en");
     // The hero CTA is a submit button on a GET search form pointing at /bazaar.
-    await page.getByRole("button", { name: "Browse listings" }).click();
+    await page.getByRole("button", { name: "Explore the Bazaar" }).click();
     await expect(page).toHaveURL(/\/(bazaar|browse)/);
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { Link, useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   blockUser,
@@ -32,12 +32,14 @@ import { useConversationCable } from "@/lib/cable";
 import type { Message } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ReportButton } from "@/components/shared/report-button";
+import { SafetyTips } from "@/components/shared/safety-tips";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { MessageBubble } from "./message-bubble";
 import { QuickReplies } from "./quick-replies";
 import { useComposerDraft } from "./use-composer-draft";
@@ -49,8 +51,9 @@ import type { ListingStatus } from "@/lib/types";
 export function ConversationThread({ id }: { id: string }) {
   const t = useTranslations();
   const locale = useLocale();
-  const router = useRouter();
   const qc = useQueryClient();
+  const meetupTitleId = useId();
+  const counterTitleId = useId();
   const { user } = useAuth();
   const me = user?.id;
   const cid = Number(id);
@@ -97,6 +100,15 @@ export function ConversationThread({ id }: { id: string }) {
   useEffect(() => {
     if (msgsQ.data) setMessages(msgsQ.data);
   }, [msgsQ.data]);
+  // Keep the ["messages", id] cache in step with the local list. Sends and live
+  // cable messages only update local state; without this, leaving and returning
+  // to the thread within the 60s staleTime re-seeds from the STALE fetched list
+  // and drops everything sent/received during the visit. Syncing the cache (same
+  // ref → no seed-effect re-run, no loop) means the remount re-seeds from the
+  // latest. Skip the empty initial state so we never clobber a real cached list.
+  useEffect(() => {
+    if (messages.length) qc.setQueryData(["messages", id], messages);
+  }, [messages, id, qc]);
   useEffect(() => {
     if (convQ.data) setBlocked(Boolean(convQ.data.blockedWithParticipant));
   }, [convQ.data]);
@@ -302,7 +314,10 @@ export function ConversationThread({ id }: { id: string }) {
       </div>
     );
   }
-  if (convQ.isError || !conversation) {
+  // Gate on the messages query too: if the conversation loads but messages fail,
+  // rendering an empty thread would read as "no messages yet" (a false empty)
+  // rather than a load error.
+  if (convQ.isError || msgsQ.isError || !conversation) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center text-muted-foreground">
         {t("chat.thread.loadFailed")}
@@ -315,7 +330,7 @@ export function ConversationThread({ id }: { id: string }) {
       {/* Header */}
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <Button asChild variant="ghost" size="icon" className="shrink-0">
-          <Link href="/conversations" aria-label="Back">
+          <Link href="/conversations" aria-label={t("common.back")}>
             <ArrowLeft className="size-5 rtl:-scale-x-100" />
           </Link>
         </Button>
@@ -556,40 +571,49 @@ export function ConversationThread({ id }: { id: string }) {
       )}
 
       {/* Meetup dialog */}
-      {meetupOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMeetupOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-sm space-y-4 rounded-lg border bg-card p-6 shadow-lg">
-            <h2 className="text-lg font-semibold">{t("chat.meetup.title")}</h2>
-            <Input
-              value={place}
-              onChange={(e) => setPlace(e.target.value)}
-              placeholder={t("chat.meetup.placePlaceholder")}
-            />
-            <Input
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              placeholder={t("chat.meetup.timePlaceholder")}
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setMeetupOpen(false)}>
-                {t("common.cancel")}
-              </Button>
-              <Button onClick={proposeMeetup}>{t("chat.meetup.propose")}</Button>
-            </div>
-          </div>
+      <Dialog
+        open={meetupOpen}
+        onClose={() => setMeetupOpen(false)}
+        labelledBy={meetupTitleId}
+        className="max-w-sm space-y-4"
+      >
+        <h2 id={meetupTitleId} className="text-lg font-semibold">
+          {t("chat.meetup.title")}
+        </h2>
+        <Input
+          value={place}
+          onChange={(e) => setPlace(e.target.value)}
+          placeholder={t("chat.meetup.placePlaceholder")}
+        />
+        <Input
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          placeholder={t("chat.meetup.timePlaceholder")}
+        />
+        {/* Remind buyers/sellers to meet safely when arranging a meetup. */}
+        <SafetyTips variant="short" />
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setMeetupOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={proposeMeetup}>{t("chat.meetup.propose")}</Button>
         </div>
-      )}
+      </Dialog>
 
       {/* Counter-offer dialog (seller) */}
-      {counterTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={closeCounter} />
-          <div className="relative z-10 w-full max-w-sm space-y-4 rounded-lg border bg-card p-6 shadow-lg">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
+      <Dialog
+        open={counterTarget != null}
+        onClose={closeCounter}
+        labelledBy={counterTitleId}
+        dismissible={!sendingCounter}
+        className="max-w-sm space-y-4"
+      >
+        {counterTarget && (
+          <>
+            <h2
+              id={counterTitleId}
+              className="flex items-center gap-2 text-lg font-semibold"
+            >
               <ArrowLeftRight className="size-5 text-brand-gold" />
               {t("chat.offer.counterTitle")}
             </h2>
@@ -646,9 +670,9 @@ export function ConversationThread({ id }: { id: string }) {
                 )}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Dialog>
 
       <ConfirmDialog
         open={confirmBlock}

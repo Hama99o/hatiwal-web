@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
   type ReportReason,
 } from "@/lib/api/reports";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const REASONS: ReportReason[] = [
@@ -47,6 +48,7 @@ export function ReportButton({
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const titleId = useId();
 
   // Don't let people report their own listing / their own profile.
   const ownId = reportableType === "User" ? reportableId : ownerId;
@@ -98,21 +100,23 @@ export function ReportButton({
         <span>{t("report.title")}</span>
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => !busy && setOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-sm space-y-4 rounded-lg border bg-card p-6 shadow-lg">
-            <div>
-              <h2 className="text-lg font-semibold">{t("report.title")}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("report.subtitle")}
-              </p>
-            </div>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        labelledBy={titleId}
+        dismissible={!busy}
+        className="max-w-sm space-y-4"
+      >
+        <div>
+          <h2 id={titleId} className="text-lg font-semibold">
+            {t("report.title")}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("report.subtitle")}
+          </p>
+        </div>
 
-            <div className="space-y-1.5">
+        <div className="space-y-1.5">
               <p className="text-sm font-medium">{t("report.reasonLabel")}</p>
               <div className="space-y-1">
                 {REASONS.map((r) => (
@@ -168,9 +172,7 @@ export function ReportButton({
                 {busy ? t("report.submitting") : t("report.submit")}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+      </Dialog>
     </>
   );
 }

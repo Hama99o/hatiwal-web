@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListing, getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
+import { localizedAlternates } from "@/lib/seo";
 import { categoryName } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
 import { formatPrice, formatRelativeDate } from "@/lib/format";
@@ -13,14 +14,18 @@ import { PriceDropBadge } from "@/components/shared/price-drop-badge";
 import { FirmPriceBadge } from "@/components/shared/firm-price-badge";
 import { CategoryBadge } from "@/components/shared/category-badge";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { RatingDisplay } from "@/components/shared/rating-display";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
 import { SaveButton } from "@/components/shared/save-button";
 import { ReportButton } from "@/components/shared/report-button";
 import { ShareButton } from "@/components/shared/share-button";
+import { SafetyTips } from "@/components/shared/safety-tips";
 import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
+import { HideListingButton } from "@/components/listing/hide-listing-button";
 import { ListingGallery } from "@/components/listing/listing-gallery";
+import { RecordListingView } from "@/components/listing/record-listing-view";
 import { ListingGrid } from "@/components/shared/listing-grid";
 import { LocationMap } from "@/components/map/location-map";
 import { Separator } from "@/components/ui/separator";
@@ -35,15 +40,17 @@ export async function generateMetadata({
 }: {
   params: Params;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
+  const alternates = localizedAlternates(locale, `/listings/${id}`);
   const listing = await safe(getListing(id), null);
-  if (!listing) return { title: "Hatiwal" };
+  if (!listing) return { title: "Hatiwal", alternates };
 
   const description =
     listing.description?.slice(0, 200) || listing.title;
   return {
     title: listing.title,
     description,
+    alternates,
     openGraph: {
       title: listing.title,
       description,
@@ -108,6 +115,10 @@ export default async function ListingDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {/* Records this open into Recently Viewed for logged-in users (no-op for
+          guests) — the SSR fetch above is a guest, so Rails can't attribute it. */}
+      <RecordListingView id={listing.id} />
+
 
       <div className="grid gap-8 lg:grid-cols-2">
         <ListingGallery images={listing.images} title={listing.title} />
@@ -200,6 +211,11 @@ export default async function ListingDetailPage({
                 href={`/sellers/${listing.seller.id}`}
                 size={48}
               />
+              <RatingDisplay
+                avgRating={listing.seller.avgRating}
+                reviewCount={listing.seller.reviewCount}
+                className="mt-3"
+              />
               <ResponseRateBadge
                 responseRatePercent={listing.seller.responseRatePercent}
                 responseTimeLabel={listing.seller.responseTimeLabel}
@@ -211,13 +227,7 @@ export default async function ListingDetailPage({
             </div>
           )}
 
-          {/* Actions */}
-          <SaveButton
-            listingId={listing.id}
-            initialSaved={listing.isSaved}
-            ownerId={listing.seller?.id}
-            variant="detail"
-          />
+          {/* Actions — primary CTA (message seller) first, Save below it. */}
           {isActive ? (
             <div className="space-y-2">
               <StartConversationButton
@@ -239,6 +249,23 @@ export default async function ListingDetailPage({
                 : t("listing.detail.reservedNotice")}
             </div>
           )}
+          <SaveButton
+            listingId={listing.id}
+            initialSaved={listing.isSaved}
+            ownerId={listing.seller?.id}
+            variant="detail"
+          />
+          {/* No payment/delivery — deals happen in person, so surface meet-safely
+              guidance right by the contact actions (mirrors mobile). "Not
+              interested" hides the listing from the buyer's feed. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <SafetyTips />
+            <HideListingButton
+              listingId={listing.id}
+              ownerId={listing.seller?.id}
+            />
+          </div>
+
         </div>
       </div>
 

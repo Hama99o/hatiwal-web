@@ -5,6 +5,7 @@ import { RemoteImage } from "./remote-image";
 import { PriceTag } from "./price-tag";
 import { StatusBadge } from "./status-badge";
 import { ConditionBadge } from "./condition-badge";
+import { ExpiryBadge } from "./expiry-badge";
 import { PriceDropBadge } from "./price-drop-badge";
 import { FirmPriceBadge } from "./firm-price-badge";
 import { SaveButton } from "./save-button";
@@ -124,6 +125,12 @@ export function ListingCard({
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
             {showStatusBadge && <StatusBadge status={listing.status} />}
+            {showStatus && (
+              <ExpiryBadge
+                expiresAt={listing.expiresAt}
+                expired={listing.expired}
+              />
+            )}
             {listing.condition && (
               <ConditionBadge condition={listing.condition} />
             )}
@@ -176,6 +183,12 @@ export function ListingCard({
         <p className="line-clamp-2 text-sm font-medium text-foreground">
           {listing.title}
         </p>
+        {showStatus && (
+          <ExpiryBadge expiresAt={listing.expiresAt} expired={listing.expired} />
+        )}
+        {listing.condition && (
+          <ConditionBadge condition={listing.condition} />
+        )}
         {listing.location && (
           <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="size-3 shrink-0" />

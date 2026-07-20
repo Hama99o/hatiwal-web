@@ -1,5 +1,6 @@
 import { apiGet } from "./client";
-import type { Review, ReviewRole } from "../types";
+import { meRequest } from "./me";
+import type { Review, ReviewRole, Transaction } from "../types";
 import type { Pagination } from "../types";
 
 interface ReviewsEnvelope {
@@ -29,4 +30,42 @@ export async function getUserReviews(
     revalidate: opts.revalidate,
   });
   return { items: data.reviews, pagination: data.meta.pagination };
+}
+
+/**
+ * Leave a review on a sold transaction (authed — routed through the /api/me
+ * proxy). The review is created HIDDEN and revealed once both parties rate
+ * each other (or after 14 days). Backend infers the reviewer's role, so only
+ * rating + optional comment are sent. Mirrors the mobile `createReview`.
+ */
+export async function createReview(
+  transactionId: number,
+  data: { rating: number; comment?: string },
+): Promise<Review> {
+  const res = await meRequest<{ review: Review }>(
+    `transactions/${transactionId}/reviews`,
+    { method: "POST", json: { review: data } },
+  );
+  return res.review;
+}
+
+/** Edit your own review while it's still hidden (403 once revealed). */
+export async function updateReview(
+  id: number,
+  data: { rating?: number; comment?: string },
+): Promise<Review> {
+  const res = await meRequest<{ review: Review }>(`reviews/${id}`, {
+    method: "PATCH",
+    json: { review: data },
+  });
+  return res.review;
+}
+
+/** Sold transactions the caller still owes a review on — the "rate your recent
+ *  deals" nudge. Empty array when nothing is pending. */
+export async function getPendingReviews(): Promise<Transaction[]> {
+  const data = await meRequest<{ transactions: Transaction[] }>(
+    "my/reviews/pending",
+  );
+  return data.transactions ?? [];
 }

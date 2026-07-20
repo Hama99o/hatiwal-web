@@ -6,6 +6,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, dir } from "@/i18n/routing";
 import { SITE_URL } from "@/lib/env";
+import { localizedAlternates } from "@/lib/seo";
 import { Providers } from "@/components/providers";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -65,6 +66,9 @@ export async function generateMetadata({
     metadataBase: new URL(SITE_URL),
     title: { default: "Hatiwal", template: "%s — Hatiwal" },
     description: t("hero.subtitle"),
+    // Canonical + hreflang for the home page. Pages with their own
+    // generateMetadata set their own alternates (they'd otherwise inherit these).
+    alternates: localizedAlternates(locale, "/"),
     openGraph: {
       siteName: "Hatiwal",
       type: "website",

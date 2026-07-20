@@ -19,11 +19,15 @@ import {
   deleteMyListing,
   type LifecycleAction,
 } from "@/lib/api/me";
+import type { Transaction } from "@/lib/types";
+import { SellBuyerDialog } from "./sell-buyer-dialog";
+import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { ListingViewsChart } from "./listing-views-chart";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
+import { ExpiryBadge } from "@/components/shared/expiry-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -102,6 +106,8 @@ export function ManageListingView({ id }: { id: string }) {
 
   const [pending, setPending] = useState<Pending>(null);
   const [busy, setBusy] = useState(false);
+  // After a sale with a buyer, prompt the seller to review them right away.
+  const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
 
   if (isPending) {
     return (
@@ -120,6 +126,24 @@ export function ManageListingView({ id }: { id: string }) {
 
   const { primary, secondary } = actionsFor(listing.status, !!listing.expired);
 
+  // reserve/sold use the buyer picker (records a Transaction); everything else
+  // (publish/unpublish/activate/renew/delete) uses the plain confirm dialog.
+  const buyerFlow =
+    pending?.kind === "lifecycle" &&
+    (pending.action === "reserve" || pending.action === "sold");
+
+  async function performLifecycle(
+    action: LifecycleAction,
+    opts?: { buyerId?: number; finalPrice?: number },
+  ) {
+    const result = await listingLifecycle(listing!.id, action, opts);
+    toast.success(t(`listing.${LIFECYCLE[action].success}`));
+    qc.invalidateQueries({ queryKey: ["my-listings"] });
+    refetch();
+    return result;
+  }
+
+  // Confirm-dialog path: delete + non-buyer lifecycle actions.
   async function runPending() {
     if (!pending || !listing) return;
     setBusy(true);
@@ -131,12 +155,29 @@ export function ManageListingView({ id }: { id: string }) {
         router.push("/my-listings");
         return;
       }
-      await listingLifecycle(listing.id, pending.action);
-      toast.success(t(`listing.${LIFECYCLE[pending.action].success}`));
-      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      await performLifecycle(pending.action);
       setPending(null);
       setBusy(false);
-      refetch();
+    } catch {
+      toast.error(t("common.error"));
+      setBusy(false);
+    }
+  }
+
+  // Buyer-picker path: reserve/sold with an optional buyer + final price.
+  async function submitSale(buyerId: number | null, finalPrice: number | null) {
+    if (!pending || pending.kind !== "lifecycle" || !listing) return;
+    const action = pending.action;
+    setBusy(true);
+    try {
+      const { transaction } = await performLifecycle(action, {
+        buyerId: buyerId ?? undefined,
+        finalPrice: finalPrice ?? undefined,
+      });
+      setPending(null);
+      setBusy(false);
+      // Offer to review the buyer straight away when a sale recorded one.
+      if (action === "sold" && transaction) setReviewTxn(transaction);
     } catch {
       toast.error(t("common.error"));
       setBusy(false);
@@ -168,6 +209,10 @@ export function ManageListingView({ id }: { id: string }) {
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={listing.status} />
+            <ExpiryBadge
+              expiresAt={listing.expiresAt}
+              expired={listing.expired}
+            />
             {listing.condition && <ConditionBadge condition={listing.condition} />}
           </div>
 
@@ -252,7 +297,7 @@ export function ManageListingView({ id }: { id: string }) {
 
       <ListingViewsChart id={listing.id} />
 
-      {dialog && (
+      {dialog && !buyerFlow && (
         <ConfirmDialog
           open
           title={dialog.title}
@@ -263,6 +308,27 @@ export function ManageListingView({ id }: { id: string }) {
           loading={busy}
           onConfirm={runPending}
           onCancel={() => !busy && setPending(null)}
+        />
+      )}
+
+      {buyerFlow && pending?.kind === "lifecycle" && (
+        <SellBuyerDialog
+          action={pending.action as "reserve" | "sold"}
+          listingId={listing.id}
+          busy={busy}
+          onCancel={() => !busy && setPending(null)}
+          onConfirm={submitSale}
+        />
+      )}
+
+      {reviewTxn && (
+        <ReviewPromptDialog
+          transaction={reviewTxn}
+          // The caller here is always the seller (only the owner reserves/sells),
+          // and the lifecycle payload's own `role` is null (serialized without a
+          // current_user), so state it explicitly.
+          role="seller"
+          onClose={() => setReviewTxn(null)}
         />
       )}
     </div>

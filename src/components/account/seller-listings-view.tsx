@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { PackageOpen, Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { getMyListings } from "@/lib/api/me";
-import type { ListingStatus } from "@/lib/types";
 import {
   ListingGrid,
   ListingGridSkeleton,
@@ -15,16 +14,26 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const TABS = ["all", "active", "draft", "reserved", "sold"] as const;
+const TABS = ["all", "active", "expired", "draft", "reserved", "sold"] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<Tab, string> = {
   all: "listing.filter.all",
   active: "listing.filter.active",
+  expired: "listing.filter.expired",
   draft: "listing.filter.draft",
   reserved: "listing.filter.reserved",
   sold: "listing.filter.sold",
 };
+
+// An "expired" listing is an active one past its 30-day run. It lives under the
+// Expired tab (not Active), so the two tabs are mutually exclusive.
+function matchesTab(l: { status: string; expired?: boolean }, tab: Tab): boolean {
+  if (tab === "all") return true;
+  if (tab === "expired") return l.status === "active" && !!l.expired;
+  if (tab === "active") return l.status === "active" && !l.expired;
+  return l.status === tab;
+}
 
 export function SellerListingsView() {
   const t = useTranslations();
@@ -36,7 +45,7 @@ export function SellerListingsView() {
 
   const all = useMemo(() => data ?? [], [data]);
   const filtered = useMemo(
-    () => (tab === "all" ? all : all.filter((l) => l.status === (tab as ListingStatus))),
+    () => all.filter((l) => matchesTab(l, tab)),
     [all, tab],
   );
 
@@ -64,8 +73,7 @@ export function SellerListingsView() {
       {/* Status tabs */}
       <div className="mb-6 flex flex-wrap gap-2 border-b pb-3">
         {TABS.map((key) => {
-          const count =
-            key === "all" ? all.length : all.filter((l) => l.status === key).length;
+          const count = all.filter((l) => matchesTab(l, key)).length;
           return (
             <button
               key={key}

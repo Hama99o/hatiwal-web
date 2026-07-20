@@ -14,6 +14,11 @@ const eslintConfig = [
     ignores: [
       ".next/**",
       ".next-e2e/**",
+      // Turbopack-in-Docker orphans: when the root-owned container can't remove
+      // a .next it doesn't own it renames it aside. Pure build cache (gitignored)
+      // — must never be linted, same as .next itself.
+      ".next-root-owned-orphan-*/**",
+      ".next.rootowned.bak/**",
       "out/**",
       "build/**",
       "test-results/**",

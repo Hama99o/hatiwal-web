@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import Script from "next/script";
+import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
@@ -21,10 +22,22 @@ declare global {
   }
 }
 
+/**
+ * Where to land after login: the `?next=` destination a gated page passed us,
+ * else /profile. Only same-site absolute paths are honored (no `//` or full
+ * URLs) so this can't be turned into an open redirect.
+ */
+function safeNextPath(next: string | null): string {
+  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  return "/profile";
+}
+
 function GoogleSignInButton() {
   const t = useTranslations();
   const { googleLogin } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextDest = safeNextPath(searchParams.get("next"));
   const divRef = useRef<HTMLDivElement>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [googleError, setGoogleError] = useState<string | null>(null);
@@ -58,7 +71,7 @@ function GoogleSignInButton() {
         setGoogleError(null);
         const res = await googleLogin(response.credential);
         if (res.ok) {
-          router.replace("/profile");
+          router.replace(nextDest);
         } else {
           setGoogleError(t("auth.googleSignInFailed"));
         }
@@ -70,7 +83,7 @@ function GoogleSignInButton() {
       width: divRef.current?.offsetWidth || 300,
       text: "continue_with",
     });
-  }, [clientId, gsiReady, googleLogin, router, t]);
+  }, [clientId, gsiReady, googleLogin, router, t, nextDest]);
 
   if (!clientId) return null;
 
@@ -94,14 +107,17 @@ function GoogleSignInButton() {
 export function LoginForm() {
   const t = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, status } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
+  const nextDest = safeNextPath(searchParams.get("next"));
 
-  // Redirect away once authenticated — covers both a fresh login and revisiting
-  // /login while already signed in.
+  // Redirect away once authenticated — to the gated page that sent us here
+  // (?next=), else /profile. Covers a fresh login and revisiting /login when
+  // already signed in.
   useEffect(() => {
-    if (status === "authed") router.replace("/profile");
-  }, [status, router]);
+    if (status === "authed") router.replace(nextDest);
+  }, [status, router, nextDest]);
 
   const schema = z.object({
     email: z.string().email(t("auth.emailInvalid")),

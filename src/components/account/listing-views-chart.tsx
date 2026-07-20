@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function ListingViewsChart({ id }: { id: number | string }) {
   const t = useTranslations();
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["listing-analytics", String(id)],
     queryFn: () => getListingAnalytics(id),
   });
@@ -20,6 +20,19 @@ export function ListingViewsChart({ id }: { id: number | string }) {
     return (
       <section className="mt-8 max-w-3xl">
         <Skeleton className="h-32 w-full rounded-lg" />
+      </section>
+    );
+  }
+
+  // Distinguish a fetch failure from a genuine no-views state — otherwise an
+  // error silently renders as "no views yet".
+  if (isError) {
+    return (
+      <section className="mt-8 max-w-3xl">
+        <h2 className="text-lg font-semibold">{t("listing.analytics.title")}</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {t("common.errorDescription")}
+        </p>
       </section>
     );
   }

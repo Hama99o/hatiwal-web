@@ -32,3 +32,19 @@ export async function getViewedListings(
     pagination: data.meta.pagination,
   };
 }
+
+/**
+ * Record that the current (authed) user opened a listing, so it shows up in
+ * Recently Viewed. The public detail page is server-rendered as a GUEST, so
+ * Rails never attributes the view — this fires an AUTHED `GET listings/:id`
+ * (through the /api/me proxy) which triggers `register_view!(current_user)`.
+ * The backend dedupes and skips the owner, so it's safe to fire on every open.
+ * Fire-and-forget: a failure must never disrupt viewing the listing.
+ */
+export async function recordListingView(id: number | string): Promise<void> {
+  try {
+    await meRequest(`listings/${id}`);
+  } catch {
+    /* non-fatal — recording a view is best-effort */
+  }
+}

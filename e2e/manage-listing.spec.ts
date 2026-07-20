@@ -24,16 +24,18 @@ test.describe("Manage a listing", () => {
     await expect(page.getByRole("link", { name: /Edit/i })).toBeVisible();
   });
 
-  test("marking as sold asks for confirmation then succeeds", async ({
-    page,
-  }) => {
+  test("marking as sold picks a buyer then succeeds", async ({ page }) => {
     await page.goto("/en/my-listings/1");
     await page.getByRole("button", { name: "Mark as Sold" }).first().click();
-    // Confirm dialog.
-    await expect(page.getByText("Mark as sold?")).toBeVisible();
+    // Buyer picker (records a Transaction so both parties can review).
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
+    // Sale to someone not on Hatiwal — always available, no buyer selection.
+    await page
+      .getByRole("button", { name: /Sold to someone not on Hatiwal/ })
+      .click();
     await page
       .getByRole("dialog")
-      .getByRole("button", { name: "Mark as Sold" })
+      .getByRole("button", { name: "Confirm sold" })
       .click();
     await expect(page.getByText("Listing marked as sold")).toBeVisible();
   });

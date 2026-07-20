@@ -88,7 +88,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
     archived ? "archived" : "inbox",
   ];
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey,
     queryFn: () => getConversations(listingId, archived),
   });
@@ -174,7 +174,12 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
       )}
 
       {isError ? (
-        <EmptyState icon={MessageSquare} title={t("common.error")} />
+        <EmptyState
+          icon={MessageSquare}
+          title={t("common.errorTitle")}
+          description={t("common.errorDescription")}
+          action={{ label: t("common.retry"), onClick: () => refetch() }}
+        />
       ) : isPending ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (

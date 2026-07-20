@@ -250,7 +250,9 @@
       "locationRequired": "Location is required — buyers filter listings by area",
       "useMyLocation": "Use my location",
       "searchPlacePlaceholder": "Search city or area…",
-      "searchAttribution": "Search by OpenStreetMap"
+      "searchAttribution": "Search by OpenStreetMap",
+      "negotiableLabel": "Price is negotiable",
+      "removePhoto": "Remove photo"
     },
     "analytics": {
       "title": "Views (last 7 days)",
@@ -259,7 +261,7 @@
     }
   },
   "browse": {
-    "title": "Browse",
+    "title": "Bazaar",
     "searchPlaceholder": "Search listings...",
     "allCategories": "All Categories",
     "activeSellers": "Active sellers",
@@ -405,7 +407,7 @@
       "myListings": "My Listings",
       "messages": "Messages",
       "reviews": "Ratings & Reviews",
-      "browse": "Browse Listings",
+      "browse": "Bazaar",
       "saved": "Saved Items"
     },
     "recentActivity": "Recent Activity",
@@ -501,10 +503,10 @@
     "hero": {
       "title": "Buy and sell locally in Afghanistan",
       "subtitle": "Discover thousands of items near you. Find a deal, message the seller, and meet in person.",
-      "browseCta": "Browse listings"
+      "browseCta": "Explore the Bazaar"
     },
     "recent": "Recent listings",
-    "categoriesHeading": "Browse by category",
+    "categoriesHeading": "Shop by category",
     "viewAll": "View all",
     "getApp": {
       "title": "Get the Hatiwal app",
@@ -616,7 +618,7 @@
     "title": "Saved",
     "empty": "No saved items yet",
     "emptyDescription": "Tap the heart on any listing to save it here",
-    "browseButton": "Browse listings",
+    "browseButton": "Explore the Bazaar",
     "unsaveError": "Could not remove listing — please try again",
     "saveError": "Could not save listing — please try again"
   },
@@ -624,7 +626,7 @@
     "title": "Recently Viewed",
     "empty": "Nothing viewed yet",
     "emptyDescription": "Listings you open will appear here so you can easily find them again.",
-    "browseButton": "Browse Listings"
+    "browseButton": "Explore the Bazaar"
   },
   "deleteAccount": {
     "title": "Delete your Hatiwal account",
@@ -671,7 +673,7 @@
     "empty": {
       "title": "No conversations",
       "description": "Start chatting with sellers to negotiate and arrange meetups.",
-      "browseAction": "Browse Listings"
+      "browseAction": "Explore the Bazaar"
     },
     "about": "About: {title}",
     "proposeMeetup": "Propose Meetup",
@@ -857,6 +859,79 @@
     "asSeller": "As a seller",
     "asBuyer": "As a buyer",
     "tabsLabel": "Filter reviews by role",
-    "starsAria": "{rating} out of 5 stars"
+    "starsAria": "{rating} out of 5 stars",
+    "promptSellerTitle": "How was {name} as a buyer?",
+    "promptBuyerTitle": "How was {name} as a seller?",
+    "ratingLabel": "Your rating",
+    "commentLabel": "Add a comment (optional)",
+    "commentPlaceholder": "Share how the meetup and deal went…",
+    "submit": "Submit review",
+    "skip": "Not now",
+    "rate": "Rate",
+    "blindNotice": "Reviews stay private until both of you have rated each other — this keeps ratings honest.",
+    "pendingTitle": "Rate your recent deals",
+    "submittedPendingTitle": "Review saved",
+    "thanks": "Thanks! Your review is posted.",
+    "submittedPendingBody": "Thanks! Your review will be revealed once {name} submits theirs too (or automatically within 14 days).",
+    "gotIt": "Got it",
+    "error": "Couldn't submit your review. Please try again."
+  },
+  "buyerPicker": {
+    "reserveTitle": "Who's buying this item?",
+    "soldTitle": "Who bought this item?",
+    "subtitle": "Select from your conversations on this listing.",
+    "loading": "Loading conversations...",
+    "noConversations": "No conversations yet on this listing.",
+    "nudge": "Pick your buyer so you can review each other — reviewed sellers earn more trust ⭐",
+    "someoneElse": "Sold to someone not on Hatiwal",
+    "someoneElseHint": "No buyer is recorded and no review can be left",
+    "finalPriceLabel": "Final price (optional)",
+    "finalPricePlaceholder": "Listed price",
+    "confirmReserve": "Confirm reserve",
+    "confirmSold": "Confirm sold",
+    "invalidPrice": "Enter a valid price"
+  },
+  "safety": {
+    "title": "Meetup Safety Tips",
+    "subtitle": "This is a local marketplace — every deal is completed in person. Keep these tips in mind.",
+    "link": "Meetup safety tips",
+    "linkShort": "Safety tips",
+    "close": "Got it",
+    "tips": {
+      "publicPlace": "Meet in a busy, public place — markets, mosques, or shopping areas are safest.",
+      "daylight": "Choose daylight hours whenever possible.",
+      "bringFriend": "Bring a friend, or tell someone where you're going and who you're meeting.",
+      "inspectItem": "Inspect the item carefully before paying — make sure it works as described.",
+      "noAdvancePayment": "Never pay in advance or send money before seeing the item in person.",
+      "trustInstincts": "Trust your instincts — if something feels wrong, walk away.",
+      "reportSuspicious": "Report suspicious users or listings so we can keep the community safe."
+    }
+  },
+  "hidden": {
+    "title": "Hidden Listings",
+    "empty": "No hidden listings",
+    "emptyDescription": "Listings you mark \"Not interested\" will appear here so you can restore them anytime.",
+    "browseButton": "Explore the Bazaar",
+    "restore": "Restore",
+    "restoreSuccess": "Listing restored to your feed",
+    "restoreError": "Couldn't restore this listing — please try again.",
+    "notInterested": "Not interested",
+    "hiddenUndo": "Listing hidden from your feed",
+    "hideError": "Couldn't hide this listing — please try again."
+  },
+  "onboarding": {
+    "title": "Welcome to Hatiwal",
+    "subtitle": "Your local marketplace to buy and sell — no fees, no shipping, just people nearby.",
+    "getStarted": "Get started",
+    "points": {
+      "modes": {
+        "title": "Buy or sell — your choice",
+        "description": "One account for both. Switch between buyer and seller mode anytime."
+      },
+      "meetups": {
+        "title": "Meet safely, in person",
+        "description": "Chat first, then arrange a safe place to meet — no online payments needed."
+      }
+    }
   }
 }

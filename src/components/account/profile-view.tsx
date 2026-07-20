@@ -13,6 +13,7 @@ import {
   RestoreAccountBanner,
 } from "./delete-account-section";
 import { WarningsBanner } from "./warnings-banner";
+import { PendingReviewsNudge } from "./pending-reviews-nudge";
 import { ModeToggle } from "./mode-toggle";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -48,6 +49,7 @@ export function ProfileView() {
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <WarningsBanner />
       <RestoreAccountBanner />
+      <PendingReviewsNudge />
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
         <UserIdentity
@@ -94,6 +96,9 @@ export function ProfileView() {
         </Button>
         <Button asChild variant="secondary">
           <Link href="/recently-viewed">{t("recentlyViewed.title")}</Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href="/settings/hidden-listings">{t("hidden.title")}</Link>
         </Button>
         <Button asChild variant="secondary">
           <Link href="/bazaar">{t("profile.quickActions.browse")}</Link>

@@ -1,6 +1,6 @@
 import { convertKeysToCamel, convertKeysToSnake } from "./case";
 import { normalizeListing, type RawListing } from "./listings";
-import type { Listing, User } from "../types";
+import type { Listing, Transaction, User } from "../types";
 
 /**
  * Client-side authed requests, routed through the same-origin authed proxy
@@ -144,15 +144,35 @@ export type LifecycleAction =
   | "sold"
   | "renew";
 
+export interface LifecycleResult {
+  listing: Listing;
+  /** Present when reserve/sold was called with a buyer — the created/advanced
+   *  sale, which the caller can immediately review. */
+  transaction: Transaction | null;
+}
+
 export async function listingLifecycle(
   id: number,
   action: LifecycleAction,
-): Promise<Listing> {
-  const data = await meRequest<{ listing: RawListing }>(
-    `my/listings/${id}/${action}`,
-    { method: "PUT" },
-  );
-  return normalizeListing(data.listing);
+  opts: { buyerId?: number; finalPrice?: number } = {},
+): Promise<LifecycleResult> {
+  // reserve/sold optionally take a buyer (+ final price) so Rails records a
+  // Transaction (the thing a review hangs off). buyer_id/final_price are flat
+  // params, not nested under listing[]. Other actions send a bare PUT.
+  const hasBuyer = opts.buyerId != null;
+  const data = await meRequest<{
+    listing: RawListing;
+    transaction?: Transaction | null;
+  }>(`my/listings/${id}/${action}`, {
+    method: "PUT",
+    ...(hasBuyer
+      ? { json: { buyerId: opts.buyerId, finalPrice: opts.finalPrice } }
+      : {}),
+  });
+  return {
+    listing: normalizeListing(data.listing),
+    transaction: data.transaction ?? null,
+  };
 }
 
 export async function deleteMyListing(id: number): Promise<void> {
@@ -170,6 +190,8 @@ export interface ListingInput {
   address?: string;
   latitude?: number;
   longitude?: number;
+  /** Whether the price is open to offers. Defaults to true on the backend. */
+  negotiable?: boolean;
 }
 
 /** Build the multipart body Rails expects (listing[...] fields + images[]). */
@@ -184,6 +206,8 @@ function buildListingForm(
   f.append("listing[price]", String(input.price));
   f.append("listing[currency]", input.currency);
   if (input.condition) f.append("listing[condition]", input.condition);
+  if (input.negotiable != null)
+    f.append("listing[negotiable]", String(input.negotiable));
   f.append("listing[category_id]", String(input.categoryId));
   if (input.location) f.append("listing[location]", input.location);
   if (input.address) f.append("listing[address]", input.address);

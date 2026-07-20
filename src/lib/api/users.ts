@@ -36,19 +36,71 @@ export async function getPublicSeller(
   // so fetch one listing's detail to enrich the profile's response-rate badge.
   // Guest-accessible (the listing detail page renders for guests); no mobile
   // contract change and no per-card cost.
+  //
+  // When the user has NO active listings (a buyer, or a seller who's sold out),
+  // the index is empty and there's no seller sub-object to derive from — but the
+  // profile is still linked from every chat thread. Build it from the
+  // guest-readable public_profile instead so the page isn't a 404.
   const enrichedSeller = seller
     ? await enrichSellerRating(
         await enrichSellerResponseRate(seller, result.items[0]?.id, opts.revalidate),
         userId,
         opts.revalidate,
       )
-    : null;
+    : await buildSellerFromPublicProfile(userId, opts.revalidate);
 
   return {
     seller: enrichedSeller,
     listings: result.items,
     totalCount: result.pagination.totalCount,
   };
+}
+
+interface PublicProfileUser {
+  id: number;
+  fullName?: string;
+  province?: string | null;
+  city?: string | null;
+  verified?: boolean;
+  avatarUrl?: string | null;
+  responseRatePercent?: number | null;
+  responseTimeLabel?: string | null;
+  lastActiveLabel?: SellerSummary["lastActiveLabel"];
+  isAway?: boolean;
+  awayUntil?: string | null;
+  avgRating?: number | null;
+  reviewCount?: number;
+}
+
+// Build a full seller summary straight from public_profile (guest-readable) for
+// users with no active listings. Returns null only when the user truly doesn't
+// exist (endpoint 404s), so the page can legitimately notFound().
+async function buildSellerFromPublicProfile(
+  userId: number | string,
+  revalidate?: number,
+): Promise<SellerSummary | null> {
+  try {
+    const { user } = await apiGet<{ user: PublicProfileUser }>(
+      `users/${userId}/public_profile`,
+      { revalidate },
+    );
+    return {
+      id: user.id,
+      name: user.fullName ?? "",
+      city: user.province ?? user.city ?? null,
+      verified: user.verified,
+      avatarUrl: user.avatarUrl,
+      responseRatePercent: user.responseRatePercent,
+      responseTimeLabel: user.responseTimeLabel,
+      lastActiveLabel: user.lastActiveLabel,
+      sellerIsAway: user.isAway,
+      sellerAwayUntil: user.awayUntil,
+      avgRating: user.avgRating,
+      reviewCount: user.reviewCount,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // Rating summary lives on the public-profile `:public` view (guest-readable),

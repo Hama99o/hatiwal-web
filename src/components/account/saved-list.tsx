@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 
 export function SavedList() {
   const t = useTranslations();
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["saved-listings"],
     queryFn: getSavedListings,
   });
@@ -23,8 +23,9 @@ export function SavedList() {
       {isError ? (
         <EmptyState
           icon={Heart}
-          title={t("common.error")}
-          description={t("saved.emptyDescription")}
+          title={t("common.errorTitle")}
+          description={t("common.errorDescription")}
+          action={{ label: t("common.retry"), onClick: () => refetch() }}
         />
       ) : isPending ? (
         <ListingGridSkeleton count={8} />

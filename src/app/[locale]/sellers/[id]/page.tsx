@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Clock } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
+import { localizedAlternates } from "@/lib/seo";
 import { safe } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
@@ -41,7 +42,10 @@ export async function generateMetadata({
   const { locale, id } = await params;
   const { seller } = await safe(getPublicSeller(id), EMPTY_SELLER);
   const t = await getTranslations({ locale, namespace: "seller" });
-  return { title: seller?.name ?? t("title") };
+  return {
+    title: seller?.name ?? t("title"),
+    alternates: localizedAlternates(locale, `/sellers/${id}`),
+  };
 }
 
 export default async function SellerPage({ params }: { params: Params }) {

@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Circle,
   MapContainer,
@@ -37,6 +37,31 @@ function ClickToSet({
   return null;
 }
 
+/**
+ * Read the brand `--primary` color token off :root so the radius circle uses
+ * the theme color (Leaflet needs a real color string, not a Tailwind class),
+ * and re-read it when next-themes flips the `.dark` class so it adapts.
+ */
+function usePrimaryColor(): string {
+  const [color, setColor] = useState("hsl(221 83% 53%)");
+  useEffect(() => {
+    const read = () => {
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue("--primary")
+        .trim();
+      if (v) setColor(v);
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+  return color;
+}
+
 function Recenter({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
@@ -63,6 +88,7 @@ export default function MapImpl({
   onChange,
 }: MapImplProps) {
   const hasPoint = lat != null && lng != null;
+  const primary = usePrimaryColor();
   const center: [number, number] = hasPoint
     ? [lat as number, lng as number]
     : DEFAULT_CENTER;
@@ -101,8 +127,8 @@ export default function MapImpl({
               center={[lat as number, lng as number]}
               radius={radiusKm * 1000}
               pathOptions={{
-                color: "#2563eb",
-                fillColor: "#2563eb",
+                color: primary,
+                fillColor: primary,
                 fillOpacity: 0.1,
               }}
             />

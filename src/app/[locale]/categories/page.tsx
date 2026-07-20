@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getCategories, categoryName } from "@/lib/api/categories";
+import { localizedAlternates } from "@/lib/seo";
 import { safe } from "@/lib/api/safe";
 
 export const revalidate = 600;
@@ -13,7 +14,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "categoriesPage" });
-  return { title: t("title") };
+  return {
+    title: t("title"),
+    alternates: localizedAlternates(locale, "/categories"),
+  };
 }
 
 export default async function CategoriesIndexPage({

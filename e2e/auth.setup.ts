@@ -16,6 +16,11 @@ async function login(page: import("@playwright/test").Page, email: string) {
   // Login redirects to /profile once authenticated. Generous: the setup runs
   // first and triggers the cold dev-mode compile of /login and /profile.
   await expect(page).not.toHaveURL(/\/login/, { timeout: 60_000 });
+  // These personas are returning users — mark onboarding as seen so the
+  // first-run welcome modal doesn't cover the page in every authed spec.
+  await page.evaluate(() =>
+    window.localStorage.setItem("hatiwal.onboarded", "1"),
+  );
 }
 
 setup("authenticate as buyer (full data)", async ({ page }) => {

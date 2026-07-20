@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListings } from "@/lib/api/listings";
+import { localizedAlternates } from "@/lib/seo";
 import { getCategories } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
 import type { ListingsResult } from "@/lib/types";
@@ -29,7 +30,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "browse" });
-  return { title: t("title") };
+  return {
+    title: t("title"),
+    alternates: localizedAlternates(locale, "/bazaar"),
+  };
 }
 
 export default async function BrowsePage({
@@ -58,13 +62,13 @@ export default async function BrowsePage({
     initialResult = null;
   }
 
+  // BrowseClient already renders its own `mx-auto max-w-7xl px-4 py-6` wrapper —
+  // no outer container here, or the page gets doubled padding/inset.
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <BrowseClient
-        initialResult={initialResult}
-        initialFilters={filters}
-        categories={categories}
-      />
-    </div>
+    <BrowseClient
+      initialResult={initialResult}
+      initialFilters={filters}
+      categories={categories}
+    />
   );
 }

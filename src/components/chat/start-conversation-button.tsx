@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { Loader2, MessageCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ import {
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog } from "@/components/ui/dialog";
 import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
 
 /**
@@ -40,12 +42,15 @@ export function StartConversationButton({
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const qc = useQueryClient();
   const { status, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
   const [msg, setMsg] = useState("");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const msgTitleId = useId();
+  const offerTitleId = useId();
 
   // Negotiable by default: only firm (offer hidden) when explicitly false.
   const isNegotiable = negotiable !== false;
@@ -85,6 +90,9 @@ export function StartConversationButton({
     setBusy(true);
     try {
       const id = await resolveConversationId(msg.trim());
+      // Refresh the inbox so the new conversation shows immediately on return
+      // (the global 60s staleTime would otherwise hide it).
+      qc.invalidateQueries({ queryKey: ["conversations"] });
       router.push(`/conversations/${id}`);
     } catch {
       toast.error(t("chat.thread.startFailed"));
@@ -103,6 +111,7 @@ export function StartConversationButton({
       const id = await resolveConversationId(t("listing.detail.defaultMessage"));
       // Body format "amount|currency|listedPrice" — parsed by MessageBubble.
       await sendMessage(id, `${n}|${currency || "AFN"}|${price ?? 0}`, "offer");
+      qc.invalidateQueries({ queryKey: ["conversations"] });
       router.push(`/conversations/${id}`);
     } catch {
       toast.error(t("chat.thread.startFailed"));
@@ -129,52 +138,45 @@ export function StartConversationButton({
       )}
 
       {/* Message dialog */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => !busy && setOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-sm space-y-4 rounded-lg border bg-card p-6 shadow-lg">
-            <h2 className="text-lg font-semibold">
-              {t("chat.startConversation.title")}
-            </h2>
-            <textarea
-              value={msg}
-              onChange={(e) => setMsg(e.target.value)}
-              rows={3}
-              autoFocus
-              placeholder={t("chat.startConversation.placeholder")}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={busy}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button onClick={startMessage} disabled={busy || !msg.trim()}>
-                {busy && <Loader2 className="size-4 animate-spin" />}
-                {t("chat.startConversation.send")}
-              </Button>
-            </div>
-          </div>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        labelledBy={msgTitleId}
+        dismissible={!busy}
+        className="max-w-sm space-y-4"
+      >
+        <h2 id={msgTitleId} className="text-lg font-semibold">
+          {t("chat.startConversation.title")}
+        </h2>
+        <textarea
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          rows={3}
+          placeholder={t("chat.startConversation.placeholder")}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={startMessage} disabled={busy || !msg.trim()}>
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {t("chat.startConversation.send")}
+          </Button>
         </div>
-      )}
+      </Dialog>
 
       {/* Offer dialog */}
-      {offerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => !busy && setOfferOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-sm space-y-4 rounded-lg border bg-card p-6 shadow-lg">
-            <h2 className="text-lg font-semibold">
-              {t("listing.detail.offerTitle")}
-            </h2>
+      <Dialog
+        open={offerOpen}
+        onClose={() => setOfferOpen(false)}
+        labelledBy={offerTitleId}
+        dismissible={!busy}
+        className="max-w-sm space-y-4"
+      >
+        <h2 id={offerTitleId} className="text-lg font-semibold">
+          {t("listing.detail.offerTitle")}
+        </h2>
             {price != null && price > 0 && (
               <p className="text-sm text-muted-foreground">
                 {t("listing.detail.listedPrice", {
@@ -228,9 +230,7 @@ export function StartConversationButton({
                 {t("listing.detail.sendOffer")}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+      </Dialog>
     </div>
   );
 }

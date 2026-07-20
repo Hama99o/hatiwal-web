@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface DraftSnapshot {
     description?: string;
     location?: string;
     address?: string;
+    negotiable?: boolean;
   };
   lat: number | null;
   lng: number | null;
@@ -62,6 +64,7 @@ export function ListingForm({
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const qc = useQueryClient();
   const isEdit = Boolean(listing);
 
   const [existing, setExisting] = useState(listing?.imageAttachments ?? []);
@@ -108,6 +111,7 @@ export function ListingForm({
     currency: z.enum(CURRENCIES),
     categoryId: z.string().min(1, t("listing.form.categoryRequired")),
     condition: z.string().optional(),
+    negotiable: z.boolean(),
     description: z.string().max(2000).optional().or(z.literal("")),
     location: z.string().min(1, t("listing.form.locationRequired")),
     address: z.string().optional().or(z.literal("")),
@@ -129,6 +133,7 @@ export function ListingForm({
       currency: (listing?.currency as (typeof CURRENCIES)[number]) ?? "AFN",
       categoryId: listing?.categoryId != null ? String(listing.categoryId) : "",
       condition: listing?.condition ?? "",
+      negotiable: listing?.negotiable ?? true,
       description: listing?.description ?? "",
       location: listing?.location ?? "",
       address: listing?.address ?? "",
@@ -136,6 +141,7 @@ export function ListingForm({
   });
 
   const condition = watch("condition");
+  const negotiable = watch("negotiable");
   const totalPhotos = existing.length + newPhotos.length;
 
   // ── Draft autosave (new listings only — mirrors mobile ListingForm) ────────
@@ -204,6 +210,7 @@ export function ListingForm({
         : "AFN",
       categoryId: v.categoryId ?? "",
       condition: v.condition ?? "",
+      negotiable: v.negotiable ?? true,
       description: v.description ?? "",
       location: v.location ?? "",
       address: v.address ?? "",
@@ -251,6 +258,7 @@ export function ListingForm({
         price: Number(values.price),
         currency: values.currency,
         condition: values.condition || undefined,
+        negotiable: values.negotiable,
         categoryId: Number(values.categoryId),
         location: values.location || undefined,
         address: values.address || undefined,
@@ -261,6 +269,11 @@ export function ListingForm({
 
       if (isEdit && listing) {
         await updateListing(listing.id, input, files, removedIds);
+        // Drop the cached pre-edit copies so the manage/list views show the
+        // saved values immediately (the global 60s staleTime would otherwise
+        // serve the stale listing and make the edit look like it failed).
+        qc.invalidateQueries({ queryKey: ["my-listing", listing.id] });
+        qc.invalidateQueries({ queryKey: ["my-listings"] });
         toast.success(t("listing.form.saved"));
         router.push(`/my-listings/${listing.id}`);
       } else {
@@ -273,6 +286,8 @@ export function ListingForm({
         } else {
           toast.success(t("listing.form.savedDraft"));
         }
+        // Make the new listing appear in My Listings right away.
+        qc.invalidateQueries({ queryKey: ["my-listings"] });
         router.push(`/my-listings/${created.id}`);
       }
     } catch {
@@ -328,6 +343,7 @@ export function ListingForm({
                 key={img.id}
                 src={img.url}
                 onRemove={() => removeExisting(img.id)}
+                label={t("listing.form.removePhoto")}
               />
             ))}
             {newPhotos.map((p) => (
@@ -335,6 +351,7 @@ export function ListingForm({
                 key={p.url}
                 src={p.url}
                 onRemove={() => removeNew(p.url)}
+                label={t("listing.form.removePhoto")}
               />
             ))}
             {totalPhotos < MAX_PHOTOS && (
@@ -429,6 +446,20 @@ export function ListingForm({
             ))}
           </div>
         </div>
+
+        {/* Firm / negotiable price — mirrors mobile's single toggle. Off = firm
+            price (gates offers in chat); the backend defaults to negotiable. */}
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border bg-card p-4">
+          <span className="text-sm font-medium">
+            {t("listing.form.negotiableLabel")}
+          </span>
+          <input
+            type="checkbox"
+            className="size-5 shrink-0 accent-primary"
+            checked={negotiable}
+            onChange={(e) => setValue("negotiable", e.target.checked)}
+          />
+        </label>
 
         <Field
           label={t("common.description")}
@@ -541,17 +572,25 @@ export function ListingForm({
   );
 }
 
-function PhotoTile({ src, onRemove }: { src: string; onRemove: () => void }) {
+function PhotoTile({
+  src,
+  onRemove,
+  label,
+}: {
+  src: string;
+  onRemove: () => void;
+  label: string;
+}) {
   return (
     <div className="relative aspect-square overflow-hidden rounded-lg border bg-muted">
       <RemoteImage src={src} alt="" fill sizes="120px" className="object-cover" />
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Remove photo"
-        className="absolute end-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+        aria-label={label}
+        className="absolute end-1 top-1 flex size-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
       >
-        <X className="size-3.5" />
+        <X className="size-4" />
       </button>
     </div>
   );

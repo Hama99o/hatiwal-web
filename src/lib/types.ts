@@ -74,6 +74,29 @@ export interface Review {
   reviewer: { id: number; name: string; avatarUrl: string | null };
 }
 
+/** A sold/reserved sale — mirror of the Rails `TransactionSerializer`. Drives the
+ *  pending-reviews nudge (each is a deal the caller still owes a review on). */
+export interface Transaction {
+  id: number;
+  status: "reserved" | "sold";
+  finalPrice: number;
+  currency: string;
+  completedAt: string | null;
+  createdAt: string;
+  /** The caller's side of this sale — the counterparty is the other one. */
+  role?: "buyer" | "seller" | null;
+  listing: {
+    id: number;
+    title: string;
+    thumbnailUrl: string | null;
+    price: number;
+    currency: string;
+    status?: string;
+  };
+  buyer: { id: number; name: string; avatarUrl: string | null };
+  seller: { id: number; name: string; avatarUrl: string | null };
+}
+
 export interface CategoryRef {
   id: number;
   nameEn: string;
