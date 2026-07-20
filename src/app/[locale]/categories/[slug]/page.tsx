@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PackageOpen } from "lucide-react";
+import { ArrowLeft, PackageOpen } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import {
   getCategories,
@@ -67,9 +67,10 @@ export default async function CategoryPage({ params }: { params: Params }) {
       {parent && (
         <Link
           href={`/categories/${parent.slug}`}
-          className="mb-2 inline-block text-sm text-muted-foreground hover:text-foreground hover:underline"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline"
         >
-          ← {categoryName(parent, locale)}
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
+          {categoryName(parent, locale)}
         </Link>
       )}
       <h1 className="text-2xl font-bold">

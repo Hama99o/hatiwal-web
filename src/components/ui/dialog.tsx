@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+// Stack of currently-open dialogs (innermost last). Escape and the Tab
+// focus-trap act only for the TOP-most dialog, so a nested dialog (e.g. the
+// safety-tips sheet opened from inside the meetup dialog) doesn't tear down the
+// parent when it's dismissed.
+const openDialogs: string[] = [];
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -35,6 +41,7 @@ export function Dialog({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+  const token = useId();
   // Keep the latest onClose/dismissible without re-running the open effect.
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -44,6 +51,7 @@ export function Dialog({
   useEffect(() => {
     if (!open) return;
     restoreRef.current = document.activeElement as HTMLElement | null;
+    openDialogs.push(token);
 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -53,6 +61,9 @@ export function Dialog({
     (first ?? card)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
+      // Only the top-most open dialog handles keys — otherwise a nested dialog's
+      // Escape would also close its parent, and Tab could wrap into it.
+      if (openDialogs[openDialogs.length - 1] !== token) return;
       if (e.key === "Escape") {
         if (dismissRef.current) closeRef.current();
         return;
@@ -74,10 +85,12 @@ export function Dialog({
 
     return () => {
       document.removeEventListener("keydown", onKey);
+      const i = openDialogs.lastIndexOf(token);
+      if (i !== -1) openDialogs.splice(i, 1);
       document.body.style.overflow = prevOverflow;
       restoreRef.current?.focus?.();
     };
-  }, [open]);
+  }, [open, token]);
 
   if (!open) return null;
 

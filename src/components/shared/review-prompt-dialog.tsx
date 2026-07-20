@@ -68,7 +68,9 @@ export function ReviewPromptDialog({
       open
       onClose={onClose}
       labelledBy={titleId}
-      dismissible={!busy}
+      // Locked only while the request is in flight; the confirmation screen
+      // (saved) is always dismissible.
+      dismissible={saved != null || !busy}
       className="max-w-sm space-y-4"
     >
       {saved ? (

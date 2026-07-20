@@ -127,6 +127,7 @@ export function ListingCard({
             {showStatusBadge && <StatusBadge status={listing.status} />}
             {showStatus && (
               <ExpiryBadge
+                status={listing.status}
                 expiresAt={listing.expiresAt}
                 expired={listing.expired}
               />
@@ -184,7 +185,11 @@ export function ListingCard({
           {listing.title}
         </p>
         {showStatus && (
-          <ExpiryBadge expiresAt={listing.expiresAt} expired={listing.expired} />
+          <ExpiryBadge
+            status={listing.status}
+            expiresAt={listing.expiresAt}
+            expired={listing.expired}
+          />
         )}
         {listing.condition && (
           <ConditionBadge condition={listing.condition} />

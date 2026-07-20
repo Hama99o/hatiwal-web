@@ -210,6 +210,7 @@ export function ManageListingView({ id }: { id: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={listing.status} />
             <ExpiryBadge
+              status={listing.status}
               expiresAt={listing.expiresAt}
               expired={listing.expired}
             />

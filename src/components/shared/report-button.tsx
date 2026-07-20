@@ -49,6 +49,7 @@ export function ReportButton({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const titleId = useId();
+  const noteId = useId();
 
   // Don't let people report their own listing / their own profile.
   const ownId = reportableType === "User" ? reportableId : ownerId;
@@ -146,10 +147,11 @@ export function ReportButton({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">
+              <label htmlFor={noteId} className="text-sm font-medium">
                 {t("report.noteLabel")}
               </label>
               <textarea
+                id={noteId}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}

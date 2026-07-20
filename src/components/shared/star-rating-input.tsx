@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils";
 /**
  * Interactive 5-star picker (write side of the reviews flow). Filled stars use
  * the gold `warning` token, matching the read-only `StarRating`. Keyboard- and
- * screen-reader-accessible via a radiogroup; hover previews the score. RTL-safe
- * — the row is symmetric so it reads 1→5 outward in either direction.
+ * screen-reader-accessible via the ARIA radiogroup pattern: roving tabindex
+ * (only the checked star — or star 1 when none — is in the tab order) plus
+ * Arrow/Up/Down keys to move the rating. Hover previews the score.
  */
 export function StarRatingInput({
   value,
@@ -25,6 +26,21 @@ export function StarRatingInput({
   const t = useTranslations("reviews");
   const [hover, setHover] = useState(0);
   const shown = hover || value;
+  // The single tab-stop for the group (roving tabindex): the checked star, or
+  // star 1 when nothing is selected yet.
+  const tabStop = value || 1;
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function onKeyDown(e: React.KeyboardEvent, n: number) {
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") next = Math.min(5, n + 1);
+    else if (e.key === "ArrowLeft" || e.key === "ArrowDown")
+      next = Math.max(1, n - 1);
+    if (next == null) return;
+    e.preventDefault();
+    onChange(next);
+    btnRefs.current[next - 1]?.focus();
+  }
 
   return (
     <div
@@ -36,11 +52,16 @@ export function StarRatingInput({
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
+          ref={(el) => {
+            btnRefs.current[n - 1] = el;
+          }}
           type="button"
           role="radio"
           aria-checked={value === n}
           aria-label={t("starsAria", { rating: n })}
+          tabIndex={n === tabStop ? 0 : -1}
           onClick={() => onChange(n)}
+          onKeyDown={(e) => onKeyDown(e, n)}
           onMouseEnter={() => setHover(n)}
           className="rounded p-1 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
