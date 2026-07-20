@@ -2,7 +2,6 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Globe } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
@@ -25,12 +24,15 @@ export function LocaleSwitcher() {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // usePathname() (next-intl) drops the query string, so preserve the current
-  // search + browse filters (?q=&category=&price=…) across a locale change.
-  const qs = searchParams.toString();
-  const href = qs ? `${pathname}?${qs}` : pathname;
+  // usePathname() (next-intl) drops the query string. Read it from the live URL
+  // at click time (client-only) so the search + browse filters (?q=&category=…)
+  // survive a locale change — without useSearchParams(), which would force a
+  // CSR bailout / Suspense boundary on every statically-rendered page.
+  function switchTo(l: string) {
+    const qs = typeof window !== "undefined" ? window.location.search : "";
+    router.replace(qs ? `${pathname}${qs}` : pathname, { locale: l });
+  }
 
   return (
     <DropdownMenu>
@@ -43,7 +45,7 @@ export function LocaleSwitcher() {
         {routing.locales.map((l) => (
           <DropdownMenuItem
             key={l}
-            onClick={() => router.replace(href, { locale: l })}
+            onClick={() => switchTo(l)}
             className={cn(l === locale && "font-semibold text-primary")}
           >
             {LOCALE_LABEL[l]}

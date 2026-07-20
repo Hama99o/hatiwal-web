@@ -7,7 +7,6 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import Script from "next/script";
-import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
@@ -32,12 +31,18 @@ function safeNextPath(next: string | null): string {
   return "/profile";
 }
 
+// Read the `?next=` redirect target from the live URL at call time (client
+// only). Avoids useSearchParams(), which would force a Suspense boundary on the
+// statically-rendered /login page.
+function currentNextDest(): string {
+  if (typeof window === "undefined") return "/profile";
+  return safeNextPath(new URLSearchParams(window.location.search).get("next"));
+}
+
 function GoogleSignInButton() {
   const t = useTranslations();
   const { googleLogin } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextDest = safeNextPath(searchParams.get("next"));
   const divRef = useRef<HTMLDivElement>(null);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [googleError, setGoogleError] = useState<string | null>(null);
@@ -71,7 +76,7 @@ function GoogleSignInButton() {
         setGoogleError(null);
         const res = await googleLogin(response.credential);
         if (res.ok) {
-          router.replace(nextDest);
+          router.replace(currentNextDest());
         } else {
           setGoogleError(t("auth.googleSignInFailed"));
         }
@@ -83,7 +88,7 @@ function GoogleSignInButton() {
       width: divRef.current?.offsetWidth || 300,
       text: "continue_with",
     });
-  }, [clientId, gsiReady, googleLogin, router, t, nextDest]);
+  }, [clientId, gsiReady, googleLogin, router, t]);
 
   if (!clientId) return null;
 
@@ -107,17 +112,15 @@ function GoogleSignInButton() {
 export function LoginForm() {
   const t = useTranslations();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login, status } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
-  const nextDest = safeNextPath(searchParams.get("next"));
 
   // Redirect away once authenticated — to the gated page that sent us here
   // (?next=), else /profile. Covers a fresh login and revisiting /login when
   // already signed in.
   useEffect(() => {
-    if (status === "authed") router.replace(nextDest);
-  }, [status, router, nextDest]);
+    if (status === "authed") router.replace(currentNextDest());
+  }, [status, router]);
 
   const schema = z.object({
     email: z.string().email(t("auth.emailInvalid")),
