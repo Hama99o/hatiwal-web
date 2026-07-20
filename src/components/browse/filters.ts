@@ -176,12 +176,16 @@ export function filtersToQuery(
  * (TASK-C481) so the two clients surface the same number.
  */
 export function activeFilterCount(f: BrowseFilters): number {
+  // "nearest" sort takes over location with its own GPS fix and drops the
+  // manual zone (see filtersToQuery), so the manual lat isn't an active filter
+  // then — don't count it or the "Filters active (N)" pill overstates.
+  const manualLocation = f.sort !== "nearest" ? f.lat : undefined;
   return [
     f.categorySlug,
     f.condition,
     f.priceMin,
     f.priceMax,
-    f.lat,
+    manualLocation,
     f.q,
     f.activeSellers,
   ].filter(Boolean).length;

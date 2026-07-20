@@ -19,6 +19,7 @@ import { categoryName } from "@/lib/api/categories";
 import {
   LISTING_CONDITIONS,
   type Category,
+  type Listing,
   type ListingSort,
   type ListingsResult,
 } from "@/lib/types";
@@ -159,21 +160,40 @@ export function BrowseClient({
     return () => clearTimeout(id);
   }, [searchInput]);
 
+  // Seed the SSR result ONLY for the initial filters' query key. initialData on
+  // an observer is otherwise reused for EVERY new key it creates, so a filter
+  // change would show the initial (e.g. all-categories) results — treated as
+  // fresh for the whole staleTime — with no refetch and no skeleton. A changed
+  // key gets undefined → fetches normally.
+  const sameAsInitial =
+    filtersToSearchString(filters) === filtersToSearchString(initialFilters);
   const query = useInfiniteQuery({
     queryKey: ["listings", filters],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getListings(filtersToQuery(filters, categories, pageParam)),
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
-    initialData: initialResult
-      ? { pages: [initialResult], pageParams: [1] }
-      : undefined,
+    initialData:
+      sameAsInitial && initialResult
+        ? { pages: [initialResult], pageParams: [1] }
+        : undefined,
   });
 
-  const items = useMemo(
-    () => query.data?.pages.flatMap((p) => p.items) ?? [],
-    [query.data],
-  );
+  // Flatten pages, de-duplicating by id: offset pagination can repeat a listing
+  // across page boundaries (a new active listing shifts the window), which would
+  // otherwise render a duplicate card + a duplicate React key.
+  const items = useMemo(() => {
+    const seen = new Set<number>();
+    const out: Listing[] = [];
+    for (const page of query.data?.pages ?? []) {
+      for (const it of page.items) {
+        if (seen.has(it.id)) continue;
+        seen.add(it.id);
+        out.push(it);
+      }
+    }
+    return out;
+  }, [query.data]);
   const totalCount = query.data?.pages[0]?.pagination.totalCount;
 
   const update = useCallback(
@@ -193,14 +213,30 @@ export function BrowseClient({
   };
 
   // "Use my location" — set the zone center to the browser's geolocation.
+  // Surfaces denial/timeout/unavailable via a toast (was a silent no-op),
+  // mirroring acquireNearest below.
   const useMyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((pos) =>
-      update({
-        lat: String(pos.coords.latitude),
-        lng: String(pos.coords.longitude),
-        radius: filters.radius || String(DEFAULT_RADIUS_KM),
-      }),
+    if (!navigator.geolocation) {
+      toast.error(t("browse.locationUnsupported"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        update({
+          lat: String(pos.coords.latitude),
+          lng: String(pos.coords.longitude),
+          radius: filters.radius || String(DEFAULT_RADIUS_KM),
+        }),
+      (err) => {
+        const key =
+          err.code === err.PERMISSION_DENIED
+            ? "browse.locationDenied"
+            : err.code === err.TIMEOUT
+              ? "browse.locationTimeout"
+              : "browse.locationUnavailable";
+        toast.error(t(key));
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   };
 
