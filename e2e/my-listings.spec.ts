@@ -23,6 +23,8 @@ test.describe("My Shop (seller dashboard)", () => {
       await expect(page.getByText("Antique Carpet")).toBeVisible();
       await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
     }).toPass({ timeout: 20_000 });
+    // The Expired tab (active-but-past-30-days) is available alongside the rest.
+    await expect(page.getByRole("button", { name: /^Expired/ })).toBeVisible();
   });
 
   test("New Listing navigates to the create form", async ({ page }) => {

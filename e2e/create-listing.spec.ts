@@ -17,6 +17,10 @@ test.describe("Create a listing", () => {
     await expect(
       page.getByRole("button", { name: "Save Draft" }),
     ).toBeVisible();
+    // Firm/negotiable toggle (mobile parity) — present and negotiable by default.
+    const negotiable = page.getByLabel("Price is negotiable");
+    await expect(negotiable).toBeVisible();
+    await expect(negotiable).toBeChecked();
   });
 
   test("submitting an empty form shows validation errors", async ({ page }) => {
