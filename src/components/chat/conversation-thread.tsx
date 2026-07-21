@@ -29,10 +29,13 @@ import {
   unblockUser,
 } from "@/lib/api/chat";
 import { useConversationCable } from "@/lib/cable";
-import type { Message } from "@/lib/types";
+import { listingLifecycle } from "@/lib/api/me";
+import type { Message, Transaction } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ReportButton } from "@/components/shared/report-button";
 import { SafetyTips } from "@/components/shared/safety-tips";
+import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
+import { SellBuyerDialog } from "@/components/account/sell-buyer-dialog";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -91,6 +94,11 @@ export function ConversationThread({ id }: { id: string }) {
   const [counterAmount, setCounterAmount] = useState("");
   const [sendingCounter, setSendingCounter] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // Seller lifecycle from the pinned listing header: reserve/mark-sold → buyer
+  // picker → (on sold) review prompt. Mirrors mobile's ListingHeader.
+  const [sellAction, setSellAction] = useState<"reserve" | "sold" | null>(null);
+  const [sellBusy, setSellBusy] = useState(false);
+  const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -204,6 +212,33 @@ export function ConversationThread({ id }: { id: string }) {
   const closed = conversation?.status === "closed";
   // The seller (listing owner) is the one who can counter a buyer's offer.
   const isSeller = conversation?.seller?.id != null && conversation.seller.id === me;
+
+  // Advance the listing lifecycle from the pinned header (seller only): reserve
+  // an active listing or mark a reserved one sold, via the buyer picker.
+  async function submitSale(buyerId: number | null, finalPrice: number | null) {
+    const listingId = convQ.data?.listing?.id;
+    if (!sellAction || listingId == null) return;
+    const action = sellAction;
+    setSellBusy(true);
+    try {
+      const { transaction } = await listingLifecycle(listingId, action, {
+        buyerId: buyerId ?? undefined,
+        finalPrice: finalPrice ?? undefined,
+      });
+      qc.invalidateQueries({ queryKey: ["conversation", id] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      toast.success(
+        t(action === "sold" ? "listing.markSoldSuccess" : "listing.reserveSuccess"),
+      );
+      setSellAction(null);
+      setSellBusy(false);
+      if (action === "sold" && transaction) setReviewTxn(transaction);
+    } catch {
+      toast.error(t("common.error"));
+      setSellBusy(false);
+    }
+  }
 
   async function send(
     body: string,
@@ -448,6 +483,33 @@ export function ConversationThread({ id }: { id: string }) {
         <StatusBadge status={conversation.listing.status as ListingStatus} />
       </Link>
 
+      {/* Seller lifecycle from the pinned header (owner only): reserve an active
+          listing or mark a reserved one sold — opens the buyer picker. */}
+      {isSeller &&
+        (conversation.listing.status === "active" ||
+          conversation.listing.status === "reserved") && (
+          <div className="border-b bg-card/50 px-3 pb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() =>
+                setSellAction(
+                  conversation.listing.status === "reserved"
+                    ? "sold"
+                    : "reserve",
+                )
+              }
+            >
+              {t(
+                conversation.listing.status === "reserved"
+                  ? "listing.markSold"
+                  : "listing.markReserved",
+              )}
+            </Button>
+          </div>
+        )}
+
       {/* Messages */}
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.length === 0 ? (
@@ -678,6 +740,24 @@ export function ConversationThread({ id }: { id: string }) {
           </>
         )}
       </Dialog>
+
+      {/* Seller: pick the buyer to reserve/mark-sold, then (on sold) review. */}
+      {sellAction && (
+        <SellBuyerDialog
+          action={sellAction}
+          listingId={conversation.listing.id}
+          busy={sellBusy}
+          onCancel={() => !sellBusy && setSellAction(null)}
+          onConfirm={submitSale}
+        />
+      )}
+      {reviewTxn && (
+        <ReviewPromptDialog
+          transaction={reviewTxn}
+          role="seller"
+          onClose={() => setReviewTxn(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmBlock}
