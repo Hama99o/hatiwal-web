@@ -1,5 +1,5 @@
 import { MapPin } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { RemoteImage } from "./remote-image";
 import { PriceTag } from "./price-tag";
@@ -45,6 +45,14 @@ export function ListingCard({
   className,
 }: ListingCardProps) {
   const locale = useLocale();
+  const t = useTranslations("listing");
+  // Small "Seen" pill on already-viewed cards (mobile parity — the dim alone is
+  // subtle). Rendered in the photo overlay of both variants.
+  const seenBadge = listing.isViewed ? (
+    <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+      {t("seen")}
+    </span>
+  ) : null;
   const cover = listing.thumbnailUrl ?? listing.images[0] ?? null;
   const showStatusBadge = showStatus && listing.status !== "active";
 
@@ -97,16 +105,22 @@ export function ListingCard({
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             priority={priority}
           />
-          {listing.priceDropPercent ? (
+          {(listing.priceDropPercent || seenBadge) && (
             <div
               className={cn(
                 "absolute inset-x-1 top-1 flex flex-wrap gap-1",
                 showSave && "pe-12",
               )}
             >
-              <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
+              {seenBadge}
+              {listing.priceDropPercent ? (
+                <PriceDropBadge
+                  percent={listing.priceDropPercent}
+                  variant="card"
+                />
+              ) : null}
             </div>
-          ) : null}
+          )}
           {saveHeart}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
@@ -167,6 +181,7 @@ export function ListingCard({
           )}
         >
           {showStatusBadge && <StatusBadge status={listing.status} />}
+          {seenBadge}
           {listing.priceDropPercent ? (
             <PriceDropBadge
               percent={listing.priceDropPercent}

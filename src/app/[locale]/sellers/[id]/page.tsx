@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Clock } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
 import { localizedAlternates } from "@/lib/seo";
@@ -11,6 +10,7 @@ import { AwayBanner } from "@/components/shared/away-banner";
 import { ReportButton } from "@/components/shared/report-button";
 import { ShareButton } from "@/components/shared/share-button";
 import { RatingDisplay } from "@/components/shared/rating-display";
+import { LastActiveLabel } from "@/components/shared/last-active-label";
 import { SellerListingsTabs } from "@/components/seller/seller-listings-tabs";
 import { ReviewsSection } from "@/components/seller/reviews-section";
 
@@ -25,14 +25,6 @@ const EMPTY_SELLER: PublicSellerProfile = {
   totalCount: 0,
 };
 
-// Maps the privacy-safe `lastActiveLabel` recency bucket from Rails to a
-// localized string key. Unknown/null buckets omit the label entirely (no raw
-// timestamp is ever shown). Mirrors mobile's activeLabelUtil.
-const ACTIVE_LABEL_KEYS: Record<string, string> = {
-  today: "seller.activeRecently.today",
-  this_week: "seller.activeRecently.thisWeek",
-  this_month: "seller.activeRecently.thisMonth",
-};
 
 export async function generateMetadata({
   params,
@@ -79,12 +71,7 @@ export default async function SellerPage({ params }: { params: Params }) {
           avgRating={seller.avgRating}
           reviewCount={seller.reviewCount}
         />
-        {ACTIVE_LABEL_KEYS[seller.lastActiveLabel ?? ""] && (
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="size-3.5 shrink-0" />
-            <span>{t(ACTIVE_LABEL_KEYS[seller.lastActiveLabel!])}</span>
-          </div>
-        )}
+        <LastActiveLabel label={seller.lastActiveLabel} className="justify-center" />
         <div className="text-sm">
           <span className="block text-2xl font-bold text-foreground">
             {totalCount}

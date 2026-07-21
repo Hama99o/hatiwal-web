@@ -15,6 +15,7 @@ import { FirmPriceBadge } from "@/components/shared/firm-price-badge";
 import { CategoryBadge } from "@/components/shared/category-badge";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { RatingDisplay } from "@/components/shared/rating-display";
+import { LastActiveLabel } from "@/components/shared/last-active-label";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
@@ -184,6 +185,12 @@ export default async function ListingDetailPage({
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{t("listing.detail.location")}</p>
                   <p className="text-muted-foreground">{listing.location}</p>
+                  {/* Specific meetup address, when the seller gave one. */}
+                  {listing.address && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {listing.address}
+                    </p>
+                  )}
                 </div>
               </div>
               {listing.latitude != null && listing.longitude != null && (
@@ -219,6 +226,10 @@ export default async function ListingDetailPage({
               <ResponseRateBadge
                 responseRatePercent={listing.seller.responseRatePercent}
                 responseTimeLabel={listing.seller.responseTimeLabel}
+              />
+              <LastActiveLabel
+                label={listing.seller.lastActiveLabel}
+                className="mt-2"
               />
               <AwayBanner
                 awayUntil={listing.seller.sellerAwayUntil}

@@ -48,7 +48,9 @@ export interface CreateReportParams {
   reportableType: ReportableType;
   reportableId: number;
   reason: ReportReason;
-  note?: string;
+  /** Free-text note. MUST be `description` — Rails `report_params` permits
+   *  `:description` only (sending `note` silently drops it). Matches mobile. */
+  description?: string;
 }
 
 /**

@@ -74,7 +74,7 @@ export function ReportButton({
         reportableType,
         reportableId,
         reason,
-        note: note.trim() || undefined,
+        description: note.trim() || undefined,
       });
       toast.success(t("report.success"));
       setOpen(false);
