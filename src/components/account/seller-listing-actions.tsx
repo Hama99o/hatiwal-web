@@ -79,7 +79,10 @@ export function SellerListingActions({ listing }: { listing: Listing }) {
       {primary && (
         <Button
           size="sm"
-          className="h-8 min-w-0 flex-1 truncate px-2 text-xs"
+          // `h-auto min-h-9` keeps the 36px minimum touch target while letting a
+          // long label WRAP instead of being clipped — "Mark as Sold" and its
+          // ps/fa equivalents must stay fully readable in a 2-column grid.
+          className="h-auto min-h-9 min-w-0 flex-1 whitespace-normal px-2 py-1 text-xs leading-tight"
           disabled={busy}
           onClick={() => setPending({ kind: "lifecycle", action: primary })}
         >
@@ -89,14 +92,18 @@ export function SellerListingActions({ listing }: { listing: Listing }) {
 
       {/* Secondary transitions + Edit + Delete. `dir` keeps Radix's alignment
           mirrored for ps/fa; `ms-auto` parks the kebab at the row's end when a
-          sold (terminal) listing has no primary action. */}
+          sold (terminal) listing has no primary action. The label carries the
+          listing title so a screen reader isn't read six identical "More
+          options" buttons down the grid. */}
       <DropdownMenu dir={isRtl(locale) ? "rtl" : "ltr"}>
         <DropdownMenuTrigger asChild disabled={busy}>
           <Button
             variant="outline"
             size="sm"
-            aria-label={t("listing.detail.moreOptions")}
-            className={cn("size-8 shrink-0 px-0", !primary && "ms-auto")}
+            aria-label={t("listing.detail.moreOptionsFor", {
+              title: listing.title,
+            })}
+            className={cn("size-9 shrink-0 px-0", !primary && "ms-auto")}
           >
             <MoreVertical className="size-4" />
           </Button>

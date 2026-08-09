@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import { getSavedListings, toggleSaved } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,13 +35,19 @@ export function SaveButton({
   initialSaved?: boolean;
   /** The listing's seller id — the heart hides on your own listing. */
   ownerId?: number;
-  /** `overlay` = round icon on a photo; `detail` = full-width labeled button. */
-  variant?: "overlay" | "detail";
+  /**
+   * `overlay` = round icon floating on a photo; `detail` = full-width labeled
+   * button; `bar` = icon button with outline chrome, for a solid toolbar row
+   * (the sticky `ListingActionBar`) where a translucent floating circle would
+   * not match the buttons beside it.
+   */
+  variant?: "overlay" | "detail" | "bar";
   className?: string;
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const { status, user } = useAuth();
+  const { status } = useAuth();
+  const isOwner = useIsOwner(ownerId);
   const queryClient = useQueryClient();
   const [override, setOverride] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,7 +63,7 @@ export function SaveButton({
   });
 
   // Never offer save on your own listing.
-  if (authed && user && ownerId != null && user.id === ownerId) return null;
+  if (isOwner) return null;
 
   const serverSaved = savedListings
     ? savedListings.some((l) => l.id === listingId)
@@ -105,10 +112,15 @@ export function SaveButton({
     );
   }
 
+  // Icon-only chrome. `overlay` floats on a photo (round + translucent + blur so
+  // the picture reads through); `bar` sits in a solid toolbar row, where it has to
+  // look like a sibling of the outline buttons next to it, not a floating pill.
+  const onPhoto = variant === "overlay";
+
   return (
     <Button
       type="button"
-      variant="secondary"
+      variant={onPhoto ? "secondary" : "outline"}
       size="icon"
       onClick={onToggle}
       aria-label={label}
@@ -116,7 +128,9 @@ export function SaveButton({
       title={label}
       className={cn(
         // 40px minimum touch target (house convention — see segmented-control.tsx).
-        "size-10 rounded-full bg-background/80 shadow-sm backdrop-blur-sm hover:bg-background",
+        "size-10 shrink-0",
+        onPhoto &&
+          "rounded-full bg-background/80 shadow-sm backdrop-blur-sm hover:bg-background",
         className,
       )}
     >

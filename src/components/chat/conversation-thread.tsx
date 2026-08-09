@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -47,7 +47,8 @@ import { MessageBubble } from "./message-bubble";
 import { QuickReplies } from "./quick-replies";
 import { useComposerDraft } from "./use-composer-draft";
 import { filterMessages, searchableCount } from "@/lib/message-search";
-import { formatPrice } from "@/lib/format";
+import { dayKey } from "@/lib/message-days";
+import { formatDate, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ListingStatus } from "@/lib/types";
 
@@ -105,8 +106,22 @@ export function ConversationThread({ id }: { id: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Seed/re-seed from the fetched list. The fetch is authoritative for every
+  // message it contains (it carries the freshest readAt — that's how a sent tick
+  // becomes a seen tick), but anything sent/received locally that the response
+  // predates is appended, never dropped: a refetch racing a send would otherwise
+  // make the just-sent message vanish. Returning `fetched` unchanged when there
+  // is nothing local keeps the reference stable against the cache-sync effect
+  // below (same ref → React bails out → no loop).
   useEffect(() => {
-    if (msgsQ.data) setMessages(msgsQ.data);
+    const fetched = msgsQ.data;
+    if (!fetched) return;
+    setMessages((prev) => {
+      if (prev.length === 0) return fetched;
+      const fetchedIds = new Set(fetched.map((m) => m.id));
+      const localOnly = prev.filter((m) => !fetchedIds.has(m.id));
+      return localOnly.length ? [...fetched, ...localOnly] : fetched;
+    });
   }, [msgsQ.data]);
   // Keep the ["messages", id] cache in step with the local list. Sends and live
   // cable messages only update local state; without this, leaving and returning
@@ -193,6 +208,21 @@ export function ConversationThread({ id }: { id: string }) {
     () => searchableCount(messages),
     [messages],
   );
+
+  // Day separators: a centred chip before the first message of each new local
+  // calendar day, labelled Today/Yesterday when it lands on one. Suppressed
+  // while searching — filtered results are not contiguous days, so a separator
+  // between two matches would claim a day boundary that isn't there.
+  const todayKey = dayKey(new Date().toISOString());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = dayKey(yesterday.toISOString());
+
+  function dayLabel(key: string, isoDate: string): string {
+    if (key === todayKey) return t("chat.day.today");
+    if (key === yesterdayKey) return t("chat.day.yesterday");
+    return formatDate(isoDate, locale);
+  }
 
   function closeSearch() {
     setSearchOpen(false);
@@ -399,6 +429,11 @@ export function ConversationThread({ id }: { id: string }) {
             reportableType="User"
             reportableId={other.id}
             className="size-10 shrink-0 justify-center gap-0 rounded-md hover:bg-accent [&>span]:sr-only"
+            // The thread owns the block state for this participant, so the
+            // report→block follow-up can skip the prompt when they're already
+            // blocked and flip the header shield in place when it succeeds.
+            alreadyBlocked={blocked}
+            onBlocked={() => setBlocked(true)}
           />
         )}
         <Button
@@ -521,38 +556,55 @@ export function ConversationThread({ id }: { id: string }) {
             {t("chat.search.noResults")}
           </p>
         ) : (
-          visibleMessages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              message={m}
-              mine={m.sender.id === me}
-              responded={respondedIds.has(m.id)}
-              highlight={searching ? trimmedQuery : undefined}
-              onCounter={
-                m.kind === "offer" &&
-                m.sender.id !== me &&
-                isSeller &&
-                !respondedIds.has(m.id)
-                  ? () => openCounter(m)
-                  : undefined
-              }
-              onDelete={
-                m.sender.id === me && !m.deleted && m.kind !== "system"
-                  ? () => setConfirmDeleteId(m.id)
-                  : undefined
-              }
-              onRespond={(kind, respondsToId) => {
-                // Rails requires a non-empty body; the bubble renders by `kind`.
-                const label = {
-                  meetup_accepted: t("chat.meetup.accepted"),
-                  meetup_declined: t("chat.meetup.declined"),
-                  offer_accepted: t("chat.offer.accepted"),
-                  offer_declined: t("chat.offer.declined"),
-                }[kind];
-                send(label, kind, respondsToId);
-              }}
-            />
-          ))
+          visibleMessages.map((m, i) => {
+            const key = dayKey(m.createdAt);
+            const prev = i > 0 ? visibleMessages[i - 1] : null;
+            const showDay =
+              !searching && prev != null && dayKey(prev.createdAt) !== key;
+            return (
+              <Fragment key={m.id}>
+                {showDay && (
+                  <div
+                    className="my-2 flex justify-center"
+                    data-testid="day-separator"
+                  >
+                    <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                      {dayLabel(key, m.createdAt)}
+                    </span>
+                  </div>
+                )}
+                <MessageBubble
+                  message={m}
+                  mine={m.sender.id === me}
+                  responded={respondedIds.has(m.id)}
+                  highlight={searching ? trimmedQuery : undefined}
+                  onCounter={
+                    m.kind === "offer" &&
+                    m.sender.id !== me &&
+                    isSeller &&
+                    !respondedIds.has(m.id)
+                      ? () => openCounter(m)
+                      : undefined
+                  }
+                  onDelete={
+                    m.sender.id === me && !m.deleted && m.kind !== "system"
+                      ? () => setConfirmDeleteId(m.id)
+                      : undefined
+                  }
+                  onRespond={(kind, respondsToId) => {
+                    // Rails requires a non-empty body; the bubble renders by `kind`.
+                    const label = {
+                      meetup_accepted: t("chat.meetup.accepted"),
+                      meetup_declined: t("chat.meetup.declined"),
+                      offer_accepted: t("chat.offer.accepted"),
+                      offer_declined: t("chat.offer.declined"),
+                    }[kind];
+                    send(label, kind, respondsToId);
+                  }}
+                />
+              </Fragment>
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>

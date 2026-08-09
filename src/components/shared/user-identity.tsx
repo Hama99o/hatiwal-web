@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
 import { UserAvatar } from "./user-avatar";
 import { VerifiedBadge } from "./verified-badge";
@@ -10,6 +11,13 @@ interface UserIdentityProps {
   subtitle?: string | null;
   size?: number;
   layout?: "row" | "stacked";
+  /**
+   * Extra trust line rendered inside the text column, directly under the
+   * name/subtitle (e.g. a `RatingDisplay`). Keeps the badge visually attached
+   * to the person instead of floating under the whole avatar row. Ignored when
+   * `href` is set to something interactive — keep `meta` non-interactive then.
+   */
+  meta?: ReactNode;
   /** Locale-aware href; when set the whole identity becomes a link. */
   href?: string;
   className?: string;
@@ -26,6 +34,7 @@ export function UserIdentity({
   subtitle,
   size = 40,
   layout = "row",
+  meta,
   href,
   className,
 }: UserIdentityProps) {
@@ -53,6 +62,7 @@ export function UserIdentity({
             {subtitle}
           </span>
         )}
+        {meta && <div className="mt-1">{meta}</div>}
       </div>
     </div>
   );

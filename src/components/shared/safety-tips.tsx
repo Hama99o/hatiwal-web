@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 
 // Ordered tip keys — must match `safety.tips.*` in all 3 locale files. Mirrors
 // the mobile SafetyTipsSheet.
@@ -51,13 +51,13 @@ export function SafetyTips({
   className?: string;
 }) {
   const t = useTranslations("safety");
-  const { status, user } = useAuth();
+  const isOwner = useIsOwner(ownerId);
   const [open, setOpen] = useState(false);
   const titleId = useId();
 
   // Guests still get the tips (they're the ones most likely to need them); only
   // a signed-in owner looking at their own item is excluded.
-  if (status === "authed" && ownerId != null && user?.id === ownerId) return null;
+  if (isOwner) return null;
 
   return (
     <>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useId } from "react";
 import { Button } from "./button";
+import { Dialog } from "./dialog";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -15,7 +16,16 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-/** Lightweight modal confirm — used instead of window.confirm for destructive/lifecycle actions. */
+/**
+ * THE confirm prompt — the web analogue of mobile's `confirmAlert`, used instead
+ * of window.confirm for every destructive/lifecycle action (publish, mark sold,
+ * renew, unpublish, delete a listing, leave a chat, delete an account).
+ *
+ * Composes the shared `Dialog` primitive rather than re-rolling a scrim: that is
+ * where Escape-to-close, focus-on-open, the Tab focus-trap, body scroll-lock and
+ * focus-restore live. `loading` blocks dismissal so the prompt can't be closed
+ * mid-request.
+ */
 export function ConfirmDialog({
   open,
   title,
@@ -27,45 +37,34 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
-
-  if (!open) return null;
+  const titleId = useId();
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      labelledBy={titleId}
+      dismissible={!loading}
+      className="max-w-sm"
     >
-      <div
-        className="absolute inset-0 bg-black/50 animate-fade-in-up"
-        onClick={onCancel}
-      />
-      <div className="relative z-10 w-full max-w-sm rounded-lg border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {description && (
-          <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-        )}
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={loading}>
-            {cancelLabel}
-          </Button>
-          <Button
-            variant={destructive ? "destructive" : "default"}
-            onClick={onConfirm}
-            disabled={loading}
-          >
-            {confirmLabel}
-          </Button>
-        </div>
+      <h2 id={titleId} className="text-lg font-semibold">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+      )}
+      <div className="mt-6 flex justify-end gap-2">
+        <Button variant="outline" onClick={onCancel} disabled={loading}>
+          {cancelLabel}
+        </Button>
+        <Button
+          variant={destructive ? "destructive" : "default"}
+          onClick={onConfirm}
+          disabled={loading}
+        >
+          {confirmLabel}
+        </Button>
       </div>
-    </div>
+    </Dialog>
   );
 }

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import { hideListing } from "@/lib/api/hidden-listings";
 
 /**
@@ -20,11 +21,11 @@ export function HideListingButton({
   ownerId?: number;
 }) {
   const t = useTranslations("hidden");
-  const { status, user } = useAuth();
+  const { status } = useAuth();
+  const isOwner = useIsOwner(ownerId);
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
 
-  const isOwner = ownerId != null && user?.id === ownerId;
   if (status !== "authed" || isOwner || hidden) return null;
 
   async function onClick() {

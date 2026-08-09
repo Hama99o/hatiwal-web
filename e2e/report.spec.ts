@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Request } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
 
 // Report is hidden on your own content, so we report listing 2 (owned by
@@ -35,4 +35,168 @@ test.describe("Report a listing", () => {
       page.getByText("Report submitted. Thank you."),
     ).toBeVisible();
   });
+
+  test("a listing report never offers to block", async ({ page }) => {
+    const blockCalls = trackBlockCalls(page);
+    await page.goto("/en/listings/2");
+    await expect(
+      page.getByRole("button", { name: "Message Seller" }),
+    ).toBeVisible({ timeout: 15_000 });
+    await submitReport(page);
+    // The block follow-up is for people, not items.
+    await expect(blockPrompt(page)).toHaveCount(0);
+    expect(blockCalls).toHaveLength(0);
+  });
 });
+
+// ── Report → block follow-up (WEB-R612, mirrors mobile's ReportSheet) ────────
+
+test.describe("Report a user → offer to block", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("confirming the follow-up blocks the reported user", async ({ page }) => {
+    const blockCalls = trackBlockCalls(page);
+    await gotoSellerAuthed(page);
+    await submitReport(page);
+
+    await expect(blockPrompt(page)).toBeVisible();
+    await expect(
+      page.getByText(
+        "Do you also want to block this user so they can't contact you or see your listings?",
+      ),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Yes, block them" }).click();
+    await expect(page.getByText("User blocked successfully.")).toBeVisible();
+    await expect(blockPrompt(page)).toHaveCount(0);
+    // Exactly one POST /users/2/block, for the reported seller.
+    await expect
+      .poll(() => blockCalls.map((r) => new URL(r.url()).pathname))
+      .toEqual(["/api/me/users/2/block"]);
+  });
+
+  test("'Not now' closes the follow-up and blocks nobody", async ({ page }) => {
+    const blockCalls = trackBlockCalls(page);
+    await gotoSellerAuthed(page);
+    await submitReport(page);
+
+    await expect(blockPrompt(page)).toBeVisible();
+    await page.getByRole("button", { name: "Not now" }).click();
+    await expect(blockPrompt(page)).toHaveCount(0);
+    await expect(page.getByText("User blocked successfully.")).toHaveCount(0);
+    expect(blockCalls).toHaveLength(0);
+  });
+
+  test("a failed block shows the error and keeps the report", async ({
+    page,
+  }) => {
+    await page.route("**/api/me/users/*/block", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ errors: ["boom"] }),
+      }),
+    );
+    await gotoSellerAuthed(page);
+    await submitReport(page);
+
+    await page.getByRole("button", { name: "Yes, block them" }).click();
+    await expect(
+      page.getByText("Could not block user. Please try again."),
+    ).toBeVisible();
+    // The report stands — its success toast is never retracted.
+    await expect(page.getByText("Report submitted. Thank you.")).toBeVisible();
+  });
+});
+
+test.describe("Report → block from the conversation thread", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("confirming flips the header shield to unblock", async ({ page }) => {
+    await page.goto("/en/conversations/1");
+    await expect(
+      page.getByText("Hello, I'm interested in the iPhone."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Block User" }),
+    ).toBeVisible();
+
+    await submitReport(page);
+    await expect(blockPrompt(page)).toBeVisible();
+    await page.getByRole("button", { name: "Yes, block them" }).click();
+    await expect(page.getByText("User blocked successfully.")).toBeVisible();
+    // Same header, no reload: the shield now offers unblock.
+    await expect(
+      page.getByRole("button", { name: "Unblock User" }),
+    ).toBeVisible();
+  });
+
+  test("an already-blocked participant is never offered again", async ({
+    page,
+  }) => {
+    await page.goto("/en/conversations/1");
+    await expect(
+      page.getByText("Hello, I'm interested in the iPhone."),
+    ).toBeVisible();
+
+    // Block from the header first, so the thread's own block state is true.
+    const shield = page.getByRole("button", { name: "Block User" });
+    await expect(async () => {
+      await shield.click();
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Block User" })
+      .click();
+    await expect(page.getByText("User blocked.").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Unblock User" }),
+    ).toBeVisible();
+
+    // Reporting them now must NOT re-offer a block.
+    await submitReport(page);
+    await expect(blockPrompt(page)).toHaveCount(0);
+  });
+});
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+/** The follow-up confirm's heading (`report.block.title`). */
+function blockPrompt(page: Page) {
+  return page.getByRole("heading", { name: "Block this user?" });
+}
+
+/** Every POST the browser fires at the block endpoint, in order. */
+function trackBlockCalls(page: Page): Request[] {
+  const calls: Request[] = [];
+  page.on("request", (req) => {
+    if (req.method() === "POST" && /\/api\/me\/users\/\d+\/block$/.test(req.url()))
+      calls.push(req);
+  });
+  return calls;
+}
+
+/** Seller 2's public profile, once the session has hydrated (avatar in header). */
+async function gotoSellerAuthed(page: Page) {
+  await page.goto("/en/sellers/2");
+  // The header avatar is labelled with the signed-in user's name, so it only
+  // appears once auth has resolved — the Report trigger sends guests to /login.
+  await expect(
+    page.getByRole("button", { name: "Ahmad Karimi" }),
+  ).toBeVisible({ timeout: 15_000 });
+}
+
+/** Open the report dialog, pick a reason, submit, and wait for the toast. */
+async function submitReport(page: Page) {
+  const trigger = page.getByRole("button", { name: "Report", exact: true });
+  await expect(async () => {
+    await trigger.click();
+    await expect(page.getByText("Why are you reporting this?")).toBeVisible({
+      timeout: 2000,
+    });
+  }).toPass({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Fraud or scam" }).click();
+  await page.getByRole("button", { name: "Submit Report" }).click();
+  await expect(page.getByText("Report submitted. Thank you.")).toBeVisible();
+}

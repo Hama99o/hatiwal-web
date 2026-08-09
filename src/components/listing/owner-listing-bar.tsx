@@ -1,9 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Eye, Heart, MessageSquare, Pencil, SlidersHorizontal } from "lucide-react";
+import { MessageSquare, Pencil, SlidersHorizontal } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ExpiryBadge } from "@/components/shared/expiry-badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,14 @@ import type { ListingStatus } from "@/lib/types";
  * Renders NOTHING unless the viewer is signed in AND is this listing's seller, so
  * buyers and guests see the page exactly as before. It is deliberately link-only —
  * publish / reserve / mark sold / renew / delete all live on `ManageListingView`
- * (`/my-listings/[id]`), which this links to rather than duplicating.
+ * (`/my-listings/[id]`), which this links to rather than duplicating. It also
+ * deliberately carries NO view/save counts: the page's meta row already shows both
+ * to every viewer, owner included, so repeating them here would print the same two
+ * numbers twice in one column.
+ *
+ * Styled as a primary-tinted panel (the same treatment as the seller-mode banner on
+ * `ListingForm`) instead of the page's neutral `bg-card`, so it reads as "your
+ * controls" rather than one more information card beside location and seller.
  *
  * Client component (the page is a Server Component) because ownership can only be
  * decided from the browser session — the SSR fetch is an anonymous request.
@@ -37,8 +44,6 @@ export function OwnerListingBar({
   status,
   expiresAt,
   expired,
-  viewsCount,
-  savesCount,
   className,
 }: {
   listingId: number;
@@ -47,46 +52,35 @@ export function OwnerListingBar({
   status: ListingStatus;
   expiresAt?: string | null;
   expired?: boolean;
-  viewsCount?: number;
-  savesCount?: number;
   className?: string;
 }) {
   const t = useTranslations();
-  const { status: authStatus, user } = useAuth();
-
-  // `authStatus !== "authed"` covers both the guest case and the pre-resolution
-  // "loading" tick, so the panel never flashes for a signed-out visitor.
-  if (authStatus !== "authed" || sellerId == null || user?.id !== sellerId) {
-    return null;
-  }
+  // `useIsOwner` is false for guests AND during the pre-resolution "loading"
+  // tick, so the panel never flashes for a signed-out visitor.
+  const isOwner = useIsOwner(sellerId);
+  if (!isOwner) return null;
 
   return (
     <section
       aria-label={t("listing.detail.ownListingNotice")}
       data-testid="owner-listing-bar"
-      className={cn("space-y-3 rounded-lg border bg-card p-4", className)}
+      className={cn(
+        "space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4",
+        className,
+      )}
     >
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm font-semibold">
           {t("listing.detail.ownListingNotice")}
         </p>
-        <StatusBadge status={status} />
+        {/* The page's header row already renders a <StatusBadge> for every
+            non-active status, so repeating it here would print "Sold" twice in
+            the same column. Nothing above says a listing is *live*, though — and
+            the owner is the one person who needs to know that — so the badge
+            shows here for, and only for, `active`. */}
+        {status === "active" && <StatusBadge status={status} />}
         {/* Self-gates: only an ACTIVE listing expiring within 7 days shows a pill. */}
         <ExpiryBadge status={status} expiresAt={expiresAt} expired={expired} />
-      </div>
-
-      {/* The owner's reason to care about this page: how much interest it's drawn. */}
-      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <Eye className="size-4 shrink-0" />
-          {t("listing.viewsCount", { count: viewsCount ?? 0 })}
-        </span>
-        {savesCount != null && savesCount > 0 && (
-          <span className="inline-flex items-center gap-1.5">
-            <Heart className="size-4 shrink-0" />
-            {t("listing.savesCount", { count: savesCount })}
-          </span>
-        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

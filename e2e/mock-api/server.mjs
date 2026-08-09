@@ -87,8 +87,20 @@ const LISTINGS = [
   { id: 9, title: "Gaming PC", price: 70000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "like_new", category_id: 102, seller_id: 1, views_count: 60, created_at: "2026-06-12T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "RTX 3070, reserved for a buyer." },
 ];
 
+// Seller 1's ACTIVE-but-past-its-30-day-run listing. Kept OUT of LISTINGS on
+// purpose: Rails hides expired listings from buyers, so it must not appear in
+// the public feed / seller rails (which would shift every browse assertion) —
+// it exists only to drive My Shop's Expired tab and the Renew quick-action.
+const EXPIRED_MINE = {
+  id: 10, title: "Old Bicycle", price: 3000, currency: "AFN", status: "active",
+  location: "Kabul", address: null, condition: "fair", category_id: 2, seller_id: 1,
+  views_count: 18, created_at: "2026-05-01T08:00:00Z", price_drop_percent: null,
+  price_dropped_at: null, description: "Listed a while ago, run has lapsed.",
+  expired: true, expires_at: "2026-05-31T08:00:00Z",
+};
+
 function findListing(id) {
-  return LISTINGS.find((l) => String(l.id) === String(id));
+  return [...LISTINGS, EXPIRED_MINE].find((l) => String(l.id) === String(id));
 }
 
 function listView(l) {
@@ -96,6 +108,7 @@ function listView(l) {
     id: l.id, title: l.title, price: l.price, currency: l.currency, status: l.status,
     location: l.location, address: l.address, condition: l.condition, created_at: l.created_at,
     category_id: l.category_id, views_count: l.views_count, conversations_count: 2, thumbnail_url: null, image_urls: [],
+    expired: l.expired ?? false, expires_at: l.expires_at ?? null,
     is_viewed: false, is_saved: false, seller: SELLERS[l.seller_id], category: catRef(l.category_id),
     price_drop_percent: l.price_drop_percent, price_dropped_at: l.price_dropped_at,
   };
@@ -105,8 +118,9 @@ function detailView(l) {
   return {
     ...listView(l),
     description: l.description, latitude: 34.55, longitude: 69.2,
-    published_at: l.created_at, reserved_at: null, sold_at: null, updated_at: l.created_at, expires_at: null,
-    images: [], image_attachments: [], expired: false, conversations_count: 2,
+    published_at: l.created_at, reserved_at: null, sold_at: null, updated_at: l.created_at,
+    expires_at: l.expires_at ?? null,
+    images: [], image_attachments: [], expired: l.expired ?? false, conversations_count: 2,
     is_saved: false,
     seller: { ...SELLERS[l.seller_id], phone: null },
     category: catRef(l.category_id),
@@ -147,7 +161,21 @@ const CONVERSATIONS = [
 
 const MESSAGES = {
   // Returned newest-first (Rails order); chat.ts reverses for display.
+  // Conversation 1 spans TWO local days (id 1 on 06-20, the rest on 06-21) so the
+  // day-separator logic has something to group, and covers every bubble kind:
+  //   - mine + read_at set        → double tick (seen)
+  //   - mine + read_at null       → single tick (sent, not seen)
+  //   - incoming                  → no tick
+  //   - offer / meetup / document → structured bubbles, meta row still shown
+  //   - system / declined pill / tombstone → NO meta row
   1: [
+    { id: 12, body: "Offer declined", kind: "offer_declined", read_at: null, created_at: "2026-06-21T15:55:00Z", responds_to_id: 9, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
+    { id: 11, body: "", kind: "text", deleted: true, deleted_at: "2026-06-21T15:52:00Z", read_at: null, created_at: "2026-06-21T15:50:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
+    { id: 10, body: "This listing was marked as reserved.", kind: "system", read_at: null, created_at: "2026-06-21T15:45:00Z", responds_to_id: null, sender: { id: 2, name: "Sara Ahmadi", avatar_url: null }, attachment_url: null },
+    { id: 9, body: "40000|AFN|45000", kind: "offer", offer_amount: 40000, offer_currency: "AFN", read_at: null, created_at: "2026-06-21T15:35:00Z", responds_to_id: null, sender: { id: 2, name: "Sara Ahmadi", avatar_url: null }, attachment_url: null },
+    { id: 8, body: "receipt.pdf", kind: "document", read_at: null, created_at: "2026-06-21T15:30:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: "https://example.test/receipt.pdf" },
+    { id: 7, body: "Kabul City Center | Tomorrow at 4pm", kind: "meetup_proposal", read_at: "2026-06-21T15:28:00Z", created_at: "2026-06-21T15:25:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
+    { id: 6, body: "I can bring it to Shar-e-Naw.", kind: "text", read_at: null, created_at: "2026-06-21T15:10:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
     { id: 3, body: "Is this still available?", kind: "text", read_at: null, created_at: "2026-06-21T15:00:00Z", responds_to_id: null, sender: { id: 2, name: "Sara Ahmadi", avatar_url: null }, attachment_url: null },
     { id: 2, body: "Yes, it is still available.", kind: "text", read_at: "2026-06-21T14:00:00Z", created_at: "2026-06-21T14:00:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
     { id: 1, body: "Hello, I'm interested in the iPhone.", kind: "text", read_at: "2026-06-21T13:00:00Z", created_at: "2026-06-20T10:00:00Z", responds_to_id: null, sender: { id: 2, name: "Sara Ahmadi", avatar_url: null }, attachment_url: null },
@@ -214,7 +242,7 @@ function filterListings(q) {
 
 // My Shop: seller 1's listings across all statuses (newest first).
 function myListings() {
-  return LISTINGS.filter((l) => l.seller_id === 1)
+  return [...LISTINGS.filter((l) => l.seller_id === 1), EXPIRED_MINE]
     .slice()
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .map(listView);

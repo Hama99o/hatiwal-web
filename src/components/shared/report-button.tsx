@@ -11,7 +11,9 @@ import {
   type ReportableType,
   type ReportReason,
 } from "@/lib/api/reports";
+import { blockUser } from "@/lib/api/chat";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -28,18 +30,37 @@ const REASONS: ReportReason[] = [
  * Report a listing or a user. Mirrors the mobile ReportSheet. Guests are sent
  * to sign in; hidden on your own listing/profile. Reuses the existing `report`
  * translation namespace (all 3 locales).
+ *
+ * After a successful **User** report it closes the loop the same way mobile's
+ * ReportSheet does (TASK-R612): the reporter is offered a follow-up confirm to
+ * also block that person, so "this user is abusive" and "stop them contacting
+ * me" are one flow. A **Listing** report never prompts.
  */
 export function ReportButton({
   reportableType,
   reportableId,
   ownerId,
   className,
+  alreadyBlocked,
+  onBlocked,
 }: {
   reportableType: ReportableType;
   reportableId: number;
   /** Owner of the reported thing — used to hide the button on your own content. */
   ownerId?: number;
   className?: string;
+  /**
+   * The reported user is already blocked by the current user — skip the
+   * follow-up block prompt entirely (never offer to block someone twice).
+   * Only meaningful for `reportableType === "User"`.
+   */
+  alreadyBlocked?: boolean;
+  /**
+   * Called after a successful block from the follow-up prompt, so a host that
+   * owns its own block state (the conversation thread header) can flip its
+   * shield icon without a refetch. Never called on cancel or on failure.
+   */
+  onBlocked?: () => void;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -48,6 +69,8 @@ export function ReportButton({
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [blockPromptOpen, setBlockPromptOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const titleId = useId();
   const noteId = useId();
 
@@ -80,10 +103,30 @@ export function ReportButton({
       setOpen(false);
       setReason(null);
       setNote("");
+      // Reporting a person → offer to also block them. Reporting a listing
+      // keeps the original behaviour (success toast, no prompt), and someone
+      // already blocked is never offered a second time.
+      if (reportableType === "User" && !alreadyBlocked) setBlockPromptOpen(true);
     } catch {
       toast.error(t("common.error"));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function confirmBlock() {
+    setBlocking(true);
+    try {
+      await blockUser(reportableId);
+      toast.success(t("report.block.success"));
+      onBlocked?.();
+      setBlockPromptOpen(false);
+    } catch {
+      // The report itself already succeeded and stands — a failed block never
+      // rolls it back. Keep the prompt open so they can retry.
+      toast.error(t("report.block.error"));
+    } finally {
+      setBlocking(false);
     }
   }
 
@@ -175,6 +218,19 @@ export function ReportButton({
               </Button>
             </div>
       </Dialog>
+
+      {/* Follow-up: offer to block the person we just reported (users only). */}
+      <ConfirmDialog
+        open={blockPromptOpen}
+        title={t("report.block.title")}
+        description={t("report.block.body")}
+        confirmLabel={t("report.block.confirmCta")}
+        cancelLabel={t("report.block.cancel")}
+        destructive
+        loading={blocking}
+        onConfirm={confirmBlock}
+        onCancel={() => setBlockPromptOpen(false)}
+      />
     </>
   );
 }

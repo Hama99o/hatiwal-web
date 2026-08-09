@@ -55,7 +55,11 @@ const listeners = new Set<Listener>();
 /** Cached snapshot; `null` means "re-read from storage on next access". */
 let snapshot: string[] | null = null;
 
-/** Session fallback used when localStorage is unavailable (private mode). */
+/**
+ * Session fallback used ONLY when localStorage throws (private mode, blocked
+ * cookies, quota). It is never consulted while storage is readable — an absent
+ * key there means "the history is empty", not "we don't know yet".
+ */
 let memory: string[] = EMPTY;
 
 /**
@@ -81,14 +85,24 @@ function sanitize(value: unknown): string[] {
 
 function load(): string[] {
   if (typeof window === "undefined") return EMPTY;
+  let raw: string | null;
   try {
-    const raw = window.localStorage.getItem(SEARCH_HISTORY_KEY);
-    if (!raw) return memory;
+    raw = window.localStorage.getItem(SEARCH_HISTORY_KEY);
+  } catch {
+    // Storage unavailable (private mode / blocked cookies) — we genuinely don't
+    // know what is stored, so keep this session's in-memory list. The page
+    // still renders and search still works.
+    return memory;
+  }
+  // Readable storage is AUTHORITATIVE: an absent (or blank) key means the
+  // history is empty — e.g. another tab pressed "Clear all". Falling back to
+  // `memory` here would resurrect data the user just deleted.
+  if (raw === null || raw === "") return EMPTY;
+  try {
     return sanitize(JSON.parse(raw) as unknown);
   } catch {
-    // Storage unavailable (private mode) or corrupt JSON — fall back to the
-    // in-memory list so the page still renders and search still works.
-    return memory;
+    // Corrupt JSON — treat as empty rather than trusting a stale snapshot.
+    return EMPTY;
   }
 }
 

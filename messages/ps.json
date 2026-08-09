@@ -146,7 +146,7 @@
       "description": "د خرڅلاو لپاره خپل لومړی اعلان خپور کړئ."
     },
     "postListing": "اعلان خپرول",
-    "shopCount": "{count} اعلانونه",
+    "shopCount": "{count, plural, one {# اعلان} other {# اعلانونه}}",
     "noPhoto": "انځور نشته",
     "seen": "لیدل شوی",
     "priceDrop": {
@@ -176,6 +176,7 @@
       "reportSent": "راپور وسپارل شو — مننه",
       "notFound": "اعلان ونه موندل شو",
       "moreOptions": "نور اختیارونه",
+      "moreOptionsFor": "د {title} لپاره نور اختیارونه",
       "soldNotice": "دا توکی خرڅ شوی دی",
       "reservedNotice": "دا توکی خوندي شوی دی",
       "unavailableNotice": "دا توکی نور شتون نلري",
@@ -494,6 +495,14 @@
       "generic": "راپور نه شو سپارل. بیا هڅه وکړئ."
     },
     "reasonRequired": "مهرباني وکړئ یوه دلیل وټاکئ.",
+    "block": {
+      "title": "دا کارونکی بلاک کړئ؟",
+      "body": "ایا غواړئ دا کارونکی بلاک کړئ ترڅو نه شي تاسو سره اړیکه ونیسي یا ستاسو توکي وګوري؟",
+      "confirmCta": "هو، بلاک یې کړئ",
+      "cancel": "اوس نه",
+      "success": "کارونکی بریالیتوب سره بلاک شو.",
+      "error": "کارونکی بلاک نه شو. بیا هڅه وکړئ."
+    },
     "status": {
       "pending": "پاتې",
       "reviewed": "بیاکتل شوی",
@@ -551,6 +560,10 @@
     "allIn": "په {category} کې ټول توکي",
     "viewAll": "ټول وګورئ",
     "empty": "تر اوسه پدې کټګورۍ کې توکي نشته",
+    "emptyTitle": "لاهم هیڅ ډلې نشته",
+    "emptyDescription": "ډلې به دلته ښکاره شي کله چې زیاتې شي.",
+    "noListings": "هیڅ اعلان نشته",
+    "moreSubcategories": "+{count} نورې",
     "subcategories": "فرعي ډلې"
   },
   "seller": {
@@ -797,7 +810,13 @@
       "deleteConfirm": "دا پیغام حذف کړئ؟",
       "deleteConfirmCta": "حذف",
       "deleteConfirmDescription": "دا بیرته نه شي کیدی. بل کس به وویني چې یو پیغام ړنګ شوی دی.",
-      "deleteFailed": "پیغام حذف نشو. مهرباني وکړئ بیا هڅه وکړئ."
+      "deleteFailed": "پیغام حذف نشو. مهرباني وکړئ بیا هڅه وکړئ.",
+      "sent": "لېږل شوی",
+      "seen": "لیدل شوی"
+    },
+    "day": {
+      "today": "نن",
+      "yesterday": "پرون"
     },
     "search": {
       "placeholder": "پیغامونه ولټوئ...",
@@ -865,6 +884,8 @@
     "myReviewsTitle": "زما نظرونه",
     "reviewCount": "{count, plural, =0 {تر اوسه نظر نشته} one {# نظر} other {# نظرونه}}",
     "empty": "تر اوسه هیڅ نظر نشته",
+    "emptyAsSeller": "د پلورونکي په توګه تر اوسه نظر نشته",
+    "emptyAsBuyer": "د پیرودونکي په توګه تر اوسه نظر نشته",
     "emptyDescription": "نظرونه د بریالۍ معاملې وروسته ښکاري.",
     "asSeller": "د پلورونکي په توګه",
     "asBuyer": "د پیرودونکي په توګه",

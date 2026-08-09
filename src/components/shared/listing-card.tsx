@@ -235,8 +235,11 @@ export function ListingCard({
         </div>
       </Link>
       {/* `mt-auto` keeps the action rows aligned across a row of cards whose
-          titles wrap to different heights. */}
-      {footer && <div className="mt-auto border-t p-2">{footer}</div>}
+          titles wrap to different heights. `px-3` matches the body inset above
+          so the action button's edges line up with the price and title. */}
+      {footer && (
+        <div className="mt-auto border-t px-3 pb-3 pt-2">{footer}</div>
+      )}
     </div>
   );
 }

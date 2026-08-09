@@ -6,8 +6,12 @@ export function SiteFooter() {
   const t = useTranslations();
   const year = new Date().getFullYear();
 
+  // `data-site-footer` is the hook the sticky <ListingActionBar> watches: a fixed
+  // bottom bar would otherwise cover the end of this column (privacy /
+  // delete-account must stay reachable on a phone), so the bar steps aside once
+  // the footer is on screen.
   return (
-    <footer className="mt-16 border-t bg-card">
+    <footer data-site-footer className="mt-16 border-t bg-card">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-xs space-y-3">
           <Logo />

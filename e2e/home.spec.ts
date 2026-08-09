@@ -9,7 +9,15 @@ test.describe("Home", () => {
     await expect(page.getByText("Electronics")).toBeVisible();
     await expect(page.getByText("Vehicles")).toBeVisible();
     await expect(page.getByText("Clothes & Fashion")).toBeVisible();
-    // Recent listings section + fixture data.
+    // Recent listings section + fixture data. The heading, the trailing
+    // "View all" and the grid all come from the shared <ListingRail> (the same
+    // component as the listing-detail cross-sell rails) — this locks that in.
+    await expect(
+      page.getByRole("heading", { name: "Recent listings" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /View all/i }),
+    ).toHaveAttribute("href", "/en/bazaar");
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(page.getByText("Toyota Corolla 2015")).toBeVisible();
     // Price-drop badge surfaces. Listing cards render the short variant

@@ -4,28 +4,34 @@
  * SearchHistoryPanel — "Recent searches" chips, the web port of the history
  * block in mobile's `BrowseHeader.tsx`.
  *
- * Shared by BOTH web search entry points (site header + Bazaar sidebar) so the
- * markup exists once. The caller owns the open/close logic (focus, empty value,
- * Escape) and the history itself (`useSearchHistory`) — this component only
- * renders and reports intent:
+ * Shared by BOTH web search entry points through `SearchBox` (site header +
+ * Bazaar sidebar) so the markup exists once. The caller owns the open/close
+ * logic (focus, empty value, Escape) and the history itself
+ * (`useSearchHistory`) — this component only renders and reports intent:
  *
  *   - clicking a chip's label → `onSelect(term)` (apply that search)
  *   - clicking a chip's X     → `onRemove(term)` (forget just that term)
  *   - "Clear all"             → `onClear()`
  *
- * `variant="dropdown"` (default) floats the panel under the field — the caller
- * must give the wrapper `position: relative`. `variant="inline"` renders it in
- * normal flow, for narrow columns where an overlay would be clipped.
+ * `variant="dropdown"` (default) floats the panel under the field as a popover
+ * — the caller must give the wrapper `position: relative`. `variant="inline"`
+ * renders it flat in normal flow (no card of its own, so it never reads as a
+ * card inside a card) for narrow columns where an overlay would be clipped.
  *
  * `layout="wrap"` (default) wraps the chips onto as many rows as needed — right
  * for the wide header dropdown. `layout="scroll"` keeps them on ONE horizontally
  * scrollable row (mirrors mobile's `ScrollView horizontal`) — right for the
  * narrow Bazaar sidebar, where it also guarantees the chips can never widen the
  * page.
+ *
+ * Touch targets: every chip (label + X) and "Clear all" is 44px tall — the
+ * whole point of the panel is being tappable on a phone.
  */
 
+import { useId } from "react";
 import { History, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface SearchHistoryPanelProps {
@@ -37,6 +43,7 @@ interface SearchHistoryPanelProps {
   variant?: "dropdown" | "inline";
   layout?: "wrap" | "scroll";
   className?: string;
+  /** DOM id — the field points at it with `aria-controls`. */
   id?: string;
 }
 
@@ -51,6 +58,7 @@ export function SearchHistoryPanel({
   id,
 }: SearchHistoryPanelProps) {
   const t = useTranslations();
+  const headingId = `${useId()}-recent-searches`;
 
   if (history.length === 0) return null;
 
@@ -58,32 +66,42 @@ export function SearchHistoryPanel({
     <div
       id={id}
       data-testid="search-history-panel"
-      // Pressing inside the panel must not blur the search field. The dropdown
-      // variant is mounted only while the field has focus, so a blur would
+      role="group"
+      aria-labelledby={headingId}
+      // Pressing inside a FLOATING panel must not blur the search field: the
+      // dropdown is mounted only while the field has focus, so the blur would
       // unmount it before the click ever landed on a chip — and a relatedTarget
       // check alone can't save us (Safari doesn't focus a pressed <button> at
-      // all). Harmless for the inline variant, which keeps the caret put.
-      onMouseDown={(event) => event.preventDefault()}
+      // all). The inline panel needs no such trick, and swallowing mousedown
+      // there would only cost it the browser's native focus behaviour.
+      onMouseDown={
+        variant === "dropdown" ? (event) => event.preventDefault() : undefined
+      }
       className={cn(
-        "rounded-xl border bg-popover p-3 text-popover-foreground",
         variant === "dropdown" &&
-          "absolute inset-x-0 top-full z-50 mt-1 shadow-md",
-        variant === "inline" && "mt-2",
+          "absolute inset-x-0 top-full z-50 mt-1 rounded-xl border bg-popover p-3 text-popover-foreground shadow-md",
+        // Flat in flow — the sidebar already provides the surface.
+        variant === "inline" && "mt-1",
         className,
       )}
     >
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+      <div className="flex items-center justify-between gap-3">
+        <span
+          id={headingId}
+          className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-muted-foreground"
+        >
           <History className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">{t("browse.recentSearches")}</span>
         </span>
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           onClick={onClear}
-          className="shrink-0 rounded-md text-xs font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="h-11 shrink-0 px-2 text-xs"
         >
           {t("browse.clearHistory")}
-        </button>
+        </Button>
       </div>
 
       <ul
@@ -92,33 +110,40 @@ export function SearchHistoryPanel({
           layout === "wrap" && "flex-wrap",
           // One row that scrolls sideways — the chips can never widen the
           // sidebar (mirrors mobile's horizontal ScrollView).
-          layout === "scroll" && "-mb-1 overflow-x-auto pb-1 [scrollbar-width:thin]",
+          layout === "scroll" &&
+            "-mb-1 overflow-x-auto pb-1 [scrollbar-width:thin]",
         )}
       >
         {history.map((term) => (
           <li
             key={term.toLowerCase()}
+            // Hover has to be visible in BOTH themes: --muted and --accent are
+            // the same value here, so `hover:bg-accent` would be a no-op. The
+            // pill tints toward the primary instead, and the label follows.
             className={cn(
-              "inline-flex max-w-full items-center gap-1 rounded-full bg-muted py-1 pe-1.5 ps-3 transition-colors hover:bg-accent",
+              "group inline-flex h-11 max-w-full items-center rounded-full border border-transparent bg-muted transition-colors hover:border-primary/40 hover:bg-primary/10",
               layout === "scroll" && "shrink-0",
             )}
           >
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => onSelect(term)}
               title={term}
-              className="min-w-0 max-w-[9rem] truncate rounded-full text-start text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="h-11 min-w-0 rounded-full px-3 text-sm font-normal text-foreground hover:bg-transparent group-hover:text-primary"
             >
-              {term}
-            </button>
-            <button
+              <span className="max-w-[9rem] truncate">{term}</span>
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => onRemove(term)}
               aria-label={t("browse.removeSearch", { term })}
-              className="grid size-5 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="size-11 rounded-full text-muted-foreground hover:bg-transparent hover:text-destructive"
             >
-              <X className="size-3" aria-hidden />
-            </button>
+              <X aria-hidden />
+            </Button>
           </li>
         ))}
       </ul>

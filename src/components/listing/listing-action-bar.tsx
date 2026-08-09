@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import { PriceTag } from "@/components/shared/price-tag";
 import { SaveButton } from "@/components/shared/save-button";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,16 @@ const COMPACT_VIEWPORT = "(max-width: 1023px)";
  * re-implemented here — both components are reused, so state (saved heart) and
  * behaviour (conversation resolution) are identical to the inline block.
  *
- * Visibility: an IntersectionObserver watches the inline actions block; the bar
- * is hidden while that block is on screen and slides in whenever it is not.
- * Hidden for the listing's own seller and for non-active (reserved/sold)
- * listings, which show an inline notice instead.
+ * Visibility: one IntersectionObserver watches two things, and the bar shows only
+ * when neither is on screen —
+ *  1. the inline actions block, because duplicating a CTA the buyer is already
+ *     looking at just covers the page for no gain;
+ *  2. the site footer, because a `fixed` bar would sit on top of its last rows
+ *     (the privacy / delete-account links) with no way to scroll them clear.
+ *
+ * Hidden for the listing's own seller (`useIsOwner` — the same one rule every
+ * buyer control on the page uses) and for non-active (reserved/sold) listings,
+ * which show an inline notice plus recovery CTAs instead.
  *
  * Implementation note — the slide animation uses `bottom`, NOT `translate`: a
  * transform/translate on this element would make it the containing block for its
@@ -57,7 +63,7 @@ export function ListingActionBar({
   sentinelId: string;
 }) {
   const t = useTranslations();
-  const { user } = useAuth();
+  const isOwner = useIsOwner(sellerId);
   const [compact, setCompact] = useState(false);
   const [pinned, setPinned] = useState(false);
 
@@ -73,18 +79,27 @@ export function ListingActionBar({
 
   useEffect(() => {
     if (!compact) return;
-    const el = document.getElementById(sentinelId);
-    // No sentinel (shouldn't happen for an active listing) → keep the CTA pinned
-    // rather than silently losing it.
-    if (!el) {
+    const targets = [
+      document.getElementById(sentinelId),
+      document.querySelector("[data-site-footer]"),
+    ].filter((el): el is Element => el != null);
+    // Nothing to watch (shouldn't happen for an active listing) → keep the CTA
+    // pinned rather than silently losing it.
+    if (targets.length === 0) {
       setPinned(true);
       return;
     }
+    // One observer, several targets: track which are on screen and pin the bar
+    // only while none of them is.
+    const onScreen = new Set<Element>();
     const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (entry) setPinned(!entry.isIntersecting);
+      for (const entry of entries) {
+        if (entry.isIntersecting) onScreen.add(entry.target);
+        else onScreen.delete(entry.target);
+      }
+      setPinned(onScreen.size === 0);
     });
-    observer.observe(el);
+    targets.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [compact, sentinelId]);
 
@@ -92,7 +107,7 @@ export function ListingActionBar({
   // reserved / sold / draft show an inline notice — no buyer CTA to pin.
   if (status !== "active") return null;
   // Your own listing: the inline block hides its actions too.
-  if (user && sellerId != null && user.id === sellerId) return null;
+  if (isOwner) return null;
 
   return (
     <div
@@ -135,11 +150,13 @@ export function ListingActionBar({
           negotiable={negotiable}
           layout="bar"
         />
+        {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
+            heart has to read as a sibling of the offer button beside it. */}
         <SaveButton
           listingId={listingId}
           initialSaved={initialSaved}
           ownerId={sellerId}
-          className="shrink-0 border"
+          variant="bar"
         />
       </div>
     </div>

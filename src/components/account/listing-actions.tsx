@@ -75,8 +75,11 @@ export function actionsFor(
   if (status === "draft") return { primary: "publish", secondary: [] };
   if (status === "reserved")
     return { primary: "sold", secondary: ["activate"] };
+  // An expired listing's most useful move is Renew, but it is still a live
+  // `active` record: reserving or unpublishing it stays legal (mobile parity —
+  // dropping them here stranded expired listings with no way to take them down).
   if (status === "active" && expired)
-    return { primary: "renew", secondary: ["sold"] };
+    return { primary: "renew", secondary: ["sold", "reserve", "unpublish"] };
   if (status === "active")
     return { primary: "sold", secondary: ["reserve", "unpublish", "renew"] };
   return { secondary: [] }; // sold — terminal
@@ -135,7 +138,8 @@ export function dialogKeysFor(pending: PendingAction): {
  *
  * Invalidates the seller list + this listing's detail + this listing's
  * conversations — a buyer-recorded reserve/sold changes what the conversation
- * list shows, same as mobile.
+ * list shows, same as mobile — plus the public browse caches, because every
+ * transition (publish/unpublish/sold/renew) changes whether buyers can see it.
  */
 export function useListingLifecycle(listingId: number) {
   const t = useTranslations();
@@ -147,6 +151,8 @@ export function useListingLifecycle(listingId: number) {
     // The detail query is keyed by the route param (a string).
     qc.invalidateQueries({ queryKey: ["my-listing", String(listingId)] });
     qc.invalidateQueries({ queryKey: ["listing-conversations", listingId] });
+    // Prefix match: every browse/home/category grid is keyed ["listings", filters].
+    qc.invalidateQueries({ queryKey: ["listings"] });
   }
 
   /** Returns the lifecycle payload, or null when the request failed. */

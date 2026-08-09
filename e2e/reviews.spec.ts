@@ -20,9 +20,11 @@ test.describe("Seller reviews (REV3)", () => {
     ).toBeVisible();
     await expect(page.getByText("Good deal, friendly seller.")).toBeVisible();
 
-    // Switching to "As a buyer" (no reviews) shows the empty state.
+    // Switching to "As a buyer" (no reviews) shows the role-specific empty
+    // state — it names which reputation is empty, so it can't be misread as
+    // "this seller has no reviews at all".
     await page.getByRole("tab", { name: "As a buyer" }).click();
-    await expect(page.getByText("No reviews yet").first()).toBeVisible();
+    await expect(page.getByText("No buyer reviews yet")).toBeVisible();
   });
 
   test("a seller with no reviews shows a neutral empty state, not a rating", async ({
@@ -32,8 +34,11 @@ test.describe("Seller reviews (REV3)", () => {
     await expect(
       page.getByRole("heading", { name: "Ratings & Reviews" }),
     ).toBeVisible();
-    // No average shown; the summary falls back to the neutral empty label.
-    await expect(page.getByText("No reviews yet").first()).toBeVisible();
+    // No average shown; the profile header carries the neutral empty label, and
+    // it is said exactly once (the section heading drops its summary when there
+    // is no score, instead of echoing the same sentence).
+    await expect(page.getByText("No reviews yet")).toHaveCount(1);
+    await expect(page.getByText("No seller reviews yet")).toBeVisible();
   });
 });
 

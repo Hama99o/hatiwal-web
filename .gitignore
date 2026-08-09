@@ -51,5 +51,6 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /.next-e2e
+/.next-e2e-*
 playwright/.cache
 e2e/.auth

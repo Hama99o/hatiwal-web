@@ -26,6 +26,7 @@ import { SafetyTips } from "@/components/shared/safety-tips";
 import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
 import { UnavailableActions } from "@/components/listing/unavailable-actions";
 import { OwnerListingBar } from "@/components/listing/owner-listing-bar";
+import { HideForOwner } from "@/components/auth/owner-gate";
 import { HideListingButton } from "@/components/listing/hide-listing-button";
 import { ListingActionBar } from "@/components/listing/listing-action-bar";
 import { ListingGallery } from "@/components/listing/listing-gallery";
@@ -33,6 +34,7 @@ import { RecordListingView } from "@/components/listing/record-listing-view";
 import { ListingRail } from "@/components/shared/listing-rail";
 import { LocationMap } from "@/components/map/location-map";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -81,8 +83,9 @@ export default async function ListingDetailPage({
   // Two cross-sell rails, fetched in parallel (one request each, and each one
   // skipped entirely when its key is missing): same-category "Similar listings"
   // and the seller's other active stock ("More from this Seller" — mirrors mobile
-  // TASK-M547). Both are public info, so neither is owner-gated. A failed fetch
-  // degrades via safe() to an empty list → the rail simply doesn't render.
+  // TASK-M547). A failed fetch degrades via safe() to an empty list → that rail
+  // simply doesn't render. The seller rail is buyer-only (see <HideForOwner>
+  // below); it's public data either way, so it's still fetched during SSR.
   const sellerId = listing.seller?.id;
   const [similarResult, sellerResult] = await Promise.all([
     listing.categoryId
@@ -130,10 +133,17 @@ export default async function ListingDetailPage({
     },
   };
 
-  // pb-28 below `lg` leaves room for the sticky <ListingActionBar> so the bar can
-  // never sit on top of the report link or the site footer.
+  // Below `lg`, an ACTIVE listing reserves pb-28 for the sticky
+  // <ListingActionBar> so the bar can never sit on top of the last rail or the
+  // report link. A sold/reserved listing never pins a bar, so it keeps the normal
+  // padding instead of a strip of dead space above the footer.
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-28 lg:pb-6">
+    <div
+      className={cn(
+        "mx-auto max-w-6xl px-4 pt-6",
+        isActive ? "pb-28 lg:pb-6" : "pb-6",
+      )}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -273,8 +283,6 @@ export default async function ListingDetailPage({
               status={listing.status}
               expiresAt={listing.expiresAt}
               expired={listing.expired}
-              viewsCount={listing.viewsCount}
-              savesCount={listing.savesCount}
             />
             {isActive ? (
               <div className="space-y-2">
@@ -294,15 +302,24 @@ export default async function ListingDetailPage({
               /* Sold / reserved is not a dead end: keep the status sentence but
                  offer the two recovery paths (same category + price band, and the
                  seller's other stock). The SaveButton below stays visible — a
-                 reservation can still fall through. */
-              <UnavailableActions
-                status={listing.status}
-                category={listing.category}
-                price={listing.price}
-                sellerId={listing.seller?.id}
-                sellerName={listing.seller?.name}
-                locale={locale}
-              />
+                 reservation can still fall through.
+
+                 Buyer recovery, so it's owner-gated: telling the seller of a sold
+                 item to "see similar in Vehicles" and "shop more from Ahmad
+                 Karimi" would be sending them shopping from themselves. The owner
+                 gets <OwnerListingBar> above instead, where Manage/Edit live.
+                 HideForOwner keeps the gate client-side so UnavailableActions
+                 itself stays a Server Component on this SEO landing page. */
+              <HideForOwner ownerId={listing.seller?.id}>
+                <UnavailableActions
+                  status={listing.status}
+                  category={listing.category}
+                  price={listing.price}
+                  sellerId={listing.seller?.id}
+                  sellerName={listing.seller?.name}
+                  locale={locale}
+                />
+              </HideForOwner>
             )}
             <SaveButton
               listingId={listing.id}
@@ -347,17 +364,32 @@ export default async function ListingDetailPage({
       </div>
 
       {/* Seller's other stock sits first: the buyer has just read the trust card,
-          so this is the moment to show what else that seller has. */}
-      <ListingRail
-        className="mt-12"
-        title={t("listing.detail.moreFromSeller")}
-        listings={sellerListings}
-        viewAllHref={sellerId ? `/sellers/${sellerId}` : undefined}
-        viewAllLabel={t("home.viewAll")}
-      />
+          so this is the moment to show what else that seller has.
+
+          Hidden from the seller themselves (mirrors mobile's `!isOwnListing`
+          gate): "More from this Seller" is buyer copy, and its "view all" would
+          send the owner to their own public profile. The rail stays a Server
+          Component — only the guard runs in the browser, because the SSR fetch
+          is anonymous and can't know who is looking.
+
+          On a sold/reserved listing <UnavailableActions> above already owns the
+          "go to this seller" CTA (a prominent, name-carrying button right under
+          the status), so the rail drops its own duplicate link to the same
+          profile and stays a pure browsing surface — one destination, one CTA. */}
+      <HideForOwner ownerId={sellerId}>
+        <ListingRail
+          className="mt-12"
+          testId="seller-rail"
+          title={t("listing.detail.moreFromSeller")}
+          listings={sellerListings}
+          viewAllHref={isActive && sellerId ? `/sellers/${sellerId}` : undefined}
+          viewAllLabel={t("home.viewAll")}
+        />
+      </HideForOwner>
 
       <ListingRail
         className="mt-12"
+        testId="similar-rail"
         title={t("listing.detail.similarListings")}
         listings={similar}
       />

@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { SearchField } from "@/components/shared/search-field";
-import { SearchHistoryPanel } from "@/components/shared/search-history-panel";
+import { SearchBox } from "@/components/shared/search-box";
 import { useSearchHistory } from "@/lib/use-search-history";
 
 /** Debounce matches the bazaar sidebar so both search fields feel identical. */
@@ -16,9 +15,10 @@ export function HeaderSearch({ className }: { className?: string }) {
   const pathname = usePathname();
   const [value, setValue] = useState("");
 
-  // Recent searches — client-only, shared with the Bazaar sidebar field.
-  const { history, add, remove, clear } = useSearchHistory();
-  const [focused, setFocused] = useState(false);
+  // Recent searches — client-only, shared with the Bazaar sidebar field. The
+  // field UI + panel gating live in SearchBox; this screen only records the
+  // terms it actually commits.
+  const { add } = useSearchHistory();
 
   // The query we last drove into the URL — lets the debounce skip a no-op push.
   const lastPushed = useRef("");
@@ -44,53 +44,13 @@ export function HeaderSearch({ className }: { className?: string }) {
     return () => clearTimeout(id);
   }, [value, go]);
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setFocused(false);
-    go(value); // Enter applies immediately, skipping the debounce.
-  }
-
-  // Recent searches only make sense on an empty, focused field.
-  const showHistory = focused && value === "" && history.length > 0;
-
-  function applyTerm(term: string) {
-    setValue(term);
-    setFocused(false);
-    go(term);
-  }
-
   return (
-    <form
-      onSubmit={onSubmit}
+    <SearchBox
       className={className}
-      role="search"
-      onFocus={() => setFocused(true)}
-      onBlur={(e) => {
-        // Keep the panel open while focus stays inside the field + panel.
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-          setFocused(false);
-        }
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") setFocused(false);
-      }}
-    >
-      <div className="relative">
-        <SearchField
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchPlaceholder")}
-        />
-        {showHistory && (
-          <SearchHistoryPanel
-            history={history}
-            onSelect={applyTerm}
-            onRemove={remove}
-            onClear={clear}
-          />
-        )}
-      </div>
-    </form>
+      value={value}
+      onValueChange={setValue}
+      onSubmit={go} // Enter applies immediately, skipping the debounce.
+      placeholder={t("searchPlaceholder")}
+    />
   );
 }

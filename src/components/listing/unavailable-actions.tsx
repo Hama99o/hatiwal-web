@@ -22,7 +22,10 @@ import type { CategoryRef, ListingStatus } from "@/lib/types";
  *
  *   1. PRIMARY — "See similar in {category}" → the Bazaar, pre-filtered to the
  *      same category and a ±30% price band around this listing's price.
- *   2. SECONDARY — "More from {seller}" → that seller's public profile.
+ *   2. SECONDARY — "More from {seller}" → that seller's public profile. While
+ *      this card is on screen it is the page's ONLY link to that profile: the
+ *      "More from this Seller" rail below drops its "view all" for a
+ *      sold/reserved listing so the two don't compete for the same click.
  *
  * The band is built with `filtersToSearchString` (the ONE browse filter ⇄ URL
  * mapping), so the Bazaar sidebar renders category + min + max as active

@@ -24,8 +24,10 @@ test.describe("Profile (signed in)", () => {
     await page.goto("/en/profile");
 
     // Rating summary under your name — from /users/me (avg 4.7, 3 reviews).
-    await expect(page.getByText("4.7").first()).toBeVisible();
-    await expect(page.getByText("3 reviews").first()).toBeVisible();
+    // Exactly once on the page: the "My reviews" section suppresses its own
+    // summary so the score isn't shouted twice.
+    await expect(page.getByText("4.7")).toHaveCount(1);
+    await expect(page.getByText("3 reviews")).toHaveCount(1);
 
     // "My reviews" (not the public "Ratings & Reviews" heading) + the list.
     await expect(
@@ -35,9 +37,10 @@ test.describe("Profile (signed in)", () => {
       page.getByText("Item exactly as described, met on time."),
     ).toBeVisible();
 
-    // Role toggle works here too — "As a buyer" has none, so the empty state.
+    // Role toggle works here too — "As a buyer" has none, so the empty state
+    // (role-specific copy, so it never reads as "you have no reviews at all").
     await page.getByRole("tab", { name: "As a buyer" }).click();
-    await expect(page.getByText("No reviews yet").first()).toBeVisible();
+    await expect(page.getByText("No buyer reviews yet")).toBeVisible();
   });
 
   test("View my public profile opens the seller page (REP815)", async ({
@@ -52,6 +55,27 @@ test.describe("Profile (signed in)", () => {
     await expect(
       page.getByRole("heading", { name: "Ratings & Reviews" }),
     ).toBeVisible();
+  });
+
+  test("hides the public-profile link once deletion is scheduled (REP815)", async ({
+    page,
+  }) => {
+    // Rails scopes the public profile to `User.publicly_active`, so the link
+    // would 404 for an account inside the 30-day deletion window.
+    await page.route("**/api/auth/session", async (route) => {
+      const response = await route.fetch();
+      const data = await response.json();
+      if (data?.user) data.user.deletionScheduledAt = "2026-09-01T00:00:00Z";
+      await route.fulfill({ response, json: data });
+    });
+
+    await page.goto("/en/profile");
+    await expect(
+      page.getByRole("heading", { name: "My reviews" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /View my public profile/i }),
+    ).toHaveCount(0);
   });
 
   test("Edit Profile navigates to the edit screen", async ({ page }) => {
@@ -74,8 +98,11 @@ test.describe("Profile — brand-new account (no reviews)", () => {
     await expect(
       page.getByRole("heading", { name: "My reviews" }),
     ).toBeVisible();
-    // Neutral label for both the summary and the (empty) list.
-    await expect(page.getByText("No reviews yet").first()).toBeVisible();
+    // Neutral label under your name — said once, not repeated by the section
+    // heading (which drops its summary when there is no score to show).
+    await expect(page.getByText("No reviews yet")).toHaveCount(1);
+    // …and the list's own empty state names the role instead of repeating it.
+    await expect(page.getByText("No seller reviews yet")).toBeVisible();
     await expect(page.getByText("NaN")).toHaveCount(0);
     await expect(page.getByText("0.0")).toHaveCount(0);
   });

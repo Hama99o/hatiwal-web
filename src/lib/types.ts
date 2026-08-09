@@ -111,9 +111,11 @@ export interface Category extends CategoryRef {
   parentId?: number | null;
   subcategories?: Category[];
   /**
-   * Active listings assigned directly to this category. Present only when
-   * fetched with `?with_counts=true` (top-level categories only) — same field
-   * and semantics as mobile's `Category.activeListingsCount`.
+   * Browsable (active, unexpired, not removed) listings in this category,
+   * including everything filed under its subcategories — the same set
+   * `?category_id=` returns. Present on top-level categories *and* on each
+   * nested subcategory when fetched with `?with_counts=true`. Same field and
+   * semantics as mobile's `Category.activeListingsCount`.
    */
   activeListingsCount?: number;
 }

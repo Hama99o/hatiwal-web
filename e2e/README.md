@@ -72,7 +72,7 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
 | `home.spec.ts` | Hero, categories, recent listings, price-drop badge, CTA → feed, footer nav |
 | `bazaar.spec.ts` | Active-only feed, category filter, search, **empty state**, sort, chip/search wiring |
 | `bazaar-filters.spec.ts` | Condition filter, price-range filter, condition-chip wiring, reset filters |
-| `listing-detail.spec.ts` | Full detail, gated actions (Message Seller / Report), **404**, reserved viewable by id |
+| `listing-detail.spec.ts` | Full detail, gated actions (Message Seller / Report), **404**, reserved viewable by id, cross-sell rails (seller stock + similar, ordering, owner-hidden, ps prefix) |
 | `categories.spec.ts` | Category index, per-category page, navigation |
 | `seller.spec.ts` | Public seller profile, count, that seller's listings only |
 | `auth.spec.ts` | Login form, **invalid creds error**, guest→login redirect, valid login leaves /login |

@@ -54,22 +54,31 @@ export function ProfileView() {
       <PendingReviewsNudge />
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 space-y-2">
-          <UserIdentity
-            name={name}
-            avatarUrl={user.avatarUrl}
-            verified={user.verified}
-            subtitle={user.city ?? user.email}
-            size={64}
-          />
-          {/* Your own reputation — the number buyers judge you by. Falls back to
-              a neutral "No reviews yet" for a brand-new account. */}
-          <RatingDisplay
-            avgRating={user.avgRating}
-            reviewCount={user.reviewCount}
-            size="lg"
-          />
-        </div>
+        <UserIdentity
+          className="min-w-0"
+          name={name}
+          avatarUrl={user.avatarUrl}
+          verified={user.verified}
+          subtitle={user.city ?? user.email}
+          size={64}
+          /* Your own reputation — the number buyers judge you by — sits in the
+             identity's text column, under your name, so it reads as *yours*.
+             Default (sm) size on purpose: your name stays the loudest thing on
+             your own profile. Falls back to a neutral "No reviews yet" for a
+             brand-new account, and jumps to the list (mobile taps through). */
+          meta={
+            <a
+              href="#my-reviews"
+              className="inline-flex rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              aria-label={t("reviews.myReviewsTitle")}
+            >
+              <RatingDisplay
+                avgRating={user.avgRating}
+                reviewCount={user.reviewCount}
+              />
+            </a>
+          }
+        />
         <Button asChild variant="outline" size="sm">
           <Link href="/profile/edit">
             <Pencil className="size-4" />
@@ -103,13 +112,18 @@ export function ProfileView() {
 
       <div className="grid grid-cols-2 gap-3">
         {/* /sellers/[id] is the canonical public profile (/users/[id] redirects
-            to it) — lets you see exactly what buyers see. */}
-        <Button asChild variant="secondary" className="col-span-2">
-          <Link href={`/sellers/${user.id}`}>
-            <Eye className="size-4" />
-            {t("profile.viewPublicProfile")}
-          </Link>
-        </Button>
+            to it) — lets you see exactly what buyers see. Hidden while the
+            account is scheduled for deletion: Rails scopes the public profile
+            to `User.publicly_active`, so the page would 404. The restore banner
+            at the top already explains that state. */}
+        {!user.deletionScheduledAt && (
+          <Button asChild variant="secondary" className="col-span-2">
+            <Link href={`/sellers/${user.id}`}>
+              <Eye className="size-4" />
+              {t("profile.viewPublicProfile")}
+            </Link>
+          </Button>
+        )}
         <Button asChild variant="secondary">
           <Link href="/saved">{t("saved.title")}</Link>
         </Button>
@@ -126,13 +140,18 @@ export function ProfileView() {
 
       {/* The reviews buyers left about you — same component (role tabs, load
           more, skeleton, empty state) as the public seller profile, only the
-          heading differs. `getUserReviews` is public, so your own id works. */}
-      <ReviewsSection
-        sellerId={user.id}
-        avgRating={user.avgRating}
-        reviewCount={user.reviewCount ?? 0}
-        title={t("reviews.myReviewsTitle")}
-      />
+          heading differs. `getUserReviews` is public (plain `User.find`, no
+          publicly_active gate), so your own id always works. `showSummary` off:
+          the score already sits under your name above. */}
+      <div id="my-reviews" className="scroll-mt-24">
+        <ReviewsSection
+          sellerId={user.id}
+          avgRating={user.avgRating}
+          reviewCount={user.reviewCount ?? 0}
+          title={t("reviews.myReviewsTitle")}
+          showSummary={false}
+        />
+      </div>
 
       <Button
         variant="ghost"

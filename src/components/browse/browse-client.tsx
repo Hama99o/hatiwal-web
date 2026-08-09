@@ -40,8 +40,7 @@ import {
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SegmentedControl } from "@/components/shared/segmented-control";
-import { SearchField } from "@/components/shared/search-field";
-import { SearchHistoryPanel } from "@/components/shared/search-history-panel";
+import { SearchBox } from "@/components/shared/search-box";
 import { useSearchHistory } from "@/lib/use-search-history";
 import { SavedSearches } from "./saved-searches";
 import { LocationMap } from "@/components/map/location-map";
@@ -115,20 +114,10 @@ export function BrowseClient({
   const [nearestLoading, setNearestLoading] = useState(false);
 
   // Recent searches — client-only history shared with the site-header field
-  // (one store, two entry points). In the sidebar the chips show whenever the
-  // box is EMPTY — deliberately NOT gated on focus. That is mobile's rule
-  // (BrowseHeader shows the history block for `search === ""` and hides it only
-  // while a query is being typed; a past mobile fix explicitly stopped hiding
-  // it in other situations), and on a phone the sidebar sits behind the Filters
-  // toggle where a focus-only panel would be effectively undiscoverable.
-  // The header's floating dropdown stays focus-gated — an overlay must not hang
-  // over the page unprompted.
-  const {
-    history: searchHistory,
-    add: recordSearch,
-    remove: removeSearch,
-    clear: clearSearchHistory,
-  } = useSearchHistory();
+  // (one store, two entry points). SearchBox owns the panel and its gating
+  // (focused + empty + non-empty history); this island only records the terms
+  // it actually commits.
+  const { add: recordSearch } = useSearchHistory();
 
   // Grid/list view mode — client-only preference persisted to localStorage.
   // SSR-safe: always start "grid" so server and first client render match, then
@@ -162,31 +151,36 @@ export function BrowseClient({
   const externalKey = filtersToSearchString(initialFilters);
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
+  // The last query THIS field committed. Seeded from the URL so a query that
+  // arrived in the link (or from the navbar / Back button) is never mistaken
+  // for something the buyer typed here — only searches made in this box get
+  // remembered, and the debounce below can skip its own no-op first run.
+  const lastCommitted = useRef(initialFilters.q.trim());
   useEffect(() => {
     if (filtersToSearchString(filtersRef.current) === externalKey) return;
     setFilters(initialFilters);
     setSearchInput(initialFilters.q);
+    lastCommitted.current = initialFilters.q.trim();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalKey]);
 
-  // Debounced live search: typing filters the results after a short pause —
-  // no Enter required. (Enter via submitSearch still applies immediately.)
+  // Debounced live search: typing filters the results after a short pause — no
+  // Enter required (Enter via commitSearch applies immediately). The settle IS
+  // the commit, so it is also where the term joins the recent-search history —
+  // never per keystroke, and never for a query that came from the URL. The store
+  // trims, ignores blanks/1-char terms, dedupes case-insensitively and caps the
+  // list, so recording on every commit is safe. Mirrors mobile's Browse.tsx
+  // (`addToSearchHistory` on debounce settle).
   useEffect(() => {
     const next = searchInput.trim();
+    if (next === lastCommitted.current) return;
     const id = setTimeout(() => {
+      lastCommitted.current = next;
+      recordSearch(next);
       setFilters((prev) => (prev.q === next ? prev : { ...prev, q: next }));
     }, 350);
     return () => clearTimeout(id);
-  }, [searchInput]);
-
-  // Recent-search history: record a term only once the search COMMITS — the
-  // debounced `q` settling, an Enter submit, or a chip re-run — never per
-  // keystroke. The store trims, ignores blanks/1-char terms, dedupes
-  // case-insensitively and caps the list, so calling it on every commit is
-  // safe. Mirrors mobile's Browse.tsx (`addToSearchHistory` on debounce settle).
-  useEffect(() => {
-    recordSearch(filters.q);
-  }, [filters.q, recordSearch]);
+  }, [searchInput, recordSearch]);
 
   // Seed the SSR result ONLY for the initial filters' query key. initialData on
   // an observer is otherwise reused for EVERY new key it creates, so a filter
@@ -230,26 +224,23 @@ export function BrowseClient({
     [],
   );
 
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    update({ q: searchInput.trim() });
-  };
-
-  // Re-run a recent search: fill the search box AND apply immediately through
-  // the same update() that syncs URL ⇄ filters ⇄ query — identical to typing
-  // the term and pressing Enter (no parallel state). The box is no longer empty
-  // afterwards, so the chips hide themselves and never cover the results the
-  // buyer just asked for.
-  const applyRecentSearch = useCallback(
-    (term: string) => {
-      setSearchInput(term);
-      update({ q: term });
+  // Apply a search immediately — an Enter submit or a recent-search chip. Both
+  // go through the same update() that syncs URL ⇄ filters ⇄ query (no parallel
+  // state), and both count as a commit, so the term is remembered and the
+  // debounce above won't re-fire for it.
+  const commitSearch = useCallback(
+    (raw: string) => {
+      const q = raw.trim();
+      lastCommitted.current = q;
+      recordSearch(q);
+      update({ q });
     },
-    [update],
+    [recordSearch, update],
   );
 
   const reset = () => {
     setSearchInput("");
+    lastCommitted.current = "";
     setFilters({ ...DEFAULT_FILTERS });
   };
 
@@ -353,30 +344,6 @@ export function BrowseClient({
 
   const sidebar = (
     <div className="space-y-6">
-      <form onSubmit={submitSearch} role="search">
-        <SearchField
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder={t("browse.searchPlaceholder")}
-          aria-label={t("browse.searchPlaceholder")}
-        />
-        {/* Recent searches — shown while the box is EMPTY (no focus needed, like
-            mobile's BrowseHeader), so a returning buyer sees their last searches
-            straight away and typing hides them so they never compete with live
-            results. Inline (not floating) because the sidebar is an independent
-            scroll area where an overlay would be clipped. */}
-        {searchInput === "" && (
-          <SearchHistoryPanel
-            variant="inline"
-            layout="scroll"
-            history={searchHistory}
-            onSelect={applyRecentSearch}
-            onRemove={removeSearch}
-            onClear={clearSearchHistory}
-          />
-        )}
-      </form>
-
       <div>
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           {t("nav.categories")}
@@ -631,6 +598,21 @@ export function BrowseClient({
       <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-8">
         {/* Sidebar (desktop) / collapsible (mobile) */}
         <aside className="lg:sticky lg:top-20">
+          {/* Search sits OUTSIDE the collapsible panel: on a phone the filters
+              fold away behind the toggle below, and a search box you can't see
+              is a search box that doesn't exist. Same SearchBox as the site
+              header, so the recent-search chips and their rules are identical —
+              inline here because the sidebar column is narrow (chips scroll
+              sideways instead of widening the page). */}
+          <SearchBox
+            className="mb-4"
+            value={searchInput}
+            onValueChange={setSearchInput}
+            onSubmit={commitSearch}
+            placeholder={t("browse.searchPlaceholder")}
+            panelVariant="inline"
+            panelLayout="scroll"
+          />
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button
               type="button"

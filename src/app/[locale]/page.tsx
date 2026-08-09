@@ -1,8 +1,8 @@
-import { ArrowRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { ListingGrid } from "@/components/shared/listing-grid";
+import { ListingRail } from "@/components/shared/listing-rail";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
 import { getCategories, categoryName } from "@/lib/api/categories";
@@ -87,29 +87,25 @@ export default async function HomePage({
           </section>
         )}
 
-        <section className="space-y-5">
-          <div className="flex items-end justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">
-              {t("home.recent")}
-            </h2>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/bazaar">
-                {t("home.viewAll")}
-                <ArrowRight className="size-4 rtl:-scale-x-100" />
-              </Link>
-            </Button>
-          </div>
-          {listings.length > 0 ? (
-            <ListingGrid listings={listings} priorityCount={6} />
-          ) : (
+        {/* Same shared section as the listing-detail cross-sell rails — heading +
+            "view all" + grid live in ONE component (`size="lg"` is the
+            page-level typography), with the empty state passed in. */}
+        <ListingRail
+          size="lg"
+          title={t("home.recent")}
+          listings={listings}
+          viewAllHref="/bazaar"
+          viewAllLabel={t("home.viewAll")}
+          priorityCount={6}
+          empty={
             <EmptyState
               icon={Search}
               title={t("browse.empty.title")}
               description={t("browse.empty.description")}
               action={{ label: t("home.hero.browseCta"), href: "/bazaar" }}
             />
-          )}
-        </section>
+          }
+        />
       </div>
     </div>
   );

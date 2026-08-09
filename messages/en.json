@@ -146,7 +146,7 @@
       "description": "Post your first listing to start selling."
     },
     "postListing": "Post a listing",
-    "shopCount": "{count} listings",
+    "shopCount": "{count, plural, one {# listing} other {# listings}}",
     "noPhoto": "No photo",
     "seen": "Seen",
     "priceDrop": {
@@ -176,6 +176,7 @@
       "reportSent": "Report submitted — thank you",
       "notFound": "Listing not found",
       "moreOptions": "More options",
+      "moreOptionsFor": "More options for {title}",
       "soldNotice": "This item has been sold",
       "reservedNotice": "This item is reserved",
       "unavailableNotice": "This item is no longer available",
@@ -494,6 +495,14 @@
       "generic": "Could not submit report. Please try again."
     },
     "reasonRequired": "Please select a reason.",
+    "block": {
+      "title": "Block this user?",
+      "body": "Do you also want to block this user so they can't contact you or see your listings?",
+      "confirmCta": "Yes, block them",
+      "cancel": "Not now",
+      "success": "User blocked successfully.",
+      "error": "Could not block user. Please try again."
+    },
     "status": {
       "pending": "Pending",
       "reviewed": "Reviewed",
@@ -551,6 +560,10 @@
     "allIn": "All listings in {category}",
     "viewAll": "View all",
     "empty": "No listings in this category yet",
+    "emptyTitle": "No categories yet",
+    "emptyDescription": "Categories will appear here once added.",
+    "noListings": "No listings",
+    "moreSubcategories": "+{count} more",
     "subcategories": "Subcategories"
   },
   "seller": {
@@ -797,7 +810,13 @@
       "deleteConfirm": "Delete this message?",
       "deleteConfirmCta": "Delete",
       "deleteConfirmDescription": "This can't be undone. The other person will see that a message was deleted.",
-      "deleteFailed": "Couldn't delete the message. Please try again."
+      "deleteFailed": "Couldn't delete the message. Please try again.",
+      "sent": "Sent",
+      "seen": "Seen"
+    },
+    "day": {
+      "today": "Today",
+      "yesterday": "Yesterday"
     },
     "search": {
       "placeholder": "Search messages...",
@@ -865,6 +884,8 @@
     "myReviewsTitle": "My reviews",
     "reviewCount": "{count, plural, =0 {No reviews yet} one {# review} other {# reviews}}",
     "empty": "No reviews yet",
+    "emptyAsSeller": "No seller reviews yet",
+    "emptyAsBuyer": "No buyer reviews yet",
     "emptyDescription": "Reviews appear after a successful transaction.",
     "asSeller": "As a seller",
     "asBuyer": "As a buyer",

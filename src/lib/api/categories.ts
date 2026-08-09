@@ -4,9 +4,11 @@ import type { Category } from "../types";
 /**
  * Top-level categories, each with its nested `subcategories`.
  *
- * `withCounts` adds `activeListingsCount` to every top-level category via
- * Rails' `?with_counts=true` (a single GROUP BY on the server — no N+1, and no
- * per-category request from here). Mirrors mobile's
+ * `withCounts` adds `activeListingsCount` to every category in the tree —
+ * parents *and* their subcategories — via Rails' `?with_counts=true` (a single
+ * GROUP BY on the server: no N+1, and no per-category request from here). A
+ * parent's count includes its subcategories' listings, matching what filtering
+ * by that category returns. Mirrors mobile's
  * `categoriesAPI.getCategoriesWithCounts`.
  */
 export async function getCategories(

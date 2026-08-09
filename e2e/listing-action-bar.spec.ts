@@ -37,6 +37,36 @@ test.describe("Listing action bar (mobile)", () => {
     await expect(bar).toHaveClass(/opacity-100/);
   });
 
+  test("steps aside over the footer so its links stay reachable", async ({
+    page,
+  }) => {
+    await page.goto("/en/listings/2");
+    const bar = page.getByRole("region", { name: "Listing actions" });
+    await expect(bar).toHaveClass(/opacity-100/);
+
+    // Bottom of the document: a fixed bar would cover the footer's last rows —
+    // privacy / delete-account — with nothing left to scroll.
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    await expect(bar).toHaveClass(/opacity-0/);
+    const footerLink = page
+      .locator("[data-site-footer]")
+      .getByRole("link", { name: /delete/i });
+    await expect(footerLink).toBeVisible();
+    // Nothing on top of it: the point at its centre belongs to the link itself.
+    const box = (await footerLink.boundingBox())!;
+    const onTop = await page.evaluate(
+      ([x, y]) =>
+        document
+          .elementFromPoint(x as number, y as number)
+          ?.closest("a")
+          ?.getAttribute("href") ?? null,
+      [box.x + box.width / 2, box.y + box.height / 2],
+    );
+    expect(onTop).toContain("/delete-account");
+  });
+
   test("its Message Seller opens the same dialog, correctly positioned", async ({
     page,
   }) => {
@@ -75,8 +105,22 @@ test.describe("Listing action bar (mobile)", () => {
     await page.goto("/ps/listings/2");
     const bar = page.getByRole("region", { name: "د اعلان کړنې" });
     await expect(bar).toHaveClass(/opacity-100/);
-    const priceBox = await bar.getByText(/[\d\u06F0-\u06F9\u0660-\u0669]/).first().boundingBox();
-    expect(priceBox!.x).toBeGreaterThan(PHONE.width / 2);
+    const price = bar.getByText(/[\d\u06F0-\u06F9\u0660-\u0669]/).first();
+
+    // Price sits on the inline-start side, which is the RIGHT half in Pashto.
+    const priceBox = (await price.boundingBox())!;
+    expect(priceBox.x).toBeGreaterThan(PHONE.width / 2);
+
+    // The bar is a client island while the hero price is server-rendered, so the
+    // two must format identically. V8 ships no `ps` Intl data, so the old
+    // `ps-AF` tag gave the bar "AFN 30,000" beside a hero reading "\u060B \u06F3\u06F0\u066C\u06F0\u06F0\u06F0".
+    const barPrice = (await price.textContent())!.trim();
+    expect(barPrice).not.toContain("AFN");
+    // The hero <PriceTag> is the first <span> in the h1's own block.
+    const heroPrice = (
+      await page.locator("h1").locator("xpath=../span[1]").textContent()
+    )!.trim();
+    expect(barPrice).toBe(heroPrice);
   });
 });
 

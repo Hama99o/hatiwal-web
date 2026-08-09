@@ -16,7 +16,8 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(page.getByText("Antique Carpet")).toBeVisible(); // draft
     await expect(page.getByText("Gaming PC")).toBeVisible(); // reserved
-    await expect(page.locator('a[href*="/my-listings/"]')).toHaveCount(6);
+    await expect(page.getByText("Old Bicycle")).toBeVisible(); // active + expired
+    await expect(page.locator('a[href*="/my-listings/"]')).toHaveCount(7);
   });
 
   test("status tabs filter the grid in place", async ({ page }) => {
@@ -28,8 +29,12 @@ test.describe("My Shop (seller dashboard)", () => {
       await expect(page.getByText("Antique Carpet")).toBeVisible();
       await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
     }).toPass({ timeout: 20_000 });
-    // The Expired tab (active-but-past-30-days) is available alongside the rest.
-    await expect(page.getByRole("button", { name: /^Expired/ })).toBeVisible();
+    // The Expired tab (active-but-past-30-days) is its own bucket, NOT Active.
+    await expect(async () => {
+      await page.getByRole("button", { name: /^Expired/ }).click();
+      await expect(page.getByText("Old Bicycle")).toBeVisible();
+      await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
+    }).toPass({ timeout: 20_000 });
   });
 
   // TASK-WEB-C2-ACTIONS — inline lifecycle quick-actions on each card, so a
@@ -43,6 +48,8 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(
       card(page, 9).getByRole("button", { name: "Mark as Sold" }),
     ).toBeVisible(); // reserved
+    // Expired (active, past its run): Renew is the most useful next step.
+    await expect(card(page, 10).getByRole("button", { name: "Renew" })).toBeVisible();
     // Sold is terminal: no lifecycle button, just the kebab (Edit / Delete).
     await expect(
       card(page, 7).getByRole("button", { name: "Mark as Sold" }),
@@ -67,6 +74,60 @@ test.describe("My Shop (seller dashboard)", () => {
     ]) {
       await expect(menu.getByRole("menuitem", { name: label })).toBeVisible();
     }
+  });
+
+  // An expired listing is still a live `active` record — taking it down or
+  // holding it for a buyer must stay reachable, not just Renew.
+  test("an expired card can still be reserved or unpublished from the kebab", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 10).getByRole("button", { name: "More options" }).click();
+    const menu = page.getByRole("menu");
+    for (const label of [
+      "Mark as Sold",
+      "Mark as Reserved",
+      "Unpublish",
+      "Edit",
+      "Delete",
+    ]) {
+      await expect(menu.getByRole("menuitem", { name: label })).toBeVisible();
+    }
+  });
+
+  test("a secondary action from the kebab opens its confirm and completes", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 1).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Unpublish" }).click();
+    // The confirm prompt must be usable right after the menu closes.
+    await expect(page.getByText("Unpublish this listing?")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Unpublish" })
+      .click();
+    await expect(page.getByText("Listing unpublished")).toBeVisible();
+  });
+
+  test("Mark as Reserved from the kebab opens the buyer picker", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 1).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Mark as Reserved" }).click();
+    await expect(page.getByText("Who's buying this item?")).toBeVisible();
+  });
+
+  test("the kebab is labelled with its listing so the six aren't identical", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await expect(
+      card(page, 8).getByRole("button", {
+        name: "More options for Antique Carpet",
+      }),
+    ).toBeVisible();
   });
 
   test("publishing a draft inline confirms, then toasts", async ({ page }) => {

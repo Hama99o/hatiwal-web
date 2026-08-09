@@ -48,6 +48,112 @@ test.describe("Listing detail", () => {
   });
 });
 
+// Two cross-sell rails at the bottom of the page, both rendered by the shared
+// <ListingRail>: the seller's other active stock first, then same-category
+// "Similar Listings". Fixture map used below:
+//   listing 2 = Samsung 4K TV, ACTIVE, seller 2 (Sara Ahmadi), cat Electronics
+//               → seller 2's other active stock = Winter Jacket; nothing else
+//                 active in Electronics, so there is no similar rail.
+//   listing 7 = Leather Sofa, SOLD, seller 1 (Ahmad Karimi), cat Clothes
+//               → both rails render.
+test.describe("Listing detail — cross-sell rails", () => {
+  test("the seller's other active stock renders as its own rail", async ({
+    page,
+  }) => {
+    await page.goto("/en/listings/2");
+    const rail = page.getByTestId("seller-rail");
+    await expect(
+      rail.getByRole("heading", { name: "More from this Seller" }),
+    ).toBeVisible();
+    await expect(rail.getByText("Winter Jacket")).toBeVisible();
+    // Never re-advertises the listing you are already looking at.
+    await expect(rail.getByText("Samsung 4K TV")).toHaveCount(0);
+    // An active listing keeps the rail's own "view all" → the seller profile.
+    await expect(
+      rail.getByRole("link", { name: /View all/i }),
+    ).toHaveAttribute("href", "/en/sellers/2");
+    // Nothing else is active in this category: no dangling empty heading.
+    await expect(page.getByTestId("similar-rail")).toHaveCount(0);
+  });
+
+  test("seller stock is ranked above the category rail", async ({ page }) => {
+    await page.goto("/en/listings/7");
+    const rails = page.locator('[data-testid$="-rail"]');
+    await expect(rails).toHaveCount(2);
+    // The buyer has just read the seller trust card, so that seller's stock is
+    // the first thing offered.
+    await expect(rails.nth(0)).toHaveAttribute("data-testid", "seller-rail");
+    await expect(rails.nth(1)).toHaveAttribute("data-testid", "similar-rail");
+    await expect(
+      page.getByTestId("seller-rail").getByText("iPhone 13 Pro"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("similar-rail").getByText("Winter Jacket"),
+    ).toBeVisible();
+  });
+
+  test("a sold listing keeps exactly one seller-profile CTA", async ({
+    page,
+  }) => {
+    // <UnavailableActions> already owns a prominent, name-carrying button to
+    // this seller, so the rail below drops its duplicate "view all".
+    await page.goto("/en/listings/7");
+    await expect(
+      page
+        .getByTestId("unavailable-actions")
+        .getByRole("link", { name: /More from Ahmad Karimi/i }),
+    ).toHaveAttribute("href", "/en/sellers/1");
+    const rail = page.getByTestId("seller-rail");
+    await expect(rail).toBeVisible();
+    await expect(rail.getByRole("link", { name: /View all/i })).toHaveCount(0);
+  });
+
+  test("same on a reserved listing", async ({ page }) => {
+    await page.goto("/en/listings/6");
+    await expect(
+      page
+        .getByTestId("unavailable-actions")
+        .getByRole("link", { name: /More from Sara Ahmadi/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("seller-rail").getByRole("link", { name: /View all/i }),
+    ).toHaveCount(0);
+  });
+
+  test("rails are localized and keep the locale prefix (ps)", async ({
+    page,
+  }) => {
+    await page.goto("/ps/listings/7");
+    await expect(
+      page
+        .getByTestId("seller-rail")
+        .getByRole("heading", { name: "د دې پلورونکي نور توکي" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("similar-rail")
+        .getByRole("heading", { name: "ورته توکي" }),
+    ).toBeVisible();
+  });
+
+  test("ps keeps the locale prefix on the rail's view-all", async ({ page }) => {
+    await page.goto("/ps/listings/2");
+    await expect(
+      page.getByTestId("seller-rail").getByRole("link", { name: "ټول وګورئ" }),
+    ).toHaveAttribute("href", "/ps/sellers/2");
+  });
+
+  test("a guest sees the seller rail on listing 1", async ({ page }) => {
+    // Control for the owner case below: signed out, seller 1's other stock is
+    // exactly what a buyer should be offered here.
+    await page.goto("/en/listings/1");
+    const rail = page.getByTestId("seller-rail");
+    await expect(rail).toBeVisible();
+    await expect(rail.getByText("Toyota Corolla 2015")).toBeVisible();
+    await expect(rail.getByText("MacBook Pro M2")).toBeVisible();
+  });
+});
+
 // The buyer persona is user 1, who is also the seller of listing 1 — so this
 // signed-in visit is a seller opening their OWN listing's public page.
 test.describe("Listing detail — viewed by its own seller", () => {
@@ -60,8 +166,13 @@ test.describe("Listing detail — viewed by its own seller", () => {
     const panel = page.getByTestId("owner-listing-bar");
     await expect(panel).toBeVisible();
     await expect(panel.getByText("This is your listing")).toBeVisible();
-    // Lifecycle is legible from here (listing 1 is active).
+    // Lifecycle is legible from here: nothing else on an ACTIVE page says it's
+    // live, so this is the only place the "Active" badge appears.
+    await expect(page.getByText("Active", { exact: true })).toHaveCount(1);
     await expect(panel.getByText("Active")).toBeVisible();
+    // Views/saves belong to the page's meta row, not to this panel — the owner
+    // must not read the same two numbers twice in one column.
+    await expect(panel.getByText(/views?$|saves?$/i)).toHaveCount(0);
 
     await expect(
       panel.getByRole("link", { name: /Manage Listing/i }),
@@ -86,6 +197,32 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(page.getByText(/Not interested/i)).toHaveCount(0);
   });
 
+  test("the 'More from this Seller' rail is hidden from that seller", async ({
+    page,
+  }) => {
+    // A guest on this same listing DOES get the rail (see the guest spec above),
+    // so this is the owner gate, not an empty result: seller 1 has two other
+    // active listings. Cross-selling a seller their own stock under buyer copy —
+    // with a "view all" to their own profile — is what mobile gates out too.
+    await page.goto("/en/listings/1");
+    await expect(page.getByTestId("owner-listing-bar")).toBeVisible();
+    await expect(page.getByTestId("seller-rail")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "More from this Seller" }),
+    ).toHaveCount(0);
+  });
+
+  test("the seller rail still shows on another seller's listing", async ({
+    page,
+  }) => {
+    // Listing 2 belongs to seller 2, so the same signed-in user is a buyer here
+    // and the rail is exactly what they should see.
+    await page.goto("/en/listings/2");
+    const rail = page.getByTestId("seller-rail");
+    await expect(rail).toBeVisible();
+    await expect(rail.getByText("Winter Jacket")).toBeVisible();
+  });
+
   test("owner panel also works on a non-active listing", async ({ page }) => {
     // Listing 9 is user 1's RESERVED listing: the panel still renders (that's
     // where Manage lives) and the expiry pill stays out — only active listings
@@ -93,11 +230,27 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await page.goto("/en/listings/9");
     const panel = page.getByTestId("owner-listing-bar");
     await expect(panel).toBeVisible();
-    await expect(panel.getByText("Reserved")).toBeVisible();
     await expect(panel.getByText(/Expires|Expired/i)).toHaveCount(0);
     await expect(
       panel.getByRole("link", { name: /Manage Listing/i }),
     ).toHaveAttribute("href", "/en/my-listings/9");
+
+    // "Reserved" is stated exactly once, by the page's header row. The panel
+    // must not repeat it — two identical badges in one column reads as a bug.
+    await expect(page.getByText("Reserved", { exact: true })).toHaveCount(1);
+    await expect(panel.getByText("Reserved", { exact: true })).toHaveCount(0);
+  });
+
+  test("the sold/reserved recovery card is not shown to the owner", async ({
+    page,
+  }) => {
+    // <UnavailableActions> is buyer recovery: "see similar in Computers" and
+    // "more from Ahmad Karimi" would send seller 1 shopping from himself.
+    await page.goto("/en/listings/9");
+    await expect(page.getByTestId("owner-listing-bar")).toBeVisible();
+    await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
+    await expect(page.getByText(/See similar in/i)).toHaveCount(0);
+    await expect(page.getByText(/More from Ahmad Karimi/i)).toHaveCount(0);
   });
 
   test("owner panel is localized and keeps the locale prefix (ps)", async ({

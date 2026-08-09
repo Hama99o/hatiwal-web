@@ -6,9 +6,19 @@ import { enUS, faIR } from "date-fns/locale";
  * concatenate currency strings or call toLocaleString ad hoc.
  */
 
+// `ps` deliberately formats through `fa-AF`, NOT `ps-AF` — the same mapping the
+// mobile app uses (`useLocalization.ts`), so one listing reads the same on both
+// clients. It is also the only tag that works everywhere: V8/Chromium ships no
+// Pashto Intl data (`Intl.NumberFormat('ps-AF').resolvedOptions().locale` is
+// `en-US` there), while Node's full ICU has it. With `ps-AF` a Pashto price
+// rendered by a Server Component came out "؋ ۳۰٬۰۰۰" and the very same price
+// rendered by a client island — e.g. the sticky <ListingActionBar> — came out
+// "AFN 30,000" on the same screen (and any component rendered in both places
+// would hydrate mismatched). `fa-AF` shares the script, digits, calendar and the
+// ؋ symbol, and both runtimes have it, so server and browser always agree.
 const INTL_TAG: Record<string, string> = {
   en: "en-US",
-  ps: "ps-AF",
+  ps: "fa-AF",
   fa: "fa-AF",
 };
 
@@ -66,6 +76,28 @@ export function formatDate(
     }).format(date);
   } catch {
     return date.toLocaleDateString(INTL_TAG[locale] ?? "en-US");
+  }
+}
+
+/**
+ * Locale-aware clock time (e.g. "3:00 PM", "۱۵:۰۰") — the timestamp on a chat
+ * bubble. Mirrors mobile's `useLocalization().formatTime`. Returns "" for a
+ * missing/invalid date so callers can guard on emptiness, like `formatDate`.
+ */
+export function formatTime(
+  isoDate: string | null | undefined,
+  locale: string,
+): string {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(INTL_TAG[locale] ?? "en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toLocaleTimeString(INTL_TAG[locale] ?? "en-US");
   }
 }
 

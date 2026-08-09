@@ -6,10 +6,13 @@ import { defineConfig, devices } from "@playwright/test";
  * a real headless Chromium against the running site — the web analogue of the
  * mobile Maestro flows.
  */
-const MOCK_API_PORT = 4010;
+// Ports are env-overridable so two suites can run side by side on one machine
+// (`E2E_WEB_PORT=3211 E2E_MOCK_API_PORT=4011 npm run test:e2e`); the defaults are
+// what CI and a lone developer get.
+const MOCK_API_PORT = Number(process.env.E2E_MOCK_API_PORT || 4010);
 // Dedicated E2E port (NOT 3011) so the suite runs in full isolation from a
 // developer's `npm run dev` and always talks to the mock API below.
-const WEB_PORT = 3210;
+const WEB_PORT = Number(process.env.E2E_WEB_PORT || 3210);
 const API_BASE = `http://localhost:${MOCK_API_PORT}/api/v1`;
 
 export default defineConfig({
@@ -48,6 +51,7 @@ export default defineConfig({
       url: `${API_BASE}/categories`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
+      env: { MOCK_API_PORT: String(MOCK_API_PORT) },
     },
     {
       // Always start a fresh isolated server (own port + own .next-e2e dir) so
@@ -60,7 +64,8 @@ export default defineConfig({
       // 5 min gives margin so the webServer isn't declared "not ready" mid-compile.
       timeout: 300_000,
       env: {
-        NEXT_DIST_DIR: ".next-e2e",
+        // Per-port build dir: two concurrent suites must not share .next output.
+        NEXT_DIST_DIR: WEB_PORT === 3210 ? ".next-e2e" : `.next-e2e-${WEB_PORT}`,
         API_URL: API_BASE,
         NEXT_PUBLIC_API_URL: API_BASE,
         NEXT_PUBLIC_RAILS_ORIGIN: `http://localhost:${MOCK_API_PORT}`,

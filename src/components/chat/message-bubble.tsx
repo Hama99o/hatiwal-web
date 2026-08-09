@@ -6,13 +6,14 @@ import {
   Ban,
   Calendar,
   Check,
+  CheckCheck,
   Paperclip,
   Tag,
   Trash2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { splitHighlight } from "@/lib/message-search";
 import type { Message } from "@/lib/types";
@@ -133,6 +134,12 @@ export function MessageBubble({
     const [p, time] = m.body.split("|").map((s) => s.trim());
     meetup = { place: p || m.body, time: time || "" };
   }
+
+  // Delivery state of my own message: a single tick once it's sent, a double
+  // tick once the other party has read it (`readAt`). Rails only broadcasts new
+  // messages — never read-state changes — so the tick flips on the sender's
+  // next fetch of the thread, not live.
+  const receiptLabel = t(m.readAt ? "chat.message.seen" : "chat.message.sent");
 
   return (
     <div
@@ -293,6 +300,35 @@ export function MessageBubble({
             )}
           </div>
         )}
+        {/* Meta row — time on every bubble kind (text, attachment, offer,
+            counter, meetup), plus the sent/seen tick on my own messages. The
+            centred system + accepted/declined pills and the deleted tombstone
+            return early above and carry no meta, mirroring mobile. */}
+        <div
+          data-testid="message-meta"
+          className={cn(
+            "mt-1 flex items-center justify-end gap-1 text-[11px]",
+            mutedMeta,
+          )}
+        >
+          <span className="whitespace-nowrap tabular-nums">
+            {formatTime(m.createdAt, locale)}
+          </span>
+          {mine && (
+            <span
+              role="img"
+              aria-label={receiptLabel}
+              title={receiptLabel}
+              className="inline-flex shrink-0"
+            >
+              {m.readAt ? (
+                <CheckCheck className="size-3" aria-hidden="true" />
+              ) : (
+                <Check className="size-3" aria-hidden="true" />
+              )}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

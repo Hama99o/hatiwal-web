@@ -26,6 +26,7 @@ export function ReviewsSection({
   avgRating,
   reviewCount = 0,
   title,
+  showSummary = true,
 }: {
   sellerId: number;
   avgRating?: number | null;
@@ -36,6 +37,12 @@ export function ReviewsSection({
    * else (role tabs, pagination, states) is identical, so never fork this.
    */
   title?: string;
+  /**
+   * Set false when the surrounding page already shows the rating (own
+   * `/profile` shows it under your name) — otherwise the same score renders
+   * twice on one page and neither reads as the hero.
+   */
+  showSummary?: boolean;
 }) {
   const t = useTranslations("reviews");
   const tc = useTranslations("common");
@@ -60,7 +67,17 @@ export function ReviewsSection({
         <h2 className="text-lg font-semibold text-foreground">
           {title ?? t("sectionTitle")}
         </h2>
-        <RatingDisplay avgRating={avgRating} reviewCount={reviewCount} size="lg" />
+        {/* Only a real score earns the hero treatment: with zero reviews this
+            would just repeat the empty state's "No reviews yet" a line above
+            it. `showSummary` additionally silences it where the page header
+            already carries the rating. */}
+        {showSummary && reviewCount > 0 && (
+          <RatingDisplay
+            avgRating={avgRating}
+            reviewCount={reviewCount}
+            size="lg"
+          />
+        )}
       </div>
 
       <SegmentedControl<ReviewRole>
@@ -111,7 +128,9 @@ export function ReviewsSection({
         ) : (
           <EmptyState
             icon={Star}
-            title={t("empty")}
+            /* Role-specific so the empty state says which reputation is empty
+               (and doesn't echo the generic "No reviews yet" summary label). */
+            title={t(role === "of_seller" ? "emptyAsSeller" : "emptyAsBuyer")}
             description={t("emptyDescription")}
           />
         )}

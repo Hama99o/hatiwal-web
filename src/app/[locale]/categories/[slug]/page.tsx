@@ -13,6 +13,7 @@ import { safe } from "@/lib/api/safe";
 import { Link } from "@/i18n/navigation";
 import { ListingGrid } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CategoryBadge } from "@/components/shared/category-badge";
 import type { Category } from "@/lib/types";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
@@ -38,7 +39,12 @@ export default async function CategoryPage({ params }: { params: Params }) {
   setRequestLocale(locale);
   const t = await getTranslations();
 
-  const categories = await safe(getCategories({ revalidate: 600 }), []);
+  // withCounts: this is where the hub's "+N more" lands, so every sibling chip
+  // has to state whether there is anything behind it. Same one request.
+  const categories = await safe(
+    getCategories({ revalidate: 600, withCounts: true }),
+    [],
+  );
   const category = findCategoryBySlug(categories, slug);
   if (!category) notFound();
 
@@ -83,20 +89,23 @@ export default async function CategoryPage({ params }: { params: Params }) {
 
       {chips.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {chips.map((sub) => (
-            <Link
-              key={sub.id}
-              href={`/categories/${sub.slug}`}
-              className={
-                sub.slug === slug
-                  ? "rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
-                  : "rounded-full border bg-card px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
-              }
-            >
-              {sub.icon ? `${sub.icon} ` : ""}
-              {categoryName(sub, locale)}
-            </Link>
-          ))}
+          {chips.map((sub) => {
+            const isCurrent = sub.slug === slug;
+            const subCount = sub.activeListingsCount ?? 0;
+            return (
+              <CategoryBadge
+                key={sub.id}
+                category={sub}
+                // The chip for the page you are already on is not a link.
+                asLink={!isCurrent}
+                size="touch"
+                tone={
+                  isCurrent ? "active" : subCount > 0 ? "default" : "empty"
+                }
+                count={subCount}
+              />
+            );
+          })}
         </div>
       )}
 
