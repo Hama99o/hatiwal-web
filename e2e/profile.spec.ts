@@ -23,11 +23,26 @@ test.describe("Profile (signed in)", () => {
   test("shows your own rating and your reviews (REP815)", async ({ page }) => {
     await page.goto("/en/profile");
 
+    // Your name is the page h1 (the rest of the page hangs off it as h2s).
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Ahmad Karimi" }),
+    ).toBeVisible();
+
     // Rating summary under your name — from /users/me (avg 4.7, 3 reviews).
-    // Exactly once on the page: the "My reviews" section suppresses its own
-    // summary so the score isn't shouted twice.
+    // Exactly once on the page: the "My reviews" section never repeats the
+    // score, so it isn't shouted twice.
     await expect(page.getByText("4.7")).toHaveCount(1);
     await expect(page.getByText("3 reviews")).toHaveCount(1);
+
+    // The score is a link to the list, and it announces the score, the count
+    // AND the destination (no aria-label swallowing the first two).
+    const ratingLink = page.getByRole("link", {
+      name: /4\.7\s*3 reviews\s*My reviews/,
+    });
+    await expect(ratingLink).toBeVisible();
+    // Thumb-sized target, not a 20px line of text.
+    const box = await ratingLink.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(40);
 
     // "My reviews" (not the public "Ratings & Reviews" heading) + the list.
     await expect(
@@ -98,8 +113,7 @@ test.describe("Profile — brand-new account (no reviews)", () => {
     await expect(
       page.getByRole("heading", { name: "My reviews" }),
     ).toBeVisible();
-    // Neutral label under your name — said once, not repeated by the section
-    // heading (which drops its summary when there is no score to show).
+    // Neutral label under your name — said once, never repeated by the section.
     await expect(page.getByText("No reviews yet")).toHaveCount(1);
     // …and the list's own empty state names the role instead of repeating it.
     await expect(page.getByText("No seller reviews yet")).toBeVisible();

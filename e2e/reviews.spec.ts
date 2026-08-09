@@ -7,12 +7,19 @@ test.describe("Seller reviews (REV3)", () => {
   }) => {
     await page.goto("/en/sellers/1");
 
-    // Section heading + summary badge (avg 4.7 from the public profile).
+    // The seller's name is the page h1; the section is an h2 below it.
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Ahmad Karimi" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Ratings & Reviews" }),
     ).toBeVisible();
-    await expect(page.getByText("4.7").first()).toBeVisible();
-    await expect(page.getByText("3 reviews").first()).toBeVisible();
+
+    // The score (avg 4.7 from the public profile) appears exactly once — in the
+    // profile header, next to who they are. The reviews section below does not
+    // repeat it, or neither copy would read as the hero.
+    await expect(page.getByText("4.7")).toHaveCount(1);
+    await expect(page.getByText("3 reviews")).toHaveCount(1);
 
     // The "As a seller" tab is the default — its reviews render.
     await expect(

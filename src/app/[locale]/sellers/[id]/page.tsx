@@ -61,15 +61,20 @@ export default async function SellerPage({ params }: { params: Params }) {
           subtitle={seller.city ?? t("seller.memberOnHatiwal")}
           layout="stacked"
           size={88}
+          nameAs="h1"
         />
         <ResponseRateBadge
           responseRatePercent={seller.responseRatePercent}
           responseTimeLabel={seller.responseTimeLabel}
           className="mt-0 justify-center"
         />
+        {/* The one and only score on this page — hero size, right under who
+            they are, because it's the trust signal a buyer decides on. The
+            reviews list below intentionally doesn't repeat it. */}
         <RatingDisplay
           avgRating={seller.avgRating}
           reviewCount={seller.reviewCount}
+          size="lg"
         />
         <LastActiveLabel label={seller.lastActiveLabel} className="justify-center" />
         <div className="text-sm">
@@ -96,11 +101,7 @@ export default async function SellerPage({ params }: { params: Params }) {
 
       <SellerListingsTabs sellerId={seller.id} activeListings={listings} />
 
-      <ReviewsSection
-        sellerId={seller.id}
-        avgRating={seller.avgRating}
-        reviewCount={seller.reviewCount}
-      />
+      <ReviewsSection sellerId={seller.id} />
     </div>
   );
 }

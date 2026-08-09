@@ -14,10 +14,21 @@ interface UserIdentityProps {
   /**
    * Extra trust line rendered inside the text column, directly under the
    * name/subtitle (e.g. a `RatingDisplay`). Keeps the badge visually attached
-   * to the person instead of floating under the whole avatar row. Ignored when
-   * `href` is set to something interactive — keep `meta` non-interactive then.
+   * to the person instead of floating under the whole avatar row.
+   *
+   * **Not rendered when `href` is set** — the whole identity is then a single
+   * `<a>`, and `meta` is typically a link itself (nested anchors are invalid
+   * HTML and throw a hydration error). Put the meta outside the identity in
+   * that case.
    */
   meta?: ReactNode;
+  /**
+   * Heading level for the name. A person's name is the `h1` of their own
+   * profile page (`/profile`, `/sellers/[id]`); everywhere else the identity is
+   * inline in a card/header, so it stays a plain `span`. Styling is identical —
+   * only the semantics (and the document outline) change.
+   */
+  nameAs?: "span" | "h1" | "h2" | "h3";
   /** Locale-aware href; when set the whole identity becomes a link. */
   href?: string;
   className?: string;
@@ -35,6 +46,7 @@ export function UserIdentity({
   size = 40,
   layout = "row",
   meta,
+  nameAs: NameTag = "span",
   href,
   className,
 }: UserIdentityProps) {
@@ -53,16 +65,23 @@ export function UserIdentity({
           layout === "stacked" && "flex flex-col items-center",
         )}
       >
-        <span className="flex items-center gap-1">
-          <span className="truncate font-semibold text-foreground">{name}</span>
+        {/* div, not span: `nameAs` may be a heading, which is flow content and
+            cannot legally live inside a phrasing-content span. */}
+        <div className="flex items-center gap-1">
+          <NameTag className="truncate font-semibold text-foreground">
+            {name}
+          </NameTag>
           {verified && <VerifiedBadge />}
-        </span>
+        </div>
         {subtitle && (
           <span className="truncate text-sm text-muted-foreground">
             {subtitle}
           </span>
         )}
-        {meta && <div className="mt-1">{meta}</div>}
+        {/* `!href`: see the prop docs — an <a> inside the identity's own <a>
+            is invalid HTML and a hydration error, so meta is dropped rather
+            than silently nested. */}
+        {meta && !href && <div className="mt-1">{meta}</div>}
       </div>
     </div>
   );

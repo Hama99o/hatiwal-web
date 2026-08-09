@@ -61,6 +61,7 @@ export function ProfileView() {
           verified={user.verified}
           subtitle={user.city ?? user.email}
           size={64}
+          nameAs="h1"
           /* Your own reputation — the number buyers judge you by — sits in the
              identity's text column, under your name, so it reads as *yours*.
              Default (sm) size on purpose: your name stays the loudest thing on
@@ -69,13 +70,19 @@ export function ProfileView() {
           meta={
             <a
               href="#my-reviews"
-              className="inline-flex rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              aria-label={t("reviews.myReviewsTitle")}
+              /* min-h-10 + padding: the rating text alone is only ~20px tall,
+                 well under a thumb-sized target. Negative margins keep the
+                 enlarged box optically aligned with the name above it. */
+              className="-mx-2 -my-1.5 inline-flex min-h-10 items-center rounded-md px-2 py-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <RatingDisplay
                 avgRating={user.avgRating}
                 reviewCount={user.reviewCount}
               />
+              {/* No aria-label on the link: it would replace the score and
+                  count with the destination. This adds the destination *after*
+                  them instead, so a screen reader announces all three. */}
+              <span className="sr-only">{t("reviews.myReviewsTitle")}</span>
             </a>
           }
         />
@@ -141,15 +148,16 @@ export function ProfileView() {
       {/* The reviews buyers left about you — same component (role tabs, load
           more, skeleton, empty state) as the public seller profile, only the
           heading differs. `getUserReviews` is public (plain `User.find`, no
-          publicly_active gate), so your own id always works. `showSummary` off:
-          the score already sits under your name above. */}
-      <div id="my-reviews" className="scroll-mt-24">
+          publicly_active gate), so your own id always works. The score isn't
+          repeated here; it sits under your name above.
+          tabIndex={-1}: browsers only move focus to an in-page anchor target
+          when it is focusable, so without it the rating link scrolls but leaves
+          a keyboard user's focus stranded at the top of the page. */}
+      <div id="my-reviews" tabIndex={-1} className="scroll-mt-24 focus:outline-none">
         <ReviewsSection
           sellerId={user.id}
-          avgRating={user.avgRating}
-          reviewCount={user.reviewCount ?? 0}
           title={t("reviews.myReviewsTitle")}
-          showSummary={false}
+          headingSize="sm"
         />
       </div>
 
