@@ -46,6 +46,14 @@ for the browser and adds SSR/SEO. Plan: `../docs/WEB_FRONTEND_PLAN.md`. Page che
   it's the npm optional-deps bug. Fix: `npm i @tailwindcss/oxide-linux-x64-gnu@<oxide-version> --no-save`
   (this machine), or `rm -rf node_modules package-lock.json && npm install` for a clean lockfile.
 
+- **Scratch build dirs churn `tsconfig.json`:** building into your own `--distdir` (`.next-myfeature`)
+  makes Next append a `".next-myfeature/types/**/*.ts"` entry to `tsconfig.json` `include`. Those dirs are
+  gitignored (`/.next-*`) but the tsconfig entry is not — it lands in the diff and points at a directory
+  the next agent won't have. If you build into a custom distdir, **delete the dir and revert the
+  `tsconfig.json` include entry before you finish.** Prefer reusing `.next-e2e`.
+
 ## Verify your work
 - `npx tsc --noEmit` (types) · `npm run build` (lint + RSC + prerender) · `npm run dev` then load `/en`,
   `/ps`, `/fa` and toggle dark mode. Test RTL on `ps`/`fa`. Check loading/empty/error on every data view.
+- Leave the tree clean: no scratch `.next-*` dirs, no throwaway spec/config files, no `tsconfig.json`
+  churn. Your diff should contain only the feature.

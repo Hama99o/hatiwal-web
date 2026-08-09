@@ -25,10 +25,11 @@ import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
  * 422 when a conversation already exists, so we fall back to fetching it — same
  * duplicate-handling as the mobile offer flow, so a message/offer is never lost.
  *
- * `layout` only changes the button chrome — the inline detail column stacks
- * full-width buttons, the sticky `ListingActionBar` needs a compact row. The
- * mutations/dialogs are shared by both so the two entry points always behave
- * identically (never copy this component to restyle it).
+ * `layout` changes only presentation — the inline detail column stacks
+ * full-width buttons; the sticky `ListingActionBar` needs a compact row and
+ * carries the primary CTA alone (see below). The mutations/dialogs are shared by
+ * both so the two entry points always behave identically (never copy this
+ * component to restyle it).
  */
 export function StartConversationButton({
   listingId,
@@ -64,13 +65,30 @@ export function StartConversationButton({
   const isNegotiable = negotiable !== false;
   const compact = layout === "bar";
   // Compact row inside the sticky bar vs full-width stack in the detail column.
-  // In the bar the primary button takes the leftover width (so the price beside
-  // it is never squeezed) and the offer affordance keeps its icon size.
+  // In the bar the primary button takes all the leftover width — the price
+  // beside it is `shrink-0`, because a truncated price would misinform a buyer.
   const wrapperClass = compact
     ? "flex min-w-0 flex-1 items-center gap-2"
     : "space-y-2";
-  const primaryClass = compact ? "min-w-0 flex-1 overflow-hidden" : "w-full";
-  const offerClass = compact ? "shrink-0" : "w-full";
+  // `px-3` in the bar: on a 360–390px phone the row is a bold price plus two
+  // 40px icon buttons, and the leftover was narrower than the label — measured
+  // 98px of box for 125px of "Message Seller", i.e. clipped mid-word.
+  const primaryClass = compact
+    ? "min-w-0 flex-1 overflow-hidden px-3"
+    : "w-full";
+  // Same label in both entry points. In the bar it drops the decorative icon
+  // (the +24px of icon and gap is the difference between fitting and not) and
+  // ellipsizes rather than being hard-clipped by the button's `overflow-hidden`
+  // — the price beside it must never shrink, so the label is what gives. `min-w-0`
+  // is what lets a flex child shrink below its content width at all.
+  const primaryLabel = (
+    <>
+      {!compact && <MessageCircle className="size-4" />}
+      <span className={compact ? "min-w-0 truncate" : undefined}>
+        {t("listing.detail.messageSeller")}
+      </span>
+    </>
+  );
 
   if (status === "authed" && user && sellerId && user.id === sellerId) {
     return null; // your own listing
@@ -79,10 +97,7 @@ export function StartConversationButton({
   if (status !== "authed") {
     return (
       <Button asChild className={primaryClass}>
-        <Link href="/login">
-          <MessageCircle className="size-4" />
-          {t("listing.detail.messageSeller")}
-        </Link>
+        <Link href="/login">{primaryLabel}</Link>
       </Button>
     );
   }
@@ -139,23 +154,24 @@ export function StartConversationButton({
   return (
     <div className={wrapperClass}>
       <Button className={primaryClass} onClick={() => setOpen(true)}>
-        <MessageCircle className="size-4" />
-        {t("listing.detail.messageSeller")}
+        {primaryLabel}
       </Button>
-      {/* Make an offer — hidden when the listing is firm-priced (N071). In the
-          sticky bar there is no room for a second label, so it becomes an
-          icon-only button with the same label as its accessible name. */}
-      {isNegotiable && (
+      {/* Make an offer — hidden when the listing is firm-priced (N071), and not
+          carried by the sticky bar at all: measured on a 360px phone, a second
+          40px control there left 98px of box for a 125px "Message Seller", so the
+          primary CTA — the thing the bar exists for — was clipped mid-word, and
+          two same-size outline icon buttons (tag beside heart) read as one
+          ambiguous pair. The bar keeps price + Message + Save (its spec); the
+          offer keeps its full-width labelled button in the inline block, which is
+          never far — the bar hides itself whenever that block is on screen. */}
+      {isNegotiable && !compact && (
         <Button
           variant="outline"
-          size={compact ? "icon" : "default"}
-          className={offerClass}
-          aria-label={compact ? t("listing.detail.makeOffer") : undefined}
-          title={compact ? t("listing.detail.makeOffer") : undefined}
+          className="w-full"
           onClick={() => setOfferOpen(true)}
         >
           <Tag className="size-4" />
-          {!compact && t("listing.detail.makeOffer")}
+          {t("listing.detail.makeOffer")}
         </Button>
       )}
 

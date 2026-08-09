@@ -117,6 +117,7 @@ export default async function CategoriesIndexPage({
           return (
             <div
               key={category.id}
+              data-testid="category-card"
               className={cn(
                 "flex flex-col rounded-lg border bg-card p-4 transition-shadow hover:shadow-md",
                 // Empty categories are de-emphasised (dashed, muted) so buyers
@@ -160,11 +161,13 @@ export default async function CategoriesIndexPage({
                 </span>
               </Link>
 
-              {/* Drill-down. Skipped entirely when the whole branch is empty —
-                  the card already says so, and a row of dead chips adds noise. */}
-              {!isEmpty && subcategories.length > 0 && (
+              {/* Drill-down. Skipped when no child has stock: the card already
+                  states the branch total, and a lone "+N more" (which reads as
+                  "beyond the ones shown" when nothing is shown) pointing at the
+                  same href the card already links to is pure noise. */}
+              {visibleSubcategories.length > 0 && (
                 <div className="mt-3 border-t pt-3">
-                  <p className="mb-1.5 text-center text-[11px] font-medium text-muted-foreground">
+                  <p className="mb-1.5 text-center text-xs font-medium text-muted-foreground">
                     {t("categoriesPage.subcategories")}
                   </p>
                   <div className="flex flex-wrap justify-center gap-1.5">

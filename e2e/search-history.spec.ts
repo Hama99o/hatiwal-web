@@ -66,12 +66,31 @@ async function openPanel(input: Locator, panelLocator: Locator) {
   await expect(async () => {
     await input.click();
     await expect(panelLocator).toBeVisible({ timeout: 2_000 });
-  }).toPass({ timeout: 30_000 });
+  }).toPass({ timeout: 60_000 });
 }
 
 /** Focus the Bazaar field and wait for its chips. */
 async function openSidebarPanel(page: Page) {
   await openPanel(sidebarInput(page), sidebarPanel(page));
+}
+
+/**
+ * Type a query and wait for the debounced search to reach the URL.
+ *
+ * Retried for the same reason as {@link openPanel}: the first `fill` can land
+ * before React has attached, so nothing ever commits. Each attempt empties the
+ * field first — re-filling the SAME text is a no-op for a controlled input
+ * (React bails on an unchanged value), so without the reset a lost first attempt
+ * could never be retried. The URL assertion gets a real budget because an App
+ * Router `replace()` only commits the history entry once the RSC payload lands,
+ * which is slow on a cold dev server.
+ */
+async function search(page: Page, input: Locator, text: string, url: RegExp) {
+  await expect(async () => {
+    await input.fill("");
+    await input.fill(text);
+    await expect(page).toHaveURL(url, { timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
 }
 
 test.describe("Recent searches", () => {
@@ -82,10 +101,7 @@ test.describe("Recent searches", () => {
     const input = headerInput(page);
 
     // Search-as-you-type commits the term (debounced) and records it.
-    await expect(async () => {
-      await input.fill("iphone");
-      await expect(page).toHaveURL(/\/bazaar\?q=iphone/);
-    }).toPass({ timeout: 20_000 });
+    await search(page, input, "iphone", /\/bazaar\?q=iphone/);
 
     // Emptying the box and focusing it offers the term back as a chip.
     await input.fill("");
@@ -119,12 +135,14 @@ test.describe("Recent searches", () => {
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
     await openSidebarPanel(page);
 
-    await expect(async () => {
-      await sidebarPanel(page)
-        .getByRole("button", { name: "MacBook", exact: true })
-        .click();
-      await expect(page).toHaveURL(/q=MacBook/);
-    }).toPass({ timeout: 20_000 });
+    // Deliberately NOT retried: applying a chip closes the panel, so a second
+    // attempt would have nothing left to click. `openSidebarPanel` already
+    // proved the island is hydrated, so one click is enough — the URL just needs
+    // a real budget (App Router commits it only once the RSC payload lands).
+    await sidebarPanel(page)
+      .getByRole("button", { name: "MacBook", exact: true })
+      .click();
+    await expect(page).toHaveURL(/q=MacBook/, { timeout: 30_000 });
 
     await expect(page.getByText("MacBook Pro M2")).toBeVisible();
     await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
@@ -140,15 +158,14 @@ test.describe("Recent searches", () => {
     const p = sidebarPanel(page);
 
     // The per-chip X removes only that term — and editing the list does not
-    // dismiss it (focus is handed back to the field).
-    await expect(async () => {
-      await p
-        .getByRole("button", { name: "Remove iphone from recent searches" })
-        .click();
-      await expect(
-        p.getByRole("button", { name: "iphone", exact: true }),
-      ).toHaveCount(0);
-    }).toPass({ timeout: 20_000 });
+    // dismiss it (focus is handed back to the field). Not retried: the X unmounts
+    // with its chip, so a retry would find nothing to click.
+    await p
+      .getByRole("button", { name: "Remove iphone from recent searches" })
+      .click();
+    await expect(
+      p.getByRole("button", { name: "iphone", exact: true }),
+    ).toHaveCount(0);
     await expect(
       p.getByRole("button", { name: "macbook", exact: true }),
     ).toBeVisible();
@@ -261,10 +278,7 @@ test.describe("Recent searches", () => {
     await page.goto("/en/bazaar");
 
     // Record through the real path: the debounced query settling commits it.
-    await expect(async () => {
-      await sidebarInput(page).fill("  MacBook  ");
-      await expect(page).toHaveURL(/q=MacBook/);
-    }).toPass({ timeout: 20_000 });
+    await search(page, sidebarInput(page), "  MacBook  ", /q=MacBook/);
 
     // A fresh load must NOT re-seed (see seedHistory) — this asserts what the
     // app actually stored.
@@ -291,6 +305,35 @@ test.describe("Recent searches", () => {
     await page.waitForTimeout(1_000);
     await sidebarInput(page).fill("");
     await expect(sidebarPanel(page)).toHaveCount(0);
+  });
+
+  test("degrades gracefully when localStorage is unavailable", async ({
+    page,
+  }) => {
+    // Safari private mode / blocked cookies: touching localStorage THROWS.
+    // Nothing about the page may break — the results render and search still
+    // works; only the memory of past searches is lost between visits.
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "localStorage", {
+        configurable: true,
+        get() {
+          throw new Error("localStorage is not available");
+        },
+      });
+    });
+    await page.goto("/en/bazaar");
+    await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
+
+    // Search still filters…
+    await search(page, sidebarInput(page), "MacBook", /q=MacBook/);
+    await expect(page.getByText("MacBook Pro M2")).toBeVisible();
+
+    // …and the in-memory fallback still answers within the session.
+    await sidebarInput(page).fill("");
+    await openSidebarPanel(page);
+    await expect(
+      sidebarPanel(page).getByRole("button", { name: "MacBook", exact: true }),
+    ).toBeVisible();
   });
 
   test("usable on a 375px phone viewport without widening the page", async ({

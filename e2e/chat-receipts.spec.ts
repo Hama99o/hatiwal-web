@@ -52,6 +52,25 @@ function bubbleWith(page: Page, selector: string, text: string) {
 const TIME_RE = /[\d۰-۹٠-٩]{1,2}:[\d۰-۹٠-٩]{2}/;
 
 /**
+ * Opens a thread and waits until its bubbles are actually on screen.
+ *
+ * Every test in this file goes through here. On a cold `.next-e2e`, the first
+ * hit of `/[locale]/conversations/[id]` compiles the route AND, separately, the
+ * client island that renders the bubbles; with the suite's workers all landing
+ * on that route at once the island can arrive later than the default 15s
+ * `expect` timeout, which would flake the first test to run rather than flag a
+ * real regression. Waiting once, generously, on the meta row (the thing this
+ * spec is about) keeps every later assertion at the default timeout, where a
+ * failure does mean the feature is broken.
+ */
+async function openThread(page: Page, path = "/en/conversations/1") {
+  await page.goto(path);
+  await expect(page.getByTestId("message-meta").first()).toBeVisible({
+    timeout: 90_000,
+  });
+}
+
+/**
  * Shifts every fixture timestamp of conversation 1 so its newest day lands
  * `dayOffset` days before today, keeping the relative order and the local
  * wall-clock time. Lets the static fixture exercise the Today / Yesterday
@@ -82,11 +101,17 @@ async function retimeThread(page: Page, dayOffset: number) {
 
 test.describe("Chat timestamps + read receipts", () => {
   test.use({ storageState: BUYER_STATE });
+  // Several tests here navigate more than once (en → conversation 2, en → ps →
+  // fa, thread → inbox → thread → reload). On a cold `.next-e2e` each of those
+  // is its own dev-mode compile, so the suite-wide 120s budget can run out
+  // mid-navigation on a loaded machine with nothing actually wrong. A warm run
+  // never comes near this cap.
+  test.describe.configure({ timeout: 240_000 });
 
   test("every bubble shows a time; pills and the tombstone show none", async ({
     page,
   }) => {
-    await page.goto("/en/conversations/1");
+    await openThread(page);
     await expect(page.locator("p", { hasText: MINE_UNSEEN })).toBeVisible();
 
     // Structured bubbles are part of the count below.
@@ -115,7 +140,7 @@ test.describe("Chat timestamps + read receipts", () => {
   test("my read message shows a double tick, my unread one a single tick, incoming none", async ({
     page,
   }) => {
-    await page.goto("/en/conversations/1");
+    await openThread(page);
 
     const seen = bubbleWith(page, "p", MINE_SEEN);
     await expect(seen.getByTitle(SEEN)).toBeVisible();
@@ -145,14 +170,14 @@ test.describe("Chat timestamps + read receipts", () => {
     // Guard: the fixture must straddle two LOCAL days for the count to hold.
     expect(dayKey(OLDEST_DAY)).not.toBe(dayKey(NEWEST_DAY));
 
-    await page.goto("/en/conversations/1");
+    await openThread(page);
     await expect(page.locator("p", { hasText: MINE_UNSEEN })).toBeVisible();
     const separators = page.getByTestId("day-separator");
     await expect(separators).toHaveCount(1);
     await expect(separators).toHaveText(formatDate(NEWEST_DAY, "en"));
 
     // Conversation 2's messages all land on one day → no separator.
-    await page.goto("/en/conversations/2");
+    await openThread(page, "/en/conversations/2");
     await expect(page.getByText("Thanks!")).toBeVisible();
     await expect(page.getByTestId("day-separator")).toHaveCount(0);
   });
@@ -161,7 +186,7 @@ test.describe("Chat timestamps + read receipts", () => {
     page,
   }) => {
     await retimeThread(page, 0);
-    await page.goto("/en/conversations/1");
+    await openThread(page);
     await expect(page.getByTestId("day-separator")).toHaveText(
       en.chat.day.today,
     );
@@ -177,7 +202,7 @@ test.describe("Chat timestamps + read receipts", () => {
   test("in-thread search hides the separators and keeps its match count", async ({
     page,
   }) => {
-    await page.goto("/en/conversations/1");
+    await openThread(page);
     await expect(page.getByTestId("day-separator")).toHaveCount(1);
 
     await page
@@ -194,7 +219,7 @@ test.describe("Chat timestamps + read receipts", () => {
   test("a message sent now shows its time and a single tick", async ({
     page,
   }) => {
-    await page.goto("/en/conversations/1");
+    await openThread(page);
     const composer = page.getByPlaceholder(en.chat.messagePlaceholder);
     await composer.fill("On my way now.");
     await page.getByRole("button", { name: en.chat.send }).click();
@@ -223,7 +248,7 @@ test.describe("Chat timestamps + read receipts", () => {
       await route.fulfill({ response: res, json });
     });
 
-    await page.goto("/en/conversations/1");
+    await openThread(page);
     await expect(
       bubbleWith(page, "p", MINE_UNSEEN).getByTitle(SENT),
     ).toBeVisible();
@@ -254,7 +279,7 @@ test.describe("Chat timestamps + read receipts", () => {
       ["fa", fa, "light"],
     ] as const) {
       await page.emulateMedia({ colorScheme });
-      await page.goto(`/${locale}/conversations/1`);
+      await openThread(page, `/${locale}/conversations/1`);
       await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
       const meta = bubbleWith(page, "p", MINE_UNSEEN).getByTestId(

@@ -43,8 +43,6 @@ interface SearchHistoryPanelProps {
   variant?: "dropdown" | "inline";
   layout?: "wrap" | "scroll";
   className?: string;
-  /** DOM id — the field points at it with `aria-controls`. */
-  id?: string;
 }
 
 export function SearchHistoryPanel({
@@ -55,7 +53,6 @@ export function SearchHistoryPanel({
   variant = "dropdown",
   layout = "wrap",
   className,
-  id,
 }: SearchHistoryPanelProps) {
   const t = useTranslations();
   const headingId = `${useId()}-recent-searches`;
@@ -64,7 +61,6 @@ export function SearchHistoryPanel({
 
   return (
     <div
-      id={id}
       data-testid="search-history-panel"
       role="group"
       aria-labelledby={headingId}

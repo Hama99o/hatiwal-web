@@ -6,11 +6,13 @@ import { useTranslations } from "next-intl";
 import { PackageOpen, Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { getMyListings } from "@/lib/api/me";
+import type { Transaction } from "@/lib/types";
 import {
   ListingGrid,
   ListingGridSkeleton,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { SellerListingActions } from "./seller-listing-actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,11 @@ function matchesTab(l: { status: string; expired?: boolean }, tab: Tab): boolean
 export function SellerListingsView() {
   const t = useTranslations();
   const [tab, setTab] = useState<Tab>("all");
+  // REV2: a sale that recorded a real buyer → rate them straight away. Owned
+  // HERE, not by the card: marking an item sold drops it out of the Active tab
+  // as soon as the grid refetches, and a prompt living in that card would be
+  // unmounted with it before the seller could rate anyone.
+  const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
   const { data, isPending, isError } = useQuery({
     queryKey: ["my-listings"],
     queryFn: getMyListings,
@@ -123,7 +130,19 @@ export function SellerListingsView() {
           hrefFor={(l) => `/my-listings/${l.id}`}
           // Inline lifecycle quick-actions: publish/reserve/sold/renew/delete
           // without opening the listing (the card body still links to detail).
-          footerFor={(l) => <SellerListingActions listing={l} />}
+          footerFor={(l) => (
+            <SellerListingActions listing={l} onSaleRecorded={setReviewTxn} />
+          )}
+        />
+      )}
+
+      {reviewTxn && (
+        <ReviewPromptDialog
+          transaction={reviewTxn}
+          // Only the owner sells, so the caller is always the seller (the
+          // lifecycle payload's own `role` is null — no current_user).
+          role="seller"
+          onClose={() => setReviewTxn(null)}
         />
       )}
     </div>

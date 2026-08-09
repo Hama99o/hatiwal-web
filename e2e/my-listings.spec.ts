@@ -167,6 +167,29 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Listing marked as sold")).toBeVisible();
   });
 
+  // A sale that identifies a real buyer records a Transaction, so the seller is
+  // invited to rate them immediately (REV2). The prompt is owned by the LIST,
+  // not by the card: the ['my-listings'] refetch that follows the sale drops the
+  // now-sold card out of a filtered tab, unmounting its action row — a prompt
+  // living in there would vanish before the seller could use it.
+  test("Mark as Sold with a real buyer opens the review prompt", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
+    await page.getByRole("button", { name: /Sara Ahmadi/ }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Confirm sold" })
+      .click();
+    await expect(page.getByText("Listing marked as sold")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "How was Sara Ahmadi as a buyer?" }),
+    ).toBeVisible();
+    await expect(page.getByText("Your rating")).toBeVisible();
+  });
+
   test("New Listing navigates to the create form", async ({ page }) => {
     await page.goto("/en/my-listings");
     await page.getByRole("link", { name: /New Listing/i }).first().click();

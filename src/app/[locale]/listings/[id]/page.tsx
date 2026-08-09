@@ -34,10 +34,12 @@ import { RecordListingView } from "@/components/listing/record-listing-view";
 import { ListingRail } from "@/components/shared/listing-rail";
 import { LocationMap } from "@/components/map/location-map";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
+
+/** Cards per cross-sell rail — see the slice below for why it is exactly 4. */
+const RAIL_SIZE = 4;
 
 type Params = Promise<{ locale: string; id: string }>;
 
@@ -106,12 +108,15 @@ export default async function ListingDetailPage({
       : EMPTY_LISTINGS,
   ]);
 
+  // Both rails cap at 4 — the count the shared rail's 2→4 column tracks divide
+  // evenly, so neither ever shows an orphan card on its own row or a hole in the
+  // last row. Fetching 12 leaves headroom for filtering the current listing out.
   const similar = similarResult.items
     .filter((l) => l.id !== listing.id)
-    .slice(0, 5);
+    .slice(0, RAIL_SIZE);
   const sellerListings = sellerResult.items
     .filter((l) => l.id !== listing.id)
-    .slice(0, 4);
+    .slice(0, RAIL_SIZE);
 
   const isActive = listing.status === "active";
 
@@ -133,17 +138,13 @@ export default async function ListingDetailPage({
     },
   };
 
-  // Below `lg`, an ACTIVE listing reserves pb-28 for the sticky
-  // <ListingActionBar> so the bar can never sit on top of the last rail or the
-  // report link. A sold/reserved listing never pins a bar, so it keeps the normal
-  // padding instead of a strip of dead space above the footer.
+  // The room the sticky <ListingActionBar> needs is reserved by the bar itself
+  // (it renders its own spacer), not by padding here: only that component knows
+  // whether a bar exists at all — it self-suppresses on desktop, on a
+  // sold/reserved listing, and for the seller's own listing — and static padding
+  // gave all three a strip of dead space above the footer.
   return (
-    <div
-      className={cn(
-        "mx-auto max-w-6xl px-4 pt-6",
-        isActive ? "pb-28 lg:pb-6" : "pb-6",
-      )}
-    >
+    <div className="mx-auto max-w-6xl px-4 py-6">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -210,6 +211,21 @@ export default async function ListingDetailPage({
             </span>
           </div>
 
+          {/* Owner-only panel — renders null for buyers/guests.
+              Every buyer control further down self-hides for the seller, so
+              without this their own listing has no actions at all. It sits here,
+              directly under the price/meta block, because the owner is also the
+              one viewer <ListingActionBar> never pins a sticky CTA for: parked
+              below the map and the seller card it would have been two screens
+              down with nothing to bring it back into reach. */}
+          <OwnerListingBar
+            listingId={listing.id}
+            sellerId={listing.seller?.id}
+            status={listing.status}
+            expiresAt={listing.expiresAt}
+            expired={listing.expired}
+          />
+
           {listing.location && (
             <div className="space-y-2 rounded-lg border bg-card p-3">
               <div className="flex items-start gap-2 text-sm">
@@ -263,10 +279,19 @@ export default async function ListingDetailPage({
                 label={listing.seller.lastActiveLabel}
                 className="mt-2"
               />
-              <AwayBanner
-                awayUntil={listing.seller.sellerAwayUntil}
-                className="mt-3"
-              />
+              {/* "Seller is away until…" is buyer information — it sets an
+                  expectation about reply speed. Told to the seller it reads as
+                  the site describing them in the third person, so it is
+                  owner-gated exactly like mobile (`!isOwnListing &&
+                  sellerIsAway` in `ListingDetail.tsx`). The seller sees their
+                  own away state where they set it: their profile, via
+                  `profile.away.youAreAway`. */}
+              <HideForOwner ownerId={listing.seller.id}>
+                <AwayBanner
+                  awayUntil={listing.seller.sellerAwayUntil}
+                  className="mt-3"
+                />
+              </HideForOwner>
             </div>
           )}
 
@@ -274,16 +299,6 @@ export default async function ListingDetailPage({
               `id="listing-actions"` is the sentinel <ListingActionBar> watches:
               while this block is on screen the sticky mobile bar stays hidden. */}
           <div id="listing-actions" className="space-y-5">
-            {/* Owner-only column: every buyer control below self-hides for the
-                seller, so without this their own listing has no actions at all.
-                Renders null for buyers/guests. */}
-            <OwnerListingBar
-              listingId={listing.id}
-              sellerId={listing.seller?.id}
-              status={listing.status}
-              expiresAt={listing.expiresAt}
-              expired={listing.expired}
-            />
             {isActive ? (
               <div className="space-y-2">
                 <StartConversationButton

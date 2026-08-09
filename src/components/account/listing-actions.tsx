@@ -10,14 +10,20 @@ import {
   type LifecycleAction,
   type LifecycleResult,
 } from "@/lib/api/me";
+import type { Transaction } from "@/lib/types";
+import { SellBuyerDialog } from "./sell-buyer-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /**
  * THE seller lifecycle brain — the single source of truth for "what can I do to
- * this listing, what is it called, and what happens when I do it".
+ * this listing, what is it called, what do I confirm, and what happens when I
+ * do it".
  *
  * Imported by BOTH the owner detail screen (`manage-listing-view.tsx`) and the
  * inline card quick-actions (`seller-listing-actions.tsx`) so the two can never
- * drift. Never copy the map or the resolver into a component — extend it here.
+ * drift: the copy map, the transition resolver, the pending-action state
+ * machine, the mutation and its prompts all live here. A surface only supplies
+ * its own buttons. Never copy any of it into a component — extend it here.
  */
 
 /** i18n key suffixes (under the `listing.` namespace) for each transition. */
@@ -86,7 +92,7 @@ export function actionsFor(
 }
 
 /** What the seller has asked to do, pending confirmation. */
-export type PendingAction =
+type PendingAction =
   | { kind: "lifecycle"; action: LifecycleAction }
   | { kind: "delete" }
   | null;
@@ -95,19 +101,15 @@ export type PendingAction =
  * reserve/sold go through the buyer picker (they record a Transaction, which is
  * what a review hangs off); everything else uses the plain confirm dialog.
  */
-export function isBuyerAction(action: LifecycleAction): boolean {
-  return action === "reserve" || action === "sold";
+function needsBuyerPicker(pending: PendingAction): boolean {
+  return (
+    pending?.kind === "lifecycle" &&
+    (pending.action === "reserve" || pending.action === "sold")
+  );
 }
 
-export function needsBuyerPicker(pending: PendingAction): boolean {
-  return pending?.kind === "lifecycle" && isBuyerAction(pending.action);
-}
-
-/**
- * i18n KEYS for the confirm dialog of a pending action (the caller runs them
- * through `t`, so this stays a pure function usable anywhere).
- */
-export function dialogKeysFor(pending: PendingAction): {
+/** i18n KEYS for the confirm dialog of a pending action. */
+function dialogKeysFor(pending: PendingAction): {
   title: string;
   desc: string;
   confirm: string;
@@ -131,25 +133,49 @@ export function dialogKeysFor(pending: PendingAction): {
   };
 }
 
+export type LifecycleController = ReturnType<typeof useListingLifecycle>;
+
 /**
- * Runs a lifecycle transition (or a delete) for one listing: success/error
- * toast, cache invalidation, and a shared `busy` flag so the caller can disable
- * its buttons (no double-submit).
+ * Drives one listing through a lifecycle transition (or a delete): which action
+ * is awaiting confirmation, the API call, success/error toast, cache
+ * invalidation, and a shared `busy` flag so the caller can disable its buttons
+ * (no double-submit). Pair it with `<LifecycleDialogs>`, which renders the
+ * prompts for whatever is pending.
  *
  * Invalidates the seller list + this listing's detail + this listing's
  * conversations — a buyer-recorded reserve/sold changes what the conversation
  * list shows, same as mobile — plus the public browse caches, because every
  * transition (publish/unpublish/sold/renew) changes whether buyers can see it.
+ *
+ * `onSaleRecorded` fires when a sale recorded a real buyer (so the seller can
+ * rate them). It is a CALLBACK rather than state held here on purpose: the
+ * invalidation above can drop the acting card out of a filtered list — a sold
+ * listing leaves the Active tab — which would unmount a prompt owned in here
+ * before the seller could use it. The owner of the prompt must outlive the card.
  */
-export function useListingLifecycle(listingId: number) {
+export function useListingLifecycle(
+  listingId: number,
+  opts: {
+    /** Called after a successful delete (e.g. leave the detail route). */
+    onDeleted?: () => void;
+    /** Called when a sale recorded a buyer — offer to review them. */
+    onSaleRecorded?: (transaction: Transaction) => void;
+  } = {},
+) {
   const t = useTranslations();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<PendingAction>(null);
 
-  function invalidate() {
+  function invalidate(flags: { deleted?: boolean } = {}) {
     qc.invalidateQueries({ queryKey: ["my-listings"] });
-    // The detail query is keyed by the route param (a string).
-    qc.invalidateQueries({ queryKey: ["my-listing", String(listingId)] });
+    // The detail query is keyed by the route param (a string). A DELETED
+    // listing's detail is dropped rather than refetched — the record is gone, so
+    // a refetch would 404 the owner page into its error state behind the
+    // redirect (and poison the cache if the seller navigates back).
+    const detail = { queryKey: ["my-listing", String(listingId)] };
+    if (flags.deleted) qc.removeQueries(detail);
+    else qc.invalidateQueries(detail);
     qc.invalidateQueries({ queryKey: ["listing-conversations", listingId] });
     // Prefix match: every browse/home/category grid is keyed ["listings", filters].
     qc.invalidateQueries({ queryKey: ["listings"] });
@@ -158,11 +184,11 @@ export function useListingLifecycle(listingId: number) {
   /** Returns the lifecycle payload, or null when the request failed. */
   async function runLifecycle(
     action: LifecycleAction,
-    opts?: { buyerId?: number; finalPrice?: number },
+    saleOpts?: { buyerId?: number; finalPrice?: number },
   ): Promise<LifecycleResult | null> {
     setBusy(true);
     try {
-      const result = await listingLifecycle(listingId, action, opts);
+      const result = await listingLifecycle(listingId, action, saleOpts);
       toast.success(t(`listing.${LIFECYCLE[action].success}`));
       invalidate();
       return result;
@@ -174,21 +200,111 @@ export function useListingLifecycle(listingId: number) {
     }
   }
 
-  /** Returns true when the listing was deleted. */
-  async function runDelete(): Promise<boolean> {
-    setBusy(true);
-    try {
-      await deleteMyListing(listingId);
-      toast.success(t("listing.deleteSuccess"));
-      invalidate();
-      return true;
-    } catch {
-      toast.error(t("common.error"));
-      return false;
-    } finally {
-      setBusy(false);
+  /** Ask before acting: opens the confirm prompt (or the buyer picker). */
+  function ask(action: LifecycleAction | "delete") {
+    setPending(
+      action === "delete" ? { kind: "delete" } : { kind: "lifecycle", action },
+    );
+  }
+
+  /** Dismiss the open prompt — ignored while a request is in flight. */
+  function dismiss() {
+    if (!busy) setPending(null);
+  }
+
+  /** Confirm path: delete + every non-buyer transition. */
+  async function confirmPending() {
+    if (!pending) return;
+    if (pending.kind === "delete") {
+      setBusy(true);
+      try {
+        await deleteMyListing(listingId);
+        toast.success(t("listing.deleteSuccess"));
+        invalidate({ deleted: true });
+        setPending(null);
+        opts.onDeleted?.();
+      } catch {
+        // Leave the prompt open (with the error toast) so it can be retried.
+        toast.error(t("common.error"));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (await runLifecycle(pending.action)) setPending(null);
+  }
+
+  /** Buyer-picker path: reserve/sold with an optional buyer + final price. */
+  async function submitSale(buyerId: number | null, finalPrice: number | null) {
+    if (pending?.kind !== "lifecycle") return;
+    const action = pending.action;
+    const result = await runLifecycle(action, {
+      buyerId: buyerId ?? undefined,
+      finalPrice: finalPrice ?? undefined,
+    });
+    if (!result) return;
+    setPending(null);
+    // Rails only returns a transaction when a real buyer was identified, so a
+    // sale to "someone not on Hatiwal" correctly prompts for nothing.
+    if (action === "sold" && result.transaction) {
+      opts.onSaleRecorded?.(result.transaction);
     }
   }
 
-  return { busy, runLifecycle, runDelete };
+  return {
+    listingId,
+    busy,
+    pending,
+    ask,
+    dismiss,
+    confirmPending,
+    submitSale,
+  };
+}
+
+/**
+ * The prompt every lifecycle action goes through: the shared confirm dialog for
+ * publish/unpublish/activate/renew/delete, and the buyer picker for
+ * reserve/sold (which records the Transaction a review hangs off). Rendered by
+ * every surface that offers the actions, so the copy and the
+ * confirm-vs-picker rule are decided in one place.
+ */
+export function LifecycleDialogs({
+  lifecycle,
+}: {
+  lifecycle: LifecycleController;
+}) {
+  const t = useTranslations();
+  const { listingId, pending, busy, dismiss, confirmPending, submitSale } =
+    lifecycle;
+  const buyerFlow = needsBuyerPicker(pending);
+  const keys = dialogKeysFor(pending);
+
+  return (
+    <>
+      {keys && !buyerFlow && (
+        <ConfirmDialog
+          open
+          title={t(keys.title)}
+          description={t(keys.desc)}
+          confirmLabel={t(keys.confirm)}
+          cancelLabel={t("common.cancel")}
+          destructive={keys.destructive}
+          loading={busy}
+          onConfirm={confirmPending}
+          onCancel={dismiss}
+        />
+      )}
+
+      {buyerFlow && pending?.kind === "lifecycle" && (
+        <SellBuyerDialog
+          action={pending.action as "reserve" | "sold"}
+          listingId={listingId}
+          busy={busy}
+          onCancel={dismiss}
+          onConfirm={submitSale}
+        />
+      )}
+    </>
+  );
 }

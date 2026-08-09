@@ -101,6 +101,62 @@ test.describe("Listing action bar (mobile)", () => {
     await expect(page.locator('[aria-label="Listing actions"]')).toHaveCount(0);
   });
 
+  test("reserves its own space — and only when it renders", async ({ page }) => {
+    // The bar is `fixed`; the spacer is what keeps it off the page's last rows.
+    // It ships with the bar (it used to be page-level `pb-28`) so that the three
+    // cases which get no bar get no dead space either: own listing, non-active
+    // listing, desktop.
+    await page.goto("/en/listings/2");
+    const spacer = page.getByTestId("action-bar-spacer");
+    await expect(spacer).toHaveCount(1);
+    const spacerBox = (await spacer.boundingBox())!;
+    const barBox = (await page
+      .getByRole("region", { name: "Listing actions" })
+      .boundingBox())!;
+    // Tall enough to clear the bar, and not a screenful of emptiness. (The
+    // border and the safe-area inset make the two differ by a pixel or two.)
+    expect(spacerBox.height).toBeGreaterThanOrEqual(barBox.height - 4);
+    expect(spacerBox.height).toBeLessThan(barBox.height + 48);
+
+    await page.goto("/en/listings/1"); // own listing → no bar, no spacer
+    await expect(page.getByRole("heading", { name: "iPhone 13 Pro" })).toBeVisible();
+    await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
+
+    await page.goto("/en/listings/6"); // reserved → no bar, no spacer
+    await expect(
+      page.getByRole("heading", { name: "Mountain Bike (Reserved)" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
+  });
+
+  test("shows one primary CTA, never a clipped label", async ({ page }) => {
+    // The bar carries price + Message + Save and nothing else. A second 40px
+    // control here (the inline block's icon-only "Make an Offer") left 98px of
+    // button for a 125px label on a 360px phone — the primary CTA, the whole
+    // reason the bar exists, was cut mid-word. The price is `shrink-0` (a
+    // truncated price would misinform a buyer), so the label is what gives:
+    // assert nothing in the row overflows at the widths real phones use.
+    for (const width of [360, 390, 430]) {
+      await page.setViewportSize({ width, height: 760 });
+      await page.goto("/en/listings/2");
+      const bar = page.getByRole("region", { name: "Listing actions" });
+      const cta = bar.getByRole("button", { name: "Message Seller" });
+      await expect(cta).toBeVisible();
+      await expect(bar.getByRole("button", { name: "Make an Offer" })).toHaveCount(0);
+      const overflow = await cta.evaluate((el) => {
+        const label = el.querySelector("span");
+        return {
+          button: el.scrollWidth > el.clientWidth,
+          label: label ? label.scrollWidth > label.clientWidth : false,
+        };
+      });
+      expect(overflow, `clipped at ${width}px`).toEqual({
+        button: false,
+        label: false,
+      });
+    }
+  });
+
   test("mirrors in RTL — price on the right in Pashto", async ({ page }) => {
     await page.goto("/ps/listings/2");
     const bar = page.getByRole("region", { name: "د اعلان کړنې" });
@@ -131,5 +187,7 @@ test.describe("Listing action bar (desktop)", () => {
     await page.goto("/en/listings/2");
     await expect(page.getByRole("button", { name: "Message Seller" })).toBeVisible();
     await expect(page.locator('[aria-label="Listing actions"]')).toHaveCount(0);
+    // No bar → no reserved space above the footer either.
+    await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
   });
 });

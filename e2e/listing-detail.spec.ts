@@ -30,6 +30,14 @@ test.describe("Listing detail", () => {
     await expect(page.getByRole("heading", { name: "Mountain Bike (Reserved)" })).toBeVisible();
   });
 
+  test("a guest is told the seller is away", async ({ page }) => {
+    // Control for the owner case below: seller 1 has a future away date in the
+    // fixture, and a buyer must see it — it sets the reply-time expectation
+    // before they write.
+    await page.goto("/en/listings/1");
+    await expect(page.getByText(/Seller is away until/i)).toBeVisible();
+  });
+
   test("meetup safety tips open in a dialog and close", async ({ page }) => {
     await page.goto("/en/listings/1");
     await page
@@ -52,8 +60,10 @@ test.describe("Listing detail", () => {
 // <ListingRail>: the seller's other active stock first, then same-category
 // "Similar Listings". Fixture map used below:
 //   listing 2 = Samsung 4K TV, ACTIVE, seller 2 (Sara Ahmadi), cat Electronics
-//               → seller 2's other active stock = Winter Jacket; nothing else
-//                 active in Electronics, so there is no similar rail.
+//               → seller 2's other active stock = Winter Jacket; the same-category
+//                 rail rolls Electronics' subcategories up (iPhone, MacBook).
+//   listing 4 = Winter Jacket, ACTIVE, seller 2, cat Clothes — the only
+//               browsable listing in Clothes → no similar rail at all.
 //   listing 7 = Leather Sofa, SOLD, seller 1 (Ahmad Karimi), cat Clothes
 //               → both rails render.
 test.describe("Listing detail — cross-sell rails", () => {
@@ -72,7 +82,20 @@ test.describe("Listing detail — cross-sell rails", () => {
     await expect(
       rail.getByRole("link", { name: /View all/i }),
     ).toHaveAttribute("href", "/en/sellers/2");
-    // Nothing else is active in this category: no dangling empty heading.
+    // Same-category rail expands to the category's children too (Rails'
+    // Listing.by_category → self_and_children), so a listing filed directly
+    // under Electronics still cross-sells the phone and the laptop below it.
+    const similar = page.getByTestId("similar-rail");
+    await expect(similar.getByText("iPhone 13 Pro")).toBeVisible();
+    await expect(similar.getByText("MacBook Pro M2")).toBeVisible();
+  });
+
+  test("no dangling similar rail when the category has no other stock", async ({
+    page,
+  }) => {
+    // Winter Jacket is the only browsable listing in Clothes.
+    await page.goto("/en/listings/4");
+    await expect(page.getByTestId("seller-rail")).toBeVisible();
     await expect(page.getByTestId("similar-rail")).toHaveCount(0);
   });
 
@@ -143,6 +166,27 @@ test.describe("Listing detail — cross-sell rails", () => {
     ).toHaveAttribute("href", "/ps/sellers/2");
   });
 
+  test("both rails lay out on the 4-column rail track, capped at 4 cards", async ({
+    page,
+  }) => {
+    // The cap (4) has to divide the rail's column count so a rail never wraps a
+    // lone orphan card onto a second row: 4 cards in the page grid's 5 tracks
+    // left a hole, 5 cards in 4 tracks left an orphan. `size="sm"` rails use
+    // grid-cols-2 md:grid-cols-4 instead.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/en/listings/7");
+    for (const testId of ["seller-rail", "similar-rail"]) {
+      const rail = page.getByTestId(testId);
+      const grid = rail.locator("div.grid");
+      const tracks = await grid.evaluate(
+        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
+      );
+      expect(tracks).toBe(4);
+      const cards = rail.locator('a[href*="/listings/"]');
+      expect(await cards.count()).toBeLessThanOrEqual(4);
+    }
+  });
+
   test("a guest sees the seller rail on listing 1", async ({ page }) => {
     // Control for the owner case below: signed out, seller 1's other stock is
     // exactly what a buyer should be offered here.
@@ -195,6 +239,45 @@ test.describe("Listing detail — viewed by its own seller", () => {
     ).toHaveCount(0);
     await expect(page.getByText(/Message Seller/i)).toHaveCount(0);
     await expect(page.getByText(/Not interested/i)).toHaveCount(0);
+    // "Seller is away until…" is buyer information (a guest on this same
+    // listing DOES get it): the away seller must not be told about themselves
+    // in the third person.
+    await expect(page.getByText(/Seller is away until/i)).toHaveCount(0);
+  });
+
+  test("the owner panel sits at the top of the column, not below the map", async ({
+    page,
+  }) => {
+    // The owner is the one viewer the sticky <ListingActionBar> never pins a CTA
+    // for, so their controls have to be where they land: directly under the
+    // price/meta block, ahead of the location card and the seller card.
+    await page.setViewportSize({ width: 390, height: 760 });
+    await page.goto("/en/listings/1");
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+
+    const panelBox = (await panel.boundingBox())!;
+    // The two cards it used to sit behind: the location card (+ its Leaflet map)
+    // and the seller trust card.
+    for (const label of ["Location", "Seller"]) {
+      const cardBox = (await page
+        .getByText(label, { exact: true })
+        .first()
+        .boundingBox())!;
+      expect(panelBox.y).toBeLessThan(cardBox.y);
+    }
+    // Reachable with one short scroll on a phone, i.e. not two screens down.
+    expect(panelBox.y).toBeLessThan(760 * 2);
+  });
+
+  test("no sticky-bar space is reserved for the owner", async ({ page }) => {
+    // The bar self-suppresses for the owner, so its spacer must go with it —
+    // otherwise their own listing ends in a strip of dead space (the old
+    // page-level `pb-28`).
+    await page.setViewportSize({ width: 390, height: 760 });
+    await page.goto("/en/listings/1");
+    await expect(page.getByTestId("owner-listing-bar")).toBeVisible();
+    await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
   });
 
   test("the 'More from this Seller' rail is hidden from that seller", async ({

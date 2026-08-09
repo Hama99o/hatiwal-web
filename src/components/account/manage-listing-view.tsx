@@ -16,13 +16,10 @@ import { getMyListing } from "@/lib/api/me";
 import type { Transaction } from "@/lib/types";
 import {
   LIFECYCLE,
+  LifecycleDialogs,
   actionsFor,
-  dialogKeysFor,
-  needsBuyerPicker,
   useListingLifecycle,
-  type PendingAction,
 } from "./listing-actions";
-import { SellBuyerDialog } from "./sell-buyer-dialog";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { ListingViewsChart } from "./listing-views-chart";
@@ -32,7 +29,6 @@ import { ConditionBadge } from "@/components/shared/condition-badge";
 import { ExpiryBadge } from "@/components/shared/expiry-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function ManageListingView({ id }: { id: string }) {
   const t = useTranslations();
@@ -43,14 +39,15 @@ export function ManageListingView({ id }: { id: string }) {
     isError,
   } = useQuery({ queryKey: ["my-listing", id], queryFn: () => getMyListing(id) });
 
-  const [pending, setPending] = useState<PendingAction>(null);
   // After a sale with a buyer, prompt the seller to review them right away.
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
-  // The shared lifecycle brain owns the API call, toasts, cache invalidation and
-  // the busy flag (see ./listing-actions).
-  const { busy, runLifecycle, runDelete } = useListingLifecycle(
-    listing?.id ?? 0,
-  );
+  // The shared lifecycle brain owns the pending-action state, the API call,
+  // toasts, cache invalidation and the busy flag (see ./listing-actions).
+  const lifecycle = useListingLifecycle(listing?.id ?? 0, {
+    onDeleted: () => router.push("/my-listings"),
+    onSaleRecorded: setReviewTxn,
+  });
+  const { busy, ask } = lifecycle;
 
   if (isPending) {
     return (
@@ -68,36 +65,6 @@ export function ManageListingView({ id }: { id: string }) {
   }
 
   const { primary, secondary } = actionsFor(listing.status, !!listing.expired);
-
-  // reserve/sold use the buyer picker (records a Transaction); everything else
-  // (publish/unpublish/activate/renew/delete) uses the plain confirm dialog.
-  const buyerFlow = needsBuyerPicker(pending);
-
-  // Confirm-dialog path: delete + non-buyer lifecycle actions.
-  async function runPending() {
-    if (!pending) return;
-    if (pending.kind === "delete") {
-      if (await runDelete()) router.push("/my-listings");
-      return;
-    }
-    if (await runLifecycle(pending.action)) setPending(null);
-  }
-
-  // Buyer-picker path: reserve/sold with an optional buyer + final price.
-  async function submitSale(buyerId: number | null, finalPrice: number | null) {
-    if (pending?.kind !== "lifecycle") return;
-    const action = pending.action;
-    const result = await runLifecycle(action, {
-      buyerId: buyerId ?? undefined,
-      finalPrice: finalPrice ?? undefined,
-    });
-    if (!result) return;
-    setPending(null);
-    // Offer to review the buyer straight away when a sale recorded one.
-    if (action === "sold" && result.transaction) setReviewTxn(result.transaction);
-  }
-
-  const keys = dialogKeysFor(pending);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -144,7 +111,7 @@ export function ManageListingView({ id }: { id: string }) {
               <Button
                 className="w-full"
                 disabled={busy}
-                onClick={() => setPending({ kind: "lifecycle", action: primary })}
+                onClick={() => ask(primary)}
               >
                 {t(`listing.${LIFECYCLE[primary].label}`)}
               </Button>
@@ -157,7 +124,7 @@ export function ManageListingView({ id }: { id: string }) {
                     variant="outline"
                     size="sm"
                     disabled={busy}
-                    onClick={() => setPending({ kind: "lifecycle", action: a })}
+                    onClick={() => ask(a)}
                   >
                     {t(`listing.${LIFECYCLE[a].label}`)}
                   </Button>
@@ -177,7 +144,7 @@ export function ManageListingView({ id }: { id: string }) {
               variant="ghost"
               className="text-destructive hover:text-destructive"
               disabled={busy}
-              onClick={() => setPending({ kind: "delete" })}
+              onClick={() => ask("delete")}
             >
               <Trash2 className="size-4" />
               {t("common.delete")}
@@ -199,29 +166,7 @@ export function ManageListingView({ id }: { id: string }) {
 
       <ListingViewsChart id={listing.id} />
 
-      {keys && !buyerFlow && (
-        <ConfirmDialog
-          open
-          title={t(keys.title)}
-          description={t(keys.desc)}
-          confirmLabel={t(keys.confirm)}
-          cancelLabel={t("common.cancel")}
-          destructive={keys.destructive}
-          loading={busy}
-          onConfirm={runPending}
-          onCancel={() => !busy && setPending(null)}
-        />
-      )}
-
-      {buyerFlow && pending?.kind === "lifecycle" && (
-        <SellBuyerDialog
-          action={pending.action as "reserve" | "sold"}
-          listingId={listing.id}
-          busy={busy}
-          onCancel={() => !busy && setPending(null)}
-          onConfirm={submitSale}
-        />
-      )}
+      <LifecycleDialogs lifecycle={lifecycle} />
 
       {reviewTxn && (
         <ReviewPromptDialog

@@ -17,6 +17,10 @@ import type { Listing } from "@/lib/types";
  *   - `sm` (default) — a secondary cross-sell rail further down a page.
  *   - `lg` — a primary, page-level section (home).
  *
+ * `sm` also switches the grid to the `rail` column tracks (2→4), which divide a
+ * capped 4-card rail evenly at every breakpoint — no orphan card on its own row
+ * and no empty slot in the last row.
+ *
  * With no listings it renders `empty` when given (home shows an EmptyState under
  * the heading), and otherwise **nothing at all** — so a cross-sell page can drop
  * a rail in unconditionally and never show a dangling heading over a void.
@@ -65,7 +69,9 @@ export function ListingRail({
           {title}
         </h2>
         {viewAllHref && viewAllLabel ? (
-          <Button asChild variant="ghost" size="sm">
+          /* Default size, not `sm`: `sm` is 36px tall and this is a primary
+             navigation target that has to clear the 40px touch minimum. */
+          <Button asChild variant="ghost">
             <Link href={viewAllHref}>
               {viewAllLabel}
               {/* Mirrored in RTL so the arrow always points "forward". */}
@@ -77,7 +83,11 @@ export function ListingRail({
       {isEmpty ? (
         empty
       ) : (
-        <ListingGrid listings={listings} priorityCount={priorityCount} />
+        <ListingGrid
+          listings={listings}
+          columns={large ? "page" : "rail"}
+          priorityCount={priorityCount}
+        />
       )}
     </section>
   );

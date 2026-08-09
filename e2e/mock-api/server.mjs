@@ -26,8 +26,17 @@ const TOKEN_EMPTY = "mock-access-token-empty";
 
 // ── Fixtures (snake_case, like Rails) ────────────────────────────────────────
 
+// Rails only emits `seller_away_until` while the date is in the FUTURE
+// (`u.away?`), so the fixture computes one instead of hardcoding a date that
+// would quietly stop rendering the banner a month from now.
+const AWAY_UNTIL = new Date(Date.now() + 7 * 864e5).toISOString();
+
 const SELLERS = {
+  // Seller 1 is also the signed-in buyer persona, so this one away date covers
+  // both sides of the away banner's owner gate: a guest on listing 1 sees
+  // "Seller is away", its owner must not be told that about themselves.
   1: { id: 1, name: "Ahmad Karimi", city: "Kabul", verified: true, avatar_url: null,
+       seller_away_until: AWAY_UNTIL,
        response_rate_percent: 90, response_time_label: "within_one_hour" },
   2: { id: 2, name: "Sara Ahmadi", city: "Herat", verified: false, avatar_url: null,
        response_rate_percent: null, response_time_label: null },
@@ -51,18 +60,29 @@ const REVIEWS_OF_SELLER_1 = [
     reviewer: { id: 2, name: "Sara Ahmadi", avatar_url: null } },
 ];
 
+// Category tree. Deliberately covers every branch the hub renders:
+//   1 electronics → direct stock + two stocked children + one EMPTY child
+//                   (drives the "+N more" overflow and the empty-tone chip)
+//   2 vehicles / 3 clothes → leaf categories with stock
+//   4 home-garden → NO browsable stock anywhere (drives the de-emphasised
+//                   "No listings" card, which is otherwise untested)
 const CATEGORIES = [
   { id: 1, slug: "electronics", icon: "📱", position: 1,
     name_en: "Electronics", name_ps: "برقي وسایل", name_fa: "وسایل برقی",
     subcategories: [
       { id: 101, slug: "phones", icon: "📱", position: 1, name_en: "Phones & Tablets", name_ps: "موبایلونه", name_fa: "گوشی و تبلت", subcategories: [] },
       { id: 102, slug: "laptops", icon: "💻", position: 2, name_en: "Computers & Laptops", name_ps: "کمپیوترونه", name_fa: "کامپیوتر و لپ‌تاپ", subcategories: [] },
+      { id: 103, slug: "cameras", icon: "📷", position: 3, name_en: "Cameras", name_ps: "کمرې", name_fa: "دوربین‌ها", subcategories: [] },
     ] },
   { id: 2, slug: "vehicles", icon: "🚗", position: 2, name_en: "Vehicles", name_ps: "موټرونه", name_fa: "وسایل نقلیه", subcategories: [] },
   { id: 3, slug: "clothes", icon: "👗", position: 3, name_en: "Clothes & Fashion", name_ps: "کالي او فیشن", name_fa: "لباس و مد", subcategories: [] },
+  { id: 4, slug: "home-garden", icon: "🏡", position: 4, name_en: "Home & Garden", name_ps: "کور او باغ", name_fa: "خانه و باغ", subcategories: [] },
 ];
 
-const CAT = { 1: CATEGORIES[0], 2: CATEGORIES[1], 3: CATEGORIES[2], 101: CATEGORIES[0].subcategories[0], 102: CATEGORIES[0].subcategories[1] };
+// id → category, derived from the tree so a new fixture row can never drift.
+const CAT = Object.fromEntries(
+  CATEGORIES.flatMap((c) => [[c.id, c], ...c.subcategories.map((s) => [s.id, s])]),
+);
 
 function catRef(id) {
   const c = CAT[id] || CAT[1];
@@ -221,10 +241,48 @@ function paginate(items, pageNum, pageSize) {
   };
 }
 
+/** A category id plus its children — mirrors Rails' Category.self_and_children. */
+function selfAndChildIds(id) {
+  const c = CAT[Number(id)];
+  return c ? [c.id, ...(c.subcategories ?? []).map((s) => s.id)] : [Number(id)];
+}
+
+/** Browsable (= what /listings exposes) count for one category, direct only. */
+function directBrowsableCount(categoryId) {
+  return LISTINGS.filter((l) => l.status === "active" && l.category_id === categoryId).length;
+}
+
+/**
+ * The `?with_counts=true` payload, computed exactly as Rails does it: a parent's
+ * `active_listings_count` ROLLS ITS SUBCATEGORIES UP, because filtering by the
+ * parent returns those listings too (Listing.by_category → self_and_children).
+ * Counting direct children only is the bug this fixture exists to catch.
+ */
+function categoriesWithCounts() {
+  return CATEGORIES.map((c) => {
+    const subcategories = (c.subcategories ?? []).map((s) => ({
+      ...s,
+      active_listings_count: directBrowsableCount(s.id),
+    }));
+    return {
+      ...c,
+      subcategories,
+      active_listings_count:
+        directBrowsableCount(c.id) +
+        subcategories.reduce((n, s) => n + s.active_listings_count, 0),
+    };
+  });
+}
+
 function filterListings(q) {
   let items = LISTINGS.filter((l) => l.status === "active");
   if (q.get("status")) items = LISTINGS.filter((l) => l.status === q.get("status"));
-  if (q.get("category_id")) items = items.filter((l) => String(l.category_id) === q.get("category_id"));
+  if (q.get("category_id")) {
+    // Same expansion as Rails: a parent category also yields its children's
+    // listings, so the grid always agrees with the hub's rolled-up count.
+    const ids = selfAndChildIds(q.get("category_id"));
+    items = items.filter((l) => ids.includes(l.category_id));
+  }
   if (q.get("user_id")) items = items.filter((l) => String(l.seller_id) === q.get("user_id"));
   if (q.get("condition")) items = items.filter((l) => l.condition === q.get("condition"));
   if (q.get("price_min")) items = items.filter((l) => l.price >= Number(q.get("price_min")));
@@ -317,7 +375,14 @@ function route(req, res, method, path, q, body) {
   if (method === "DELETE" && path === "/auth/sign_out") return send(res, 200, { success: true });
 
   // ── Public (no auth required) ───────────────────────────────────────────
-  if (method === "GET" && path === "/categories") return send(res, 200, { categories: CATEGORIES });
+  // `?with_counts` (any value, like Rails' params[:with_counts].present?) adds
+  // active_listings_count to parents *and* subcategories; without it the plain
+  // tree is returned, so both call sites stay covered.
+  if (method === "GET" && path === "/categories") {
+    return send(res, 200, {
+      categories: q.get("with_counts") ? categoriesWithCounts() : CATEGORIES,
+    });
+  }
 
   if (method === "GET" && path === "/listings") {
     const items = filterListings(q);
@@ -463,8 +528,27 @@ function route(req, res, method, path, q, body) {
   if (lifecycleMatch && method === "PUT") {
     if (!requireAuth()) return;
     const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: "active" };
+    const action = lifecycleMatch[2];
     const v = myListingView(lifecycleMatch[1]);
-    return send(res, 200, { listing: { ...v, status: statusByAction[lifecycleMatch[2]] } });
+    const payload = { listing: { ...v, status: statusByAction[action] } };
+    // Like Rails: the `transaction` key exists ONLY when a real buyer was
+    // identified (reserve/sold with buyer_id) — that is what a review hangs off.
+    // A sale to "someone not on Hatiwal" sends no buyer and gets no transaction.
+    if ((action === "sold" || action === "reserve") && body && body.buyer_id) {
+      payload.transaction = {
+        id: 601,
+        status: action === "sold" ? "sold" : "reserved",
+        final_price: body.final_price ? Number(body.final_price) : v.price,
+        currency: v.currency,
+        completed_at: action === "sold" ? new Date().toISOString() : null,
+        created_at: new Date().toISOString(),
+        role: null, // serialized without a current_user, like Rails
+        listing: { id: v.id, title: v.title, thumbnail_url: null, price: v.price, currency: v.currency, status: statusByAction[action] },
+        buyer: { id: Number(body.buyer_id), name: SELLERS[body.buyer_id]?.name ?? "Sara Ahmadi", avatar_url: null },
+        seller: { id: 1, name: "Ahmad Karimi", avatar_url: null },
+      };
+    }
+    return send(res, 200, payload);
   }
   const myShowMatch = path.match(/^\/my\/listings\/(\d+)$/);
   if (myShowMatch) {

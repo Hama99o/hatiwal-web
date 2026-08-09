@@ -64,8 +64,15 @@ const VIEW_MODE_KEY = "hatiwal.bazaar.viewMode";
 
 function readViewMode(): ListingViewMode {
   if (typeof window === "undefined") return "grid";
-  const saved = window.localStorage.getItem(VIEW_MODE_KEY);
-  return saved === "list" ? "list" : "grid";
+  try {
+    const saved = window.localStorage.getItem(VIEW_MODE_KEY);
+    return saved === "list" ? "list" : "grid";
+  } catch {
+    // Storage unavailable (private mode / blocked cookies) — reading it THROWS,
+    // and this runs in a mount effect, so an unguarded read would take the whole
+    // Bazaar island down (no results, no search field). Fall back to the default.
+    return "grid";
+  }
 }
 
 function Chip({

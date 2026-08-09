@@ -33,7 +33,9 @@ const COMPACT_VIEWPORT = "(max-width: 1023px)";
  *
  * Hidden for the listing's own seller (`useIsOwner` — the same one rule every
  * buyer control on the page uses) and for non-active (reserved/sold) listings,
- * which show an inline notice plus recovery CTAs instead.
+ * which show an inline notice plus recovery CTAs instead. Because the bar decides
+ * that for itself, it also renders the spacer that keeps it off the page's last
+ * rows — a viewer who gets no bar must not get its reserved space either.
  *
  * Implementation note — the slide animation uses `bottom`, NOT `translate`: a
  * transform/translate on this element would make it the containing block for its
@@ -110,55 +112,73 @@ export function ListingActionBar({
   if (isOwner) return null;
 
   return (
-    <div
-      role="region"
-      aria-label={t("listing.detail.actionBarLabel")}
-      // Keeps the hidden bar out of the a11y tree and un-focusable.
-      inert={!pinned}
-      className={cn(
-        "fixed inset-x-0 z-40 border-t px-4 pt-3 lg:hidden",
-        // Honour the iOS home-indicator inset on top of the base padding.
-        "pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
-        "transition-[bottom,opacity] duration-200 ease-out motion-reduce:transition-none",
-        pinned ? "bottom-0 opacity-100" : "pointer-events-none -bottom-40 opacity-0",
-      )}
-    >
-      {/* The frosted background is its own layer on purpose: `backdrop-filter`
-          (like `transform`) makes an element the containing block for its
-          `position: fixed` descendants, which would tear the message/offer
-          dialogs out of the viewport. Keeping the blur on a sibling layer keeps
-          the look without capturing the dialogs. */}
+    <>
+      {/* The bar is `fixed`, so it takes up no space in the flow and would sit on
+          top of the page's last rows (the last rail, the report link) with no way
+          to scroll them clear. This spacer reserves its height — padding + the
+          default-size buttons + the iOS home-indicator inset — and it ships with
+          the bar rather than as padding on the page because only this component
+          knows whether a bar exists at all: desktop, a sold/reserved listing and
+          the seller's own listing all return above, and none of them may get a
+          strip of dead space above the footer. The page's own bottom padding
+          supplies the gap between content and bar. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-background/95 backdrop-blur"
+        data-testid="action-bar-spacer"
+        className="h-[calc(4rem+env(safe-area-inset-bottom))]"
       />
-      {/* Flex row mirrors itself in RTL: the price sits on the inline-start
-          side, the actions on the inline-end side, in every locale. The price is
-          `shrink-0` — a truncated price would misinform the buyer, so the CTA
-          gives up width first. */}
-      <div className="mx-auto flex max-w-6xl items-center gap-3">
-        <PriceTag
-          price={price}
-          currency={currency}
-          className="shrink-0 whitespace-nowrap"
+      <div
+        role="region"
+        aria-label={t("listing.detail.actionBarLabel")}
+        // Keeps the hidden bar out of the a11y tree and un-focusable.
+        inert={!pinned}
+        className={cn(
+          "fixed inset-x-0 z-40 border-t px-4 pt-3 lg:hidden",
+          // Honour the iOS home-indicator inset on top of the base padding.
+          "pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
+          "transition-[bottom,opacity] duration-200 ease-out motion-reduce:transition-none",
+          pinned
+            ? "bottom-0 opacity-100"
+            : "pointer-events-none -bottom-40 opacity-0",
+        )}
+      >
+        {/* The frosted background is its own layer on purpose: `backdrop-filter`
+            (like `transform`) makes an element the containing block for its
+            `position: fixed` descendants, which would tear the message/offer
+            dialogs out of the viewport. Keeping the blur on a sibling layer keeps
+            the look without capturing the dialogs. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 bg-background/95 backdrop-blur"
         />
-        <StartConversationButton
-          listingId={listingId}
-          sellerId={sellerId}
-          price={price}
-          currency={currency}
-          negotiable={negotiable}
-          layout="bar"
-        />
-        {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
-            heart has to read as a sibling of the offer button beside it. */}
-        <SaveButton
-          listingId={listingId}
-          initialSaved={initialSaved}
-          ownerId={sellerId}
-          variant="bar"
-        />
+        {/* Flex row mirrors itself in RTL: the price sits on the inline-start
+            side, the actions on the inline-end side, in every locale. The price is
+            `shrink-0` — a truncated price would misinform the buyer, so the CTA
+            gives up width first. */}
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <PriceTag
+            price={price}
+            currency={currency}
+            className="shrink-0 whitespace-nowrap"
+          />
+          <StartConversationButton
+            listingId={listingId}
+            sellerId={sellerId}
+            price={price}
+            currency={currency}
+            negotiable={negotiable}
+            layout="bar"
+          />
+          {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
+              heart has to read as a sibling of the offer button beside it. */}
+          <SaveButton
+            listingId={listingId}
+            initialSaved={initialSaved}
+            ownerId={sellerId}
+            variant="bar"
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

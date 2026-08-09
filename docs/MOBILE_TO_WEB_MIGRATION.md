@@ -135,7 +135,7 @@ mark-unread, away mode, counter-offer, etc.).
 | K741 | Mark read/unread from the list | ✅ | Per-row kebab item on `/conversations`: "Mark as read" when unread, "Mark as unread" otherwise. Optimistic flip of the row's `unreadCount` (0/1) + rollback on error; invalidates the conversations list and refreshes the user so the header aggregate unread badge stays in sync. Reuses `PUT /conversations/:id/mark_read`·`/mark_unread` (added to the `/api/me` allow-list). Keys mirror mobile `chat.actions.markRead/markUnread/markReadError`; RTL + dark |
 | A618 | Archive / unarchive conversation | ✅ | Inbox/Archived segmented toggle on `/conversations` + per-row kebab (Archive in inbox, Unarchive in archived). Optimistic row-removal + rollback on error; invalidates both partitions so the moved row lands on the other tab. Reuses `PUT /conversations/:id/archive`·`/unarchive` (added to `/api/me` allow-list) and `GET /conversations?archived=true`. 3 locales (keys mirror mobile `chat.tabs`/`chat.archive`); RTL + dark |
 | D2 | Conversation thread (bubbles, RTL) | ✅ | `/conversations/[id]` |
-| D2-READ | Read receipts (double-tick) | ❓ | Verify read receipts render on web; add from `readAt` if missing |
+| D2-READ | Read receipts (double-tick) | ✅ | Gap was real: bubbles rendered no `createdAt`/`readAt`. Every text / attachment / offer / counter / meetup bubble now ends in a meta row — `formatTime(createdAt)` + (on my own messages) a `Check` (sent) / `CheckCheck` (seen) tick titled from `chat.message.sent`·`seen`. Centred system + accepted/declined pills and the deleted tombstone stay bare, mirroring mobile. Thread inserts a day separator between calendar days (`lib/message-days.ts` `dayKey`, local not UTC), labelled `chat.day.today`/`yesterday` else `formatDate`; suppressed while in-thread search is active. No API change (`read_at`/`created_at` already serialized; `mark_read` already wired). The tick flips on the sender's next fetch — Rails broadcasts new messages only. 3 locales · RTL · light/dark · `e2e/chat-receipts.spec.ts` |
 | D2-CABLE | Real-time updates (ActionCable) | ✅ | ports directly — web already uses `@rails/actioncable` |
 | D3-MEET | Meetup propose + accept/decline | ✅ | |
 | D3-OFFER | Offer accept/decline | ✅ | |
@@ -240,8 +240,8 @@ house. **First batch seeded** = the recent post-audit features with the clearest
 - `WEB-V836` Recently viewed · `WEB-C1-DRAFT` New-listing draft autosave · `WEB-D094` Empty illustrations
 - ~~`WEB-R612` Report→block follow-up~~ ✅ shipped · `WEB-R739` My Reports screen · `WEB-W924` First-visit welcome
 
-**Verify-first (❓ — confirm the gap before building):** `C481`, `M826`, `C3` Expired tab, `D2-READ`,
-`G083`, `F084`, `D2-CLOSED`.
+**Verify-first (❓ — confirm the gap before building):** `C481`, `M826`, `C3` Expired tab,
+~~`D2-READ`~~ ✅ shipped (the gap was real), `G083`, `F084`, `D2-CLOSED`.
 
 > Housekeeping: as each `web` task ships, flip its row above from ⬜ to ✅ and update
 > `../../docs/MOBILE_WEB_PARITY.md` so the two docs never drift.

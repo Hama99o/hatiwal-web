@@ -97,6 +97,7 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
 | `edit-listing.spec.ts` | Prefilled values, save → manage screen |
 | `conversations.spec.ts` | Inbox list, open thread; **empty**; guest redirect |
 | `conversation-thread.spec.ts` | History, send message, closed-conversation banner, **load error** |
+| `chat-receipts.spec.ts` | Bubble meta row: time on every bubble kind, sent/seen ticks (none on incoming), day separators (Today/Yesterday/date, hidden while searching), tick flip on refetch, ps/fa RTL |
 | `saved.spec.ts` | Favorited listings; **empty**; guest redirect |
 | `blocked-users.spec.ts` | List + unblock toast; **empty** |
 
