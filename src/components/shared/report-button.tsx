@@ -6,6 +6,7 @@ import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import {
   createReport,
   type ReportableType,
@@ -64,7 +65,13 @@ export function ReportButton({
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const { status, user } = useAuth();
+  const { status } = useAuth();
+  // Don't let people report their own listing / their own profile. Reporting a
+  // *user* means the reportable IS the owner; for a listing it's its seller.
+  // Same shared owner rule as every other owner-gated control (`useIsOwner`).
+  const isOwner = useIsOwner(
+    reportableType === "User" ? reportableId : ownerId,
+  );
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
@@ -74,9 +81,7 @@ export function ReportButton({
   const titleId = useId();
   const noteId = useId();
 
-  // Don't let people report their own listing / their own profile.
-  const ownId = reportableType === "User" ? reportableId : ownerId;
-  if (status === "authed" && user && ownId && user.id === ownId) return null;
+  if (isOwner) return null;
 
   function onTrigger() {
     if (status !== "authed") {

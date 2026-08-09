@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Phone } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -21,13 +22,14 @@ export function SellerPhoneReveal({
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const { status, user } = useAuth();
+  const { status } = useAuth();
+  // Shared owner rule (`useIsOwner`) — the same test every owner-gated control
+  // on the listing page uses, so "is this mine?" is decided in exactly one place.
+  const isOwner = useIsOwner(sellerId);
   const [revealed, setRevealed] = useState(false);
 
   if (!phone) return null;
-  if (status === "authed" && user && sellerId && user.id === sellerId) {
-    return null; // your own listing
-  }
+  if (isOwner) return null; // your own listing — you know your own number
 
   if (!revealed) {
     return (

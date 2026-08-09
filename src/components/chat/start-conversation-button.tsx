@@ -7,6 +7,7 @@ import { Loader2, MessageCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useIsOwner } from "@/components/auth/owner-gate";
 import {
   getConversations,
   sendMessage,
@@ -52,7 +53,11 @@ export function StartConversationButton({
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
-  const { status, user } = useAuth();
+  const { status } = useAuth();
+  // Shared owner rule (`useIsOwner`) — the same test <OwnerListingBar>,
+  // <SaveButton>, <SafetyTips> and the sticky bar use, so a seller can never see
+  // a "message yourself" CTA through one entry point but not another.
+  const isOwner = useIsOwner(sellerId);
   const [open, setOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
   const [msg, setMsg] = useState("");
@@ -90,9 +95,7 @@ export function StartConversationButton({
     </>
   );
 
-  if (status === "authed" && user && sellerId && user.id === sellerId) {
-    return null; // your own listing
-  }
+  if (isOwner) return null; // your own listing — <OwnerListingBar> takes over
 
   if (status !== "authed") {
     return (
