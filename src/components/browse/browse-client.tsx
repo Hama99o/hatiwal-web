@@ -5,6 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
+  ChevronDown,
   LayoutGrid,
   List,
   Loader2,
@@ -40,6 +41,8 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SearchField } from "@/components/shared/search-field";
+import { SearchHistoryPanel } from "@/components/shared/search-history-panel";
+import { useSearchHistory } from "@/lib/use-search-history";
 import { SavedSearches } from "./saved-searches";
 import { LocationMap } from "@/components/map/location-map";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +114,22 @@ export function BrowseClient({
   // True while the "Nearest first" sort is acquiring a browser Geolocation fix.
   const [nearestLoading, setNearestLoading] = useState(false);
 
+  // Recent searches — client-only history shared with the site-header field
+  // (one store, two entry points). In the sidebar the chips show whenever the
+  // box is EMPTY — deliberately NOT gated on focus. That is mobile's rule
+  // (BrowseHeader shows the history block for `search === ""` and hides it only
+  // while a query is being typed; a past mobile fix explicitly stopped hiding
+  // it in other situations), and on a phone the sidebar sits behind the Filters
+  // toggle where a focus-only panel would be effectively undiscoverable.
+  // The header's floating dropdown stays focus-gated — an overlay must not hang
+  // over the page unprompted.
+  const {
+    history: searchHistory,
+    add: recordSearch,
+    remove: removeSearch,
+    clear: clearSearchHistory,
+  } = useSearchHistory();
+
   // Grid/list view mode — client-only preference persisted to localStorage.
   // SSR-safe: always start "grid" so server and first client render match, then
   // hydrate the saved choice on mount (avoids a hydration mismatch).
@@ -160,6 +179,15 @@ export function BrowseClient({
     return () => clearTimeout(id);
   }, [searchInput]);
 
+  // Recent-search history: record a term only once the search COMMITS — the
+  // debounced `q` settling, an Enter submit, or a chip re-run — never per
+  // keystroke. The store trims, ignores blanks/1-char terms, dedupes
+  // case-insensitively and caps the list, so calling it on every commit is
+  // safe. Mirrors mobile's Browse.tsx (`addToSearchHistory` on debounce settle).
+  useEffect(() => {
+    recordSearch(filters.q);
+  }, [filters.q, recordSearch]);
+
   // Seed the SSR result ONLY for the initial filters' query key. initialData on
   // an observer is otherwise reused for EVERY new key it creates, so a filter
   // change would show the initial (e.g. all-categories) results — treated as
@@ -206,6 +234,19 @@ export function BrowseClient({
     e.preventDefault();
     update({ q: searchInput.trim() });
   };
+
+  // Re-run a recent search: fill the search box AND apply immediately through
+  // the same update() that syncs URL ⇄ filters ⇄ query — identical to typing
+  // the term and pressing Enter (no parallel state). The box is no longer empty
+  // afterwards, so the chips hide themselves and never cover the results the
+  // buyer just asked for.
+  const applyRecentSearch = useCallback(
+    (term: string) => {
+      setSearchInput(term);
+      update({ q: term });
+    },
+    [update],
+  );
 
   const reset = () => {
     setSearchInput("");
@@ -319,6 +360,21 @@ export function BrowseClient({
           placeholder={t("browse.searchPlaceholder")}
           aria-label={t("browse.searchPlaceholder")}
         />
+        {/* Recent searches — shown while the box is EMPTY (no focus needed, like
+            mobile's BrowseHeader), so a returning buyer sees their last searches
+            straight away and typing hides them so they never compete with live
+            results. Inline (not floating) because the sidebar is an independent
+            scroll area where an overlay would be clipped. */}
+        {searchInput === "" && (
+          <SearchHistoryPanel
+            variant="inline"
+            layout="scroll"
+            history={searchHistory}
+            onSelect={applyRecentSearch}
+            onRemove={removeSearch}
+            onClear={clearSearchHistory}
+          />
+        )}
       </form>
 
       <div>
@@ -338,22 +394,65 @@ export function BrowseClient({
               {t("browse.allCategories")}
             </button>
           </li>
-          {categories.map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => update({ categorySlug: c.slug })}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm transition-colors hover:bg-accent",
-                  filters.categorySlug === c.slug &&
-                    "font-semibold text-primary",
+          {categories.map((c) => {
+            const subs = c.subcategories ?? [];
+            // Children reveal themselves once the parent (or one of them) is
+            // the active filter — mirrors mobile's expandable SubcategoryPanel
+            // without turning the sidebar into a wall of links.
+            const expanded =
+              subs.length > 0 &&
+              (filters.categorySlug === c.slug ||
+                subs.some((s) => s.slug === filters.categorySlug));
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => update({ categorySlug: c.slug })}
+                  aria-expanded={subs.length > 0 ? expanded : undefined}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm transition-colors hover:bg-accent",
+                    filters.categorySlug === c.slug &&
+                      "font-semibold text-primary",
+                  )}
+                >
+                  {c.icon ? <span aria-hidden>{c.icon}</span> : null}
+                  <span className="truncate">{categoryName(c, locale)}</span>
+                  {subs.length > 0 && (
+                    <ChevronDown
+                      aria-hidden
+                      className={cn(
+                        "ms-auto size-3.5 shrink-0 text-muted-foreground transition-transform",
+                        !expanded && "-rotate-90 rtl:rotate-90",
+                      )}
+                    />
+                  )}
+                </button>
+                {expanded && (
+                  <ul className="ms-3 mt-0.5 space-y-0.5 border-s ps-2">
+                    {subs.map((s) => (
+                      <li key={s.id}>
+                        <button
+                          type="button"
+                          onClick={() => update({ categorySlug: s.slug })}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm transition-colors hover:bg-accent",
+                            filters.categorySlug === s.slug
+                              ? "font-semibold text-primary"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {s.icon ? <span aria-hidden>{s.icon}</span> : null}
+                          <span className="truncate">
+                            {categoryName(s, locale)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              >
-                {c.icon ? <span aria-hidden>{c.icon}</span> : null}
-                <span className="truncate">{categoryName(c, locale)}</span>
-              </button>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </div>
 

@@ -1,10 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { LogOut, Pencil } from "lucide-react";
+import { Eye, LogOut, Pencil } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserIdentity } from "@/components/shared/user-identity";
+import { RatingDisplay } from "@/components/shared/rating-display";
+import { ReviewsSection } from "@/components/seller/reviews-section";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -52,13 +54,22 @@ export function ProfileView() {
       <PendingReviewsNudge />
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
-        <UserIdentity
-          name={name}
-          avatarUrl={user.avatarUrl}
-          verified={user.verified}
-          subtitle={user.city ?? user.email}
-          size={64}
-        />
+        <div className="min-w-0 space-y-2">
+          <UserIdentity
+            name={name}
+            avatarUrl={user.avatarUrl}
+            verified={user.verified}
+            subtitle={user.city ?? user.email}
+            size={64}
+          />
+          {/* Your own reputation — the number buyers judge you by. Falls back to
+              a neutral "No reviews yet" for a brand-new account. */}
+          <RatingDisplay
+            avgRating={user.avgRating}
+            reviewCount={user.reviewCount}
+            size="lg"
+          />
+        </div>
         <Button asChild variant="outline" size="sm">
           <Link href="/profile/edit">
             <Pencil className="size-4" />
@@ -91,6 +102,14 @@ export function ProfileView() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        {/* /sellers/[id] is the canonical public profile (/users/[id] redirects
+            to it) — lets you see exactly what buyers see. */}
+        <Button asChild variant="secondary" className="col-span-2">
+          <Link href={`/sellers/${user.id}`}>
+            <Eye className="size-4" />
+            {t("profile.viewPublicProfile")}
+          </Link>
+        </Button>
         <Button asChild variant="secondary">
           <Link href="/saved">{t("saved.title")}</Link>
         </Button>
@@ -104,6 +123,16 @@ export function ProfileView() {
           <Link href="/bazaar">{t("profile.quickActions.browse")}</Link>
         </Button>
       </div>
+
+      {/* The reviews buyers left about you — same component (role tabs, load
+          more, skeleton, empty state) as the public seller profile, only the
+          heading differs. `getUserReviews` is public, so your own id works. */}
+      <ReviewsSection
+        sellerId={user.id}
+        avgRating={user.avgRating}
+        reviewCount={user.reviewCount ?? 0}
+        title={t("reviews.myReviewsTitle")}
+      />
 
       <Button
         variant="ghost"

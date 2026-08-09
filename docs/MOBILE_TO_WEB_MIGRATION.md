@@ -58,6 +58,7 @@ mark-unread, away mode, counter-offer, etc.).
 |---|---|---|---|
 | B1 | Browse (Bazaar) feed + infinite scroll | ✅ | `/bazaar` |
 | B3 | Keyword search | ✅ | |
+| B3-HISTORY | Recent-search memory (last 10 terms) | ✅ | One client-only store `src/lib/use-search-history.ts` (localStorage `hatiwal.searchHistory`; trim · min 2 chars · case-insensitive dedupe · newest-first · cap 10 — mobile's `searchHistory.store.ts` rules) rendered by the shared `components/shared/search-history-panel.tsx` from BOTH fields: header (focus-gated dropdown) + Bazaar sidebar (inline while the box is empty). Chip re-runs the search through the existing `?q=` path. No API, no auth, nothing new in the URL — works logged out |
 | B3b | Category filter chips + picker | ✅ | |
 | B7 | Item-condition filter | ✅ | |
 | B-PRICE | Price-range filter | ✅ | |
@@ -77,8 +78,8 @@ mark-unread, away mode, counter-offer, etc.).
 
 | ID | Feature | Web | Migration note |
 |---|---|---|---|
-| C736 | Categories hub (grid + live counts) | ✅ | `/categories` (also SEO landing pages) |
-| S417 | Subcategory drill-down | ⬜ | Expand subcategories in the hub + a Bazaar subcategory filter |
+| C736 | Categories hub (grid + live counts) | ✅ | `/categories` (also SEO landing pages) — one `categories?with_counts=true` call feeds the counts + children; empty categories are de-emphasised and sorted last |
+| S417 | Subcategory drill-down | ✅ | Subcategory chips on each hub card → `/categories/<child-slug>`; Bazaar sidebar nests children under the selected parent (`?category=<child-slug>`) |
 
 ## B2 — Listing Detail (buyer view)
 
@@ -91,17 +92,21 @@ mark-unread, away mode, counter-offer, etc.).
 | B2-MSG | "Message seller" CTA → first message | ✅ | |
 | B2-OFFER | Make an offer (quick-amount chips) | ✅ | |
 | B2-SAVE | Save-heart (optimistic) | ✅ | |
+| B2BAR | **Sticky mobile action bar** (price + Message seller + Save) | ✅ | `listing-action-bar.tsx` — web port of mobile's sticky bottom CTA. Client island, `lg:hidden` (also gated on `matchMedia` so it is never in the desktop DOM); an `IntersectionObserver` on `#listing-actions` hides it while the inline CTA block is on screen. Reuses `StartConversationButton` (new `layout="bar"` → compact row, icon-only offer) + `SaveButton` verbatim, so the conversation/offer/save mutations are shared with the inline block. Returns null for the seller's own listing and for non-active listings. Slides via `bottom`, and the frosted background is a separate layer — `transform`/`backdrop-filter` would make the fixed bar the containing block for the message/offer dialogs. Page gets `pb-28 lg:pb-6`; `pb-[calc(0.75rem+env(safe-area-inset-bottom))]`. One new key `listing.detail.actionBarLabel` in en/ps/fa; RTL mirrors (price on the start side) + dark; 5 Playwright specs (`e2e/listing-action-bar.spec.ts`) |
 | G274 | Listing map snippet | ✅ | Leaflet |
 | B173 | Similar-listings rail | ✅ | `/listings/:id/similar` |
+| M547 | **"More from this Seller" rail** | ✅ | Second cross-sell rail on `/listings/[id]`, above Similar listings: `getListings({ userId: seller.id, status: 'active' })` (one extra request, skipped when there is no seller), current listing filtered out, capped at 4, trailing "view all" → `/sellers/[id]`. Both rails now render through shared `listing-rail.tsx` (heading + optional view-all + `ListingGrid`, renders nothing when empty) — this also fixed the similar rail's mislabeled heading (`home.recent` → `listing.detail.similarListings`). Key `listing.detail.moreFromSeller` mirrors mobile; 3 locales; RTL + dark |
 | B7b | Condition badge | ✅ | |
 | N804 | **Price-drop badge** (% drop ≤14d) | ✅ | Shared `price-drop-badge.tsx` (detail + card variants, success tone + TrendingDown). Shown on `/listings/[id]` and every `ListingCard` when `priceDropPercent` is present. Reuses `priceDropPercent`/`priceDroppedAt` (both nil outside the Rails 14-day `PRICE_DROP_WINDOW`) — no contract change; 3 locales; RTL + dark |
 | N805 | **Seller response-rate badge** | ✅ | "Usually responds within…" trust row on listing detail seller card + `/sellers/[id]`. Shared `response-rate-badge.tsx`; reuses `:detailed` seller fields (seller page enriched via one listing detail fetch — kept off the `:list` view to avoid browse-feed N+1) |
 | V259 | **Saved-by-N social proof** | ✅ | "Saved by N people" meta on `/listings/[id]`, shown only when N>0, HEART icon, styled like the views count. Uses `savesCount` already on the `:detailed` response (serializer `saves_count`, eager-loaded on `#show`) — no contract change. `savesCount` plural keys in en/ps/fa mirror the mobile wording; RTL + dark |
 | N071 | Firm / negotiable badge (gates offer) | ✅ | Shared `firm-price-badge.tsx` (muted Badge + Lock, `listing.firmPrice`); shown on `/listings/[id]` beside the price and on every `ListingCard` when `negotiable === false`. `StartConversationButton` hides the Make-offer CTA + offer dialog when firm (`negotiable !== false` = negotiable default, mirrors mobile). Reuses the existing `negotiable` field (served on list/detailed views) — no contract change; 3 locales; RTL + dark |
-| C3b | Expiry badge (owner detail) | ⬜ | 30-day countdown on owner's own listing detail |
+| C3b | Expiry badge (owner detail) | ✅ | Shared `expiry-badge.tsx` (self-gates on `status === "active"` + ≤7 days). Rendered on both owner surfaces: `/my-listings/[id]` and, via `OwnerListingBar`, the public `/listings/[id]` |
+| OWN947 | **Owner action bar on your own listing** | ✅ | `owner-listing-bar.tsx` on `/listings/[id]`. Every buyer control self-hides for the seller (message/phone/save/hide/report) and an active listing never hits the unavailable notice, so a seller opening their own listing had an empty action column with buyer safety tips. Owner-only panel (client, `useAuth`): `listing.detail.ownListingNotice` + `StatusBadge` + `ExpiryBadge`, views/saves counts, then Manage → `/my-listings/[id]`, Edit → `/listings/[id]/edit`, View Conversations → `/conversations?listing=[id]`. `SafetyTips` now takes `ownerId` and hides for the owner (buyer guidance). No new keys (reuses `listing.detail.ownListingNotice`, `listing.ownerDetail.actions`/`viewConversations`, `common.edit`); no contract change; RTL + dark; 5 Playwright specs |
 | W628 | Seller "away" banner | ✅ | Shared `away-banner.tsx` ("Seller is away until [date]", `PlaneTakeoff`, primary/info tone). Shown on `/listings/[id]` (buyer, `seller.sellerAwayUntil`), `/sellers/[id]` (public profile, enriched from listing detail), and the seller's own `/profile` (`profile.away.youAreAway`). Guards past dates client-side; reuses `is_away`/`away_until` from the serializer — no contract change. 3 locales; RTL + dark |
 | L824 | Shareable listing link | ✅ | Shared `share-button.tsx` (Share2 + `common.share`) in the `/listings/[id]` badge row, all statuses. Web Share API when available (localized `listing.share.body` "{title} — {price}" + page URL); otherwise copies `window.location.href` + `common.linkCopied` sonner toast (label flips to `common.copyLink` on desktop). No contract change; 3 locales; RTL + dark |
 | B2-STATE | Detail states (skeleton/not-found/sold) | ✅ | |
+| SOLDNEXT | **Recovery CTAs on a sold/reserved listing** | ✅ | `unavailable-actions.tsx` replaces the flat grey notice on `/listings/[id]`. Keeps the status sentence (`soldNotice`/`reservedNotice`, falling back to `unavailableNotice` for a draft) and adds the two next steps a guest arriving from Google actually needs: PRIMARY "See similar in {category}" → `/bazaar?category=<slug>&min=<0.7×price>&max=<1.3×price>` and SECONDARY "More from {name}" → `/sellers/[id]`. The band is serialized with the shared `filtersToSearchString`, so the Bazaar sidebar renders category+min+max as active filters and the pill counts 3 — no new param vocabulary; Bazaar only queries `status: "active"`, so the dead listing can't reappear. Exported `priceBand()` drops `min`/`max` for a 0/null/negative price and never emits an inverted range. Each CTA self-omits when its data is missing (no link to nowhere). Reserved adds one muted "a reservation can fall through" line so the unchanged `SaveButton` below still reads as worthwhile. Props-only → **Server Component, zero client JS** on an indexed page. New keys `listing.detail.seeSimilarIn` / `moreFromSellerNamed` / `reservedMayFreeUp` in en/ps/fa (existing notice keys reused verbatim; `moreFromSeller` stays the rail heading). No contract change; RTL (`rtl:-scale-x-100` chevron, logical spacing) + dark; 6 Playwright specs |
 
 ## C — Seller: Listings & Lifecycle
 
@@ -114,7 +119,7 @@ mark-unread, away mode, counter-offer, etc.).
 | C1-DRAFT | New-listing draft autosave + restore | ⬜ | Persist unsent form to localStorage; restore/discard banner on reopen |
 | C2 | My Listings (My Shop) + status tabs | ✅ | `/my-listings` |
 | M826 | Per-status tab counts | ❓ | Verify counts on All/Draft/Active/Expired/Reserved/Sold tabs; add if missing |
-| C2-* | Lifecycle: publish/reserve/sold/unpublish/delete | ✅ | full lifecycle on `/my-listings/[id]` |
+| C2-* | Lifecycle: publish/reserve/sold/unpublish/delete | ✅ | full lifecycle on `/my-listings/[id]` **and inline on every `/my-listings` card** (TASK-WEB-C2-ACTIONS, mobile parity with `SellerListingCard`). The shared brain lives in `account/listing-actions.tsx` (`LIFECYCLE` copy map + `actionsFor()` + `useListingLifecycle()`), imported by BOTH the detail view and the card footer — defined once. The card footer (`account/seller-listing-actions.tsx`) renders one primary Button + a kebab (`ui/dropdown-menu`) with the remaining transitions, Edit and a destructive Delete; reserve/sold reuse `SellBuyerDialog` → `ReviewPromptDialog`, everything else `ConfirmDialog`. `ListingCard` gained an optional `footer` prop (rendered outside the anchor) and `ListingGrid` a `footerFor` — extended, not forked. No new endpoints, no new i18n keys; RTL (`dir` on the menu, logical spacing) + dark |
 | C3 | Expiry + **Renew** + Expired tab | ❓ | Renew action is ✅ (parity); verify the **Expired tab** + expiry badge exist, add if missing |
 | C-DETAIL | Owner listing detail + manage | ✅ | |
 | N802 | 7-day views sparkline analytics | ✅ | views chart on `/my-listings/[id]` |
@@ -230,7 +235,7 @@ house. **First batch seeded** = the recent post-audit features with the clearest
 
 **P3 — discovery & re-engagement**
 - `WEB-B931` Most-viewed sort · `WEB-B617` Active-sellers filter · `WEB-B6` Seen indicator
-- `WEB-B-VIEW` Grid/list toggle · `WEB-S417` Subcategory drill-down · `WEB-N612` Saved-search new-match badge
+- `WEB-B-VIEW` Grid/list toggle · ~~`WEB-S417` Subcategory drill-down~~ ✅ shipped · `WEB-N612` Saved-search new-match badge
 - `WEB-V836` Recently viewed · `WEB-C1-DRAFT` New-listing draft autosave · `WEB-D094` Empty illustrations
 - `WEB-R612` Report→block follow-up · `WEB-R739` My Reports screen · `WEB-W924` First-visit welcome
 

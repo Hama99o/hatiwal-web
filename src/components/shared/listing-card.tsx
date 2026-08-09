@@ -27,6 +27,12 @@ interface ListingCardProps {
   priority?: boolean;
   /** Override the link target (defaults to the public /listings/[id]). */
   href?: string;
+  /**
+   * Optional action row rendered UNDER the card body, outside the link (so its
+   * buttons/menus are clickable and valid HTML). Used by the seller dashboard
+   * for inline lifecycle quick-actions — see `account/seller-listing-actions`.
+   */
+  footer?: React.ReactNode;
   className?: string;
 }
 
@@ -42,6 +48,7 @@ export function ListingCard({
   showSave = true,
   priority = false,
   href,
+  footer,
   className,
 }: ListingCardProps) {
   const locale = useLocale();
@@ -88,134 +95,148 @@ export function ListingCard({
 
   if (variant === "list") {
     return (
-      <Link
-        href={href ?? `/listings/${listing.id}`}
+      // The link wraps only the photo + body: an optional action footer must sit
+      // OUTSIDE the anchor (buttons inside a link are neither valid nor usable).
+      <div
         className={cn(
-          "group flex gap-3 overflow-hidden rounded-lg border bg-card p-2 transition-shadow hover:shadow-md",
-          listing.isViewed && "opacity-80",
+          "group flex flex-col overflow-hidden rounded-lg border bg-card p-2 transition-shadow hover:shadow-md",
           className,
         )}
       >
-        <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-md bg-muted sm:w-28">
-          <RemoteImage
-            src={cover}
-            alt={listing.title}
-            fill
-            sizes="112px"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            priority={priority}
-          />
-          {(listing.priceDropPercent || seenBadge) && (
-            <div
-              className={cn(
-                "absolute inset-x-1 top-1 flex flex-wrap gap-1",
-                showSave && "pe-12",
-              )}
-            >
-              {seenBadge}
-              {listing.priceDropPercent ? (
-                <PriceDropBadge
-                  percent={listing.priceDropPercent}
-                  variant="card"
-                />
-              ) : null}
-            </div>
-          )}
-          {saveHeart}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <PriceTag
-              price={listing.price}
-              currency={listing.currency}
-              size="md"
+        {/* The "already seen" dim stays on the CONTENT: a footer action row (and
+            the modals it opens) must never inherit it. */}
+        <Link
+          href={href ?? `/listings/${listing.id}`}
+          className={cn("flex gap-3", listing.isViewed && "opacity-80")}
+        >
+          <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-md bg-muted sm:w-28">
+            <RemoteImage
+              src={cover}
+              alt={listing.title}
+              fill
+              sizes="112px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              priority={priority}
             />
-            {listing.negotiable === false && (
-              <FirmPriceBadge negotiable={listing.negotiable} />
+            {(listing.priceDropPercent || seenBadge) && (
+              <div
+                className={cn(
+                  "absolute inset-x-1 top-1 flex flex-wrap gap-1",
+                  showSave && "pe-12",
+                )}
+              >
+                {seenBadge}
+                {listing.priceDropPercent ? (
+                  <PriceDropBadge
+                    percent={listing.priceDropPercent}
+                    variant="card"
+                  />
+                ) : null}
+              </div>
             )}
+            {saveHeart}
           </div>
-          <p className="line-clamp-2 text-sm font-medium text-foreground">
-            {listing.title}
-          </p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {showStatusBadge && <StatusBadge status={listing.status} />}
-            {showStatus && (
-              <ExpiryBadge
-                status={listing.status}
-                expiresAt={listing.expiresAt}
-                expired={listing.expired}
+          <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <PriceTag
+                price={listing.price}
+                currency={listing.currency}
+                size="md"
               />
-            )}
-            {listing.condition && (
-              <ConditionBadge condition={listing.condition} />
-            )}
+              {listing.negotiable === false && (
+                <FirmPriceBadge negotiable={listing.negotiable} />
+              )}
+            </div>
+            <p className="line-clamp-2 text-sm font-medium text-foreground">
+              {listing.title}
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {showStatusBadge && <StatusBadge status={listing.status} />}
+              {showStatus && (
+                <ExpiryBadge
+                  status={listing.status}
+                  expiresAt={listing.expiresAt}
+                  expired={listing.expired}
+                />
+              )}
+              {listing.condition && (
+                <ConditionBadge condition={listing.condition} />
+              )}
+            </div>
+            {meta}
           </div>
-          {meta}
-        </div>
-      </Link>
+        </Link>
+        {footer && <div className="mt-2 border-t pt-2">{footer}</div>}
+      </div>
     );
   }
 
   return (
-    <Link
-      href={href ?? `/listings/${listing.id}`}
+    <div
       className={cn(
-        "group block overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md",
-        listing.isViewed && "opacity-80",
+        "group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md",
         className,
       )}
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-muted">
-        <RemoteImage
-          src={cover}
-          alt={listing.title}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-          priority={priority}
-        />
-        <div
-          className={cn(
-            "absolute inset-x-2 top-2 flex flex-wrap gap-1",
-            showSave && "pe-12",
-          )}
-        >
-          {showStatusBadge && <StatusBadge status={listing.status} />}
-          {seenBadge}
-          {listing.priceDropPercent ? (
-            <PriceDropBadge
-              percent={listing.priceDropPercent}
-              variant="card"
-            />
-          ) : null}
-        </div>
-        {saveHeart}
-      </div>
-      <div className="space-y-1 p-3">
-        <PriceTag price={listing.price} currency={listing.currency} size="md" />
-        {listing.negotiable === false && (
-          <FirmPriceBadge negotiable={listing.negotiable} />
-        )}
-        <p className="line-clamp-2 text-sm font-medium text-foreground">
-          {listing.title}
-        </p>
-        {showStatus && (
-          <ExpiryBadge
-            status={listing.status}
-            expiresAt={listing.expiresAt}
-            expired={listing.expired}
+      <Link
+        href={href ?? `/listings/${listing.id}`}
+        className={cn("block", listing.isViewed && "opacity-80")}
+      >
+        <div className="relative aspect-square w-full overflow-hidden bg-muted">
+          <RemoteImage
+            src={cover}
+            alt={listing.title}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority}
           />
-        )}
-        {listing.condition && (
-          <ConditionBadge condition={listing.condition} />
-        )}
-        {listing.location && (
-          <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="size-3 shrink-0" />
-            <span className="truncate">{listing.location}</span>
-          </span>
-        )}
-      </div>
-    </Link>
+          <div
+            className={cn(
+              "absolute inset-x-2 top-2 flex flex-wrap gap-1",
+              showSave && "pe-12",
+            )}
+          >
+            {showStatusBadge && <StatusBadge status={listing.status} />}
+            {seenBadge}
+            {listing.priceDropPercent ? (
+              <PriceDropBadge
+                percent={listing.priceDropPercent}
+                variant="card"
+              />
+            ) : null}
+          </div>
+          {saveHeart}
+        </div>
+        <div className="space-y-1 p-3">
+          <PriceTag price={listing.price} currency={listing.currency} size="md" />
+          {listing.negotiable === false && (
+            <FirmPriceBadge negotiable={listing.negotiable} />
+          )}
+          <p className="line-clamp-2 text-sm font-medium text-foreground">
+            {listing.title}
+          </p>
+          {showStatus && (
+            <ExpiryBadge
+              status={listing.status}
+              expiresAt={listing.expiresAt}
+              expired={listing.expired}
+            />
+          )}
+          {listing.condition && (
+            <ConditionBadge condition={listing.condition} />
+          )}
+          {listing.location && (
+            <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{listing.location}</span>
+            </span>
+          )}
+        </div>
+      </Link>
+      {/* `mt-auto` keeps the action rows aligned across a row of cards whose
+          titles wrap to different heights. */}
+      {footer && <div className="mt-auto border-t p-2">{footer}</div>}
+    </div>
   );
 }

@@ -24,10 +24,13 @@ import { ReportButton } from "@/components/shared/report-button";
 import { ShareButton } from "@/components/shared/share-button";
 import { SafetyTips } from "@/components/shared/safety-tips";
 import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
+import { UnavailableActions } from "@/components/listing/unavailable-actions";
+import { OwnerListingBar } from "@/components/listing/owner-listing-bar";
 import { HideListingButton } from "@/components/listing/hide-listing-button";
+import { ListingActionBar } from "@/components/listing/listing-action-bar";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { RecordListingView } from "@/components/listing/record-listing-view";
-import { ListingGrid } from "@/components/shared/listing-grid";
+import { ListingRail } from "@/components/shared/listing-rail";
 import { LocationMap } from "@/components/map/location-map";
 import { Separator } from "@/components/ui/separator";
 
@@ -75,9 +78,15 @@ export default async function ListingDetailPage({
   const listing = await safe(getListing(id), null);
   if (!listing) notFound();
 
-  const similar = listing.categoryId
-    ? (
-        await safe(
+  // Two cross-sell rails, fetched in parallel (one request each, and each one
+  // skipped entirely when its key is missing): same-category "Similar listings"
+  // and the seller's other active stock ("More from this Seller" — mirrors mobile
+  // TASK-M547). Both are public info, so neither is owner-gated. A failed fetch
+  // degrades via safe() to an empty list → the rail simply doesn't render.
+  const sellerId = listing.seller?.id;
+  const [similarResult, sellerResult] = await Promise.all([
+    listing.categoryId
+      ? safe(
           getListings({
             categoryId: listing.categoryId,
             status: "active",
@@ -85,10 +94,21 @@ export default async function ListingDetailPage({
           }),
           EMPTY_LISTINGS,
         )
-      ).items
-        .filter((l) => l.id !== listing.id)
-        .slice(0, 5)
-    : [];
+      : EMPTY_LISTINGS,
+    sellerId
+      ? safe(
+          getListings({ userId: sellerId, status: "active", pageSize: 12 }),
+          EMPTY_LISTINGS,
+        )
+      : EMPTY_LISTINGS,
+  ]);
+
+  const similar = similarResult.items
+    .filter((l) => l.id !== listing.id)
+    .slice(0, 5);
+  const sellerListings = sellerResult.items
+    .filter((l) => l.id !== listing.id)
+    .slice(0, 4);
 
   const isActive = listing.status === "active";
 
@@ -110,8 +130,10 @@ export default async function ListingDetailPage({
     },
   };
 
+  // pb-28 below `lg` leaves room for the sticky <ListingActionBar> so the bar can
+  // never sit on top of the report link or the site footer.
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-28 lg:pb-6">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -238,39 +260,63 @@ export default async function ListingDetailPage({
             </div>
           )}
 
-          {/* Actions — primary CTA (message seller) first, Save below it. */}
-          {isActive ? (
-            <div className="space-y-2">
-              <StartConversationButton
-                listingId={listing.id}
-                sellerId={listing.seller?.id}
+          {/* Actions — primary CTA (message seller) first, Save below it.
+              `id="listing-actions"` is the sentinel <ListingActionBar> watches:
+              while this block is on screen the sticky mobile bar stays hidden. */}
+          <div id="listing-actions" className="space-y-5">
+            {/* Owner-only column: every buyer control below self-hides for the
+                seller, so without this their own listing has no actions at all.
+                Renders null for buyers/guests. */}
+            <OwnerListingBar
+              listingId={listing.id}
+              sellerId={listing.seller?.id}
+              status={listing.status}
+              expiresAt={listing.expiresAt}
+              expired={listing.expired}
+              viewsCount={listing.viewsCount}
+              savesCount={listing.savesCount}
+            />
+            {isActive ? (
+              <div className="space-y-2">
+                <StartConversationButton
+                  listingId={listing.id}
+                  sellerId={listing.seller?.id}
+                  price={listing.price}
+                  currency={listing.currency}
+                  negotiable={listing.negotiable}
+                />
+                <SellerPhoneReveal
+                  phone={listing.seller?.phone}
+                  sellerId={listing.seller?.id}
+                />
+              </div>
+            ) : (
+              /* Sold / reserved is not a dead end: keep the status sentence but
+                 offer the two recovery paths (same category + price band, and the
+                 seller's other stock). The SaveButton below stays visible — a
+                 reservation can still fall through. */
+              <UnavailableActions
+                status={listing.status}
+                category={listing.category}
                 price={listing.price}
-                currency={listing.currency}
-                negotiable={listing.negotiable}
-              />
-              <SellerPhoneReveal
-                phone={listing.seller?.phone}
                 sellerId={listing.seller?.id}
+                sellerName={listing.seller?.name}
+                locale={locale}
               />
-            </div>
-          ) : (
-            <div className="rounded-lg border bg-muted/50 p-4 text-center text-sm font-medium text-muted-foreground">
-              {listing.status === "sold"
-                ? t("listing.detail.soldNotice")
-                : t("listing.detail.reservedNotice")}
-            </div>
-          )}
-          <SaveButton
-            listingId={listing.id}
-            initialSaved={listing.isSaved}
-            ownerId={listing.seller?.id}
-            variant="detail"
-          />
+            )}
+            <SaveButton
+              listingId={listing.id}
+              initialSaved={listing.isSaved}
+              ownerId={listing.seller?.id}
+              variant="detail"
+            />
+          </div>
           {/* No payment/delivery — deals happen in person, so surface meet-safely
               guidance right by the contact actions (mirrors mobile). "Not
-              interested" hides the listing from the buyer's feed. */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <SafetyTips />
+              interested" hides the listing from the buyer's feed. Both are buyer
+              affordances, so both take `ownerId` and hide on your own listing. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 empty:hidden empty:pt-0">
+            <SafetyTips ownerId={listing.seller?.id} />
             <HideListingButton
               listingId={listing.id}
               ownerId={listing.seller?.id}
@@ -300,12 +346,35 @@ export default async function ListingDetailPage({
         />
       </div>
 
-      {similar.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-4 text-lg font-semibold">{t("home.recent")}</h2>
-          <ListingGrid listings={similar} />
-        </section>
-      )}
+      {/* Seller's other stock sits first: the buyer has just read the trust card,
+          so this is the moment to show what else that seller has. */}
+      <ListingRail
+        className="mt-12"
+        title={t("listing.detail.moreFromSeller")}
+        listings={sellerListings}
+        viewAllHref={sellerId ? `/sellers/${sellerId}` : undefined}
+        viewAllLabel={t("home.viewAll")}
+      />
+
+      <ListingRail
+        className="mt-12"
+        title={t("listing.detail.similarListings")}
+        listings={similar}
+      />
+
+      {/* Sticky buyer CTA for phones/tablets — reuses the very same
+          StartConversationButton + SaveButton as the inline block above, so the
+          conversation and the saved heart are never duplicated state. */}
+      <ListingActionBar
+        listingId={listing.id}
+        sellerId={sellerId}
+        status={listing.status}
+        price={listing.price}
+        currency={listing.currency}
+        negotiable={listing.negotiable}
+        initialSaved={listing.isSaved}
+        sentinelId="listing-actions"
+      />
     </div>
   );
 }

@@ -24,6 +24,11 @@ import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
  * (or create) the one conversation for this buyer+listing; the backend returns
  * 422 when a conversation already exists, so we fall back to fetching it — same
  * duplicate-handling as the mobile offer flow, so a message/offer is never lost.
+ *
+ * `layout` only changes the button chrome — the inline detail column stacks
+ * full-width buttons, the sticky `ListingActionBar` needs a compact row. The
+ * mutations/dialogs are shared by both so the two entry points always behave
+ * identically (never copy this component to restyle it).
  */
 export function StartConversationButton({
   listingId,
@@ -31,6 +36,7 @@ export function StartConversationButton({
   price,
   currency,
   negotiable,
+  layout = "stacked",
 }: {
   listingId: number;
   sellerId?: number;
@@ -38,6 +44,8 @@ export function StartConversationButton({
   currency?: string | null;
   /** false = firm price: hide the make-offer affordance (mirrors mobile N071). */
   negotiable?: boolean;
+  /** `stacked` = full-width column buttons; `bar` = compact row (sticky bar). */
+  layout?: "stacked" | "bar";
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -54,6 +62,15 @@ export function StartConversationButton({
 
   // Negotiable by default: only firm (offer hidden) when explicitly false.
   const isNegotiable = negotiable !== false;
+  const compact = layout === "bar";
+  // Compact row inside the sticky bar vs full-width stack in the detail column.
+  // In the bar the primary button takes the leftover width (so the price beside
+  // it is never squeezed) and the offer affordance keeps its icon size.
+  const wrapperClass = compact
+    ? "flex min-w-0 flex-1 items-center gap-2"
+    : "space-y-2";
+  const primaryClass = compact ? "min-w-0 flex-1 overflow-hidden" : "w-full";
+  const offerClass = compact ? "shrink-0" : "w-full";
 
   if (status === "authed" && user && sellerId && user.id === sellerId) {
     return null; // your own listing
@@ -61,7 +78,7 @@ export function StartConversationButton({
 
   if (status !== "authed") {
     return (
-      <Button asChild className="w-full">
+      <Button asChild className={primaryClass}>
         <Link href="/login">
           <MessageCircle className="size-4" />
           {t("listing.detail.messageSeller")}
@@ -120,20 +137,25 @@ export function StartConversationButton({
   }
 
   return (
-    <div className="space-y-2">
-      <Button className="w-full" onClick={() => setOpen(true)}>
+    <div className={wrapperClass}>
+      <Button className={primaryClass} onClick={() => setOpen(true)}>
         <MessageCircle className="size-4" />
         {t("listing.detail.messageSeller")}
       </Button>
-      {/* Make an offer — hidden when the listing is firm-priced (N071). */}
+      {/* Make an offer — hidden when the listing is firm-priced (N071). In the
+          sticky bar there is no room for a second label, so it becomes an
+          icon-only button with the same label as its accessible name. */}
       {isNegotiable && (
         <Button
           variant="outline"
-          className="w-full"
+          size={compact ? "icon" : "default"}
+          className={offerClass}
+          aria-label={compact ? t("listing.detail.makeOffer") : undefined}
+          title={compact ? t("listing.detail.makeOffer") : undefined}
           onClick={() => setOfferOpen(true)}
         >
           <Tag className="size-4" />
-          {t("listing.detail.makeOffer")}
+          {!compact && t("listing.detail.makeOffer")}
         </Button>
       )}
 

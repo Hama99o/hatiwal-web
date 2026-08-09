@@ -1,11 +1,20 @@
 import { apiGet } from "./client";
 import type { Category } from "../types";
 
+/**
+ * Top-level categories, each with its nested `subcategories`.
+ *
+ * `withCounts` adds `activeListingsCount` to every top-level category via
+ * Rails' `?with_counts=true` (a single GROUP BY on the server — no N+1, and no
+ * per-category request from here). Mirrors mobile's
+ * `categoriesAPI.getCategoriesWithCounts`.
+ */
 export async function getCategories(
-  opts: { revalidate?: number } = {},
+  opts: { revalidate?: number; withCounts?: boolean } = {},
 ): Promise<Category[]> {
   const data = await apiGet<{ categories: Category[] }>("categories", {
     revalidate: opts.revalidate,
+    params: opts.withCounts ? { with_counts: true } : undefined,
   });
   return data.categories ?? [];
 }

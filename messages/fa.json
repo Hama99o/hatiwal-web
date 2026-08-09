@@ -161,6 +161,7 @@
       "description": "توضیحات",
       "seller": "فروشنده",
       "similarListings": "آگهی‌های مشابه",
+      "moreFromSeller": "سایر آگهی‌های این فروشنده",
       "askSeller": "سوال از فروشنده",
       "share": "اشتراک‌گذاری",
       "report": "گزارش",
@@ -178,10 +179,14 @@
       "soldNotice": "این کالا فروخته شده است",
       "reservedNotice": "این کالا رزرو شده است",
       "unavailableNotice": "این کالا دیگر موجود نیست",
+      "reservedMayFreeUp": "گاهی رزرو لغو می‌شود — برای پیگیری آن را ذخیره کنید.",
+      "seeSimilarIn": "دیدن موارد مشابه در {category}",
+      "moreFromSellerNamed": "آگهی‌های بیشتر از {name}",
       "location": "موقعیت",
       "getDirections": "دریافت مسیر",
       "showMyLocation": "موقعیت من",
       "messageSeller": "پیام به فروشنده",
+      "actionBarLabel": "اقدامات آگهی",
       "yourMessage": "پیام شما",
       "messageNote": "پرداخت لازم نیست — ترتیب ملاقات را در چت انجام می‌دهید.",
       "sendMessage": "ارسال پیام",
@@ -301,6 +306,7 @@
     "locationUnsupported": "مکان در این دستگاه در دسترس نیست.",
     "recentSearches": "جستجوهای اخیر",
     "clearHistory": "پاک کردن همه",
+    "removeSearch": "حذف {term} از جستجوهای اخیر",
     "filtersActive": "{count, plural, one {# فیلتر فعال} other {# فیلتر فعال}}",
     "resetFilters": "بازنشانی فیلترها",
     "clearAllFilters": "پاک کردن همه",
@@ -328,6 +334,7 @@
   "profile": {
     "title": "پروفایل",
     "editProfile": "ویرایش پروفایل",
+    "viewPublicProfile": "مشاهده پروفایل عمومی من",
     "myListings": "آگهی‌های من",
     "savedListings": "آگهی‌های ذخیره شده",
     "switchToBuyer": "رفتن به حالت خریدار",
@@ -543,7 +550,8 @@
     "title": "دسته‌بندی‌ها",
     "allIn": "همه آگهی‌ها در {category}",
     "viewAll": "مشاهده همه",
-    "empty": "هنوز آگهی‌ای در این دسته‌بندی نیست"
+    "empty": "هنوز آگهی‌ای در این دسته‌بندی نیست",
+    "subcategories": "زیردسته‌ها"
   },
   "seller": {
     "title": "نمایه فروشنده",
@@ -854,6 +862,7 @@
   },
   "reviews": {
     "sectionTitle": "امتیازها و نظرها",
+    "myReviewsTitle": "نظرهای من",
     "reviewCount": "{count, plural, =0 {هنوز نظری نیست} one {# نظر} other {# نظر}}",
     "empty": "هنوز نظری وجود ندارد",
     "emptyDescription": "نظرها پس از یک معامله موفق نمایش داده می‌شوند.",

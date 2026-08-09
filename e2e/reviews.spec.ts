@@ -44,8 +44,12 @@ test.describe("Pending reviews (REV2 write flow)", () => {
     await page.goto("/en/profile");
 
     // "Rate your recent deals" nudge shows the counterparty (the buyer).
+    // Scoped to the nudge row: the profile also lists your own reviews (REP815),
+    // where the same reviewer name appears.
     await expect(page.getByText("Rate your recent deals")).toBeVisible();
-    await expect(page.getByText("Sara Ahmadi")).toBeVisible();
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "Sara Ahmadi" }),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Rate" }).first().click();
 

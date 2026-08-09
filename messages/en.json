@@ -161,6 +161,7 @@
       "description": "Description",
       "seller": "Seller",
       "similarListings": "Similar Listings",
+      "moreFromSeller": "More from this Seller",
       "askSeller": "Ask Seller",
       "share": "Share",
       "report": "Report",
@@ -178,10 +179,14 @@
       "soldNotice": "This item has been sold",
       "reservedNotice": "This item is reserved",
       "unavailableNotice": "This item is no longer available",
+      "reservedMayFreeUp": "A reservation can fall through — save it to keep an eye on it.",
+      "seeSimilarIn": "See similar in {category}",
+      "moreFromSellerNamed": "More from {name}",
       "location": "Location",
       "getDirections": "Get Directions",
       "showMyLocation": "My Location",
       "messageSeller": "Message Seller",
+      "actionBarLabel": "Listing actions",
       "yourMessage": "Your message",
       "messageNote": "No payment required — you'll arrange the meetup in chat.",
       "sendMessage": "Send Message",
@@ -301,6 +306,7 @@
     "locationUnsupported": "Location isn't available on this device.",
     "recentSearches": "Recent searches",
     "clearHistory": "Clear all",
+    "removeSearch": "Remove {term} from recent searches",
     "filtersActive": "{count, plural, one {# filter active} other {# filters active}}",
     "resetFilters": "Reset filters",
     "clearAllFilters": "Clear all",
@@ -328,6 +334,7 @@
   "profile": {
     "title": "Profile",
     "editProfile": "Edit Profile",
+    "viewPublicProfile": "View my public profile",
     "myListings": "My Listings",
     "savedListings": "Saved Listings",
     "switchToBuyer": "Switch to Buyer Mode",
@@ -543,7 +550,8 @@
     "title": "Categories",
     "allIn": "All listings in {category}",
     "viewAll": "View all",
-    "empty": "No listings in this category yet"
+    "empty": "No listings in this category yet",
+    "subcategories": "Subcategories"
   },
   "seller": {
     "title": "Seller profile",
@@ -854,6 +862,7 @@
   },
   "reviews": {
     "sectionTitle": "Ratings & Reviews",
+    "myReviewsTitle": "My reviews",
     "reviewCount": "{count, plural, =0 {No reviews yet} one {# review} other {# reviews}}",
     "empty": "No reviews yet",
     "emptyDescription": "Reviews appear after a successful transaction.",

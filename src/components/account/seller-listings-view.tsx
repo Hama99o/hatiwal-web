@@ -11,6 +11,7 @@ import {
   ListingGridSkeleton,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SellerListingActions } from "./seller-listing-actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -120,6 +121,9 @@ export function SellerListingsView() {
           showStatus
           showSave={false}
           hrefFor={(l) => `/my-listings/${l.id}`}
+          // Inline lifecycle quick-actions: publish/reserve/sold/renew/delete
+          // without opening the listing (the card body still links to detail).
+          footerFor={(l) => <SellerListingActions listing={l} />}
         />
       )}
     </div>

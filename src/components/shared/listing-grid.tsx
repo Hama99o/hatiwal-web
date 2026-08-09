@@ -1,3 +1,4 @@
+import type * as React from "react";
 import { ListingCard, type ListingCardVariant } from "./listing-card";
 import { ListingCardSkeleton } from "./listing-card-skeleton";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export function ListingGrid({
   showSave,
   priorityCount = 0,
   hrefFor,
+  footerFor,
   className,
 }: {
   listings: Listing[];
@@ -28,6 +30,8 @@ export function ListingGrid({
   priorityCount?: number;
   /** Override each card's link target (e.g. seller dashboard → /my-listings/[id]). */
   hrefFor?: (listing: Listing) => string;
+  /** Per-card action row under the body (e.g. seller lifecycle quick-actions). */
+  footerFor?: (listing: Listing) => React.ReactNode;
   className?: string;
 }) {
   return (
@@ -41,6 +45,7 @@ export function ListingGrid({
           showSave={showSave}
           priority={i < priorityCount}
           href={hrefFor?.(listing)}
+          footer={footerFor?.(listing)}
         />
       ))}
     </div>

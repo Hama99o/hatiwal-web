@@ -110,6 +110,12 @@ export interface Category extends CategoryRef {
   position?: number;
   parentId?: number | null;
   subcategories?: Category[];
+  /**
+   * Active listings assigned directly to this category. Present only when
+   * fetched with `?with_counts=true` (top-level categories only) — same field
+   * and semantics as mobile's `Category.activeListingsCount`.
+   */
+  activeListingsCount?: number;
 }
 
 export interface Listing {
@@ -263,5 +269,12 @@ export interface User {
    */
   isAway?: boolean;
   awayUntil?: string | null;
+  /**
+   * Own double-blind rating (REV2/REV3) — the `:me` view emits the same
+   * `avg_rating`/`review_count` pair as the `:public` view, so a seller can see
+   * their own reputation. `avgRating` is null until a first review is revealed.
+   */
+  avgRating?: number | null;
+  reviewCount?: number;
   createdAt: string;
 }

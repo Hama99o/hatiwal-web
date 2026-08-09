@@ -1,5 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
+
+/** One seller card: the wrapper around the link to that listing's owner page. */
+function card(page: Page, id: number) {
+  return page.locator(`a[href="/en/my-listings/${id}"]`).locator("..");
+}
 
 test.describe("My Shop (seller dashboard)", () => {
   test.use({ storageState: BUYER_STATE });
@@ -25,6 +30,80 @@ test.describe("My Shop (seller dashboard)", () => {
     }).toPass({ timeout: 20_000 });
     // The Expired tab (active-but-past-30-days) is available alongside the rest.
     await expect(page.getByRole("button", { name: /^Expired/ })).toBeVisible();
+  });
+
+  // TASK-WEB-C2-ACTIONS — inline lifecycle quick-actions on each card, so a
+  // seller never has to open /my-listings/[id] just to act.
+  test("each card shows the primary action for its status", async ({ page }) => {
+    await page.goto("/en/my-listings");
+    await expect(card(page, 8).getByRole("button", { name: "Publish" })).toBeVisible(); // draft
+    await expect(
+      card(page, 1).getByRole("button", { name: "Mark as Sold" }),
+    ).toBeVisible(); // active
+    await expect(
+      card(page, 9).getByRole("button", { name: "Mark as Sold" }),
+    ).toBeVisible(); // reserved
+    // Sold is terminal: no lifecycle button, just the kebab (Edit / Delete).
+    await expect(
+      card(page, 7).getByRole("button", { name: "Mark as Sold" }),
+    ).toHaveCount(0);
+    await expect(
+      card(page, 7).getByRole("button", { name: "More options" }),
+    ).toBeVisible();
+  });
+
+  test("the kebab holds the secondary actions plus Edit and Delete", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 1).getByRole("button", { name: "More options" }).click();
+    const menu = page.getByRole("menu");
+    for (const label of [
+      "Mark as Reserved",
+      "Unpublish",
+      "Renew",
+      "Edit",
+      "Delete",
+    ]) {
+      await expect(menu.getByRole("menuitem", { name: label })).toBeVisible();
+    }
+  });
+
+  test("publishing a draft inline confirms, then toasts", async ({ page }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 8).getByRole("button", { name: "Publish" }).click();
+    await expect(page.getByText("Publish this listing?")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Publish" })
+      .click();
+    await expect(page.getByText("Listing published!")).toBeVisible();
+  });
+
+  test("deleting inline confirms, then toasts", async ({ page }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 8).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await expect(page.getByText("Delete this listing?")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Delete Listing" })
+      .click();
+    await expect(page.getByText("Listing deleted")).toBeVisible();
+  });
+
+  test("Mark as Sold inline opens the buyer picker", async ({ page }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
+    await page
+      .getByRole("button", { name: /Sold to someone not on Hatiwal/ })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Confirm sold" })
+      .click();
+    await expect(page.getByText("Listing marked as sold")).toBeVisible();
   });
 
   test("New Listing navigates to the create form", async ({ page }) => {

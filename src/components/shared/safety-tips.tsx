@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useAuth } from "@/components/auth/auth-provider";
 
 // Ordered tip keys — must match `safety.tips.*` in all 3 locale files. Mirrors
 // the mobile SafetyTipsSheet.
@@ -33,17 +34,30 @@ const TIPS: { key: string; icon: LucideIcon }[] = [
  * deal is completed in person. A quiet trigger opens a modal of icon-led tips.
  * Surfaced on the listing detail and inside the chat meetup flow, mirroring the
  * mobile SafetyTipsSheet. `variant="short"` uses the compact link label.
+ *
+ * `ownerId` (optional) is the id of the person whose item this is: these are
+ * BUYER instructions for meeting a stranger, so showing them to the seller about
+ * their own listing is noise. Pass it on any surface that can be viewed by its
+ * own owner and the trigger hides for them (same guard as HideListingButton).
  */
 export function SafetyTips({
   variant = "full",
+  ownerId,
   className,
 }: {
   variant?: "full" | "short";
+  /** Owner of the listing being viewed — the tips hide for them. */
+  ownerId?: number;
   className?: string;
 }) {
   const t = useTranslations("safety");
+  const { status, user } = useAuth();
   const [open, setOpen] = useState(false);
   const titleId = useId();
+
+  // Guests still get the tips (they're the ones most likely to need them); only
+  // a signed-in owner looking at their own item is excluded.
+  if (status === "authed" && ownerId != null && user?.id === ownerId) return null;
 
   return (
     <>

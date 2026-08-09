@@ -25,10 +25,17 @@ export function ReviewsSection({
   sellerId,
   avgRating,
   reviewCount = 0,
+  title,
 }: {
   sellerId: number;
   avgRating?: number | null;
   reviewCount?: number;
+  /**
+   * Heading override — defaults to "Ratings & Reviews" (public seller profile).
+   * The signed-in user's own `/profile` passes "My reviews" instead; everything
+   * else (role tabs, pagination, states) is identical, so never fork this.
+   */
+  title?: string;
 }) {
   const t = useTranslations("reviews");
   const tc = useTranslations("common");
@@ -51,7 +58,7 @@ export function ReviewsSection({
     <section className="mt-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-foreground">
-          {t("sectionTitle")}
+          {title ?? t("sectionTitle")}
         </h2>
         <RatingDisplay avgRating={avgRating} reviewCount={reviewCount} size="lg" />
       </div>

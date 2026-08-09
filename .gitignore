@@ -21,6 +21,9 @@
 # .next-root-owned-orphan-<pid> instead of failing. Pure build cache, and
 # often root-owned on disk — never commit it, whatever suffix it has.
 /.next-root-owned-orphan-*
+# Per-agent scratch build dirs (.next-review, .next-<task-id>, …). Agents build
+# into a suffixed dir to avoid fighting over /.next — all pure build cache.
+/.next-*
 
 # production
 /build

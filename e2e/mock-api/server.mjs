@@ -128,9 +128,9 @@ function myListingView(id) {
 
 function userMe(persona) {
   if (persona === "empty") {
-    return { id: 99, email: "empty@hatiwal.test", firstname: "Sahar", lastname: "Noor", full_name: "Sahar Noor", city: null, province: null, phone: null, bio: null, latitude: null, longitude: null, preferred_language: "en", preferred_theme: "system", seller_mode: false, status: "active", verified: false, avatar_url: null, items_active_count: 0, items_sold_count: 0, saved_items_count: 0, unread_message_count: 0, deletion_scheduled_at: null, created_at: "2026-02-01T00:00:00Z" };
+    return { id: 99, email: "empty@hatiwal.test", firstname: "Sahar", lastname: "Noor", full_name: "Sahar Noor", city: null, province: null, phone: null, bio: null, latitude: null, longitude: null, preferred_language: "en", preferred_theme: "system", seller_mode: false, status: "active", verified: false, avatar_url: null, items_active_count: 0, items_sold_count: 0, saved_items_count: 0, unread_message_count: 0, avg_rating: null, review_count: 0, deletion_scheduled_at: null, created_at: "2026-02-01T00:00:00Z" };
   }
-  return { id: 1, email: "buyer@hatiwal.test", firstname: "Ahmad", lastname: "Karimi", full_name: "Ahmad Karimi", city: "Kabul", province: "Kabul", phone: "+93 700 000 000", bio: "Trusted local seller.", latitude: 34.55, longitude: 69.2, preferred_language: "en", preferred_theme: "system", seller_mode: true, status: "active", verified: true, avatar_url: null, items_active_count: 3, items_sold_count: 1, saved_items_count: 2, unread_message_count: 2, deletion_scheduled_at: null, created_at: "2026-01-01T00:00:00Z" };
+  return { id: 1, email: "buyer@hatiwal.test", firstname: "Ahmad", lastname: "Karimi", full_name: "Ahmad Karimi", city: "Kabul", province: "Kabul", phone: "+93 700 000 000", bio: "Trusted local seller.", latitude: 34.55, longitude: 69.2, preferred_language: "en", preferred_theme: "system", seller_mode: true, status: "active", verified: true, avatar_url: null, items_active_count: 3, items_sold_count: 1, saved_items_count: 2, unread_message_count: 2, avg_rating: 4.7, review_count: 3, deletion_scheduled_at: null, created_at: "2026-01-01T00:00:00Z" };
 }
 
 // Chat fixtures (buyer persona). Conversation/Message use snake_case keys.
