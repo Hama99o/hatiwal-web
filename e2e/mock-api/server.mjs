@@ -98,7 +98,10 @@ const LISTINGS = [
   { id: 2, title: "Samsung 4K TV", price: 30000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "like_new", category_id: 1, seller_id: 2, views_count: 80, created_at: "2026-06-18T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "55 inch 4K smart TV." },
   { id: 3, title: "Toyota Corolla 2015", price: 600000, currency: "AFN", status: "active", location: "Herat", address: null, condition: "fair", category_id: 2, seller_id: 1, views_count: 300, created_at: "2026-06-15T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Clean title, well maintained." },
   { id: 4, title: "Winter Jacket", price: 1200, currency: "AFN", status: "active", location: "Mazar-i-Sharif", address: null, condition: "like_new", category_id: 3, seller_id: 2, views_count: 25, created_at: "2026-06-21T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Warm winter jacket, size L." },
-  { id: 5, title: "MacBook Pro M2", price: 90000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "good", category_id: 102, seller_id: 1, views_count: 210, created_at: "2026-06-17T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "16GB RAM, 512GB SSD." },
+  // The one listing NOBODY has messaged about (conversations_count 0, which Rails
+  // always emits): drives the "count badge hides at zero" case that the majority
+  // of owner views actually are.
+  { id: 5, title: "MacBook Pro M2", price: 90000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "good", category_id: 102, seller_id: 1, views_count: 210, conversations_count: 0, created_at: "2026-06-17T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "16GB RAM, 512GB SSD." },
   // Not in the public feed; reachable by id for detail edge cases.
   { id: 6, title: "Mountain Bike (Reserved)", price: 5000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "good", category_id: 2, seller_id: 2, views_count: 40, created_at: "2026-06-10T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Reserved for a buyer." },
   { id: 7, title: "Leather Sofa (Sold)", price: 8000, currency: "AFN", status: "sold", location: "Herat", address: null, condition: "fair", category_id: 3, seller_id: 1, views_count: 95, created_at: "2026-06-05T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Already sold." },
@@ -127,7 +130,10 @@ function listView(l) {
   return {
     id: l.id, title: l.title, price: l.price, currency: l.currency, status: l.status,
     location: l.location, address: l.address, condition: l.condition, created_at: l.created_at,
-    category_id: l.category_id, views_count: l.views_count, conversations_count: 2, thumbnail_url: null, image_urls: [],
+    category_id: l.category_id, views_count: l.views_count,
+    // Rails emits this for every listing, 0 included — per-fixture override so a
+    // listing with no chats can be asserted on.
+    conversations_count: l.conversations_count ?? 2, thumbnail_url: null, image_urls: [],
     expired: l.expired ?? false, expires_at: l.expires_at ?? null,
     is_viewed: false, is_saved: false, seller: SELLERS[l.seller_id], category: catRef(l.category_id),
     price_drop_percent: l.price_drop_percent, price_dropped_at: l.price_dropped_at,
@@ -140,7 +146,8 @@ function detailView(l) {
     description: l.description, latitude: 34.55, longitude: 69.2,
     published_at: l.created_at, reserved_at: null, sold_at: null, updated_at: l.created_at,
     expires_at: l.expires_at ?? null,
-    images: [], image_attachments: [], expired: l.expired ?? false, conversations_count: 2,
+    images: [], image_attachments: [], expired: l.expired ?? false,
+    conversations_count: l.conversations_count ?? 2,
     is_saved: false,
     seller: { ...SELLERS[l.seller_id], phone: null },
     category: catRef(l.category_id),

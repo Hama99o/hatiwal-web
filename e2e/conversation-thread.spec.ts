@@ -16,14 +16,19 @@ test.describe("Conversation thread", () => {
       page.locator("p", { hasText: "Is this still available?" }),
     ).toBeVisible();
     await expect(page.getByPlaceholder("Type a message...")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Send" })).toBeVisible();
+    // `exact` matters: the accessible-name match is a SUBSTRING by default, and
+    // the composer's quick-reply chip "I can send more photos" contains "send"
+    // — two matches is a strict-mode violation. The send button is aria-labelled.
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toBeVisible();
   });
 
   test("sending a message appends it to the thread", async ({ page }) => {
     await page.goto("/en/conversations/1");
     const composer = page.getByPlaceholder("Type a message...");
     await composer.fill("Can we meet tomorrow?");
-    await page.getByRole("button", { name: "Send" }).click();
+    await page.getByRole("button", { name: "Send", exact: true }).click();
     await expect(page.getByText("Can we meet tomorrow?")).toBeVisible();
   });
 

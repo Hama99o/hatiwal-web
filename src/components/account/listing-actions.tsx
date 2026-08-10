@@ -188,6 +188,13 @@ export function useListingLifecycle(
     onDeleted?: () => void;
     /** Called when a sale recorded a buyer — offer to review them. */
     onSaleRecorded?: (transaction: Transaction) => void;
+    /**
+     * Called after any successful transition, on top of the cache invalidation
+     * below. Only needed by a surface whose listing did NOT come from React
+     * Query — the owner panel on the SERVER-rendered `/listings/[id]`, where
+     * nothing repaints unless the RSC re-runs (`router.refresh()`).
+     */
+    onChanged?: () => void;
   } = {},
 ) {
   const t = useTranslations();
@@ -225,6 +232,7 @@ export function useListingLifecycle(
       const result = await listingLifecycle(listingId, action, saleOpts);
       toast.success(t(`listing.${LIFECYCLE[action].success}`));
       invalidate();
+      opts.onChanged?.();
       return result;
     } catch {
       toast.error(t("common.error"));

@@ -89,17 +89,48 @@ test.describe("Listing action bar (mobile)", () => {
     expect(dialogBox!.width).toBeGreaterThan(250);
   });
 
+  test("its heart and the inline heart are one state", async ({ page }) => {
+    // The bar mounts a SECOND <SaveButton> for the same listing beside the inline
+    // one, and it is only CSS-hidden, so both live for the whole page. With
+    // per-instance optimistic state they diverged permanently: unsave in one
+    // place and the other heart stayed filled, then its next tap sent DELETE for
+    // an already-unsaved listing. The optimistic flip therefore lives in one
+    // shared cache entry both hearts read.
+    await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    const bar = page.getByRole("region", { name: "Listing actions" });
+    await expect(bar).toHaveClass(/opacity-100/);
+    const barHeart = bar.getByRole("button", { name: /save/i });
+    const inlineHeart = page
+      .locator("#listing-actions")
+      .getByRole("button", { name: /save/i });
+    await expect(barHeart).toHaveAttribute("aria-pressed", "true");
+    await expect(inlineHeart).toHaveAttribute("aria-pressed", "true");
+
+    // Unsave from the BAR → the inline heart must empty too.
+    await barHeart.click();
+    await expect(barHeart).toHaveAttribute("aria-pressed", "false");
+    await expect(inlineHeart).toHaveAttribute("aria-pressed", "false");
+
+    // Re-save from the INLINE heart (scrolling it into view hides the bar) → the
+    // bar's heart must be filled again when it comes back.
+    await inlineHeart.click();
+    await expect(inlineHeart).toHaveAttribute("aria-pressed", "true");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(bar).toHaveClass(/opacity-100/);
+    await expect(barHeart).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("keeps its dialog alive when the bar would otherwise slide away", async ({
     page,
   }) => {
-    // The shared <Dialog> is not portalled, so the message dialog opened from the
-    // bar is a DESCENDANT of the bar. Anything that unpins the bar mid-compose
-    // would therefore take the open dialog with it — faded to `opacity-0`, marked
-    // `inert`, half-typed message unreachable. Real triggers: rotating the phone,
-    // an iOS scroll-behind the body scroll-lock doesn't hold, or any reflow that
-    // brings the inline block into view. So the bar stays put while it holds an
-    // open dialog. Reproduced here by growing the viewport until the inline block
-    // (the bar's own hide sentinel) is on screen.
+    // The shared <Dialog> is portalled to <body>, so hiding the bar can no longer
+    // fade/inert the dialog it opened. The bar still holds still while one is
+    // open (sliding out from under the scrim only to slide back is noise), and
+    // the buyer's half-typed message has to survive whatever reflow unpins it:
+    // rotating the phone, an iOS scroll-behind the body scroll-lock doesn't hold,
+    // or any reflow that brings the inline block into view. Reproduced here by
+    // growing the viewport until the inline block (the bar's hide sentinel) is on
+    // screen.
     await page.goto("/en/listings/2");
     const bar = page.getByRole("region", { name: "Listing actions" });
     await expect(bar).toHaveClass(/opacity-100/);
@@ -129,6 +160,55 @@ test.describe("Listing action bar (mobile)", () => {
     // now, so the bar must get out of the way rather than stay pinned forever.
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(bar).toHaveClass(/opacity-0/);
+    // ...and because the bar is now `inert`, the dialog's focus restore would
+    // have dropped the caret at <body> (next Tab restarts at the top of the
+    // document). Focus must land on the inline CTA the bar defers to.
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.activeElement?.textContent?.trim() ?? ""),
+      )
+      .toContain("Message Seller");
+  });
+
+  test("survives crossing `lg` mid-compose — the typed message is not lost", async ({
+    page,
+  }) => {
+    // Rotating a tablet into landscape (or dragging a desktop window across
+    // 1024px) flips the bar's media query, and the bar's whole subtree — the
+    // StartConversationButton and its dialogs — used to unmount with it, taking
+    // the half-typed message. The inline block's button is a different instance
+    // with empty state, so there was nothing to recover from. The bar now stays
+    // mounted while it hosts an open dialog, and the dialog is portalled to
+    // <body> so `lg:hidden` on the bar cannot hide it.
+    await page.goto("/en/listings/2");
+    const bar = page.getByRole("region", { name: "Listing actions" });
+    await expect(bar).toHaveClass(/opacity-100/);
+    const composer = page.getByPlaceholder("Ask about this item...");
+    await expect(async () => {
+      await bar.getByRole("button", { name: "Message Seller" }).click();
+      await expect(composer).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
+    await composer.fill("Is it still available?");
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(composer).toBeVisible();
+    await expect(composer).toHaveValue("Is it still available?");
+    // Portalled: the dialog is not inside the bar, so the bar's `lg:hidden`
+    // (`display: none`) cannot take it off screen.
+    expect(
+      await page
+        .getByRole("dialog")
+        .evaluate(
+          (el) => !!el.closest('[aria-label="Listing actions"]'),
+        ),
+    ).toBe(false);
+    await composer.fill("Is it still available? Can we meet in Kabul?");
+
+    // Closing it lets the bar go for good at this width — no leftover duplicate
+    // controls beside the desktop column CTA.
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.locator('[aria-label="Listing actions"]')).toHaveCount(0);
+    await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
   });
 
   test("absent on your own listing and on a reserved one", async ({ page }) => {

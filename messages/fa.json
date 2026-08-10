@@ -120,7 +120,7 @@
       "body": "{title} — {price}"
     },
     "firmPrice": "قیمت ثابت",
-    "conversationsCount": "{count} گفتگو",
+    "conversationsCount": "{count, plural, one {# گفتگو} other {# گفتگو}}",
     "publishSuccess": "آگهی منتشر شد!",
     "reserveSuccess": "آگهی به عنوان رزرو شده علامت‌گذاری شد",
     "markSoldSuccess": "آگهی به عنوان فروخته شده علامت‌گذاری شد",
@@ -204,7 +204,6 @@
       "conversations": "گفتگوها",
       "actions": "مدیریت آگهی",
       "viewConversations": "مشاهده گفتگوها",
-      "conversationsCount": "{count} گفتگو",
       "posted": "ارسال شده {date}",
       "dailyViews": "بازدیدها — ۷ روز گذشته",
       "noViewsYet": "در ۷ روز گذشته هیچ بازدیدی نداشته‌اید"
@@ -306,6 +305,7 @@
     "locationTimeout": "درخواست مکان زمان‌بر شد. لطفاً دوباره تلاش کنید.",
     "locationUnsupported": "مکان در این دستگاه در دسترس نیست.",
     "recentSearches": "جستجوهای اخیر",
+    "recentSearchesHint": "جستجوهای اخیر زیر این کادر موجود است. برای رسیدن به آن‌ها کلید فلش پایین را بزنید.",
     "clearHistory": "پاک کردن همه",
     "removeSearch": "حذف {term} از جستجوهای اخیر",
     "filtersActive": "{count, plural, one {# فیلتر فعال} other {# فیلتر فعال}}",

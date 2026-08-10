@@ -120,7 +120,7 @@
       "body": "{title} — {price}"
     },
     "firmPrice": "Firm price",
-    "conversationsCount": "{count} chats",
+    "conversationsCount": "{count, plural, one {# chat} other {# chats}}",
     "publishSuccess": "Listing published!",
     "reserveSuccess": "Listing marked as reserved",
     "markSoldSuccess": "Listing marked as sold",
@@ -203,8 +203,7 @@
       "views": "Views",
       "conversations": "Chats",
       "actions": "Manage Listing",
-      "viewConversations": "View Conversations",
-      "conversationsCount": "{count} conversations",
+      "viewConversations": "View Chats",
       "posted": "Posted {date}",
       "dailyViews": "Views — last 7 days",
       "noViewsYet": "No views yet in the last 7 days"
@@ -306,6 +305,7 @@
     "locationTimeout": "Location request timed out. Please try again.",
     "locationUnsupported": "Location isn't available on this device.",
     "recentSearches": "Recent searches",
+    "recentSearchesHint": "Recent searches are available below the field. Press the Down Arrow key to reach them.",
     "clearHistory": "Clear all",
     "removeSearch": "Remove {term} from recent searches",
     "filtersActive": "{count, plural, one {# filter active} other {# filters active}}",

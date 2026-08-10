@@ -5,33 +5,35 @@
  * block in mobile's `BrowseHeader.tsx`.
  *
  * Shared by BOTH web search entry points through `SearchBox` (site header +
- * Bazaar sidebar) so the markup exists once. The caller owns when the panel
- * shows and the history itself (`useSearchHistory`) — this component only
- * renders and reports intent:
+ * Bazaar field) so the markup exists once. The caller owns when the panel shows,
+ * the history itself (`useSearchHistory`) and the element id (so the field can
+ * point `aria-controls` at it) — this component only renders and reports intent:
  *
  *   - clicking a chip's label → `onSelect(term)` (apply that search)
  *   - clicking a chip's X     → `onRemove(term)` (forget just that term)
  *   - "Clear all"             → `onClear()`
  *
- * `variant="dropdown"` (default) floats the panel under the field as a popover
- * — the caller must give the wrapper `position: relative`. `variant="inline"`
- * renders it flat in normal flow (no card of its own, so it never reads as a
- * card inside a card) for narrow columns where an overlay would be clipped.
+ * It always floats under the field as a popover — the caller must give the
+ * wrapper `position: relative`. One presentation on purpose: chips are a
+ * secondary convenience, so they may cover the page for as long as the buyer is
+ * in the field but must never take space from what they came for (results, or
+ * the Bazaar's own filters).
  *
- * The chips always WRAP: a sideways-scrolling row is a phone gesture, and both
- * web hosts are mouse-first (the Bazaar field is desktop-only). Wrapping also
- * means the block can never widen its column — chips shrink and truncate. The
- * row cap keeps a 10-term history from pushing the filters far down the page;
- * past that the list scrolls vertically, which a wheel can actually reach.
+ * The chips WRAP: a sideways-scrolling row is a phone gesture, and both web
+ * hosts are pointer-first. Wrapping also means the block can never widen its
+ * column — chips shrink and truncate to whatever the panel offers, which is the
+ * field's own width. The row cap keeps a 10-term history from covering the whole
+ * viewport; past that the list scrolls vertically, which a wheel can reach.
  *
  * Touch/pointer targets: every chip half (label + X) and "Clear all" is 44px
  * tall. Each half tints on its OWN hover — the label toward the primary ("this
  * runs a search"), the X toward destructive ("this forgets it", same grammar as
- * the saved-search rows below it in the sidebar) — so a hover never promises the
- * wrong action.
+ * the saved-search rows in the sidebar) — so a hover never promises the wrong
+ * action. The label keeps `text-foreground` through the hover: the tint carries
+ * the affordance, and 14px `text-primary` on `primary/10` would land under the
+ * 4.5:1 AA floor in light mode.
  */
 
-import { useId } from "react";
 import { History, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,8 @@ interface SearchHistoryPanelProps {
   onSelect: (term: string) => void;
   onRemove: (term: string) => void;
   onClear: () => void;
-  variant?: "dropdown" | "inline";
+  /** Element id — the search field references it via `aria-controls`. */
+  panelId: string;
   className?: string;
 }
 
@@ -52,33 +55,27 @@ export function SearchHistoryPanel({
   onSelect,
   onRemove,
   onClear,
-  variant = "dropdown",
+  panelId,
   className,
 }: SearchHistoryPanelProps) {
   const t = useTranslations();
-  const headingId = `${useId()}-recent-searches`;
+  const headingId = `${panelId}-heading`;
 
   if (history.length === 0) return null;
 
   return (
     <div
+      id={panelId}
       data-testid="search-history-panel"
       role="group"
       aria-labelledby={headingId}
-      // Pressing inside a FLOATING panel must not blur the search field: the
-      // dropdown is mounted only while the field has focus, so the blur would
-      // unmount it before the click ever landed on a chip — and a relatedTarget
-      // check alone can't save us (Safari doesn't focus a pressed <button> at
-      // all). The inline panel needs no such trick, and swallowing mousedown
-      // there would only cost it the browser's native focus behaviour.
-      onMouseDown={
-        variant === "dropdown" ? (event) => event.preventDefault() : undefined
-      }
+      // Pressing inside the panel must not blur the search field: the panel is
+      // mounted only while the field has focus, so the blur would unmount it
+      // before the click ever landed on a chip — and a relatedTarget check alone
+      // can't save us (Safari doesn't focus a pressed <button> at all).
+      onMouseDown={(event) => event.preventDefault()}
       className={cn(
-        variant === "dropdown" &&
-          "absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-md",
-        // Flat in flow — the sidebar already provides the surface.
-        variant === "inline" && "mt-1",
+        "absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-md",
         className,
       )}
     >
@@ -116,9 +113,12 @@ export function SearchHistoryPanel({
               title={term}
               // The two halves share one pill, so each takes only its own end's
               // radius — a hover tint then fills exactly the half it belongs to.
-              className="h-11 min-w-0 rounded-none rounded-s-full px-3 text-sm font-normal text-foreground hover:bg-primary/10 hover:text-primary"
+              className="h-11 min-w-0 rounded-none rounded-s-full px-3 text-sm font-normal text-foreground hover:bg-primary/10 hover:text-foreground"
             >
-              <span className="max-w-[9rem] truncate">{term}</span>
+              {/* No fixed cap: the term uses whatever the panel has left (up to
+                  the field's full width) and only truncates when it must.
+                  `min-w-0` is what lets a nowrap flex child shrink at all. */}
+              <span className="min-w-0 truncate">{term}</span>
             </Button>
             <Button
               type="button"

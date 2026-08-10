@@ -2,7 +2,7 @@
 
 /**
  * SearchBox — the one search input the whole web client uses: the site header
- * and the Bazaar sidebar both render THIS, so the field, its clear button, the
+ * and the Bazaar page both render THIS, so the field, its clear button, the
  * recent-searches gating, the keyboard behaviour and the focus rules exist once
  * instead of twice.
  *
@@ -12,22 +12,26 @@
  * debounce decides when a search has really committed. This component owns only
  * the field UI and when the recent-searches panel shows:
  *
- *   dropdown (header)  →  the field is FOCUSED, empty, and there is history
- *   inline   (sidebar) →  the field is empty and there is history
+ *   the field is FOCUSED, empty, and there is history
  *
- * The difference is deliberate. The header panel floats OVER the page, so it may
- * only appear in response to a tap/click — otherwise it would cover results the
- * buyer is reading. The sidebar panel sits in normal flow above the filters: it
- * covers nothing, so gating it on focus would only make the column jump every
- * time the buyer clicked in or out of the field. (It does cost one post-hydration
- * shift inside that column — the history is client-only, so the server cannot
- * know there is anything to render.)
+ * ONE rule, ONE presentation: the panel is always a dropdown floating under its
+ * own field, opened by focus. That matters because two fields can be on screen
+ * at once (header bar + Bazaar) — gating on focus means only the field the buyer
+ * is actually using ever offers chips, so the same history is never shown twice
+ * at once. Floating also keeps the block out of the layout: it can't push the
+ * Bazaar filters down the page, can't shift the column after hydration (the
+ * history is client-only, so the server can't know it exists) and can't outgrow
+ * a sticky sidebar. Nothing clips it — every host gives the field a
+ * `position: relative` wrapper and no ancestor sets `overflow`.
  *
  * Keyboard: ArrowDown enters the chips, arrows rove between them (RTL-aware),
- * Escape hands focus back to the field.
+ * Escape dismisses the panel and hands the caret back to the field. Screen
+ * readers get the same news through `aria-controls` + an `sr-only` hint on the
+ * input, announced only while the chips are actually there.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { SearchField } from "@/components/shared/search-field";
 import { SearchHistoryPanel } from "@/components/shared/search-history-panel";
 import { useSearchHistory } from "@/lib/use-search-history";
@@ -45,8 +49,6 @@ interface SearchBoxProps {
   placeholder: string;
   /** Classes for the <form> element. */
   className?: string;
-  /** `dropdown` floats the panel over the page; `inline` keeps it in flow. */
-  panelVariant?: "dropdown" | "inline";
 }
 
 export function SearchBox({
@@ -56,19 +58,20 @@ export function SearchBox({
   onSelectRecent,
   placeholder,
   className,
-  panelVariant = "dropdown",
 }: SearchBoxProps) {
+  const t = useTranslations("browse");
   // Read-only view of the shared store: recording is the caller's job (it knows
   // when its search committed), removing/clearing belongs to the panel.
   const { history, remove, clear } = useSearchHistory();
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelSlotRef = useRef<HTMLDivElement>(null);
+  // Owned here (not inside the panel) so the input can point at the panel it
+  // controls and at the hint that explains how to reach it.
+  const panelId = useId();
+  const hintId = `${panelId}-hint`;
 
-  const open =
-    value === "" &&
-    history.length > 0 &&
-    (panelVariant === "inline" || focused);
+  const open = value === "" && history.length > 0 && focused;
 
   const applyTerm = useCallback(
     (term: string) => {
@@ -131,10 +134,13 @@ export function SearchBox({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLFormElement>) => {
       if (e.key === "Escape") {
-        // Dismiss the floating panel, and never leave focus stranded on a chip
-        // that is about to unmount — the field always gets the caret back.
-        setFocused(false);
+        // Dismiss the panel, and never leave focus stranded on a chip that is
+        // about to unmount — the field always gets the caret back. Order
+        // matters: focus() synchronously fires the input's onFocus (which sets
+        // `focused` true), so the dismissal has to be queued AFTER it, or the
+        // panel would stay open and Escape would need pressing twice.
         inputRef.current?.focus();
+        setFocused(false);
         return;
       }
       if (!open) return;
@@ -201,19 +207,29 @@ export function SearchBox({
           placeholder={placeholder}
           aria-label={placeholder}
           autoComplete="off"
+          // Announced only while the chips exist: a screen-reader user is told
+          // the group is there and how to walk into it. Deliberately NOT a
+          // combobox — each option carries its own Remove button, which a
+          // listbox may not contain.
+          aria-controls={open ? panelId : undefined}
+          aria-describedby={open ? hintId : undefined}
         />
         {/* Panel slot — the chips are a labelled group of buttons that follows
-            the field in DOM order (no combobox/listbox wiring to fake: nothing
-            here is a value list, and Escape/ArrowDown are handled above). */}
+            the field in DOM order. */}
         <div ref={panelSlotRef}>
           {open && (
-            <SearchHistoryPanel
-              variant={panelVariant}
-              history={history}
-              onSelect={applyTerm}
-              onRemove={removeTerm}
-              onClear={clearTerms}
-            />
+            <>
+              <span id={hintId} className="sr-only">
+                {t("recentSearchesHint")}
+              </span>
+              <SearchHistoryPanel
+                panelId={panelId}
+                history={history}
+                onSelect={applyTerm}
+                onRemove={removeTerm}
+                onClear={clearTerms}
+              />
+            </>
           )}
         </div>
       </div>

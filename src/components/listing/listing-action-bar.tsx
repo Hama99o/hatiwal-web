@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
 import { useIsOwner } from "@/components/auth/owner-gate";
@@ -21,6 +21,10 @@ import type { ListingStatus } from "@/lib/types";
  */
 const COMPACT_VIEWPORT = "(max-width: 63.999rem)";
 
+/** Same set the shared <Dialog> treats as focusable. */
+const FOCUSABLE =
+  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
 /**
  * Sticky bottom action bar for the listing detail page (phones/tablets only).
  *
@@ -30,8 +34,9 @@ const COMPACT_VIEWPORT = "(max-width: 63.999rem)";
  * to the bottom of the viewport: price on the inline-start side, the SAME
  * `StartConversationButton` (message + offer, one conversation per buyer+listing)
  * and `SaveButton` on the inline-end side. Nothing about those flows is
- * re-implemented here — both components are reused, so state (saved heart) and
- * behaviour (conversation resolution) are identical to the inline block.
+ * re-implemented here — both components are reused, so state (saved heart, which
+ * lives in one shared cache entry) and behaviour (conversation resolution) are
+ * identical to the inline block.
  *
  * Visibility: one IntersectionObserver watches two things, and the bar shows only
  * when neither is on screen —
@@ -46,12 +51,13 @@ const COMPACT_VIEWPORT = "(max-width: 63.999rem)";
  * that for itself, it also renders the spacer that keeps it off the page's last
  * rows — a viewer who gets no bar must not get its reserved space either.
  *
- * Implementation note — the slide animation uses `bottom`, NOT `translate`: a
- * transform/translate on this element would make it the containing block for its
- * `position: fixed` descendants, which would break the message/offer dialogs
- * rendered inside `StartConversationButton`. Those dialogs are descendants of
- * this bar (the shared `Dialog` is not portalled), which is also why the bar
- * holds still while one of them is open — see `dialogOpen` below.
+ * Half-typed messages: the shared `Dialog` is portalled to <body>, so hiding
+ * this bar can no longer fade/inert an open message or offer dialog. What CAN
+ * still destroy one is UNMOUNTING this component — crossing `lg` mid-compose by
+ * rotating a tablet, or dragging a desktop window across 1024px — so while it
+ * hosts an open dialog the bar stays mounted (`dialogOpen` below) even at desktop
+ * widths, where `lg:hidden` keeps it invisible. Nothing is duplicated: the bar's
+ * own controls are unreachable, only the portalled dialog is on screen.
  */
 export function ListingActionBar({
   listingId,
@@ -76,12 +82,14 @@ export function ListingActionBar({
   const isOwner = useIsOwner(sellerId);
   const [compact, setCompact] = useState(false);
   const [pinned, setPinned] = useState(false);
-  // The message/offer dialogs render INSIDE this bar, so hiding the bar while one
-  // is open would fade it out, mark it `inert` and slide the buyer's half-typed
-  // message off screen. Any reflow can unpin us mid-compose — rotating the phone,
-  // an iOS scroll-behind that `body { overflow: hidden }` doesn't hold — so while
-  // a dialog is open the bar stays exactly where it is.
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Read inside the dialog callback, which must not re-create itself on every
+  // scroll tick (its identity is a dep of the child's report effect).
+  const visibleRef = useRef(false);
+  visibleRef.current = compact && pinned;
+  // Last state the child reported, so the focus handoff below fires on a real
+  // open→close transition only (the child re-reports on every dep change).
+  const reportedRef = useRef(false);
 
   // Only mount below `lg` — at desktop widths the inline column CTA is always in
   // reach, and keeping the bar out of the DOM avoids duplicate controls there.
@@ -119,15 +127,38 @@ export function ListingActionBar({
     return () => observer.disconnect();
   }, [compact, sentinelId]);
 
-  if (!compact) return null;
+  const onDialogOpenChange = useCallback(
+    (open: boolean) => {
+      const wasOpen = reportedRef.current;
+      reportedRef.current = open;
+      setDialogOpen(open);
+      if (open || !wasOpen || visibleRef.current) return;
+      // The dialog just closed and this bar is NOT on screen (the inline block
+      // scrolled into view, or the viewport crossed `lg` mid-compose). The shared
+      // <Dialog> restores focus to the button that opened it — a button that is
+      // about to be `inert`, or already `display: none` — which drops the caret
+      // at <body> and makes the next Tab restart at the top of the document. Hand
+      // it to the inline control that replaces us instead; it is on screen
+      // whenever we are not.
+      const inline = document
+        .getElementById(sentinelId)
+        ?.querySelector<HTMLElement>(FOCUSABLE);
+      inline?.focus({ preventScroll: true });
+    },
+    [sentinelId],
+  );
+
   // reserved / sold / draft show an inline notice — no buyer CTA to pin.
   if (status !== "active") return null;
   // Your own listing: the inline block hides its actions too.
   if (isOwner) return null;
+  // Desktop — except while we host an open dialog, which unmounting would take
+  // with it (see the header note); `lg:hidden` keeps the bar itself invisible.
+  if (!compact && !dialogOpen) return null;
 
-  // Shown when the observer says so, and unconditionally while this bar is the
-  // host of an open dialog (which the observer knows nothing about).
-  const shown = pinned || dialogOpen;
+  // Shown when the observer says so, and while this bar hosts an open dialog:
+  // sliding out from under the scrim, only to slide back in on close, is noise.
+  const shown = (compact && pinned) || dialogOpen;
 
   return (
     <>
@@ -152,6 +183,12 @@ export function ListingActionBar({
         inert={!shown}
         className={cn(
           "fixed inset-x-0 z-40 border-t px-4 pt-3 lg:hidden",
+          // Frosted, like the site header. Safe on this element now that the
+          // dialogs are portalled to <body>: `backdrop-filter` (like `transform`)
+          // makes an element the containing block for its `position: fixed`
+          // descendants, which used to tear the message/offer dialogs out of the
+          // viewport — so this lived on a separate layer.
+          "bg-background/95 backdrop-blur",
           // Honour the iOS home-indicator inset on top of the base padding.
           "pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
           "transition-[bottom,opacity] duration-200 ease-out motion-reduce:transition-none",
@@ -160,15 +197,6 @@ export function ListingActionBar({
             : "pointer-events-none -bottom-40 opacity-0",
         )}
       >
-        {/* The frosted background is its own layer on purpose: `backdrop-filter`
-            (like `transform`) makes an element the containing block for its
-            `position: fixed` descendants, which would tear the message/offer
-            dialogs out of the viewport. Keeping the blur on a sibling layer keeps
-            the look without capturing the dialogs. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-background/95 backdrop-blur"
-        />
         {/* Flex row mirrors itself in RTL: the price sits on the inline-start
             side, the actions on the inline-end side, in every locale. The price is
             `shrink-0` — a truncated price would misinform the buyer, so the CTA
@@ -189,7 +217,7 @@ export function ListingActionBar({
             price={price}
             currency={currency}
             layout="bar"
-            onDialogOpenChange={setDialogOpen}
+            onDialogOpenChange={onDialogOpenChange}
           />
           {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
               heart has to read as a sibling of the Message button beside it. */}

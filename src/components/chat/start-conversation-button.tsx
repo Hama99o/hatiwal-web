@@ -50,10 +50,11 @@ export function StartConversationButton({
   /** `stacked` = full-width column buttons; `bar` = compact row (sticky bar). */
   layout?: "stacked" | "bar";
   /**
-   * Told whenever one of the dialogs below opens or closes. The shared `Dialog`
-   * is not portalled, so a dialog lives in THIS component's subtree — a parent
-   * that hides itself (the sticky `ListingActionBar` sliding away) would take the
-   * open dialog with it. Such a parent uses this to hold still while it is open.
+   * Told whenever one of the dialogs below is OPEN AND RENDERED. The shared
+   * `Dialog` is portalled to <body>, so hiding the host no longer hides the
+   * dialog — but unmounting the host still destroys it along with whatever the
+   * buyer had typed. The sticky `ListingActionBar` uses this to keep itself
+   * mounted (and to hand focus over on close) while it hosts a dialog.
    */
   onDialogOpenChange?: (open: boolean) => void;
 }) {
@@ -74,12 +75,20 @@ export function StartConversationButton({
   const msgTitleId = useId();
   const offerTitleId = useId();
 
+  // The two early returns below stop RENDERING the dialogs without touching
+  // `open`/`offerOpen`, so the report has to be gated on the same condition:
+  // otherwise a viewer who stops being authed mid-compose (logout in this tab, a
+  // refresh() that resolves guest) unmounts the dialogs while the parent keeps
+  // believing one is open — latched true forever.
+  const dialogsMounted = !isOwner && status === "authed";
+
   // One place to report "a dialog of mine is open", so no open/close path can
   // forget to (there are several: the two buttons, Cancel, Escape, the backdrop,
-  // and the unmount that follows a successful send).
+  // and the unmount that follows a successful send — hence the cleanup).
   useEffect(() => {
-    onDialogOpenChange?.(open || offerOpen);
-  }, [open, offerOpen, onDialogOpenChange]);
+    onDialogOpenChange?.(dialogsMounted && (open || offerOpen));
+    return () => onDialogOpenChange?.(false);
+  }, [open, offerOpen, dialogsMounted, onDialogOpenChange]);
 
   // Negotiable by default: only firm (offer hidden) when explicitly false.
   const isNegotiable = negotiable !== false;

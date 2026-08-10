@@ -283,9 +283,7 @@ test.describe("Listing detail — cross-sell rails", () => {
 test.describe("Listing detail — viewed by its own seller", () => {
   test.use({ storageState: BUYER_STATE });
 
-  test("shows the owner panel with manage / edit / conversations", async ({
-    page,
-  }) => {
+  test("shows the owner panel with manage / edit / chats", async ({ page }) => {
     await page.goto("/en/listings/1");
     const panel = page.getByTestId("owner-listing-bar");
     await expect(panel).toBeVisible();
@@ -305,25 +303,93 @@ test.describe("Listing detail — viewed by its own seller", () => {
       "href",
       "/en/listings/1/edit",
     );
+    // "Chats", the same word as the nav and the manage screen — not a second
+    // name ("Conversations") for the same destination.
     await expect(
-      panel.getByRole("link", { name: /View Conversations/i }),
+      panel.getByRole("link", { name: /View Chats/i }),
     ).toHaveAttribute("href", "/en/conversations?listing=1");
   });
 
-  test("the conversations link carries how many buyers are waiting", async ({
+  test("the chats link carries how many buyers are waiting", async ({
     page,
   }) => {
     // conversations_count rides free on the detail payload (2 in the fixture);
     // an unnumbered link is one a seller has no reason to click. The digit is
-    // aria-hidden and spelled out for screen readers, so the accessible name
-    // reads "View Conversations 2 conversations".
+    // aria-hidden and spelled out (pluralized) for screen readers.
     await page.goto("/en/listings/1");
     const link = page
       .getByTestId("owner-listing-bar")
-      .getByRole("link", { name: /View Conversations/i });
+      .getByRole("link", { name: /View Chats/i });
     await expect(link).toBeVisible();
     await expect(link.getByText("2", { exact: true })).toBeVisible();
-    await expect(link).toHaveAccessibleName(/2 conversations/i);
+    await expect(link).toHaveAccessibleName(/2 chats/i);
+  });
+
+  test("a listing with no chats shows the link without a 0 badge", async ({
+    page,
+  }) => {
+    // Listing 5 is seller 1's listing that nobody has messaged about — the
+    // majority case for an owner view. Rails always emits conversations_count,
+    // so gating the pill on `!= null` printed "View Chats 0": noise at best,
+    // discouraging at worst. The link itself must still be there.
+    await page.goto("/en/listings/5");
+    const panel = page.getByTestId("owner-listing-bar");
+    const link = panel.getByRole("link", { name: /View Chats/i });
+    await expect(link).toBeVisible();
+    await expect(link.getByText("0")).toHaveCount(0);
+    await expect(link).toHaveAccessibleName("View Chats");
+  });
+
+  // The panel must be able to fix what it reports. Every status resolves its
+  // most likely next transition through the SHARED brain (actionsFor +
+  // useListingLifecycle), so the panel, /my-listings and the manage screen offer
+  // the same move under the same label.
+  test("the panel offers the listing's next lifecycle action", async ({
+    page,
+  }) => {
+    await page.goto("/en/listings/1"); // active → sell it
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(
+      panel.getByRole("button", { name: "Mark as Sold" }),
+    ).toBeVisible();
+
+    await page.goto("/en/listings/9"); // reserved → complete the sale
+    await expect(
+      page
+        .getByTestId("owner-listing-bar")
+        .getByRole("button", { name: "Mark as Sold" }),
+    ).toBeVisible();
+
+    await page.goto("/en/listings/7"); // sold → terminal, nothing to transition
+    const soldPanel = page.getByTestId("owner-listing-bar");
+    await expect(soldPanel).toBeVisible();
+    await expect(soldPanel.getByRole("button")).toHaveCount(0);
+    // …so managing it becomes the panel's own primary action.
+    await expect(
+      soldPanel.getByRole("link", { name: /Manage Listing/i }),
+    ).toBeVisible();
+  });
+
+  test("marking your own listing sold from the panel picks a buyer, then invites a review", async ({
+    page,
+  }) => {
+    // Identical flow to /my-listings and the manage screen: the shared buyer
+    // picker records the Transaction, and a real buyer is immediately rateable.
+    await page.goto("/en/listings/1");
+    await page
+      .getByTestId("owner-listing-bar")
+      .getByRole("button", { name: "Mark as Sold" })
+      .click();
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
+    await page.getByRole("button", { name: /Sara Ahmadi/ }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Confirm sold" })
+      .click();
+    await expect(page.getByText("Listing marked as sold")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "How was Sara Ahmadi as a buyer?" }),
+    ).toBeVisible();
   });
 
   test("the owner panel is server-rendered, so no buyer UI flashes first", async ({
@@ -363,6 +429,22 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(
       panel.getByRole("link", { name: /Manage Listing/i }),
     ).toHaveAttribute("href", "/en/my-listings/10");
+  });
+
+  test("an expired listing can be renewed from the panel", async ({ page }) => {
+    // The status the panel could name but not fix: it showed the red "Expired"
+    // pill and then offered navigation only, so the owner still had to travel to
+    // /my-listings/10 to do the one thing that mattered.
+    await page.goto("/en/listings/10");
+    const panel = page.getByTestId("owner-listing-bar");
+    await panel.getByRole("button", { name: "Renew" }).click();
+    // The shared confirm copy, the shared mutation, the shared success toast.
+    await expect(page.getByText("Renew this listing?")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Renew" })
+      .click();
+    await expect(page.getByText(/renewed/i).first()).toBeVisible();
   });
 
   test("buyer-only affordances stay hidden for the owner", async ({ page }) => {
@@ -481,6 +563,16 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(
       panel.getByRole("link", { name: "اعلان اداره کول" }),
     ).toHaveAttribute("href", "/ps/my-listings/1");
+    // The chats link uses the nav's Pashto word (چټونه), not a second one.
+    await expect(
+      panel.getByRole("link", { name: /چټونه وګورئ/ }),
+    ).toHaveAttribute("href", "/ps/conversations?listing=1");
+    // The lifecycle action is translated too — the panel is not English-only.
+    await expect(
+      panel.getByRole("button", { name: "خرڅ ښودل" }),
+    ).toBeVisible();
+    // RTL: the panel's own content flows right-to-left with the document.
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   });
 
   test("a non-owner still sees the buyer actions and no owner panel", async ({

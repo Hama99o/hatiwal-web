@@ -8,11 +8,14 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
  * as a guest. Deterministic cases seed the key before load; the first test
  * exercises the real record path by searching through the header field.
  *
- * Two entry points share ONE store and ONE component (`SearchBox`): the header
- * floats the panel under its field (only while focused), the Bazaar sidebar
- * renders it inline whenever its box is empty. The Bazaar field is `lg`-only —
- * below that the header's field is the one on screen — so the phone case drives
- * the header.
+ * Two entry points share ONE store, ONE component (`SearchBox`) and ONE
+ * behaviour: each floats the chips under its own field while THAT field is
+ * focused and empty. So the chips are never on screen twice at once, and
+ * Escape / clicking away always dismisses them.
+ *
+ * The Bazaar's own field is `lg`-only — below that the header's field is the one
+ * on screen, and it mirrors the active `?q=` — so the phone cases drive the
+ * header.
  */
 
 const KEY = "hatiwal.searchHistory";
@@ -241,16 +244,56 @@ test.describe("Recent searches", () => {
     await headerInput(page).click();
     await expect(panel(page)).toHaveCount(0);
 
-    // History present but the box has text → still nothing.
+    // History present but the boxes have text → still nothing. Landing on a
+    // filtered link fills BOTH fields with the query (the header field mirrors
+    // `?q=` too), so neither offers chips.
     await seedHistory(page, ["iphone"]);
     await page.goto("/en/bazaar?q=MacBook");
     await expect(page.getByText("MacBook Pro M2")).toBeVisible();
-    // The header field is empty, so its chips prove both that the page hydrated
-    // and that the history is there…
-    await openPanel(headerInput(page), headerPanel(page));
-    // …while the Bazaar field, which carries the URL's query, stays chip-free.
     await expect(sidebarInput(page)).toHaveValue("MacBook");
+    await expect(headerInput(page)).toHaveValue("MacBook");
+    await expect(panel(page)).toHaveCount(0);
+
+    // Emptying a field brings its own chips straight back — which also proves
+    // the history was there the whole time.
+    await headerForm(page)
+      .getByRole("button", { name: "Clear", exact: true })
+      .click();
+    await expect(headerInput(page)).toHaveValue("");
+    await expect(headerPanel(page)).toBeVisible();
+  });
+
+  test("the chips belong to the focused field, and only to one at a time", async ({
+    page,
+  }) => {
+    await seedHistory(page, ["iphone"]);
+    await page.goto("/en/bazaar");
+    await feedReady(page);
+
+    // Hydrated, with the Bazaar field empty AND focused → its chips are up.
+    await bazaarHydrated(page);
+    await expect(sidebarPanel(page)).toBeVisible();
+    await expect(panel(page)).toHaveCount(1);
+
+    // Moving focus to the header hands them over — the blur closes the copy that
+    // lost focus. Focus is moved programmatically on purpose: an OPEN dropdown
+    // floats over the top of the page (as any popover does), so a click aimed at
+    // the other field would land on the panel itself.
+    await headerInput(page).focus();
+    await expect(headerPanel(page)).toBeVisible();
     await expect(sidebarPanel(page)).toHaveCount(0);
+    await expect(panel(page)).toHaveCount(1);
+
+    // Back the other way, same rule.
+    await sidebarInput(page).focus();
+    await expect(sidebarPanel(page)).toBeVisible();
+    await expect(headerPanel(page)).toHaveCount(0);
+    await expect(panel(page)).toHaveCount(1);
+
+    // And the buyer can always put the chips away: nothing keeps space it is
+    // not using (the filters below the field must never be pushed down).
+    await sidebarInput(page).press("Escape");
+    await expect(panel(page)).toHaveCount(0);
   });
 
   test("cap, dedupe and 1-char hygiene are enforced on read", async ({
@@ -326,9 +369,32 @@ test.describe("Recent searches", () => {
         name: "Remove iphone from recent searches",
       }),
     ).toBeFocused();
-    // Escape always hands the caret back to the field.
+    // Escape hands the caret back to the field AND puts the chips away.
     await page.keyboard.press("Escape");
     await expect(input).toBeFocused();
+    await expect(sidebarPanel(page)).toHaveCount(0);
+  });
+
+  test("the header dropdown dismisses on Escape, even from a chip", async ({
+    page,
+  }) => {
+    // The header's panel FLOATS over the page, so a single Escape has to close
+    // it from wherever focus sits — including a chip, whose unmount would
+    // otherwise strand focus (and whose refocus of the field can re-open the
+    // panel if the two updates are ordered wrongly).
+    await seedHistory(page, ["iphone", "macbook"]);
+    await page.goto("/en");
+    const input = headerInput(page);
+    await openPanel(input, headerPanel(page));
+
+    await input.press("ArrowDown");
+    await expect(
+      headerPanel(page).getByRole("button", { name: "iphone", exact: true }),
+    ).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(input).toBeFocused();
+    await expect(headerPanel(page)).toHaveCount(0);
   });
 
   test("typing hides the chips, emptying the box brings them back", async ({
@@ -419,6 +485,27 @@ test.describe("Recent searches", () => {
     await expect(
       sidebarPanel(page).getByRole("button", { name: "MacBook", exact: true }),
     ).toBeVisible();
+  });
+
+  test("on a 375px phone the visible field carries the active query", async ({
+    page,
+  }) => {
+    // The Bazaar's own field is desktop-only, so on a phone the header's field
+    // (dropped under the bar) is the ONLY search box — it must show what is
+    // filtering the results, or a buyer arriving on a shared/Back-button link
+    // can neither see nor refine the term.
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/en/bazaar?q=MacBook");
+    await expect(page.getByText("MacBook Pro M2")).toBeVisible();
+    await expect(sidebarInput(page)).toBeHidden();
+    await expect(headerInput(page)).toHaveValue("MacBook");
+
+    // And it is editable: its own clear button drops the filter.
+    await headerForm(page)
+      .getByRole("button", { name: "Clear", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/en\/bazaar$/, { timeout: 30_000 });
+    await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
   });
 
   test("usable on a 375px phone viewport without widening the page", async ({

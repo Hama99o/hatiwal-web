@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { Heart } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -11,6 +16,38 @@ import { useIsOwner } from "@/components/auth/owner-gate";
 import { getSavedListings, toggleSaved } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Listing } from "@/lib/types";
+
+/** The list the /saved page renders — also the server truth for every heart. */
+const SAVED_LISTINGS_KEY: QueryKey = ["saved-listings"];
+
+/** listingId → optimistic saved flag, for saves the server hasn't confirmed. */
+type SavedFlips = Record<number, boolean>;
+const NO_FLIPS: SavedFlips = {};
+
+/**
+ * Cache key for the flip map. Scoped by viewer because logging out does not
+ * clear the query cache, and one buyer's optimistic hearts must never show up
+ * for the next person to sign in on the same tab.
+ */
+function savedFlipsKey(userId?: number): QueryKey {
+  return ["saved-flips", userId ?? null];
+}
+
+/** Write (or, with `undefined`, drop) ONE listing's flip, leaving the rest. */
+function writeFlip(
+  qc: QueryClient,
+  key: QueryKey,
+  listingId: number,
+  value: boolean | undefined,
+) {
+  qc.setQueryData<SavedFlips>(key, (old) => {
+    const next = { ...(old ?? NO_FLIPS) };
+    if (value === undefined) delete next[listingId];
+    else next[listingId] = value;
+    return next;
+  });
+}
 
 /**
  * THE save/favorite heart — web port of mobile's card heart + detail save
@@ -22,6 +59,19 @@ import { cn } from "@/lib/utils";
  * `isSaved` is unreliable there. When signed in we derive the state from the
  * shared ['saved-listings'] query (one cached fetch app-wide) and fall back to
  * `initialSaved`. Guests see the outline heart and are sent to /login on tap.
+ *
+ * SHARED optimistic state (not component state): the listing detail page mounts
+ * TWO hearts for the same listing — the inline one and the sticky
+ * <ListingActionBar>'s — and the bar is hidden with CSS, never unmounted, so
+ * both live for the whole page. With a per-instance `override` they diverged
+ * permanently: unsave from the inline heart and the bar's stayed filled, then
+ * its next tap sent DELETE for an already-unsaved listing. So the flip lives in
+ * one cache entry (see `savedFlipsKey`) that every heart for that listing reads,
+ * exactly like the optimistic list writes in <ConversationsView>.
+ *
+ * (Why a flip map and not a write into ['saved-listings'] itself: removing on
+ * unsave would work, but ADDING needs a whole Listing, which the id-only call
+ * sites don't have — a stub would render as a broken card on /saved.)
  */
 export function SaveButton({
   listingId,
@@ -46,53 +96,81 @@ export function SaveButton({
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const isOwner = useIsOwner(ownerId);
   const queryClient = useQueryClient();
-  const [override, setOverride] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const authed = status === "authed";
+  const flipsKey = savedFlipsKey(user?.id);
 
   // Shared saved-listings cache (same key + fn as the /saved page).
   const { data: savedListings } = useQuery({
-    queryKey: ["saved-listings"],
+    queryKey: SAVED_LISTINGS_KEY,
     queryFn: getSavedListings,
     enabled: authed,
     staleTime: 60_000,
   });
 
+  // Client-only store, never fetched: `initialData` + an infinite `staleTime`
+  // mean this query has data from the first render and never runs its queryFn;
+  // `setQueryData` on the key re-renders every heart subscribed to it.
+  const { data: flips } = useQuery<SavedFlips>({
+    queryKey: flipsKey,
+    queryFn: () => NO_FLIPS,
+    initialData: NO_FLIPS,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  const toggle = useMutation({
+    mutationFn: (wasSaved: boolean) => toggleSaved(listingId, wasSaved),
+    onMutate: (wasSaved) => {
+      const previous = queryClient.getQueryData<SavedFlips>(flipsKey) ?? NO_FLIPS;
+      writeFlip(queryClient, flipsKey, listingId, !wasSaved);
+      // Only this listing's entry, so a rollback can't undo another heart's flip.
+      return { previous: previous[listingId] };
+    },
+    onError: (_err, wasSaved, ctx) => {
+      writeFlip(queryClient, flipsKey, listingId, ctx?.previous);
+      toast.error(t(wasSaved ? "saved.unsaveError" : "saved.saveError"));
+    },
+    onSuccess: async (_data, wasSaved) => {
+      // `invalidateQueries` resolves once the refetch has landed, so we can hand
+      // the truth back to the server list and drop the flip — a flip left in
+      // place forever would outvote a change made on another device. If the
+      // refetch failed (or nothing is observing the list, so it was only marked
+      // stale) the list still disagrees and the flip stays as the local truth.
+      await queryClient.invalidateQueries({ queryKey: SAVED_LISTINGS_KEY });
+      const list = queryClient.getQueryData<Listing[]>(SAVED_LISTINGS_KEY);
+      const listSaved = list?.some((l) => l.id === listingId);
+      if (listSaved === !wasSaved) {
+        writeFlip(queryClient, flipsKey, listingId, undefined);
+      }
+    },
+  });
+
   // Never offer save on your own listing.
   if (isOwner) return null;
 
-  const serverSaved = savedListings
-    ? savedListings.some((l) => l.id === listingId)
-    : (initialSaved ?? false);
-  const saved = override ?? serverSaved;
+  // A guest's cache may still hold the previous session's list (logout doesn't
+  // clear it), so only trust it while signed in.
+  const serverSaved =
+    authed && savedListings
+      ? savedListings.some((l) => l.id === listingId)
+      : (initialSaved ?? false);
+  const saved = (authed ? flips[listingId] : undefined) ?? serverSaved;
   const label = saved ? t("listing.detail.unsave") : t("listing.detail.save");
 
-  async function onToggle(e: React.MouseEvent) {
+  function onToggle(e: React.MouseEvent) {
     // The card heart sits inside a <Link> — never navigate.
     e.preventDefault();
     e.stopPropagation();
-    if (status === "loading" || busy) return;
+    if (status === "loading" || toggle.isPending) return;
     if (!authed) {
       router.push("/login");
       return;
     }
-
-    const wasSaved = saved;
-    setOverride(!wasSaved); // optimistic fill/unfill
-    setBusy(true);
-    try {
-      await toggleSaved(listingId, wasSaved);
-      await queryClient.invalidateQueries({ queryKey: ["saved-listings"] });
-    } catch {
-      setOverride(wasSaved); // revert
-      toast.error(t(wasSaved ? "saved.unsaveError" : "saved.saveError"));
-    } finally {
-      setBusy(false);
-    }
+    toggle.mutate(saved);
   }
 
   if (variant === "detail") {

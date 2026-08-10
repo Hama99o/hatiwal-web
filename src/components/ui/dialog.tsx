@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 // Stack of currently-open dialogs (innermost last). Escape and the Tab
@@ -23,6 +24,16 @@ const FOCUSABLE =
  *
  * `dismissible={false}` (e.g. while a request is in flight) blocks Escape and
  * backdrop-close so the user can't dismiss mid-action.
+ *
+ * PORTALLED to <body>: a dialog must never be a DOM descendant of the thing that
+ * opened it. A host that animates (`transform`/`backdrop-filter` make an element
+ * the containing block for its `position: fixed` children), hides itself
+ * (`opacity-0` + `inert`, `lg:hidden`) or stacks below something else (a `z-40`
+ * host caps its `z-50` child) would otherwise drag the open dialog off screen
+ * with it — which is exactly what the sticky <ListingActionBar> did to its
+ * message/offer dialogs. React still owns the subtree, so state, context (auth,
+ * next-intl, React Query) and event bubbling are unaffected; only the DOM
+ * position changes.
  */
 export function Dialog({
   open,
@@ -92,9 +103,12 @@ export function Dialog({
     };
   }, [open, token]);
 
-  if (!open) return null;
+  // `document` is browser-only; a dialog is always opened by a client
+  // interaction, so rendering nothing on the server costs nothing (and the
+  // portal contributes no markup in place, so there is nothing to mismatch).
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/50"
@@ -113,6 +127,7 @@ export function Dialog({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

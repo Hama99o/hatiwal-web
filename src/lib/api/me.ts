@@ -40,11 +40,25 @@ export async function meRequest<T>(
   return (text ? convertKeysToCamel<T>(JSON.parse(text)) : undefined) as T;
 }
 
+/**
+ * EVERY saved listing, not just the first page. Rails paginates
+ * `my/saved_listings` (20/page) and this list is the shared source of truth for
+ * the saved heart on every card, on the listing detail page and in the sticky
+ * action bar — truncated to page 1 it showed an OUTLINE heart on a listing the
+ * buyer had actually saved, and the next tap POSTed `save` again. Same paging
+ * shape and 50-page safety cap as `getMyListings` below.
+ */
 export async function getSavedListings(): Promise<Listing[]> {
-  const data = await meRequest<{ listings: RawListing[] }>(
-    "my/saved_listings",
-  );
-  return (data.listings ?? []).map(normalizeListing);
+  const out: Listing[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const data = await meRequest<{
+      listings: RawListing[];
+      meta?: { pagination?: { nextPage?: number | null } };
+    }>(`my/saved_listings?page[number]=${page}`);
+    out.push(...(data.listings ?? []).map(normalizeListing));
+    if (!data.meta?.pagination?.nextPage) break;
+  }
+  return out;
 }
 
 export interface ProfileUpdate {

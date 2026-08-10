@@ -122,7 +122,7 @@ export function BrowseClient({
 
   // Recent searches — client-only history shared with the site-header field
   // (one store, two entry points). SearchBox owns the panel and when it shows
-  // (inline here: while this field is empty and the history isn't); this island
+  // (while this field is focused and empty and the history isn't); this island
   // only records the terms it actually commits.
   const { add: recordSearch } = useSearchHistory();
 
@@ -606,20 +606,19 @@ export function BrowseClient({
         {/* Sidebar (desktop) / collapsible (mobile) */}
         <aside className="lg:sticky lg:top-20">
           {/* Desktop only, and OUTSIDE the collapsible filter panel. Below `lg`
-              the site header's own search field is on screen (it drops under the
-              bar on small viewports), so rendering this one too would stack two
-              identical boxes a few pixels apart; at `lg` the header field is a
-              compact one up in the bar and this is the Bazaar's own field, which
-              also mirrors the active `?q=`. Same SearchBox as the header, so the
-              recent-search chips and their rules are identical — inline here
-              because this column is narrow and an overlay would be clipped. */}
+              the site header's own field is the one on screen (it drops under the
+              bar on small viewports) and it mirrors the active `?q=` there, so
+              rendering this one too would only stack two identical boxes a few
+              pixels apart. At `lg` the header field is a compact one up in the
+              bar and this is the Bazaar's own, wider field. Same SearchBox in
+              both places, so the recent-search chips, their rules and the
+              focus-gated dropdown are identical. */}
           <SearchBox
             className="mb-4 hidden lg:block"
             value={searchInput}
             onValueChange={setSearchInput}
             onSubmit={commitSearch}
             placeholder={t("browse.searchPlaceholder")}
-            panelVariant="inline"
           />
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button

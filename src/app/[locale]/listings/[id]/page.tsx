@@ -144,13 +144,16 @@ export default async function ListingDetailPage({
               {listing.condition && (
                 <ConditionBadge condition={listing.condition} />
               )}
-              {/* Share / copy-link — shown for every status (mirrors mobile). */}
+              {/* Share / copy-link — shown for every status (mirrors mobile).
+                  `default` size, not the component's `sm`: at 36px this sat under
+                  the 40px touch target every other action on the page clears. */}
               <ShareButton
                 shareTitle={listing.title}
                 text={t("listing.share.body", {
                   title: listing.title,
                   price: formatPrice(listing.price, listing.currency, locale),
                 })}
+                size="default"
                 className="ms-auto"
               />
             </div>
@@ -350,10 +353,15 @@ export default async function ListingDetailPage({
         )}
 
         <div className="mt-8 max-w-3xl">
+          {/* `-ms-2` cancels the trigger's own `px-2` so the flag lines up with
+              the Description heading and the body copy at the column's start
+              edge (and its mirror in ps/fa) instead of sitting 8px inside it —
+              the padding stays, so the 40px hit box is untouched. */}
           <ReportButton
             reportableType="Listing"
             reportableId={listing.id}
             ownerId={listing.seller?.id}
+            className="-ms-2"
           />
         </div>
 

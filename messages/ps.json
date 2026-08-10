@@ -120,7 +120,7 @@
       "body": "{title} — {price}"
     },
     "firmPrice": "ثابت قیمت",
-    "conversationsCount": "{count} خبرې",
+    "conversationsCount": "{count, plural, one {# چټ} other {# چټونه}}",
     "publishSuccess": "اعلان خپور شو!",
     "reserveSuccess": "اعلان خوندي شوی ښودل شو",
     "markSoldSuccess": "اعلان خرڅ شوی ښودل شو",
@@ -203,8 +203,7 @@
       "views": "لیدنې",
       "conversations": "خبرې",
       "actions": "اعلان اداره کول",
-      "viewConversations": "خبرې وګورئ",
-      "conversationsCount": "{count} خبرې",
+      "viewConversations": "چټونه وګورئ",
       "posted": "خپور شو {date}",
       "dailyViews": "لیدنې — وروستي ۷ ورځې",
       "noViewsYet": "د وروستیو ۷ ورځو کې هیڅ لیدنه نشته"
@@ -306,6 +305,7 @@
     "locationTimeout": "د ځای غوښتنه وخت پای ته ورسېده. مهرباني وکړئ بیا هڅه وکړئ.",
     "locationUnsupported": "په دې وسیله کې ځای شتون نلري.",
     "recentSearches": "وروستي لټونونه",
+    "recentSearchesHint": "وروستي لټونونه د ساحې لاندې موجود دي. ورته د رسیدو لپاره د لاندې غشي کیلي ووهئ.",
     "clearHistory": "ټول پاک کړئ",
     "removeSearch": "{term} له وروستیو لټونونو لرې کړئ",
     "filtersActive": "{count, plural, one {# فلټر فعال} other {# فلټرونه فعال}}",

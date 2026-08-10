@@ -94,10 +94,14 @@ export default async function SellerPage({ params }: { params: Params }) {
             </span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            {/* Share / copy-link for the public profile (mirrors mobile). */}
+            {/* Share / copy-link for the public profile (mirrors mobile).
+                `default` size so it matches the 40px Report beside it — the
+                component's own `sm` (36px) left the pair uneven and both under
+                the touch-target floor. */}
             <ShareButton
               shareTitle={seller.name}
               text={t("seller.share.body", { name: seller.name })}
+              size="default"
             />
             <ReportButton reportableType="User" reportableId={seller.id} />
           </div>
