@@ -18,6 +18,36 @@ test.describe("Listing detail", () => {
     await expect(page.getByText(/Report/i).first()).toBeVisible();
   });
 
+  test("Report lines up with the description column", async ({ page }) => {
+    // The trigger carries its own `px-2` for the 40px hit box, which optically
+    // indented it 8px past every other element in the `max-w-3xl` column (and
+    // mirrored in ps/fa). `-ms-2` at the call site pulls the box back out, so the
+    // flag starts exactly where the "Description" heading and the body copy do.
+    await page.goto("/en/listings/1");
+    const heading = page.getByRole("heading", { name: "Description" });
+    const flag = page
+      .getByRole("button", { name: "Report", exact: true })
+      .locator("svg");
+    await expect(heading).toBeVisible();
+    await expect(flag).toBeVisible();
+    const headingBox = (await heading.boundingBox())!;
+    const flagBox = (await flag.boundingBox())!;
+    expect(Math.abs(flagBox.x - headingBox.x)).toBeLessThanOrEqual(1);
+  });
+
+  test("Share clears the same 40px target as the other actions", async ({
+    page,
+  }) => {
+    // The component defaults to `sm` (36px); on this page it is one of the
+    // header actions, so it is passed `default` — under 40px it was the only
+    // control on the page below the touch-target floor.
+    await page.goto("/en/listings/1");
+    const share = page.getByRole("button", { name: /Share|Copy link/i });
+    await expect(share).toBeVisible();
+    const box = (await share.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(40);
+  });
+
   test("unknown listing id returns a 404", async ({ page }) => {
     const resp = await page.goto("/en/listings/99999");
     expect(resp?.status()).toBe(404);

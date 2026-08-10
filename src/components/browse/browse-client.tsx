@@ -603,8 +603,15 @@ export function BrowseClient({
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
       <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-8">
-        {/* Sidebar (desktop) / collapsible (mobile) */}
-        <aside className="lg:sticky lg:top-20">
+        {/* Sidebar (desktop) / collapsible (mobile).
+            On `lg` the whole column — not just the filter card — is what gets
+            pinned, so the viewport budget is spent HERE: a flex column capped at
+            `100vh - 6rem` (the `top-20` offset plus a little air). The filter
+            card then takes the space that is actually left over after the search
+            field above it, instead of claiming the full budget as if it were the
+            aside's only child — which used to push the bottom of the sidebar
+            (Saved searches) below the fold once the column stuck. */}
+        <aside className="lg:sticky lg:top-20 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col">
           {/* Desktop only, and OUTSIDE the collapsible filter panel. Below `lg`
               the site header's own field is the one on screen (it drops under the
               bar on small viewports) and it mirrors the active `?q=` there, so
@@ -637,12 +644,14 @@ export function BrowseClient({
             </Button>
           </div>
           {/* Independent-scroll panel: filters scroll inside this card on
-              desktop (capped to viewport height), so the page scrolls the
-              results and the bottom filters stay reachable. */}
+              desktop, so the page scrolls the results and the bottom filters
+              stay reachable. `min-h-0` is what lets the flex column above shrink
+              it to the leftover space (a column flex item won't shrink below its
+              content otherwise); it keeps its content height when that fits. */}
           <div
             className={cn(
               showFilters ? "block" : "hidden",
-              "rounded-xl border bg-card p-4 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]",
+              "rounded-xl border bg-card p-4 lg:block lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin]",
             )}
           >
             {sidebar}

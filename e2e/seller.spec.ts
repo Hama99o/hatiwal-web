@@ -21,4 +21,20 @@ test.describe("Seller profile", () => {
     await expect(page.getByText("Samsung 4K TV")).toBeVisible();
     await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
   });
+
+  test("Share and Report are a matched, thumb-sized pair", async ({ page }) => {
+    // They sit side by side in one row, so a size mismatch is visible: Share
+    // defaults to the component's `sm` (36px) and is passed `default` here to
+    // match the 40px Report beside it — and to clear the touch-target floor.
+    await page.goto("/en/sellers/2");
+    const share = page.getByRole("button", { name: /Share|Copy link/i });
+    const report = page.getByRole("button", { name: "Report", exact: true });
+    await expect(share).toBeVisible();
+    await expect(report).toBeVisible();
+    const shareBox = (await share.boundingBox())!;
+    const reportBox = (await report.boundingBox())!;
+    expect(shareBox.height).toBeGreaterThanOrEqual(40);
+    expect(reportBox.height).toBeGreaterThanOrEqual(40);
+    expect(shareBox.height).toBe(reportBox.height);
+  });
 });

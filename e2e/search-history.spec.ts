@@ -66,6 +66,9 @@ const sidebarPanel = (page: Page) =>
   sidebarForm(page).getByTestId("search-history-panel");
 const panel = (page: Page) => page.getByTestId("search-history-panel");
 
+/** The Bazaar's filter card — the last child of the sidebar, below the field. */
+const filterCard = (page: Page) => page.locator("aside > div").last();
+
 /** SSR marker for the Bazaar feed — proves the route rendered before we click. */
 const feedReady = (page: Page) =>
   expect(page.getByText("iPhone 13 Pro")).toBeVisible();
@@ -358,6 +361,19 @@ test.describe("Recent searches", () => {
 
     const input = sidebarInput(page);
     await input.click();
+
+    // Announced, not just reachable: the field points at the panel it controls
+    // and at the sr-only hint that says how to walk into it. Resolved through
+    // the DOM because React's generated ids are not CSS-selector safe.
+    const wiring = await input.evaluate((el) => ({
+      controls: document.getElementById(el.getAttribute("aria-controls") ?? "")
+        ?.dataset.testid,
+      hint: document.getElementById(el.getAttribute("aria-describedby") ?? "")
+        ?.textContent,
+    }));
+    expect(wiring.controls).toBe("search-history-panel");
+    expect(wiring.hint).toContain("Down Arrow");
+
     // ArrowDown enters the list at the newest chip; ArrowRight roves on (LTR).
     await input.press("ArrowDown");
     await expect(
@@ -373,6 +389,65 @@ test.describe("Recent searches", () => {
     await page.keyboard.press("Escape");
     await expect(input).toBeFocused();
     await expect(sidebarPanel(page)).toHaveCount(0);
+    // With nothing to announce, the field advertises nothing.
+    await expect(input).not.toHaveAttribute("aria-controls", /./);
+    await expect(input).not.toHaveAttribute("aria-describedby", /./);
+  });
+
+  test("a full history floats over the page instead of pushing the filters", async ({
+    page,
+  }) => {
+    // The chips are a secondary convenience: they may cover the page while the
+    // buyer is in the field, but must never take space from the filters they
+    // came for — nor shift the column when the client-only history hydrates
+    // (the server cannot know it exists), nor outgrow the sticky sidebar.
+    // A full 10-term history is the worst case.
+    await seedHistory(page, [
+      "samsung galaxy a54",
+      "iphone 13 pro",
+      "macbook pro m2",
+      "winter jacket",
+      "toyota corolla",
+      "office chair",
+      "running shoes",
+      "kabul rugs",
+      "gas heater",
+      "school books",
+    ]);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/en/bazaar");
+    await feedReady(page);
+    await bazaarHydrated(page);
+    await expect(sidebarPanel(page)).toBeVisible();
+
+    // Filters sit exactly where they did before the chips appeared…
+    const before = await filterCard(page).boundingBox();
+    await sidebarInput(page).press("Escape");
+    await expect(sidebarPanel(page)).toHaveCount(0);
+    const after = await filterCard(page).boundingBox();
+    expect(before?.y).toBeCloseTo(after?.y ?? -1, 0);
+
+    // …and the whole sidebar still fits the budget its own `top` offset implies.
+    // The column is what gets pinned, so the viewport budget belongs to the
+    // column: when the filter card claims all of it by itself, the search field
+    // above pushes the card's bottom (Saved searches, Reset filters) past the
+    // fold, where a stuck element can never be scrolled to. Page-length
+    // independent on purpose — the geometry is wrong even before the feed is long
+    // enough to pin anything.
+    const fits = await page.locator("aside").evaluate((el) => {
+      const offset = parseFloat(getComputedStyle(el).top) || 0;
+      return (
+        el.getBoundingClientRect().height <= window.innerHeight - offset + 1
+      );
+    });
+    expect(fits).toBe(true);
+
+    // The filters are still all reachable — the card keeps its own scroller.
+    const scroller = await filterCard(page).evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+      return el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+    });
+    expect(scroller).toBe(true);
   });
 
   test("the header dropdown dismisses on Escape, even from a chip", async ({

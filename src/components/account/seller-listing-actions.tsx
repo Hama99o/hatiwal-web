@@ -59,10 +59,11 @@ export function SellerListingActions({
       {primary && (
         <Button
           size="sm"
-          // `h-auto min-h-9` keeps the 36px minimum touch target while letting a
-          // long label WRAP instead of being clipped — "Mark as Sold" and its
-          // ps/fa equivalents must stay fully readable in a 2-column grid.
-          className="h-auto min-h-9 min-w-0 flex-1 whitespace-normal px-2 py-1 text-xs leading-tight"
+          // `h-auto min-h-10` holds the house 40px tap target (the same floor the
+          // Report/Share pair was raised to) while letting a long label WRAP
+          // instead of being clipped — "Mark as Sold" and its ps/fa equivalents
+          // must stay fully readable in a 2-column grid at 375px.
+          className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal px-2 py-1 text-xs leading-tight"
           disabled={busy}
           onClick={() => ask(primary)}
         >
@@ -83,7 +84,7 @@ export function SellerListingActions({
             aria-label={t("listing.detail.moreOptionsFor", {
               title: listing.title,
             })}
-            className={cn("size-9 shrink-0 px-0", !primary && "ms-auto")}
+            className={cn("size-10 shrink-0 px-0", !primary && "ms-auto")}
           >
             <MoreVertical className="size-4" />
           </Button>

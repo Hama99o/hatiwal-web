@@ -329,6 +329,27 @@ test.describe("My Shop (seller dashboard)", () => {
     expect(menuBox.x).toBeGreaterThanOrEqual(0);
   });
 
+  // The narrowest place this row ever lands: a 2-column grid on a 375px phone.
+  // Both controls must keep the house 40px tap target AND stay inside the card
+  // (a wrapping label may grow the row taller, never wider).
+  test("the action row keeps its 40px targets inside a 375px 2-column card", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await openMyShop(page);
+    const activeCard = card(page, 1);
+    const cardBox = (await activeCard.boundingBox())!;
+    for (const control of [
+      activeCard.getByRole("button", { name: "Mark as Sold" }),
+      activeCard.getByRole("button", { name: /^More options/ }),
+    ]) {
+      const box = (await control.boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(40);
+      expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+      expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
+    }
+  });
+
   test("New Listing navigates to the create form", async ({ page }) => {
     await openMyShop(page);
     await page.getByRole("link", { name: /New Listing/i }).first().click();
