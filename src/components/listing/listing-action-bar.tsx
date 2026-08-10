@@ -9,8 +9,17 @@ import { SaveButton } from "@/components/shared/save-button";
 import { cn } from "@/lib/utils";
 import type { ListingStatus } from "@/lib/types";
 
-/** Matches the `lg:hidden` breakpoint — the bar is a phone/tablet affordance. */
-const COMPACT_VIEWPORT = "(max-width: 1023px)";
+/**
+ * The exact complement of Tailwind's `lg` (`min-width: 64rem`), so this JS gate
+ * and the `lg:hidden` on the markup can never disagree about where the bar
+ * belongs. It is written in `rem`, not `px`: inside a media query `rem` resolves
+ * against the browser's INITIAL root font-size — the same basis Tailwind's own
+ * `64rem` query uses — so a page that restyles `html { font-size }`, or a
+ * text-only zoom, moves both breakpoints together. A hardcoded `1023px` moved
+ * only this one, and at the widths in between the layout was single-column with
+ * no sticky CTA at all.
+ */
+const COMPACT_VIEWPORT = "(max-width: 63.999rem)";
 
 /**
  * Sticky bottom action bar for the listing detail page (phones/tablets only).
@@ -48,7 +57,6 @@ export function ListingActionBar({
   status,
   price,
   currency,
-  negotiable,
   initialSaved,
   sentinelId,
 }: {
@@ -58,8 +66,6 @@ export function ListingActionBar({
   status: ListingStatus;
   price: number | null;
   currency?: string | null;
-  /** false = firm price: the offer affordance is hidden (mirrors mobile N071). */
-  negotiable?: boolean;
   initialSaved?: boolean;
   /** DOM id of the inline actions block that toggles this bar. */
   sentinelId: string;
@@ -125,7 +131,7 @@ export function ListingActionBar({
       <div
         aria-hidden
         data-testid="action-bar-spacer"
-        className="h-[calc(4rem+env(safe-area-inset-bottom))]"
+        className="h-[calc(4rem+env(safe-area-inset-bottom))] lg:hidden"
       />
       <div
         role="region"
@@ -161,16 +167,19 @@ export function ListingActionBar({
             currency={currency}
             className="shrink-0 whitespace-nowrap"
           />
+          {/* No `negotiable`: `layout="bar"` carries the Message CTA alone. The
+              offer affordance stays in the inline block (see that component's
+              note — a second control here clipped the primary label on a 360px
+              phone), so a firm-price flag would have nothing to gate. */}
           <StartConversationButton
             listingId={listingId}
             sellerId={sellerId}
             price={price}
             currency={currency}
-            negotiable={negotiable}
             layout="bar"
           />
           {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
-              heart has to read as a sibling of the offer button beside it. */}
+              heart has to read as a sibling of the Message button beside it. */}
           <SaveButton
             listingId={listingId}
             initialSaved={initialSaved}

@@ -29,13 +29,15 @@ import {
   unblockUser,
 } from "@/lib/api/chat";
 import { useConversationCable } from "@/lib/cable";
-import { listingLifecycle } from "@/lib/api/me";
 import type { Message, Transaction } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ReportButton } from "@/components/shared/report-button";
 import { SafetyTips } from "@/components/shared/safety-tips";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
-import { SellBuyerDialog } from "@/components/account/sell-buyer-dialog";
+import {
+  LifecycleDialogs,
+  useListingLifecycle,
+} from "@/components/account/listing-actions";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -96,10 +98,15 @@ export function ConversationThread({ id }: { id: string }) {
   const [sendingCounter, setSendingCounter] = useState(false);
   const [uploading, setUploading] = useState(false);
   // Seller lifecycle from the pinned listing header: reserve/mark-sold → buyer
-  // picker → (on sold) review prompt. Mirrors mobile's ListingHeader.
-  const [sellAction, setSellAction] = useState<"reserve" | "sold" | null>(null);
-  const [sellBusy, setSellBusy] = useState(false);
+  // picker → (on sold) review prompt. Mirrors mobile's ListingHeader. The
+  // transitions, prompts, toasts and invalidation come from the shared brain
+  // (account/listing-actions) — the same one the /my-listings cards and the
+  // owner detail screen use, so the three surfaces can never disagree.
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
+  const lifecycle = useListingLifecycle(convQ.data?.listing?.id ?? 0, {
+    title: convQ.data?.listing?.title,
+    onSaleRecorded: setReviewTxn,
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -242,33 +249,6 @@ export function ConversationThread({ id }: { id: string }) {
   const closed = conversation?.status === "closed";
   // The seller (listing owner) is the one who can counter a buyer's offer.
   const isSeller = conversation?.seller?.id != null && conversation.seller.id === me;
-
-  // Advance the listing lifecycle from the pinned header (seller only): reserve
-  // an active listing or mark a reserved one sold, via the buyer picker.
-  async function submitSale(buyerId: number | null, finalPrice: number | null) {
-    const listingId = convQ.data?.listing?.id;
-    if (!sellAction || listingId == null) return;
-    const action = sellAction;
-    setSellBusy(true);
-    try {
-      const { transaction } = await listingLifecycle(listingId, action, {
-        buyerId: buyerId ?? undefined,
-        finalPrice: finalPrice ?? undefined,
-      });
-      qc.invalidateQueries({ queryKey: ["conversation", id] });
-      qc.invalidateQueries({ queryKey: ["conversations"] });
-      qc.invalidateQueries({ queryKey: ["my-listings"] });
-      toast.success(
-        t(action === "sold" ? "listing.markSoldSuccess" : "listing.reserveSuccess"),
-      );
-      setSellAction(null);
-      setSellBusy(false);
-      if (action === "sold" && transaction) setReviewTxn(transaction);
-    } catch {
-      toast.error(t("common.error"));
-      setSellBusy(false);
-    }
-  }
 
   async function send(
     body: string,
@@ -528,8 +508,9 @@ export function ConversationThread({ id }: { id: string }) {
               size="sm"
               variant="outline"
               className="w-full"
+              disabled={lifecycle.busy}
               onClick={() =>
-                setSellAction(
+                lifecycle.ask(
                   conversation.listing.status === "reserved"
                     ? "sold"
                     : "reserve",
@@ -793,16 +774,10 @@ export function ConversationThread({ id }: { id: string }) {
         )}
       </Dialog>
 
-      {/* Seller: pick the buyer to reserve/mark-sold, then (on sold) review. */}
-      {sellAction && (
-        <SellBuyerDialog
-          action={sellAction}
-          listingId={conversation.listing.id}
-          busy={sellBusy}
-          onCancel={() => !sellBusy && setSellAction(null)}
-          onConfirm={submitSale}
-        />
-      )}
+      {/* Seller: pick the buyer to reserve/mark-sold, then (on sold) review.
+          The picker, its copy and the mutation are the shared lifecycle brain's
+          — this surface only decides WHICH transition to offer. */}
+      <LifecycleDialogs lifecycle={lifecycle} />
       {reviewTxn && (
         <ReviewPromptDialog
           transaction={reviewTxn}

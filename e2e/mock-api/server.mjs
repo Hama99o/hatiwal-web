@@ -168,14 +168,22 @@ function userMe(persona) {
 }
 
 // Chat fixtures (buyer persona). Conversation/Message use snake_case keys.
+// `buyer`/`seller` mirror Rails' :detailed conversation view — the thread uses
+// them to tell which side the viewer is on (the seller gets the counter-offer
+// action and the reserve/mark-sold header button). Both listings here belong to
+// seller 1, who is the signed-in persona, so the seller side is exercised.
 const CONVERSATIONS = [
   { id: 1, status: "open", last_message_at: "2026-06-21T15:00:00Z", created_at: "2026-06-20T10:00:00Z",
     listing: { id: 1, title: "iPhone 13 Pro", thumbnail_url: null, status: "active", price: 45000, currency: "AFN", location: "Kabul" },
     other_participant: { id: 2, name: "Sara Ahmadi", city: "Herat", verified: false, avatar_url: null },
+    buyer: { id: 2, name: "Sara Ahmadi", city: "Herat", avatar_url: null },
+    seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
     unread_count: 2, last_message_body: "Is this still available?", last_message_kind: "text", blocked_with_participant: false },
   { id: 2, status: "closed", last_message_at: "2026-06-19T12:00:00Z", created_at: "2026-06-18T10:00:00Z",
     listing: { id: 3, title: "Toyota Corolla 2015", thumbnail_url: null, status: "active", price: 600000, currency: "AFN", location: "Herat" },
     other_participant: { id: 3, name: "Najib Rahimi", city: "Kabul", verified: true, avatar_url: null },
+    buyer: { id: 3, name: "Najib Rahimi", city: "Kabul", avatar_url: null },
+    seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
     unread_count: 0, last_message_body: "Thanks!", last_message_kind: "text", blocked_with_participant: false },
 ];
 
@@ -388,6 +396,22 @@ function route(req, res, method, path, q, body) {
     const items = filterListings(q);
     const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
     return send(res, 200, { listings: slice.map(listView), meta: { pagination } });
+  }
+
+  // The dedicated similarity endpoint (Listing.similar_to): browsable stock in
+  // the same category AND its children, source listing excluded, newest first,
+  // capped at 8, and NO pagination envelope. Public, like /listings.
+  // Declared before /listings/:id so the plain show route can't swallow it.
+  const similarMatch = path.match(/^\/listings\/(\d+)\/similar$/);
+  if (method === "GET" && similarMatch) {
+    const source = findListing(similarMatch[1]);
+    if (!source) return send(res, 404, { error: "Listing not found" });
+    const ids = selfAndChildIds(source.category_id);
+    const items = LISTINGS
+      .filter((l) => l.status === "active" && ids.includes(l.category_id) && l.id !== source.id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 8);
+    return send(res, 200, { listings: items.map(listView) });
   }
 
   // Public profile — guest-readable (mirrors Rails: skip_before_action

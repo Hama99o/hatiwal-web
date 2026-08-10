@@ -153,6 +153,24 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Listing deleted")).toBeVisible();
   });
 
+  // The prompt opens OVER the grid and hides the card that was clicked, so it
+  // has to name the listing — otherwise a mis-click deletes the wrong item with
+  // a confirm the seller cannot check.
+  test("every inline prompt names the listing it will act on", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings");
+    await card(page, 8).getByRole("button", { name: "Publish" }).click();
+    const confirm = page.getByRole("dialog");
+    await expect(confirm.getByText("Antique Carpet")).toBeVisible();
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    // …including the buyer picker, which is the one that records a sale.
+    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
+    await expect(
+      page.getByRole("dialog").getByText("iPhone 13 Pro"),
+    ).toBeVisible();
+  });
+
   test("Mark as Sold inline opens the buyer picker", async ({ page }) => {
     await page.goto("/en/my-listings");
     await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();

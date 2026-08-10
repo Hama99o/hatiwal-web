@@ -34,6 +34,24 @@ test.describe("Conversation thread", () => {
     ).toBeVisible();
   });
 
+  // The seller can advance the listing from the thread itself (mobile's
+  // ListingHeader parity). It runs on the SAME shared lifecycle brain as the
+  // /my-listings cards and the owner detail screen — same buyer picker, same
+  // copy, same toast — so this covers the third surface of that one hook.
+  test("the seller can mark the pinned listing reserved from the thread", async ({
+    page,
+  }) => {
+    await page.goto("/en/conversations/1");
+    await page.getByRole("button", { name: "Mark as Reserved" }).click();
+    const picker = page.getByRole("dialog");
+    await expect(picker.getByText("Who's buying this item?")).toBeVisible();
+    // Named, so a seller with several threads open knows what they're reserving.
+    await expect(picker.getByText("iPhone 13 Pro")).toBeVisible();
+    await picker.getByRole("button", { name: /Sara Ahmadi/ }).click();
+    await picker.getByRole("button", { name: "Confirm reserve" }).click();
+    await expect(page.getByText("Listing marked as reserved")).toBeVisible();
+  });
+
   test("an unknown conversation shows the load error", async ({ page }) => {
     await page.goto("/en/conversations/99999");
     await expect(page.getByText("Could not load messages.")).toBeVisible();

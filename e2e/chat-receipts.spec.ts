@@ -99,6 +99,22 @@ async function retimeThread(page: Page, dayOffset: number) {
   });
 }
 
+/**
+ * Injects one extra message (newest-first, as Rails returns them) into the
+ * thread payload. Lets this spec cover a bubble kind the shared fixture has no
+ * instance of without editing `e2e/mock-api/server.mjs`, which every other spec
+ * depends on. Must be called before `page.goto`.
+ */
+async function withExtraMessage(page: Page, extra: Record<string, unknown>) {
+  await page.route("**/api/me/conversations/1/messages*", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    const res = await route.fetch();
+    const json = await res.json();
+    if (Array.isArray(json.messages)) json.messages = [extra, ...json.messages];
+    await route.fulfill({ response: res, json });
+  });
+}
+
 test.describe("Chat timestamps + read receipts", () => {
   test.use({ storageState: BUYER_STATE });
   // Several tests here navigate more than once (en → conversation 2, en → ps →
@@ -164,6 +180,28 @@ test.describe("Chat timestamps + read receipts", () => {
     ).toBeVisible();
   });
 
+  test("a counter-offer bubble carries the meta row too", async ({ page }) => {
+    // The shared fixture has an `offer` but no `offer_counter`; both render
+    // through the same wrapper, so assert the kind the fixture is missing.
+    await withExtraMessage(page, {
+      id: 13,
+      body: "42000|AFN|45000",
+      kind: "offer_counter",
+      offer_amount: 42000,
+      offer_currency: "AFN",
+      read_at: null,
+      created_at: "2026-06-21T15:58:00Z",
+      responds_to_id: null,
+      sender: { id: 1, name: "Ahmad Karimi", avatar_url: null },
+      attachment_url: null,
+    });
+    await openThread(page);
+
+    const counter = bubbleWith(page, "p", en.chat.offer.counteredAt);
+    await expect(counter.getByTestId("message-meta")).toHaveText(TIME_RE);
+    await expect(counter.getByTitle(SENT)).toBeVisible();
+  });
+
   test("a two-day thread renders one separator, a single-day thread none", async ({
     page,
   }) => {
@@ -222,7 +260,7 @@ test.describe("Chat timestamps + read receipts", () => {
     await openThread(page);
     const composer = page.getByPlaceholder(en.chat.messagePlaceholder);
     await composer.fill("On my way now.");
-    await page.getByRole("button", { name: en.chat.send }).click();
+    await page.getByRole("button", { name: en.chat.send, exact: true }).click();
 
     const sent = bubbleWith(page, "p", "On my way now.");
     await expect(sent.getByTitle(SENT)).toBeVisible();
@@ -256,7 +294,7 @@ test.describe("Chat timestamps + read receipts", () => {
     // A message sent during the visit survives leaving and re-entering the thread.
     const duringVisit = "Sent during this visit.";
     await page.getByPlaceholder(en.chat.messagePlaceholder).fill(duringVisit);
-    await page.getByRole("button", { name: en.chat.send }).click();
+    await page.getByRole("button", { name: en.chat.send, exact: true }).click();
     await expect(page.locator("p", { hasText: duringVisit })).toBeVisible();
     await page.getByRole("link", { name: en.common.back }).click();
     await expect(page).toHaveURL(/\/conversations$/);

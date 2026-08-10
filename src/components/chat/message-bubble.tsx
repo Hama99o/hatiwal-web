@@ -303,7 +303,10 @@ export function MessageBubble({
         {/* Meta row — time on every bubble kind (text, attachment, offer,
             counter, meetup), plus the sent/seen tick on my own messages. The
             centred system + accepted/declined pills and the deleted tombstone
-            return early above and carry no meta, mirroring mobile. */}
+            return early above and carry no meta: the pills match mobile
+            exactly; the tombstone deliberately stays barer than mobile's (which
+            still prints a time) so a retracted message reads as one quiet line
+            and never invites a "seen?" question about content that is gone. */}
         <div
           data-testid="message-meta"
           className={cn(

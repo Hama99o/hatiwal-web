@@ -58,6 +58,11 @@ export function ListingRail({
   return (
     <section
       data-testid={testId}
+      /* Names the region so it is announced (and reachable in a screen
+         reader's landmark list) as "Similar Listings" / "More from this
+         Seller" — a <section> with no accessible name is not a landmark at
+         all, and two unnamed ones stacked are indistinguishable. */
+      aria-label={title}
       className={cn(large ? "space-y-5" : "space-y-4", className)}
     >
       <div className="flex items-end justify-between gap-3">
@@ -74,8 +79,16 @@ export function ListingRail({
           <Button asChild variant="ghost">
             <Link href={viewAllHref}>
               {viewAllLabel}
+              {/* "View all" is identical on every rail, so on its own it says
+                  nothing about where it goes — a screen reader's link list
+                  would show it three times over. The section title is appended
+                  invisibly, AFTER the visible words, so the accessible name
+                  still starts with the label voice control has to match
+                  (WCAG 2.5.3 Label in Name). No new string: the title is
+                  already localized. */}
+              <span className="sr-only">{` ${title}`}</span>
               {/* Mirrored in RTL so the arrow always points "forward". */}
-              <ArrowRight className="size-4 rtl:-scale-x-100" />
+              <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
             </Link>
           </Button>
         ) : null}

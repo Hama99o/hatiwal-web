@@ -122,6 +122,30 @@ export async function getSoldListings(
   };
 }
 
+/**
+ * The "Similar Listings" rail on listing detail.
+ *
+ * Uses the dedicated `GET /listings/:id/similar` endpoint — the ONE definition
+ * of "similar" both clients share (`Listing.similar_to`: browsable only, same
+ * category incl. its children, source listing excluded, newest first, max 8).
+ * Do not re-approximate it here with a `category_id` query: that leaks
+ * non-browsable stock through `status`, needs the source filtered out
+ * client-side, and would drift from what mobile shows for the same listing.
+ *
+ * Returns a bare array — this endpoint is a fixed-size rail, so it has no
+ * pagination envelope.
+ */
+export async function getSimilarListings(
+  id: number | string,
+  opts: { revalidate?: number } = {},
+): Promise<Listing[]> {
+  const data = await apiGet<{ listings: RawListing[] }>(
+    `listings/${id}/similar`,
+    { revalidate: opts.revalidate },
+  );
+  return (data.listings ?? []).map(normalizeListing);
+}
+
 export async function getListing(
   id: number | string,
   opts: { revalidate?: number } = {},

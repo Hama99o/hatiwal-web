@@ -58,14 +58,18 @@ test.describe("Listing detail", () => {
 
 // Two cross-sell rails at the bottom of the page, both rendered by the shared
 // <ListingRail>: the seller's other active stock first, then same-category
-// "Similar Listings". Fixture map used below:
+// "Similar Listings" (the dedicated GET /listings/:id/similar endpoint — the one
+// definition of "similar" this client shares with mobile). Fixture map used below:
 //   listing 2 = Samsung 4K TV, ACTIVE, seller 2 (Sara Ahmadi), cat Electronics
-//               → seller 2's other active stock = Winter Jacket; the same-category
-//                 rail rolls Electronics' subcategories up (iPhone, MacBook).
+//               → seller 2's other active stock = Winter Jacket; the similar
+//                 endpoint rolls Electronics' subcategories up (iPhone, MacBook).
 //   listing 4 = Winter Jacket, ACTIVE, seller 2, cat Clothes — the only
 //               browsable listing in Clothes → no similar rail at all.
 //   listing 7 = Leather Sofa, SOLD, seller 1 (Ahmad Karimi), cat Clothes
 //               → both rails render.
+//   listing 9 = Gaming PC, RESERVED, seller 1, cat Computers & Laptops → both
+//               rails resolve to the same single card (MacBook), so it is the
+//               dedupe case.
 test.describe("Listing detail — cross-sell rails", () => {
   test("the seller's other active stock renders as its own rail", async ({
     page,
@@ -82,12 +86,61 @@ test.describe("Listing detail — cross-sell rails", () => {
     await expect(
       rail.getByRole("link", { name: /View all/i }),
     ).toHaveAttribute("href", "/en/sellers/2");
-    // Same-category rail expands to the category's children too (Rails'
-    // Listing.by_category → self_and_children), so a listing filed directly
-    // under Electronics still cross-sells the phone and the laptop below it.
+    // The similar endpoint expands to the category's children (Rails'
+    // Listing.similar_to → by_category → self_and_children), so a listing filed
+    // directly under Electronics still cross-sells the phone and the laptop
+    // below it.
     const similar = page.getByTestId("similar-rail");
     await expect(similar.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(similar.getByText("MacBook Pro M2")).toBeVisible();
+    // ...and it is not a dead end either: "view all" lands on the category hub.
+    await expect(
+      similar.getByRole("link", { name: /View all/i }),
+    ).toHaveAttribute("href", "/en/categories/electronics");
+  });
+
+  test("a card is never offered twice under two headings", async ({ page }) => {
+    // Seller 1's only other active laptop IS the similar-category match, so the
+    // seller rail (which runs first) keeps it and the similar rail — left with
+    // nothing else — does not render at all.
+    await page.goto("/en/listings/9");
+    const seller = page.getByTestId("seller-rail");
+    await expect(seller.getByText("MacBook Pro M2")).toBeVisible();
+    await expect(page.getByText("MacBook Pro M2")).toHaveCount(1);
+    await expect(page.getByTestId("similar-rail")).toHaveCount(0);
+  });
+
+  test("a rule separates the two rails, and never dangles alone", async ({
+    page,
+  }) => {
+    // Both rails on listing 7 → the boundary is drawn.
+    await page.goto("/en/listings/7");
+    await expect(page.getByTestId("rail-divider")).toBeVisible();
+    // Only one rail on listing 4 (Clothes has no other stock) → no rule.
+    await page.goto("/en/listings/4");
+    await expect(page.getByTestId("seller-rail")).toBeVisible();
+    await expect(page.getByTestId("rail-divider")).toHaveCount(0);
+  });
+
+  test("each rail is a named region with a self-describing view-all", async ({
+    page,
+  }) => {
+    // "View all" repeated verbatim on two adjacent rails is meaningless in a
+    // screen reader's link list, so the section title is appended invisibly
+    // after the visible words.
+    await page.goto("/en/listings/2");
+    await expect(
+      page.getByRole("region", { name: "More from this Seller" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Similar Listings" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "View all More from this Seller" }),
+    ).toHaveAttribute("href", "/en/sellers/2");
+    await expect(
+      page.getByRole("link", { name: "View all Similar Listings" }),
+    ).toHaveAttribute("href", "/en/categories/electronics");
   });
 
   test("no dangling similar rail when the category has no other stock", async ({
@@ -119,7 +172,8 @@ test.describe("Listing detail — cross-sell rails", () => {
     page,
   }) => {
     // <UnavailableActions> already owns a prominent, name-carrying button to
-    // this seller, so the rail below drops its duplicate "view all".
+    // this seller AND one to the category, so both rails below drop their
+    // duplicate "view all" — one destination, one CTA.
     await page.goto("/en/listings/7");
     await expect(
       page
@@ -129,6 +183,9 @@ test.describe("Listing detail — cross-sell rails", () => {
     const rail = page.getByTestId("seller-rail");
     await expect(rail).toBeVisible();
     await expect(rail.getByRole("link", { name: /View all/i })).toHaveCount(0);
+    await expect(
+      page.getByTestId("similar-rail").getByRole("link", { name: /View all/i }),
+    ).toHaveCount(0);
   });
 
   test("same on a reserved listing", async ({ page }) => {
@@ -161,9 +218,14 @@ test.describe("Listing detail — cross-sell rails", () => {
 
   test("ps keeps the locale prefix on the rail's view-all", async ({ page }) => {
     await page.goto("/ps/listings/2");
+    // Name is a prefix match, not exact: the accessible name is the visible
+    // "ټول وګورئ" plus the section title, appended sr-only.
     await expect(
-      page.getByTestId("seller-rail").getByRole("link", { name: "ټول وګورئ" }),
+      page.getByTestId("seller-rail").getByRole("link", { name: /^ټول وګورئ/ }),
     ).toHaveAttribute("href", "/ps/sellers/2");
+    await expect(
+      page.getByTestId("similar-rail").getByRole("link", { name: /^ټول وګورئ/ }),
+    ).toHaveAttribute("href", "/ps/categories/electronics");
   });
 
   test("both rails lay out on the 4-column rail track, capped at 4 cards", async ({

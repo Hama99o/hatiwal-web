@@ -44,7 +44,12 @@ export function SellerListingActions({
 }) {
   const t = useTranslations();
   const locale = useLocale();
-  const lifecycle = useListingLifecycle(listing.id, { onSaleRecorded });
+  // `title` makes every prompt name the listing — the dialog opens over the grid
+  // and hides the card that was clicked.
+  const lifecycle = useListingLifecycle(listing.id, {
+    title: listing.title,
+    onSaleRecorded,
+  });
   const { busy, ask } = lifecycle;
 
   const { primary, secondary } = actionsFor(listing.status, !!listing.expired);
@@ -84,11 +89,15 @@ export function SellerListingActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[11rem]">
-          {secondary.map((action) => (
-            <DropdownMenuItem key={action} onSelect={() => ask(action)}>
-              {t(`listing.${LIFECYCLE[action].label}`)}
-            </DropdownMenuItem>
-          ))}
+          {secondary.map((action) => {
+            const { label, Icon } = LIFECYCLE[action];
+            return (
+              <DropdownMenuItem key={action} onSelect={() => ask(action)}>
+                <Icon className="size-4" />
+                {t(`listing.${label}`)}
+              </DropdownMenuItem>
+            );
+          })}
           <DropdownMenuItem asChild>
             <Link href={`/listings/${listing.id}/edit`}>
               <Pencil className="size-4" />

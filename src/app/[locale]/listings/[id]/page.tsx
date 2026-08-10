@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { getListing, getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
+import { getListing } from "@/lib/api/listings";
 import { localizedAlternates } from "@/lib/seo";
 import { categoryName } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
@@ -31,15 +32,15 @@ import { HideListingButton } from "@/components/listing/hide-listing-button";
 import { ListingActionBar } from "@/components/listing/listing-action-bar";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { RecordListingView } from "@/components/listing/record-listing-view";
-import { ListingRail } from "@/components/shared/listing-rail";
+import {
+  CrossSellRails,
+  CrossSellRailsSkeleton,
+} from "@/components/listing/cross-sell-rails";
 import { LocationMap } from "@/components/map/location-map";
 import { Separator } from "@/components/ui/separator";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
-
-/** Cards per cross-sell rail — see the slice below for why it is exactly 4. */
-const RAIL_SIZE = 4;
 
 type Params = Promise<{ locale: string; id: string }>;
 
@@ -82,42 +83,7 @@ export default async function ListingDetailPage({
   const listing = await safe(getListing(id), null);
   if (!listing) notFound();
 
-  // Two cross-sell rails, fetched in parallel (one request each, and each one
-  // skipped entirely when its key is missing): same-category "Similar listings"
-  // and the seller's other active stock ("More from this Seller" — mirrors mobile
-  // TASK-M547). A failed fetch degrades via safe() to an empty list → that rail
-  // simply doesn't render. The seller rail is buyer-only (see <HideForOwner>
-  // below); it's public data either way, so it's still fetched during SSR.
   const sellerId = listing.seller?.id;
-  const [similarResult, sellerResult] = await Promise.all([
-    listing.categoryId
-      ? safe(
-          getListings({
-            categoryId: listing.categoryId,
-            status: "active",
-            pageSize: 12,
-          }),
-          EMPTY_LISTINGS,
-        )
-      : EMPTY_LISTINGS,
-    sellerId
-      ? safe(
-          getListings({ userId: sellerId, status: "active", pageSize: 12 }),
-          EMPTY_LISTINGS,
-        )
-      : EMPTY_LISTINGS,
-  ]);
-
-  // Both rails cap at 4 — the count the shared rail's 2→4 column tracks divide
-  // evenly, so neither ever shows an orphan card on its own row or a hole in the
-  // last row. Fetching 12 leaves headroom for filtering the current listing out.
-  const similar = similarResult.items
-    .filter((l) => l.id !== listing.id)
-    .slice(0, RAIL_SIZE);
-  const sellerListings = sellerResult.items
-    .filter((l) => l.id !== listing.id)
-    .slice(0, RAIL_SIZE);
-
   const isActive = listing.status === "active";
 
   const jsonLd = {
@@ -378,36 +344,27 @@ export default async function ListingDetailPage({
         />
       </div>
 
-      {/* Seller's other stock sits first: the buyer has just read the trust card,
-          so this is the moment to show what else that seller has.
+      {/* Cross-sell rails ("More from this Seller" + "Similar Listings"). They
+          own their own two requests, so they stream in behind a skeleton instead
+          of holding back the photo, the price and the seller card above.
 
-          Hidden from the seller themselves (mirrors mobile's `!isOwnListing`
-          gate): "More from this Seller" is buyer copy, and its "view all" would
-          send the owner to their own public profile. The rail stays a Server
-          Component — only the guard runs in the browser, because the SSR fetch
-          is anonymous and can't know who is looking.
-
-          On a sold/reserved listing <UnavailableActions> above already owns the
-          "go to this seller" CTA (a prominent, name-carrying button right under
-          the status), so the rail drops its own duplicate link to the same
-          profile and stays a pure browsing surface — one destination, one CTA. */}
-      <HideForOwner ownerId={sellerId}>
-        <ListingRail
+          KNOWN GAP: listings the buyer dismissed with "Not interested" can still
+          appear here. Rails filters them out for the caller it can identify, but
+          every public payload on this site is fetched anonymously (see
+          lib/api/client.ts — devise tokens live in httpOnly cookies and are only
+          attached by the /api/me proxy, which is what re-persists the rotated
+          ones). The browse feed and the category hubs have exactly the same gap;
+          closing it belongs in the fetch layer, once, for all of them — not in
+          this rail at the cost of an authed round-trip per page view. */}
+      <Suspense fallback={<CrossSellRailsSkeleton className="mt-12" />}>
+        <CrossSellRails
           className="mt-12"
-          testId="seller-rail"
-          title={t("listing.detail.moreFromSeller")}
-          listings={sellerListings}
-          viewAllHref={isActive && sellerId ? `/sellers/${sellerId}` : undefined}
-          viewAllLabel={t("home.viewAll")}
+          listingId={listing.id}
+          sellerId={sellerId}
+          categorySlug={listing.category?.slug}
+          isActive={isActive}
         />
-      </HideForOwner>
-
-      <ListingRail
-        className="mt-12"
-        testId="similar-rail"
-        title={t("listing.detail.similarListings")}
-        listings={similar}
-      />
+      </Suspense>
 
       {/* Sticky buyer CTA for phones/tablets — reuses the very same
           StartConversationButton + SaveButton as the inline block above, so the
@@ -418,7 +375,6 @@ export default async function ListingDetailPage({
         status={listing.status}
         price={listing.price}
         currency={listing.currency}
-        negotiable={listing.negotiable}
         initialSaved={listing.isSaved}
         sentinelId="listing-actions"
       />

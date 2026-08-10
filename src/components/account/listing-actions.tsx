@@ -5,6 +5,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
+  CircleCheckBig,
+  Clock,
+  EyeOff,
+  RefreshCw,
+  RotateCcw,
+  Upload,
+  type LucideIcon,
+} from "lucide-react";
+import {
   listingLifecycle,
   deleteMyListing,
   type LifecycleAction,
@@ -26,46 +35,58 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
  * its own buttons. Never copy any of it into a component — extend it here.
  */
 
-/** i18n key suffixes (under the `listing.` namespace) for each transition. */
+/**
+ * Per-transition copy (i18n key suffixes under the `listing.` namespace) + the
+ * icon that stands for it. The icons mirror mobile's `useListingLifecycle`
+ * action rows one-for-one (sold→CircleCheckBig, reserve→Clock,
+ * unpublish→EyeOff, activate→RotateCcw) so a seller who uses both clients reads
+ * the same glyph for the same move.
+ */
 export const LIFECYCLE: Record<
   LifecycleAction,
-  { label: string; success: string; title: string; desc: string }
+  { label: string; success: string; title: string; desc: string; Icon: LucideIcon }
 > = {
   publish: {
     label: "publish",
     success: "publishSuccess",
     title: "confirmPublish",
     desc: "confirmPublishDescription",
+    Icon: Upload,
   },
   unpublish: {
     label: "unpublish",
     success: "unpublishSuccess",
     title: "confirmUnpublish",
     desc: "confirmUnpublishDescription",
+    Icon: EyeOff,
   },
   reserve: {
     label: "markReserved",
     success: "reserveSuccess",
     title: "confirmReserve",
     desc: "confirmReserveDescription",
+    Icon: Clock,
   },
   activate: {
     label: "activate",
     success: "activateSuccess",
     title: "confirmActivate",
     desc: "confirmActivateDescription",
+    Icon: RotateCcw,
   },
   sold: {
     label: "markSold",
     success: "markSoldSuccess",
     title: "confirmMarkSold",
     desc: "markSoldConfirm",
+    Icon: CircleCheckBig,
   },
   renew: {
     label: "renew",
     success: "renewSuccess",
     title: "confirmRenew",
     desc: "confirmRenewDescription",
+    Icon: RefreshCw,
   },
 };
 
@@ -156,6 +177,13 @@ export type LifecycleController = ReturnType<typeof useListingLifecycle>;
 export function useListingLifecycle(
   listingId: number,
   opts: {
+    /**
+     * The listing's title, echoed in every prompt. Pass it from any surface that
+     * shows MORE THAN ONE listing (the /my-listings grid, a chat header): the
+     * dialog covers the card that was clicked, so without the title "Delete this
+     * listing?" gives the seller nothing to check the action against.
+     */
+    title?: string;
     /** Called after a successful delete (e.g. leave the detail route). */
     onDeleted?: () => void;
     /** Called when a sale recorded a buyer — offer to review them. */
@@ -179,6 +207,12 @@ export function useListingLifecycle(
     qc.invalidateQueries({ queryKey: ["listing-conversations", listingId] });
     // Prefix match: every browse/home/category grid is keyed ["listings", filters].
     qc.invalidateQueries({ queryKey: ["listings"] });
+    // Chat caches: a thread pins the listing (status badge + the seller's own
+    // reserve/sold button) and the inbox row shows its state, so both go stale
+    // the moment the listing moves — whichever surface moved it. Prefix match
+    // covers every open thread, not just this listing's.
+    qc.invalidateQueries({ queryKey: ["conversation"] });
+    qc.invalidateQueries({ queryKey: ["conversations"] });
   }
 
   /** Returns the lifecycle payload, or null when the request failed. */
@@ -253,6 +287,7 @@ export function useListingLifecycle(
 
   return {
     listingId,
+    title: opts.title,
     busy,
     pending,
     ask,
@@ -275,7 +310,7 @@ export function LifecycleDialogs({
   lifecycle: LifecycleController;
 }) {
   const t = useTranslations();
-  const { listingId, pending, busy, dismiss, confirmPending, submitSale } =
+  const { listingId, title, pending, busy, dismiss, confirmPending, submitSale } =
     lifecycle;
   const buyerFlow = needsBuyerPicker(pending);
   const keys = dialogKeysFor(pending);
@@ -286,7 +321,19 @@ export function LifecycleDialogs({
         <ConfirmDialog
           open
           title={t(keys.title)}
-          description={t(keys.desc)}
+          // The listing's own title, when the surface passed one: the prompt
+          // covers the card that was clicked, so naming the listing is the only
+          // way a seller can check they are about to delete the right one.
+          description={
+            <>
+              {t(keys.desc)}
+              {title && (
+                <span className="mt-1 block font-medium text-foreground">
+                  {title}
+                </span>
+              )}
+            </>
+          }
           confirmLabel={t(keys.confirm)}
           cancelLabel={t("common.cancel")}
           destructive={keys.destructive}
@@ -300,6 +347,7 @@ export function LifecycleDialogs({
         <SellBuyerDialog
           action={pending.action as "reserve" | "sold"}
           listingId={listingId}
+          listingTitle={title}
           busy={busy}
           onCancel={dismiss}
           onConfirm={submitSale}

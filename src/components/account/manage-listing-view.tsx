@@ -44,6 +44,7 @@ export function ManageListingView({ id }: { id: string }) {
   // The shared lifecycle brain owns the pending-action state, the API call,
   // toasts, cache invalidation and the busy flag (see ./listing-actions).
   const lifecycle = useListingLifecycle(listing?.id ?? 0, {
+    title: listing?.title,
     onDeleted: () => router.push("/my-listings"),
     onSaleRecorded: setReviewTxn,
   });
@@ -118,17 +119,22 @@ export function ManageListingView({ id }: { id: string }) {
             )}
             {secondary.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {secondary.map((a) => (
-                  <Button
-                    key={a}
-                    variant="outline"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => ask(a)}
-                  >
-                    {t(`listing.${LIFECYCLE[a].label}`)}
-                  </Button>
-                ))}
+                {secondary.map((a) => {
+                  // Same glyph per transition as the card kebab and mobile.
+                  const { label, Icon } = LIFECYCLE[a];
+                  return (
+                    <Button
+                      key={a}
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => ask(a)}
+                    >
+                      <Icon className="size-4" />
+                      {t(`listing.${label}`)}
+                    </Button>
+                  );
+                })}
               </div>
             )}
           </div>

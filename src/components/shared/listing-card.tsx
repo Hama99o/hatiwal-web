@@ -16,10 +16,32 @@ import type { Listing } from "@/lib/types";
 /** Grid = photo-first card; list = compact horizontal row. */
 export type ListingCardVariant = "grid" | "list";
 
+/**
+ * `sizes` for the cover photo, one entry per track set `ListingGrid` can lay a
+ * card out on (`GRID_COLUMNS` there is keyed by the same names, so the two can
+ * never drift). It lives with the card because the card owns the `<Image>`, and
+ * the grid passes the entry matching the tracks it actually used — a hint that
+ * describes a different layout makes the browser pick a photo two to three
+ * times the size it renders at.
+ *
+ *   page — the full-width feed: 2 → 3 → 4 → 5 columns of the viewport.
+ *   rail — a capped cross-sell rail: 2 → 4 columns inside a max-w-6xl page,
+ *          so past ~1200px the card stops growing and settles at ~272px.
+ */
+export const CARD_IMAGE_SIZES = {
+  page: "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw",
+  rail: "(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 272px",
+} as const;
+
+/** The track sets a card knows a `sizes` hint for. */
+export type ListingCardTracks = keyof typeof CARD_IMAGE_SIZES;
+
 interface ListingCardProps {
   listing: Listing;
   /** Layout variant. `grid` (default) is the tall photo card; `list` is a dense row. */
   variant?: ListingCardVariant;
+  /** Track set the card is laid out on — picks the photo's `sizes` hint. */
+  tracks?: ListingCardTracks;
   /** Show the lifecycle badge for non-active listings (seller/owner contexts). */
   showStatus?: boolean;
   /** Save-heart overlay on the photo (default). Turn off in owner contexts. */
@@ -44,6 +66,7 @@ interface ListingCardProps {
 export function ListingCard({
   listing,
   variant = "grid",
+  tracks = "page",
   showStatus = false,
   showSave = true,
   priority = false,
@@ -187,7 +210,7 @@ export function ListingCard({
             src={cover}
             alt={listing.title}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            sizes={CARD_IMAGE_SIZES[tracks]}
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             priority={priority}
           />

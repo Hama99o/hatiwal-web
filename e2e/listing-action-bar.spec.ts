@@ -180,6 +180,36 @@ test.describe("Listing action bar (mobile)", () => {
   });
 });
 
+test.describe("Listing action bar (breakpoint)", () => {
+  test.use({ storageState: BUYER_STATE, viewport: PHONE });
+
+  test("switches over exactly where `lg` does, not a px either side", async ({
+    page,
+  }) => {
+    // The JS gate and the `lg:hidden` class must agree: a hardcoded px query
+    // drifted from Tailwind's rem breakpoint under a restyled root font-size /
+    // text-only zoom, and in the gap the layout was single-column with no
+    // sticky CTA at all. 1023 = last compact width, 1024 = first `lg` width.
+    for (const [width, expected] of [
+      [1023, 1],
+      [1024, 0],
+    ] as const) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/en/listings/2");
+      // The inline Save button is a client island — once it is on screen the
+      // page has hydrated and the bar's media-query effect has run.
+      await expect(
+        page.getByRole("button", { name: /save|saved/i }).first(),
+      ).toBeVisible();
+      const bar = page.locator('[aria-label="Listing actions"]');
+      if (expected) await expect(bar).toHaveCount(1);
+      else await expect(bar).toHaveCount(0);
+      // The spacer ships with the bar, so it must switch over at the same width.
+      await expect(page.getByTestId("action-bar-spacer")).toHaveCount(expected);
+    }
+  });
+});
+
 test.describe("Listing action bar (desktop)", () => {
   test.use({ storageState: BUYER_STATE, viewport: { width: 1280, height: 720 } });
 

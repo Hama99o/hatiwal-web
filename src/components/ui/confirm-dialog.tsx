@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from "react";
 import { useId } from "react";
 import { Button } from "./button";
 import { Dialog } from "./dialog";
@@ -7,7 +8,12 @@ import { Dialog } from "./dialog";
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  description?: string;
+  /**
+   * Body copy. A node (not just a string) so a caller can add the subject it is
+   * acting on — e.g. the listing's title under the question, which is what makes
+   * the prompt unambiguous when it opens over a grid of cards.
+   */
+  description?: React.ReactNode;
   confirmLabel: string;
   cancelLabel: string;
   destructive?: boolean;

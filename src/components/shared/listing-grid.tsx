@@ -1,5 +1,9 @@
 import type * as React from "react";
-import { ListingCard, type ListingCardVariant } from "./listing-card";
+import {
+  ListingCard,
+  type ListingCardTracks,
+  type ListingCardVariant,
+} from "./listing-card";
 import { ListingCardSkeleton } from "./listing-card-skeleton";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/lib/types";
@@ -10,13 +14,17 @@ import type { Listing } from "@/lib/types";
  * rails: 4 cards divide evenly into both 2 and 4 columns, so a rail never wraps
  * a lone orphan card onto its own row and never leaves a hole in the last row
  * (which `sm:grid-cols-3`/`xl:grid-cols-5` would at a cap of 4).
+ *
+ * Typed by `ListingCardTracks` so every track set here has a matching photo
+ * `sizes` hint in the card (`CARD_IMAGE_SIZES`) — adding one without the other
+ * is a type error, not a silently oversized download.
  */
-const GRID_COLUMNS = {
+const GRID_COLUMNS: Record<ListingCardTracks, string> = {
   page: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
   rail: "grid-cols-2 md:grid-cols-4",
-} as const;
+};
 
-export type ListingGridColumns = keyof typeof GRID_COLUMNS;
+export type ListingGridColumns = ListingCardTracks;
 
 const GRID = "grid gap-3";
 /** List = one dense row per listing. */
@@ -62,6 +70,7 @@ export function ListingGrid({
           key={listing.id}
           listing={listing}
           variant={viewMode}
+          tracks={columns}
           showStatus={showStatus}
           showSave={showSave}
           priority={i < priorityCount}

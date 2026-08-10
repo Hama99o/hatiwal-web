@@ -24,12 +24,20 @@ type Choice = number | "else" | null;
 export function SellBuyerDialog({
   action,
   listingId,
+  listingTitle,
   busy,
   onCancel,
   onConfirm,
 }: {
   action: "reserve" | "sold";
   listingId: number;
+  /**
+   * Which listing is being sold. Pass it whenever the picker can be opened from
+   * a surface showing several listings (the /my-listings grid) — the dialog
+   * covers the card that was clicked, so the title is the seller's only check
+   * that they are selling the right thing.
+   */
+  listingTitle?: string;
   busy: boolean;
   onCancel: () => void;
   onConfirm: (buyerId: number | null, finalPrice: number | null) => void;
@@ -65,6 +73,11 @@ export function SellBuyerDialog({
       <h2 id={titleId} className="text-lg font-semibold">
           {action === "sold" ? t("soldTitle") : t("reserveTitle")}
         </h2>
+        {listingTitle && (
+          <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground">
+            {listingTitle}
+          </p>
+        )}
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
 
         <div className="-mx-1 my-4 flex-1 space-y-1.5 overflow-y-auto px-1">
