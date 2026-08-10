@@ -38,6 +38,24 @@ test.describe("Listing detail", () => {
     await expect(page.getByText(/Seller is away until/i)).toBeVisible();
   });
 
+  test("a visitor's buyer actions are in the server HTML", async ({
+    browser,
+  }, testInfo) => {
+    // The counterpart of the owner's no-JS spec below: the SSR ownership hint
+    // must never make a signed-out visitor wait for JS to see the actions. No
+    // viewer cookie → the page renders exactly the buyer version it always did.
+    const ctx = await browser.newContext({
+      javaScriptEnabled: false,
+      baseURL: testInfo.project.use.baseURL,
+    });
+    const noJs = await ctx.newPage();
+    await noJs.goto("/en/listings/1");
+    await expect(noJs.getByText(/Message Seller/i)).toBeVisible();
+    await expect(noJs.getByText(/Meetup safety tips/i)).toBeVisible();
+    await expect(noJs.getByTestId("owner-listing-bar")).toHaveCount(0);
+    await ctx.close();
+  });
+
   test("meetup safety tips open in a dialog and close", async ({ page }) => {
     await page.goto("/en/listings/1");
     await page
@@ -290,6 +308,61 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(
       panel.getByRole("link", { name: /View Conversations/i }),
     ).toHaveAttribute("href", "/en/conversations?listing=1");
+  });
+
+  test("the conversations link carries how many buyers are waiting", async ({
+    page,
+  }) => {
+    // conversations_count rides free on the detail payload (2 in the fixture);
+    // an unnumbered link is one a seller has no reason to click. The digit is
+    // aria-hidden and spelled out for screen readers, so the accessible name
+    // reads "View Conversations 2 conversations".
+    await page.goto("/en/listings/1");
+    const link = page
+      .getByTestId("owner-listing-bar")
+      .getByRole("link", { name: /View Conversations/i });
+    await expect(link).toBeVisible();
+    await expect(link.getByText("2", { exact: true })).toBeVisible();
+    await expect(link).toHaveAccessibleName(/2 conversations/i);
+  });
+
+  test("the owner panel is server-rendered, so no buyer UI flashes first", async ({
+    browser,
+  }, testInfo) => {
+    // Ownership used to be resolved only in the browser, after
+    // /api/auth/session came back — and the server HTML (fetched anonymously)
+    // had already painted by then, so the seller of the item watched "Message
+    // Seller", the save heart and the buyer meetup tips flash past before their
+    // own panel replaced them. With JavaScript disabled we see exactly what the
+    // server sent: if this passes, there is nothing left to flash.
+    const ctx = await browser.newContext({
+      storageState: BUYER_STATE,
+      javaScriptEnabled: false,
+      baseURL: testInfo.project.use.baseURL,
+    });
+    const noJs = await ctx.newPage();
+    await noJs.goto("/en/listings/1");
+    await expect(noJs.getByTestId("owner-listing-bar")).toBeVisible();
+    await expect(noJs.getByText(/Message Seller/i)).toHaveCount(0);
+    await expect(noJs.getByText(/Meetup safety tips/i)).toHaveCount(0);
+    await expect(noJs.getByText(/Not interested/i)).toHaveCount(0);
+    await expect(noJs.getByText(/Seller is away until/i)).toHaveCount(0);
+    await ctx.close();
+  });
+
+  test("an expired listing is not also labelled Active", async ({ page }) => {
+    // Listing 10 is user 1's ACTIVE-but-lapsed listing: Rails keeps
+    // `status: active` until a renew, so the panel used to print "Active" right
+    // next to the red "Expired" pill — two contradictory badges, with the one
+    // thing the owner has to act on presented as fine.
+    await page.goto("/en/listings/10");
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText("Expired")).toBeVisible();
+    await expect(page.getByText("Active", { exact: true })).toHaveCount(0);
+    await expect(
+      panel.getByRole("link", { name: /Manage Listing/i }),
+    ).toHaveAttribute("href", "/en/my-listings/10");
   });
 
   test("buyer-only affordances stay hidden for the owner", async ({ page }) => {

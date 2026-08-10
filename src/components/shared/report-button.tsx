@@ -137,17 +137,25 @@ export function ReportButton({
 
   return (
     <>
-      <button
+      {/* The shared Button primitive, not a bare <button>: as raw inline text this
+          trigger was a ~20px-tall tap target, well under a thumb's worth. `ghost`
+          + `font-normal` keeps the quiet muted-link look it had, `h-10` gives it a
+          real 40px hit box, and the tight `px-2` means a host that squares it off
+          into an icon button (the thread header passes `size-10 [&>span]:sr-only`)
+          still has room for the flag inside. */}
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={onTrigger}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "h-10 gap-1.5 px-2 font-normal text-muted-foreground hover:text-destructive",
           className,
         )}
       >
         <Flag className="size-4 shrink-0" />
         <span>{t("report.title")}</span>
-      </button>
+      </Button>
 
       <Dialog
         open={open}

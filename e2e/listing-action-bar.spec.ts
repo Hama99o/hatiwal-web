@@ -89,6 +89,48 @@ test.describe("Listing action bar (mobile)", () => {
     expect(dialogBox!.width).toBeGreaterThan(250);
   });
 
+  test("keeps its dialog alive when the bar would otherwise slide away", async ({
+    page,
+  }) => {
+    // The shared <Dialog> is not portalled, so the message dialog opened from the
+    // bar is a DESCENDANT of the bar. Anything that unpins the bar mid-compose
+    // would therefore take the open dialog with it — faded to `opacity-0`, marked
+    // `inert`, half-typed message unreachable. Real triggers: rotating the phone,
+    // an iOS scroll-behind the body scroll-lock doesn't hold, or any reflow that
+    // brings the inline block into view. So the bar stays put while it holds an
+    // open dialog. Reproduced here by growing the viewport until the inline block
+    // (the bar's own hide sentinel) is on screen.
+    await page.goto("/en/listings/2");
+    const bar = page.getByRole("region", { name: "Listing actions" });
+    await expect(bar).toHaveClass(/opacity-100/);
+    const composer = page.getByPlaceholder("Ask about this item...");
+    await expect(async () => {
+      await bar.getByRole("button", { name: "Message Seller" }).click();
+      await expect(composer).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
+    await composer.fill("Is it still available?");
+
+    await page.setViewportSize({ width: 390, height: 2400 });
+    await expect(page.locator("#listing-actions")).toBeInViewport();
+
+    // Playwright counts an `opacity-0` element as visible, so assert the two
+    // things the hide actually does — the fade class and `inert` — plus that the
+    // composer is still usable and has kept what was typed.
+    await expect(bar).toHaveClass(/opacity-100/);
+    expect(
+      await page.getByRole("dialog").evaluate((el) => !!el.closest("[inert]")),
+    ).toBe(false);
+    await composer.fill("Is it still available? Can we meet in Kabul?");
+    await expect(composer).toHaveValue(
+      "Is it still available? Can we meet in Kabul?",
+    );
+
+    // Closing it hands control back to the observer: the sentinel is on screen
+    // now, so the bar must get out of the way rather than stay pinned forever.
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(bar).toHaveClass(/opacity-0/);
+  });
+
   test("absent on your own listing and on a reserved one", async ({ page }) => {
     await page.goto("/en/listings/1"); // owned by the signed-in persona
     await expect(page.getByRole("heading", { name: "iPhone 13 Pro" })).toBeVisible();

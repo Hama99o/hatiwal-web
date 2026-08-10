@@ -121,9 +121,9 @@ export function BrowseClient({
   const [nearestLoading, setNearestLoading] = useState(false);
 
   // Recent searches — client-only history shared with the site-header field
-  // (one store, two entry points). SearchBox owns the panel and its gating
-  // (focused + empty + non-empty history); this island only records the terms
-  // it actually commits.
+  // (one store, two entry points). SearchBox owns the panel and when it shows
+  // (inline here: while this field is empty and the history isn't); this island
+  // only records the terms it actually commits.
   const { add: recordSearch } = useSearchHistory();
 
   // Grid/list view mode — client-only preference persisted to localStorage.
@@ -605,20 +605,21 @@ export function BrowseClient({
       <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-8">
         {/* Sidebar (desktop) / collapsible (mobile) */}
         <aside className="lg:sticky lg:top-20">
-          {/* Search sits OUTSIDE the collapsible panel: on a phone the filters
-              fold away behind the toggle below, and a search box you can't see
-              is a search box that doesn't exist. Same SearchBox as the site
-              header, so the recent-search chips and their rules are identical —
-              inline here because the sidebar column is narrow (chips scroll
-              sideways instead of widening the page). */}
+          {/* Desktop only, and OUTSIDE the collapsible filter panel. Below `lg`
+              the site header's own search field is on screen (it drops under the
+              bar on small viewports), so rendering this one too would stack two
+              identical boxes a few pixels apart; at `lg` the header field is a
+              compact one up in the bar and this is the Bazaar's own field, which
+              also mirrors the active `?q=`. Same SearchBox as the header, so the
+              recent-search chips and their rules are identical — inline here
+              because this column is narrow and an overlay would be clipped. */}
           <SearchBox
-            className="mb-4"
+            className="mb-4 hidden lg:block"
             value={searchInput}
             onValueChange={setSearchInput}
             onSubmit={commitSearch}
             placeholder={t("browse.searchPlaceholder")}
             panelVariant="inline"
-            panelLayout="scroll"
           />
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button

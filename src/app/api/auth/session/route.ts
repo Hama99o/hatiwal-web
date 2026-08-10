@@ -17,7 +17,9 @@ export async function GET() {
 
   if (me.status === "ok") {
     const out = NextResponse.json({ user: me.user });
-    writeTokenCookies(out, me.tokens);
+    // Re-stamps the viewer-id cookie on every probe (i.e. every page load), so
+    // the SSR ownership hint never expires before the session does.
+    writeTokenCookies(out, me.tokens, me.user.id);
     return out;
   }
 

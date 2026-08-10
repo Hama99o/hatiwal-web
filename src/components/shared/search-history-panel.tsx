@@ -5,9 +5,9 @@
  * block in mobile's `BrowseHeader.tsx`.
  *
  * Shared by BOTH web search entry points through `SearchBox` (site header +
- * Bazaar sidebar) so the markup exists once. The caller owns the open/close
- * logic (focus, empty value, Escape) and the history itself
- * (`useSearchHistory`) — this component only renders and reports intent:
+ * Bazaar sidebar) so the markup exists once. The caller owns when the panel
+ * shows and the history itself (`useSearchHistory`) — this component only
+ * renders and reports intent:
  *
  *   - clicking a chip's label → `onSelect(term)` (apply that search)
  *   - clicking a chip's X     → `onRemove(term)` (forget just that term)
@@ -18,14 +18,17 @@
  * renders it flat in normal flow (no card of its own, so it never reads as a
  * card inside a card) for narrow columns where an overlay would be clipped.
  *
- * `layout="wrap"` (default) wraps the chips onto as many rows as needed — right
- * for the wide header dropdown. `layout="scroll"` keeps them on ONE horizontally
- * scrollable row (mirrors mobile's `ScrollView horizontal`) — right for the
- * narrow Bazaar sidebar, where it also guarantees the chips can never widen the
- * page.
+ * The chips always WRAP: a sideways-scrolling row is a phone gesture, and both
+ * web hosts are mouse-first (the Bazaar field is desktop-only). Wrapping also
+ * means the block can never widen its column — chips shrink and truncate. The
+ * row cap keeps a 10-term history from pushing the filters far down the page;
+ * past that the list scrolls vertically, which a wheel can actually reach.
  *
- * Touch targets: every chip (label + X) and "Clear all" is 44px tall — the
- * whole point of the panel is being tappable on a phone.
+ * Touch/pointer targets: every chip half (label + X) and "Clear all" is 44px
+ * tall. Each half tints on its OWN hover — the label toward the primary ("this
+ * runs a search"), the X toward destructive ("this forgets it", same grammar as
+ * the saved-search rows below it in the sidebar) — so a hover never promises the
+ * wrong action.
  */
 
 import { useId } from "react";
@@ -41,7 +44,6 @@ interface SearchHistoryPanelProps {
   onRemove: (term: string) => void;
   onClear: () => void;
   variant?: "dropdown" | "inline";
-  layout?: "wrap" | "scroll";
   className?: string;
 }
 
@@ -51,7 +53,6 @@ export function SearchHistoryPanel({
   onRemove,
   onClear,
   variant = "dropdown",
-  layout = "wrap",
   className,
 }: SearchHistoryPanelProps) {
   const t = useTranslations();
@@ -75,7 +76,7 @@ export function SearchHistoryPanel({
       }
       className={cn(
         variant === "dropdown" &&
-          "absolute inset-x-0 top-full z-50 mt-1 rounded-xl border bg-popover p-3 text-popover-foreground shadow-md",
+          "absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-md",
         // Flat in flow — the sidebar already provides the surface.
         variant === "inline" && "mt-1",
         className,
@@ -100,33 +101,22 @@ export function SearchHistoryPanel({
         </Button>
       </div>
 
-      <ul
-        className={cn(
-          "flex gap-2",
-          layout === "wrap" && "flex-wrap",
-          // One row that scrolls sideways — the chips can never widen the
-          // sidebar (mirrors mobile's horizontal ScrollView).
-          layout === "scroll" &&
-            "-mb-1 overflow-x-auto pb-1 [scrollbar-width:thin]",
-        )}
-      >
+      {/* `-m-1 p-1` gives the chips' focus ring (2px + 2px offset) room to draw
+          instead of being clipped by the scroll box / panel edge. */}
+      <ul className="-m-1 flex max-h-[13.5rem] flex-wrap gap-2 overflow-y-auto p-1 [scrollbar-width:thin]">
         {history.map((term) => (
           <li
             key={term.toLowerCase()}
-            // Hover has to be visible in BOTH themes: --muted and --accent are
-            // the same value here, so `hover:bg-accent` would be a no-op. The
-            // pill tints toward the primary instead, and the label follows.
-            className={cn(
-              "group inline-flex h-11 max-w-full items-center rounded-full border border-transparent bg-muted transition-colors hover:border-primary/40 hover:bg-primary/10",
-              layout === "scroll" && "shrink-0",
-            )}
+            className="inline-flex h-11 max-w-full items-center rounded-full bg-muted"
           >
             <Button
               type="button"
               variant="ghost"
               onClick={() => onSelect(term)}
               title={term}
-              className="h-11 min-w-0 rounded-full px-3 text-sm font-normal text-foreground hover:bg-transparent group-hover:text-primary"
+              // The two halves share one pill, so each takes only its own end's
+              // radius — a hover tint then fills exactly the half it belongs to.
+              className="h-11 min-w-0 rounded-none rounded-s-full px-3 text-sm font-normal text-foreground hover:bg-primary/10 hover:text-primary"
             >
               <span className="max-w-[9rem] truncate">{term}</span>
             </Button>
@@ -136,7 +126,7 @@ export function SearchHistoryPanel({
               size="icon"
               onClick={() => onRemove(term)}
               aria-label={t("browse.removeSearch", { term })}
-              className="size-11 rounded-full text-muted-foreground hover:bg-transparent hover:text-destructive"
+              className="size-11 rounded-none rounded-e-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             >
               <X aria-hidden />
             </Button>

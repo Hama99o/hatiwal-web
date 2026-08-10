@@ -36,6 +36,17 @@ test.describe("Report a listing", () => {
     ).toBeVisible();
   });
 
+  test("the trigger is a thumb-sized target", async ({ page }) => {
+    // It used to be bare inline text — a ~20px-tall tap target on the one
+    // control a user reaches for when something is wrong. Now the shared Button
+    // primitive, so it gets a real 40px hit box while keeping the quiet look.
+    await page.goto("/en/listings/2");
+    const trigger = page.getByRole("button", { name: "Report", exact: true });
+    await expect(trigger).toBeVisible();
+    const box = (await trigger.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(40);
+  });
+
   test("a listing report never offers to block", async ({ page }) => {
     const blockCalls = trackBlockCalls(page);
     await page.goto("/en/listings/2");

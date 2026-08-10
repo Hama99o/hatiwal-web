@@ -3,23 +3,31 @@
 /**
  * SearchBox — the one search input the whole web client uses: the site header
  * and the Bazaar sidebar both render THIS, so the field, its clear button, the
- * recent-searches gating, the focus/Escape behaviour and the ARIA wiring exist
- * once instead of twice.
+ * recent-searches gating, the keyboard behaviour and the focus rules exist once
+ * instead of twice.
  *
  * The caller stays in charge of what a search DOES (the header navigates to
  * `/bazaar?q=…`, the Bazaar island updates its filters) and of recording a
  * committed term in the shared history (`useSearchHistory().add`) — its own
  * debounce decides when a search has really committed. This component owns only
- * the field UI and the panel's open/close rules:
+ * the field UI and when the recent-searches panel shows:
  *
- *   open  ⇔  the field has focus AND is empty AND there is history
+ *   dropdown (header)  →  the field is FOCUSED, empty, and there is history
+ *   inline   (sidebar) →  the field is empty and there is history
  *
- * Same rule for both entry points, so a chip never covers results the buyer is
- * already reading, and the panel only ever appears in response to a tap/click —
- * which also keeps it out of the page's layout-shift budget.
+ * The difference is deliberate. The header panel floats OVER the page, so it may
+ * only appear in response to a tap/click — otherwise it would cover results the
+ * buyer is reading. The sidebar panel sits in normal flow above the filters: it
+ * covers nothing, so gating it on focus would only make the column jump every
+ * time the buyer clicked in or out of the field. (It does cost one post-hydration
+ * shift inside that column — the history is client-only, so the server cannot
+ * know there is anything to render.)
+ *
+ * Keyboard: ArrowDown enters the chips, arrows rove between them (RTL-aware),
+ * Escape hands focus back to the field.
  */
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { SearchField } from "@/components/shared/search-field";
 import { SearchHistoryPanel } from "@/components/shared/search-history-panel";
 import { useSearchHistory } from "@/lib/use-search-history";
@@ -39,7 +47,6 @@ interface SearchBoxProps {
   className?: string;
   /** `dropdown` floats the panel over the page; `inline` keeps it in flow. */
   panelVariant?: "dropdown" | "inline";
-  panelLayout?: "wrap" | "scroll";
 }
 
 export function SearchBox({
@@ -50,7 +57,6 @@ export function SearchBox({
   placeholder,
   className,
   panelVariant = "dropdown",
-  panelLayout = "wrap",
 }: SearchBoxProps) {
   // Read-only view of the shared store: recording is the caller's job (it knows
   // when its search committed), removing/clearing belongs to the panel.
@@ -58,15 +64,20 @@ export function SearchBox({
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelSlotRef = useRef<HTMLDivElement>(null);
-  const panelId = `${useId()}-search-history`;
 
-  const open = focused && value === "" && history.length > 0;
+  const open =
+    value === "" &&
+    history.length > 0 &&
+    (panelVariant === "inline" || focused);
 
   const applyTerm = useCallback(
     (term: string) => {
-      setFocused(false);
       onValueChange(term);
       (onSelectRecent ?? onSubmit)(term);
+      // The panel closes on its own (the field is no longer empty), which
+      // unmounts the chip that was just clicked — so put the caret back in the
+      // field instead of letting focus fall to <body>.
+      inputRef.current?.focus();
     },
     [onSelectRecent, onSubmit, onValueChange],
   );
@@ -94,6 +105,66 @@ export function SearchBox({
     clear();
   }, [keepFocus, clear]);
 
+  /**
+   * Move focus `delta` steps along the chip controls — every chip's label and X
+   * in DOM order, wrapping at both ends. Returns false when there is nothing to
+   * rove (so the key keeps its default meaning).
+   */
+  const roveFocus = useCallback((delta: number) => {
+    const buttons = Array.from(
+      panelSlotRef.current?.querySelectorAll<HTMLButtonElement>("li button") ??
+        [],
+    );
+    if (buttons.length === 0) return false;
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    // Coming from the field: enter at the near end (newest chip for ArrowDown).
+    buttons[
+      index === -1
+        ? delta > 0
+          ? 0
+          : buttons.length - 1
+        : (index + delta + buttons.length) % buttons.length
+    ].focus();
+    return true;
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLFormElement>) => {
+      if (e.key === "Escape") {
+        // Dismiss the floating panel, and never leave focus stranded on a chip
+        // that is about to unmount — the field always gets the caret back.
+        setFocused(false);
+        inputRef.current?.focus();
+        return;
+      }
+      if (!open) return;
+
+      // From the FIELD, only ArrowDown reaches in: Left/Right belong to the
+      // caret, and ArrowUp would jump to the far end of the list.
+      if (!panelSlotRef.current?.contains(e.target as Node)) {
+        if (e.key === "ArrowDown" && roveFocus(1)) e.preventDefault();
+        return;
+      }
+      // Inside the chips, arrows rove. Horizontal keys follow the writing
+      // direction so they match what the buyer sees in Pashto / Dari.
+      const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+      let delta = 0;
+      if (
+        e.key === "ArrowDown" ||
+        e.key === (rtl ? "ArrowLeft" : "ArrowRight")
+      ) {
+        delta = 1;
+      } else if (
+        e.key === "ArrowUp" ||
+        e.key === (rtl ? "ArrowRight" : "ArrowLeft")
+      ) {
+        delta = -1;
+      }
+      if (delta !== 0 && roveFocus(delta)) e.preventDefault();
+    },
+    [open, roveFocus],
+  );
+
   return (
     <form
       role="search"
@@ -109,21 +180,7 @@ export function SearchBox({
           setFocused(false);
         }
       }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          setFocused(false);
-          return;
-        }
-        // Keyboard route into the chips (the field keeps the caret otherwise).
-        if (e.key === "ArrowDown" && open) {
-          const first =
-            panelSlotRef.current?.querySelector<HTMLButtonElement>("li button");
-          if (first) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }}
+      onKeyDown={handleKeyDown}
     >
       <div className="relative">
         <SearchField
@@ -143,18 +200,15 @@ export function SearchBox({
           }}
           placeholder={placeholder}
           aria-label={placeholder}
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={panelId}
           autoComplete="off"
         />
-        {/* Popup slot — always in the DOM so `aria-controls` stays a valid
-            IDREF; the panel itself mounts only while open. */}
-        <div id={panelId} ref={panelSlotRef}>
+        {/* Panel slot — the chips are a labelled group of buttons that follows
+            the field in DOM order (no combobox/listbox wiring to fake: nothing
+            here is a value list, and Escape/ArrowDown are handled above). */}
+        <div ref={panelSlotRef}>
           {open && (
             <SearchHistoryPanel
               variant={panelVariant}
-              layout={panelLayout}
               history={history}
               onSelect={applyTerm}
               onRemove={removeTerm}

@@ -55,6 +55,6 @@ export async function POST(req: Request) {
   }
 
   const out = NextResponse.json({ user: me.user });
-  writeTokenCookies(out, me.tokens);
+  writeTokenCookies(out, me.tokens, me.user.id);
   return out;
 }

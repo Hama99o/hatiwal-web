@@ -49,6 +49,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "me_failed" }, { status: 502 });
 
   const out = NextResponse.json({ user: me.user });
-  writeTokenCookies(out, me.tokens);
+  writeTokenCookies(out, me.tokens, me.user.id);
   return out;
 }

@@ -49,7 +49,9 @@ const COMPACT_VIEWPORT = "(max-width: 63.999rem)";
  * Implementation note — the slide animation uses `bottom`, NOT `translate`: a
  * transform/translate on this element would make it the containing block for its
  * `position: fixed` descendants, which would break the message/offer dialogs
- * rendered inside `StartConversationButton`.
+ * rendered inside `StartConversationButton`. Those dialogs are descendants of
+ * this bar (the shared `Dialog` is not portalled), which is also why the bar
+ * holds still while one of them is open — see `dialogOpen` below.
  */
 export function ListingActionBar({
   listingId,
@@ -74,6 +76,12 @@ export function ListingActionBar({
   const isOwner = useIsOwner(sellerId);
   const [compact, setCompact] = useState(false);
   const [pinned, setPinned] = useState(false);
+  // The message/offer dialogs render INSIDE this bar, so hiding the bar while one
+  // is open would fade it out, mark it `inert` and slide the buyer's half-typed
+  // message off screen. Any reflow can unpin us mid-compose — rotating the phone,
+  // an iOS scroll-behind that `body { overflow: hidden }` doesn't hold — so while
+  // a dialog is open the bar stays exactly where it is.
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Only mount below `lg` — at desktop widths the inline column CTA is always in
   // reach, and keeping the bar out of the DOM avoids duplicate controls there.
@@ -117,6 +125,10 @@ export function ListingActionBar({
   // Your own listing: the inline block hides its actions too.
   if (isOwner) return null;
 
+  // Shown when the observer says so, and unconditionally while this bar is the
+  // host of an open dialog (which the observer knows nothing about).
+  const shown = pinned || dialogOpen;
+
   return (
     <>
       {/* The bar is `fixed`, so it takes up no space in the flow and would sit on
@@ -137,13 +149,13 @@ export function ListingActionBar({
         role="region"
         aria-label={t("listing.detail.actionBarLabel")}
         // Keeps the hidden bar out of the a11y tree and un-focusable.
-        inert={!pinned}
+        inert={!shown}
         className={cn(
           "fixed inset-x-0 z-40 border-t px-4 pt-3 lg:hidden",
           // Honour the iOS home-indicator inset on top of the base padding.
           "pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
           "transition-[bottom,opacity] duration-200 ease-out motion-reduce:transition-none",
-          pinned
+          shown
             ? "bottom-0 opacity-100"
             : "pointer-events-none -bottom-40 opacity-0",
         )}
@@ -177,6 +189,7 @@ export function ListingActionBar({
             price={price}
             currency={currency}
             layout="bar"
+            onDialogOpenChange={setDialogOpen}
           />
           {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
               heart has to read as a sibling of the Message button beside it. */}

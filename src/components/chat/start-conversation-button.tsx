@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { Loader2, MessageCircle, Tag } from "lucide-react";
@@ -39,6 +39,7 @@ export function StartConversationButton({
   currency,
   negotiable,
   layout = "stacked",
+  onDialogOpenChange,
 }: {
   listingId: number;
   sellerId?: number;
@@ -48,6 +49,13 @@ export function StartConversationButton({
   negotiable?: boolean;
   /** `stacked` = full-width column buttons; `bar` = compact row (sticky bar). */
   layout?: "stacked" | "bar";
+  /**
+   * Told whenever one of the dialogs below opens or closes. The shared `Dialog`
+   * is not portalled, so a dialog lives in THIS component's subtree — a parent
+   * that hides itself (the sticky `ListingActionBar` sliding away) would take the
+   * open dialog with it. Such a parent uses this to hold still while it is open.
+   */
+  onDialogOpenChange?: (open: boolean) => void;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -65,6 +73,13 @@ export function StartConversationButton({
   const [busy, setBusy] = useState(false);
   const msgTitleId = useId();
   const offerTitleId = useId();
+
+  // One place to report "a dialog of mine is open", so no open/close path can
+  // forget to (there are several: the two buttons, Cancel, Escape, the backdrop,
+  // and the unmount that follows a successful send).
+  useEffect(() => {
+    onDialogOpenChange?.(open || offerOpen);
+  }, [open, offerOpen, onDialogOpenChange]);
 
   // Negotiable by default: only firm (offer hidden) when explicitly false.
   const isNegotiable = negotiable !== false;
