@@ -110,9 +110,10 @@ export function OwnerListingBar({
   const expiry = listingExpiryState({ status, expiresAt, expired });
   const isLive = status === "active" && expiry.kind !== "expired";
   // draft→Publish · active→Mark as Sold · lapsed→Renew · reserved→Mark as Sold ·
-  // sold→nothing (terminal). Gated on the SAME expiry state as the badge above,
-  // so the pill and the button always tell the same story.
-  const { primary } = actionsFor(status, expiry.kind === "expired");
+  // sold→nothing (terminal). `actionsFor` derives "lapsed" from the SAME shared
+  // rule as the badge above (it takes the listing, not a flag), so the pill and
+  // the button always tell the same story — on every seller surface, not just here.
+  const { primary } = actionsFor({ status, expiresAt, expired });
   const PrimaryIcon = primary ? LIFECYCLE[primary].Icon : null;
   // Count badges hide at zero everywhere in the app: Rails always serves
   // `conversations_count`, and "0" beside a link is discouragement, not a pull.
@@ -182,8 +183,13 @@ export function OwnerListingBar({
         </Button>
       </div>
 
+      {/* `min-w-40` (not `min-w-0`) on both buttons, exactly like the row above:
+          it makes the pair WRAP to two full-width rows on a phone instead of
+          splitting a ~326px panel 2-up, where "View Chats" + icon + gaps + the
+          count pill overflows and `truncate` silently eats the verb ("View
+          Cha…") — worse in ps/fa, whose labels are longer. */}
       <div className="flex flex-wrap gap-2">
-        <Button asChild variant="outline" className="min-w-0 flex-1">
+        <Button asChild variant="outline" className="min-w-40 flex-1">
           <Link href={`/listings/${listingId}/edit`}>
             <Pencil className="size-4" />
             <span className="min-w-0 truncate">{t("common.edit")}</span>
@@ -196,18 +202,24 @@ export function OwnerListingBar({
             it's the difference between a link a seller ignores and one they
             click. `secondary`, not `ghost`: on a tinted panel a borderless
             button beside a filled and an outlined one reads as static text. */}
-        <Button asChild variant="secondary" className="min-w-0 flex-1">
+        <Button asChild variant="secondary" className="min-w-40 flex-1">
           <Link href={`/conversations?listing=${listingId}`}>
             <MessageSquare className="size-4" />
-            <span className="min-w-0 truncate">
+            <span
+              // The one label at risk of clipping (longest string + a pill after
+              // it), so the spec measures it: scrollWidth must equal clientWidth.
+              data-testid="owner-chats-label"
+              className="min-w-0 truncate"
+            >
               {t("listing.ownerDetail.viewConversations")}
             </span>
             {hasChats && (
               <>
-                {/* The `default` (primary-tinted) badge, not `secondary`: this
-                    pill sits ON a secondary button, where secondary-on-secondary
-                    disappears in both themes. */}
-                <Badge aria-hidden className="shrink-0 px-1.5">
+                {/* The solid `count` badge: `default` is primary-on-tint (~3.6:1
+                    in both themes) and `secondary` vanishes on a secondary
+                    button — and this is the one number the panel exists to make
+                    a seller act on, so it has to clear AA at 12px. */}
+                <Badge variant="count" aria-hidden className="shrink-0 px-1.5">
                   {formatNumber(conversationsCount, locale)}
                 </Badge>
                 {/* The bare number is meaningless to a screen reader, so the

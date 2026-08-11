@@ -8,6 +8,13 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "border-transparent bg-primary/10 text-primary",
+        /**
+         * Solid primary — for COUNTS (unread messages, waiting chats). The tinted
+         * `default` only reaches ~3.6:1 against its own fill, which fails AA for
+         * the 12px digits these pills carry; a count a seller is meant to act on
+         * has to be legible in both themes, so it gets the full-contrast fill.
+         */
+        count: "border-transparent bg-primary text-primary-foreground",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",

@@ -400,6 +400,33 @@ test.describe("Listing detail — viewed by its own seller", () => {
     ).toBeVisible();
   });
 
+  test("an unpublished draft can be published from its own public URL", async ({
+    page,
+  }) => {
+    // The one status the panel had no spec for, on the assumption that a draft's
+    // public URL 404s for its own seller. It does not: `GET /listings/:id` runs
+    // through `ListingPolicy::Scope#resolve`, which is `scope.all` (only blocked
+    // pairs and admin-removed listings are filtered) — so a seller who opens the
+    // link to their unpublished item lands right here, and this panel is the only
+    // thing on the page that can publish it.
+    await page.goto("/en/listings/8");
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+    // Stated once, by the page's header row — the panel never repeats a badge.
+    await expect(page.getByText("Draft", { exact: true })).toHaveCount(1);
+    // A draft has no clock running: expiry is an ACTIVE-only concern.
+    await expect(panel.getByText(/Expires|Expired/i)).toHaveCount(0);
+
+    await panel.getByRole("button", { name: "Publish" }).click();
+    // The shared confirm copy + mutation + success toast, same as /my-listings.
+    await expect(page.getByText("Publish this listing?")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Publish" })
+      .click();
+    await expect(page.getByText("Listing published!")).toBeVisible();
+  });
+
   test("marking your own listing sold from the panel picks a buyer, then invites a review", async ({
     page,
   }) => {
@@ -515,6 +542,32 @@ test.describe("Listing detail — viewed by its own seller", () => {
     }
     // Reachable with one short scroll on a phone, i.e. not two screens down.
     expect(panelBox.y).toBeLessThan(760 * 2);
+  });
+
+  test("the chats label is not clipped on a phone, in en or ps", async ({
+    page,
+  }) => {
+    // The panel's longest label, and the only one followed by a pill: split 2-up
+    // in a ~310px panel it overflowed, and `truncate` ate the verb ("View Cha…")
+    // — which the visibility/href specs above would still pass. The row now
+    // carries the same `min-w-40` floor as the row above it, so it wraps to two
+    // full-width rows instead. ps ("چټونه وګورئ") is the tighter of the two.
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const locale of ["en", "ps"]) {
+      await page.goto(`/${locale}/listings/1`);
+      const label = page
+        .getByTestId("owner-listing-bar")
+        .getByTestId("owner-chats-label");
+      await expect(label).toBeVisible();
+      const { scrollWidth, clientWidth } = await label.evaluate((el) => ({
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      }));
+      expect(
+        scrollWidth,
+        `${locale}: the chats label is truncated at 375px`,
+      ).toBeLessThanOrEqual(clientWidth);
+    }
   });
 
   test("no sticky-bar space is reserved for the owner", async ({ page }) => {

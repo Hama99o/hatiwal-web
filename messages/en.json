@@ -177,6 +177,7 @@
       "notFound": "Listing not found",
       "moreOptions": "More options",
       "moreOptionsFor": "More options for {title}",
+      "actionFor": "{action} — {title}",
       "soldNotice": "This item has been sold",
       "reservedNotice": "This item is reserved",
       "unavailableNotice": "This item is no longer available",
@@ -201,7 +202,6 @@
     "ownerDetail": {
       "notFound": "Listing not found",
       "views": "Views",
-      "conversations": "Chats",
       "actions": "Manage Listing",
       "viewConversations": "View Chats",
       "posted": "Posted {date}",

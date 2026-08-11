@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { isRtl } from "@/i18n/routing";
 import type { Listing, Transaction } from "@/lib/types";
@@ -52,7 +52,10 @@ export function SellerListingActions({
   });
   const { busy, ask } = lifecycle;
 
-  const { primary, secondary } = actionsFor(listing.status, !!listing.expired);
+  // The listing itself: the card renders an <ExpiryBadge> right above this
+  // footer, and both now derive "lapsed" from the same shared rule — so a card
+  // can never show the red "Expired" pill over a primary that isn't Renew.
+  const { primary, secondary } = actionsFor(listing);
 
   return (
     <div className="flex items-center gap-2">
@@ -63,7 +66,19 @@ export function SellerListingActions({
           // Report/Share pair was raised to) while letting a long label WRAP
           // instead of being clipped — "Mark as Sold" and its ps/fa equivalents
           // must stay fully readable in a 2-column grid at 375px.
-          className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal px-2 py-1 text-xs leading-tight"
+          //
+          // `font-semibold sm:text-sm`: this is the loudest thing in the footer,
+          // so it must not be set below the card's own meta line. It matches
+          // mobile's primary (13px/700). 14px still wraps inside min-h-10 at the
+          // narrowest case (375px, 2 columns).
+          className="h-auto min-h-10 min-w-0 flex-1 whitespace-normal px-2 py-1 text-xs font-semibold leading-tight sm:text-sm"
+          // Names the listing too: a shop of seven active items would otherwise
+          // announce "Mark as Sold" seven times with nothing to tell them apart
+          // (the kebab below carries the title for the same reason).
+          aria-label={t("listing.detail.actionFor", {
+            action: t(`listing.${LIFECYCLE[primary].label}`),
+            title: listing.title,
+          })}
           disabled={busy}
           onClick={() => ask(primary)}
         >
@@ -72,21 +87,39 @@ export function SellerListingActions({
       )}
 
       {/* Secondary transitions + Edit + Delete. `dir` keeps Radix's alignment
-          mirrored for ps/fa; `ms-auto` parks the kebab at the row's end when a
-          sold (terminal) listing has no primary action. The label carries the
-          listing title so a screen reader isn't read six identical "More
-          options" buttons down the grid. */}
+          mirrored for ps/fa. Two shapes, mirroring mobile's SellerListingCard:
+          beside a primary it is a compact kebab whose aria-label carries the
+          listing title (so a screen reader isn't read six identical "More
+          options" buttons down the grid); on a terminal `sold` card, where it is
+          the ONLY control, it takes the whole row and says "More options" — an
+          unlabeled glyph alone in a bordered row reads as a stray artifact and
+          hides that Edit and Delete are still reachable. */}
       <DropdownMenu dir={isRtl(locale) ? "rtl" : "ltr"}>
         <DropdownMenuTrigger asChild disabled={busy}>
           <Button
             variant="outline"
             size="sm"
-            aria-label={t("listing.detail.moreOptionsFor", {
-              title: listing.title,
-            })}
-            className={cn("size-10 shrink-0 px-0", !primary && "ms-auto")}
+            // Visible text is the accessible name in the full-width shape, so the
+            // title-bearing label is only needed for the icon-only one.
+            aria-label={
+              primary
+                ? t("listing.detail.moreOptionsFor", { title: listing.title })
+                : undefined
+            }
+            className={cn(
+              primary
+                ? "size-10 shrink-0 px-0"
+                : "min-h-10 w-full justify-center gap-2",
+            )}
           >
-            <MoreVertical className="size-4" />
+            {primary ? (
+              <MoreVertical className="size-4" />
+            ) : (
+              <>
+                <MoreHorizontal className="size-4" />
+                {t("listing.detail.moreOptions")}
+              </>
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[11rem]">

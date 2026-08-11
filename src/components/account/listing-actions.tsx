@@ -20,6 +20,7 @@ import {
   type LifecycleResult,
 } from "@/lib/api/me";
 import type { Transaction } from "@/lib/types";
+import { listingExpiryState } from "@/components/shared/expiry-badge";
 import { SellBuyerDialog } from "./sell-buyer-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -91,14 +92,25 @@ export const LIFECYCLE: Record<
 };
 
 /**
- * Which transitions a listing offers, given its status (+ whether its 30-day
- * run has lapsed). `primary` is the single most likely next step; `secondary`
- * are the other legal moves. Mirrors mobile's SellerListingCard.
+ * Which transitions a listing offers. `primary` is the single most likely next
+ * step; `secondary` are the other legal moves. Mirrors mobile's
+ * SellerListingCard.
+ *
+ * Takes the LISTING (status + its expiry fields), not a pre-computed `expired`
+ * flag, so that every surface derives "has it lapsed?" from the one shared rule
+ * — `listingExpiryState()`, the same one `<ExpiryBadge>` renders. Callers used to
+ * pass the raw server flag, which drifts: Rails leaves `expired: false` until
+ * something touches the record, while the badge escalates to "Expired" as soon
+ * as `expiresAt` is past. That put a red "Expired" pill inches from a primary
+ * button offering "Mark as Sold" instead of "Renew". One input, one verdict.
  */
-export function actionsFor(
-  status: string,
-  expired: boolean,
-): { primary?: LifecycleAction; secondary: LifecycleAction[] } {
+export function actionsFor(listing: {
+  status: string;
+  expiresAt?: string | null;
+  expired?: boolean;
+}): { primary?: LifecycleAction; secondary: LifecycleAction[] } {
+  const { status } = listing;
+  const expired = listingExpiryState(listing).kind === "expired";
   if (status === "draft") return { primary: "publish", secondary: [] };
   if (status === "reserved")
     return { primary: "sold", secondary: ["activate"] };

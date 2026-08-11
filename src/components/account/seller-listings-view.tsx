@@ -46,7 +46,7 @@ export function SellerListingsView() {
   // as soon as the grid refetches, and a prompt living in that card would be
   // unmounted with it before the seller could rate anyone.
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["my-listings"],
     queryFn: getMyListings,
   });
@@ -102,9 +102,21 @@ export function SellerListingsView() {
       </div>
 
       {isError ? (
-        <EmptyState icon={PackageOpen} title={t("common.error")} />
+        // The house error pattern (same as Hidden/Saved/Recently-viewed/Chat):
+        // friendly message + a retry, never a bare "Error". This screen is where
+        // a seller ACTS on their listings, so a failed load must not dead-end
+        // them into a manual page reload.
+        <EmptyState
+          icon={PackageOpen}
+          title={t("common.errorTitle")}
+          description={t("common.errorDescription")}
+          action={{ label: t("common.retry"), onClick: () => refetch() }}
+        />
       ) : isPending ? (
-        <ListingGridSkeleton count={10} />
+        // `withFooter`: every card here carries the inline action row, so the
+        // placeholder has to reserve its height or all 10 cards jump taller the
+        // moment the query resolves.
+        <ListingGridSkeleton count={10} withFooter />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={PackageOpen}

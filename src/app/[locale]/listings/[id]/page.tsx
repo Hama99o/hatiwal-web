@@ -144,21 +144,21 @@ export default async function ListingDetailPage({
               {listing.condition && (
                 <ConditionBadge condition={listing.condition} />
               )}
-              {/* Share / copy-link — shown for every status (mirrors mobile).
-                  `default` size, not the component's `sm`: at 36px this sat under
-                  the 40px touch target every other action on the page clears. */}
+              {/* Share / copy-link — shown for every status (mirrors mobile). */}
               <ShareButton
                 shareTitle={listing.title}
                 text={t("listing.share.body", {
                   title: listing.title,
                   price: formatPrice(listing.price, listing.currency, locale),
                 })}
-                size="default"
                 className="ms-auto"
               />
             </div>
 
-            <div className="space-y-2">
+            {/* `id="listing-price"` is the price anchor <ListingActionBar>
+                watches: while this block is on screen the sticky bar shows no
+                price of its own, so the same number never appears twice. */}
+            <div id="listing-price" className="space-y-2">
               <PriceTag
                 price={listing.price}
                 currency={listing.currency}
@@ -398,6 +398,7 @@ export default async function ListingDetailPage({
           currency={listing.currency}
           initialSaved={listing.isSaved}
           sentinelId="listing-actions"
+          priceAnchorId="listing-price"
         />
       </div>
     </ViewerIdProvider>

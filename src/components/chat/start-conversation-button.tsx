@@ -102,8 +102,15 @@ export function StartConversationButton({
   // `px-3` in the bar: on a 360–390px phone the row is a bold price plus two
   // 40px icon buttons, and the leftover was narrower than the label — measured
   // 98px of box for 125px of "Message Seller", i.e. clipped mid-word.
+  //
+  // Capped from `sm` up: on a tablet `flex-1` alone stretched this to a 566x40
+  // slab with the label floating alone in the middle of it — that reads as a
+  // banner, not a toolbar action. Above 640px it takes a sane width and `ms-auto`
+  // (logical, so it mirrors in ps/fa) parks it next to the save heart, keeping
+  // price-at-the-start / actions-at-the-end a compact group. Below 640px `flex-1`
+  // is exactly right and stays: there the row has no width to spare.
   const primaryClass = compact
-    ? "min-w-0 flex-1 overflow-hidden px-3"
+    ? "min-w-0 flex-1 overflow-hidden px-3 sm:ms-auto sm:max-w-xs md:max-w-sm"
     : "w-full";
   // Same label in both entry points. In the bar it drops the decorative icon
   // (the +24px of icon and gap is the difference between fitting and not) and

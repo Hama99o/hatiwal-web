@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { AlarmClock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const MS_PER_DAY = 86_400_000;
@@ -66,18 +67,17 @@ export function ExpiryBadge({
       ? t("expiresTomorrow")
       : t("expiresInDays", { count: state.days });
 
+  // The shared primitive, not a hand-rolled pill: `destructive` and `warning`
+  // are exactly this treatment, and re-implementing them left this badge at
+  // px-2 next to StatusBadge's px-2.5 — the owner's two pills a hair out of
+  // register wherever they sit in the same row.
   return (
-    <span
-      className={cn(
-        "inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-        isExpired
-          ? "bg-destructive/10 text-destructive"
-          : "bg-warning/10 text-warning",
-        className,
-      )}
+    <Badge
+      variant={isExpired ? "destructive" : "warning"}
+      className={cn("w-fit", className)}
     >
       <AlarmClock className="size-3 shrink-0" />
       {label}
-    </span>
+    </Badge>
   );
 }

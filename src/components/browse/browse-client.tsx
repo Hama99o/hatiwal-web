@@ -42,6 +42,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SearchBox } from "@/components/shared/search-box";
 import { useSearchHistory } from "@/lib/use-search-history";
+import { publishBrowseQuery } from "@/lib/use-browse-query";
 import { SavedSearches } from "./saved-searches";
 import { LocationMap } from "@/components/map/location-map";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +147,14 @@ export function BrowseClient({
     router.replace(`${pathname}${filtersToSearchString(filters)}`, {
       scroll: false,
     });
+    // Publish the query this island just drove into the URL so the site-header
+    // field (on screen alongside this one at `lg`+, and the only box below it)
+    // shows the SAME term. This is the one place every path lands — a settled
+    // debounce, an Enter submit, a recent-search chip, "Reset filters", an
+    // applied saved search — so no future filter path can go out of sync, and
+    // `router.replace()` on the same pathname (which fires no `popstate`) can no
+    // longer leave the header advertising a query that isn't applied.
+    publishBrowseQuery(filters.q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
@@ -611,7 +620,13 @@ export function BrowseClient({
             field above it, instead of claiming the full budget as if it were the
             aside's only child — which used to push the bottom of the sidebar
             (Saved searches) below the fold once the column stuck. */}
-        <aside className="lg:sticky lg:top-20 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col">
+        {/* `lg:z-30` is load-bearing: a `position: sticky` element is its OWN
+            stacking context, so the search field's recent-searches dropdown
+            (`z-50`) is confined inside this column and would paint UNDER the
+            results grid, which follows the aside in DOM order — the panel is
+            wider than the 250px column on purpose, so it does overlap it. Below
+            the header's `z-40` so a pinned sidebar never covers the site bar. */}
+        <aside className="lg:sticky lg:top-20 lg:z-30 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col">
           {/* Desktop only, and OUTSIDE the collapsible filter panel. Below `lg`
               the site header's own field is the one on screen (it drops under the
               bar on small viewports) and it mirrors the active `?q=` there, so
@@ -619,7 +634,9 @@ export function BrowseClient({
               pixels apart. At `lg` the header field is a compact one up in the
               bar and this is the Bazaar's own, wider field. Same SearchBox in
               both places, so the recent-search chips, their rules and the
-              focus-gated dropdown are identical. */}
+              focus-gated dropdown are identical — and both fields show the same
+              term, because every query this island commits is published through
+              `use-browse-query.ts` (see the filters→URL effect above). */}
           <SearchBox
             className="mb-4 hidden lg:block"
             value={searchInput}

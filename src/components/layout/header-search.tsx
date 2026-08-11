@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { SearchBox } from "@/components/shared/search-box";
 import { useSearchHistory } from "@/lib/use-search-history";
+import {
+  publishBrowseQuery,
+  useCommittedBrowseQuery,
+} from "@/lib/use-browse-query";
 
 /** Debounce matches the bazaar sidebar so both search fields feel identical. */
 const SEARCH_DEBOUNCE_MS = 350;
@@ -45,6 +49,9 @@ export function HeaderSearch({ className }: { className?: string }) {
       const q = raw.trim();
       lastPushed.current = q;
       add(q); // Remembered locally only — never sent to Rails, never in the URL.
+      // Tell the other fields on screen (the second header copy, and the Bazaar
+      // island once it adopts the new URL) what is now applied.
+      publishBrowseQuery(q);
       const href = q ? `${BROWSE_PATH}?q=${encodeURIComponent(q)}` : BROWSE_PATH;
       // While already browsing, replace (no per-keystroke history entries);
       // arriving from another page, push once so Back returns there.
@@ -80,6 +87,28 @@ export function HeaderSearch({ className }: { className?: string }) {
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, [pathname]);
+
+  /**
+   * Adopt a query committed by ANOTHER field.
+   *
+   * `pathname` + `popstate` above cover arriving on a filtered link and
+   * Back/Forward, but not the case that matters most at `lg`+, where this field
+   * and the Bazaar's are BOTH on screen: the Bazaar refines (or clears) `?q=`
+   * with `router.replace()` on the same pathname — no navigation, no popstate —
+   * so without this the header would keep advertising a query that is no longer
+   * applied. It also keeps the header's two copies (bar + below-bar) in step, so
+   * resizing across `md` never reveals a stale box.
+   *
+   * Skipped when the published term is the one THIS field pushed: the field
+   * already shows it, and re-setting it would clobber characters typed in the
+   * frame between the debounce firing and this effect running.
+   */
+  const committed = useCommittedBrowseQuery();
+  useEffect(() => {
+    if (!committed || committed.q === lastPushed.current) return;
+    lastPushed.current = committed.q;
+    setValue(committed.q);
+  }, [committed]);
 
   // Live search: filter the bazaar as you type — no Enter required.
   useEffect(() => {

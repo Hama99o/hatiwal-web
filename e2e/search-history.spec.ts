@@ -450,6 +450,110 @@ test.describe("Recent searches", () => {
     expect(scroller).toBe(true);
   });
 
+  test("a full history is readable from the 250px sidebar field", async ({
+    page,
+  }) => {
+    // Floating means the panel owes nothing to its host column's width: matching
+    // the 250px Bazaar field would stack all ten terms one per row and hide most
+    // of them behind a scroll whose only cue is a sliver of the next chip. It is
+    // allowed to be wider than the field (it takes no layout space) so the same
+    // history reads two chips to a row, with nothing hidden.
+    await seedHistory(page, [
+      "samsung galaxy a54",
+      "iphone 13 pro",
+      "macbook pro m2",
+      "winter jacket",
+      "toyota corolla",
+      "office chair",
+      "running shoes",
+      "kabul rugs",
+      "gas heater",
+      "school books",
+    ]);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/en/bazaar");
+    await feedReady(page);
+    await openSidebarPanel(page);
+
+    const geometry = await sidebarPanel(page).evaluate((el) => {
+      const list = el.querySelector("ul") as HTMLElement;
+      const field = el.parentElement?.parentElement as HTMLElement; // .relative
+      const rows = new Set(
+        Array.from(el.querySelectorAll("li")).map(
+          (li) => Math.round((li as HTMLElement).getBoundingClientRect().top),
+        ),
+      );
+      return {
+        panelWidth: Math.round(el.getBoundingClientRect().width),
+        fieldWidth: Math.round(field.getBoundingClientRect().width),
+        rows: rows.size,
+        hiddenByScroll: list.scrollHeight - list.clientHeight,
+        insideViewport:
+          el.getBoundingClientRect().left >= 0 &&
+          el.getBoundingClientRect().right <= window.innerWidth,
+      };
+    });
+
+    // Wider than the 250px column that hosts it, still inside the viewport…
+    expect(geometry.panelWidth).toBeGreaterThan(geometry.fieldWidth);
+    expect(geometry.insideViewport).toBe(true);
+    // …which buys about two chips per row (10 terms in at most 6 rows)…
+    expect(geometry.rows).toBeLessThanOrEqual(6);
+    // …and with that, the whole history is on screen: nothing behind a scroll.
+    expect(geometry.hiddenByScroll).toBeLessThanOrEqual(1);
+    // Being wider than its column means it lies OVER the results grid, which
+    // follows the sidebar in DOM order — inside a `sticky` (own stacking
+    // context) column, `z-50` alone would leave the chips buried under a card.
+    const topmost = await sidebarPanel(page).evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      // A point in the panel's far bottom corner, past the 250px column.
+      const hit = document.elementFromPoint(box.right - 8, box.bottom - 8);
+      return el.contains(hit);
+    });
+    expect(topmost).toBe(true);
+  });
+
+  test("at 1280px the header field never advertises a query that isn't applied", async ({
+    page,
+  }) => {
+    // At `lg`+ BOTH fields are on screen. The Bazaar commits with
+    // `router.replace()` on the same pathname — no navigation, no `popstate` —
+    // so the header can only stay truthful if the committed query is published to
+    // it. The app's most prominent search box showing a term the feed is NOT
+    // filtered by is worse than showing nothing.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/en/bazaar?q=MacBook");
+    await expect(page.getByText("MacBook Pro M2")).toBeVisible();
+    await expect(sidebarInput(page)).toBeVisible();
+    await expect(headerInput(page)).toBeVisible();
+    await expect(headerInput(page)).toHaveValue("MacBook");
+
+    // Refine in the Bazaar field → the header follows the URL.
+    await search(page, sidebarInput(page), "iphone", /q=iphone/);
+    await expect(headerInput(page)).toHaveValue("iphone");
+    await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
+
+    // Clear it there → the header empties too, and loses its own clear button
+    // (an active X on an empty filter is the same lie in miniature).
+    await sidebarForm(page)
+      .getByRole("button", { name: "Clear", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/en\/bazaar$/, { timeout: 30_000 });
+    await expect(headerInput(page)).toHaveValue("");
+    await expect(
+      headerForm(page).getByRole("button", { name: "Clear", exact: true }),
+    ).toHaveCount(0);
+
+    // Same rule for the sidebar's own "Reset filters", which drops `q` without
+    // either field being touched.
+    await search(page, sidebarInput(page), "MacBook", /q=MacBook/);
+    await expect(headerInput(page)).toHaveValue("MacBook");
+    await page.getByRole("button", { name: "Reset filters" }).click();
+    await expect(page).toHaveURL(/\/en\/bazaar$/, { timeout: 30_000 });
+    await expect(sidebarInput(page)).toHaveValue("");
+    await expect(headerInput(page)).toHaveValue("");
+  });
+
   test("the header dropdown dismisses on Escape, even from a chip", async ({
     page,
   }) => {

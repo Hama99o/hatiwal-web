@@ -65,7 +65,10 @@ export function ManageListingView({ id }: { id: string }) {
     );
   }
 
-  const { primary, secondary } = actionsFor(listing.status, !!listing.expired);
+  // The listing itself, so the transition agrees with the <ExpiryBadge> a few
+  // lines above it: both read the shared `listingExpiryState` rule (a lapsed
+  // `active` listing offers Renew, never "Mark as Sold" beside a red pill).
+  const { primary, secondary } = actionsFor(listing);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
@@ -60,6 +61,13 @@ function writeFlip(
  * shared ['saved-listings'] query (one cached fetch app-wide) and fall back to
  * `initialSaved`. Guests see the outline heart and are sent to /login on tap.
  *
+ * INDETERMINATE, not "not saved" (see `unknown` below): until BOTH the session
+ * probe and that shared list have landed, this button does not know the answer
+ * and says so — dimmed heart, `aria-busy`, no `aria-pressed` — instead of
+ * painting the outline heart and calling it "Save listing". A tap in that window
+ * is remembered and replayed once the truth arrives, so it can never send
+ * `POST save` for a listing that was already saved.
+ *
  * SHARED optimistic state (not component state): the listing detail page mounts
  * TWO hearts for the same listing — the inline one and the sticky
  * <ListingActionBar>'s — and the bar is hidden with CSS, never unmounted, so
@@ -104,12 +112,13 @@ export function SaveButton({
   const flipsKey = savedFlipsKey(user?.id);
 
   // Shared saved-listings cache (same key + fn as the /saved page).
-  const { data: savedListings } = useQuery({
+  const savedQuery = useQuery({
     queryKey: SAVED_LISTINGS_KEY,
     queryFn: getSavedListings,
     enabled: authed,
     staleTime: 60_000,
   });
+  const savedListings = savedQuery.data;
 
   // Client-only store, never fetched: `initialData` + an infinite `staleTime`
   // mean this query has data from the first render and never runs its queryFn;
@@ -149,8 +158,8 @@ export function SaveButton({
     },
   });
 
-  // Never offer save on your own listing.
-  if (isOwner) return null;
+  // A tap taken while the state was still `unknown`, waiting for the truth.
+  const [queued, setQueued] = useState(false);
 
   // A guest's cache may still hold the previous session's list (logout doesn't
   // clear it), so only trust it while signed in.
@@ -158,14 +167,73 @@ export function SaveButton({
     authed && savedListings
       ? savedListings.some((l) => l.id === listingId)
       : (initialSaved ?? false);
-  const saved = (authed ? flips[listingId] : undefined) ?? serverSaved;
+  const flip = authed ? flips[listingId] : undefined;
+  const saved = flip ?? serverSaved;
+
+  // ── Do we actually KNOW the saved state? ──────────────────────────────────
+  // On a cold load the answer is two SEQUENTIAL round-trips away:
+  // /api/auth/session (who is this?) then /api/me/my/saved_listings (what have
+  // they saved?). `initialSaved` cannot bridge that gap — every public listing
+  // payload on this site is fetched anonymously (see lib/api/client.ts), so
+  // `isSaved` comes back false for a listing the viewer saved months ago. Only
+  // `true` is trustworthy there: nothing but an authed payload can produce it.
+  //
+  // Painting the outline heart meanwhile is a lie the buyer acts on. They tap to
+  // save something already saved — server-side a no-op (the controller uses
+  // find_or_create_by!), so visibly NOTHING happens — or they mean to unsave and
+  // spend the first tap flipping the wrong way. The sticky <ListingActionBar>
+  // makes it maximally visible: the heart is pinned from the first paint as one
+  // of only three things in the bar.
+  const trusted = initialSaved === true;
+  const resolving = status === "loading" || (authed && savedQuery.isPending);
+  // The list request failed. We still don't know — and silently claiming "not
+  // saved" forever, with no toast and no retry, is the same lie with no way out.
+  const failed = authed && savedQuery.isError;
+  const unknown = flip === undefined && !trusted && (resolving || failed);
+  // A tap is in flight, or accepted and waiting for `unknown` to clear.
+  const busy = toggle.isPending || queued;
+
+  // Replay a queued tap the moment the truth lands — with the RESOLVED value, so
+  // a tap during bootstrap can never assume "not saved". Guests (a bootstrap
+  // that resolves to no session) get the /login push they would have got.
+  const { mutate: runToggle } = toggle;
+  useEffect(() => {
+    if (!queued || unknown || toggle.isPending) return;
+    setQueued(false);
+    if (!authed) {
+      router.push("/login");
+      return;
+    }
+    runToggle(saved);
+  }, [queued, unknown, toggle.isPending, authed, saved, runToggle, router]);
+
+  // Never offer save on your own listing.
+  if (isOwner) return null;
+
   const label = saved ? t("listing.detail.unsave") : t("listing.detail.save");
 
-  function onToggle(e: React.MouseEvent) {
+  async function onToggle(e: React.MouseEvent) {
     // The card heart sits inside a <Link> — never navigate.
     e.preventDefault();
     e.stopPropagation();
-    if (status === "loading" || toggle.isPending) return;
+    // Already working on one; the heart says so (dimmed + aria-disabled) rather
+    // than swallowing the tap in silence.
+    if (busy) return;
+    if (unknown) {
+      // Don't guess — remember the tap and let the effect above run it against
+      // the resolved value.
+      setQueued(true);
+      if (failed) {
+        // Nothing is coming unless we ask again. If the retry also fails, say so
+        // and release the tap instead of pulsing forever.
+        const result = await savedQuery.refetch();
+        if (result.isError) {
+          setQueued(false);
+          toast.error(t("saved.saveError"));
+        }
+      }
+      return;
+    }
     if (!authed) {
       router.push("/login");
       return;
@@ -173,18 +241,39 @@ export function SaveButton({
     toggle.mutate(saved);
   }
 
+  // Unsettled chrome: the control must never render byte-identical to its ready
+  // state while it cannot honour a tap immediately. `aria-disabled`, not
+  // `disabled` — the button stays focusable, and the tap is queued, not dropped.
+  const stateProps = {
+    "aria-busy": unknown || busy || undefined,
+    "aria-disabled": busy || undefined,
+    // Never announce a pressed state we have not confirmed.
+    "aria-pressed": unknown ? undefined : saved,
+  } as const;
+  const unsettledClass = cn(
+    (unknown || busy) && "opacity-70",
+    // A tap we have accepted but cannot run yet needs an "I heard you" cue; the
+    // in-flight case already has one (the heart flipped optimistically).
+    queued && "animate-pulse motion-reduce:animate-none",
+  );
+  // Held, not repainted: an unknown state must not claim the empty heart of
+  // "not saved", so it goes muted until the answer arrives.
+  const heartClass = unknown
+    ? "text-muted-foreground"
+    : saved
+      ? "fill-destructive text-destructive"
+      : undefined;
+
   if (variant === "detail") {
     return (
       <Button
         type="button"
         variant="outline"
         onClick={onToggle}
-        aria-pressed={saved}
-        className={cn("w-full", className)}
+        {...stateProps}
+        className={cn("w-full", unsettledClass, className)}
       >
-        <Heart
-          className={cn(saved && "fill-destructive text-destructive")}
-        />
+        <Heart className={heartClass} />
         {label}
       </Button>
     );
@@ -202,21 +291,18 @@ export function SaveButton({
       size="icon"
       onClick={onToggle}
       aria-label={label}
-      aria-pressed={saved}
       title={label}
+      {...stateProps}
       className={cn(
         // 40px minimum touch target (house convention — see segmented-control.tsx).
         "size-10 shrink-0",
         onPhoto &&
           "rounded-full bg-background/80 shadow-sm backdrop-blur-sm hover:bg-background",
+        unsettledClass,
         className,
       )}
     >
-      <Heart
-        className={cn(
-          saved ? "fill-destructive text-destructive" : "text-foreground",
-        )}
-      />
+      <Heart className={cn(heartClass ?? "text-foreground")} />
     </Button>
   );
 }

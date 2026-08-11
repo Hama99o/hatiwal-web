@@ -14,6 +14,7 @@ import {
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -61,10 +62,16 @@ export function AuthNav() {
       >
         <Link href="/conversations">
           <MessageSquare className="size-5" />
+          {/* The shared count pill (same primitive + same solid fill as the
+              owner panel's waiting-chats badge), not a bespoke span — that one
+              also hardcoded its own 10px type. */}
           {unread > 0 && (
-            <span className="absolute end-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
+            <Badge
+              variant="count"
+              className="absolute end-0.5 top-0.5 min-w-4 justify-center px-1 py-0 font-semibold leading-4"
+            >
               {unread > 9 ? "9+" : unread}
-            </span>
+            </Badge>
           )}
         </Link>
       </Button>

@@ -20,13 +20,18 @@ import { cn } from "@/lib/utils";
  * The label is honest about what will happen: it hydrates as t('common.share')
  * and flips to t('common.copyLink') after mount when the Web Share API is
  * unavailable (typical desktop).
+ *
+ * Defaults to the `default` (40px) size, not `sm`: this ships beside Report on
+ * the listing and seller pages, and at 36px it was both uneven with it and under
+ * the house touch-target floor. The floor lives here so the next call site gets
+ * it for free — pass `size` only to go deliberately smaller in a dense row.
  */
 export function ShareButton({
   shareTitle,
   text,
   className,
   variant = "outline",
-  size = "sm",
+  size = "default",
 }: {
   /** Title passed to navigator.share (e.g. the listing title / seller name). */
   shareTitle: string;

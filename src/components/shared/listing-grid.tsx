@@ -86,6 +86,7 @@ export function ListingGridSkeleton({
   count = 10,
   viewMode = "grid",
   columns = "page",
+  withFooter = false,
   className,
 }: {
   count?: number;
@@ -93,6 +94,12 @@ export function ListingGridSkeleton({
   viewMode?: ListingViewMode;
   /** Match the grid it stands in for, so the shape doesn't jump on load. */
   columns?: ListingGridColumns;
+  /**
+   * Set it when the loaded grid passes `footerFor` (the seller dashboard's
+   * inline lifecycle row): the placeholder then reserves the footer's height so
+   * the cards don't grow — and the grid reflow — when the data arrives.
+   */
+  withFooter?: boolean;
   className?: string;
 }) {
   return (
@@ -103,7 +110,7 @@ export function ListingGridSkeleton({
       )}
     >
       {Array.from({ length: count }).map((_, i) => (
-        <ListingCardSkeleton key={i} variant={viewMode} />
+        <ListingCardSkeleton key={i} variant={viewMode} withFooter={withFooter} />
       ))}
     </div>
   );

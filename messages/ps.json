@@ -177,6 +177,7 @@
       "notFound": "اعلان ونه موندل شو",
       "moreOptions": "نور اختیارونه",
       "moreOptionsFor": "د {title} لپاره نور اختیارونه",
+      "actionFor": "{action} — {title}",
       "soldNotice": "دا توکی خرڅ شوی دی",
       "reservedNotice": "دا توکی خوندي شوی دی",
       "unavailableNotice": "دا توکی نور شتون نلري",
@@ -201,7 +202,6 @@
     "ownerDetail": {
       "notFound": "اعلان ونه موندل شو",
       "views": "لیدنې",
-      "conversations": "خبرې",
       "actions": "اعلان اداره کول",
       "viewConversations": "چټونه وګورئ",
       "posted": "خپور شو {date}",

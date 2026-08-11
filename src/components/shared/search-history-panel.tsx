@@ -20,10 +20,12 @@
  * the Bazaar's own filters).
  *
  * The chips WRAP: a sideways-scrolling row is a phone gesture, and both web
- * hosts are pointer-first. Wrapping also means the block can never widen its
- * column — chips shrink and truncate to whatever the panel offers, which is the
- * field's own width. The row cap keeps a 10-term history from covering the whole
- * viewport; past that the list scrolls vertically, which a wheel can reach.
+ * hosts are pointer-first. Chips shrink and truncate to whatever the panel
+ * offers, and the panel is allowed to be wider than the field it hangs from —
+ * it takes no space in the layout, so a 250px sidebar field can still show a
+ * readable history two chips to a row instead of ten stacked ones. The height
+ * cap keeps it from covering the whole viewport; past that the list scrolls
+ * vertically, which a wheel can reach.
  *
  * Touch/pointer targets: every chip half (label + X) and "Clear all" is 44px
  * tall. Each half tints on its OWN hover — the label toward the primary ("this
@@ -75,7 +77,16 @@ export function SearchHistoryPanel({
       // can't save us (Safari doesn't focus a pressed <button> at all).
       onMouseDown={(event) => event.preventDefault()}
       className={cn(
-        "absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-md",
+        // Anchored to the field's START edge (logical, so it mirrors in RTL) and
+        // allowed to be WIDER than the field it hangs from: it is a floating
+        // popover, and the Bazaar's host column is only 250px — matching that
+        // width turned a full 10-term history into 10 stacked rows, most of them
+        // behind a scroll. 24rem is what fits TWO chips per row at this type
+        // scale (measured), which is what gets the whole capped history on
+        // screen. `max(100%, …)` never narrows a field that is already wider (the
+        // header's is up to `max-w-md`), and the `100vw - 2rem` cap keeps it
+        // inside the viewport on a phone, where the field is full-width.
+        "absolute start-0 top-full z-50 mt-1 w-[max(100%,min(24rem,calc(100vw_-_2rem)))] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-md",
         className,
       )}
     >
@@ -99,8 +110,12 @@ export function SearchHistoryPanel({
       </div>
 
       {/* `-m-1 p-1` gives the chips' focus ring (2px + 2px offset) room to draw
-          instead of being clipped by the scroll box / panel edge. */}
-      <ul className="-m-1 flex max-h-[13.5rem] flex-wrap gap-2 overflow-y-auto p-1 [scrollbar-width:thin]">
+          instead of being clipped by the scroll box / panel edge. The height cap
+          holds six 44px rows — enough for the full 10-term cap at the two chips
+          per row the widened panel gives, with a row of slack for longer terms —
+          so a complete history is readable without scrolling. Past that the list
+          scrolls vertically (thin scrollbar), which a wheel can reach. */}
+      <ul className="-m-1 flex max-h-[19.5rem] flex-wrap gap-2 overflow-y-auto p-1 [scrollbar-width:thin]">
         {history.map((term) => (
           <li
             key={term.toLowerCase()}

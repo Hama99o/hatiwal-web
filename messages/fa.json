@@ -177,6 +177,7 @@
       "notFound": "آگهی یافت نشد",
       "moreOptions": "گزینه‌های بیشتر",
       "moreOptionsFor": "گزینه‌های بیشتر برای {title}",
+      "actionFor": "{action} — {title}",
       "soldNotice": "این کالا فروخته شده است",
       "reservedNotice": "این کالا رزرو شده است",
       "unavailableNotice": "این کالا دیگر موجود نیست",
@@ -201,7 +202,6 @@
     "ownerDetail": {
       "notFound": "آگهی یافت نشد",
       "views": "بازدیدها",
-      "conversations": "گفتگوها",
       "actions": "مدیریت آگهی",
       "viewConversations": "مشاهده گفتگوها",
       "posted": "ارسال شده {date}",
