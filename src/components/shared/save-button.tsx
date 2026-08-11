@@ -161,8 +161,9 @@ export function SaveButton({
   // A tap taken while the state was still `unknown`, waiting for the truth.
   const [queued, setQueued] = useState(false);
 
-  // A guest's cache may still hold the previous session's list (logout doesn't
-  // clear it), so only trust it while signed in.
+  // Only trust the cached list while signed in. (The cache itself is now cleared
+  // at every auth transition in auth-provider.tsx, so it can no longer hold a
+  // previous session's rows — this guard is just correctness for the guest case.)
   const serverSaved =
     authed && savedListings
       ? savedListings.some((l) => l.id === listingId)

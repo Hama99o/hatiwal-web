@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "@/lib/types";
 
 type AuthStatus = "loading" | "authed" | "guest";
@@ -57,6 +58,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
 
+  // AuthProvider is nested INSIDE QueryClientProvider (see components/providers.tsx),
+  // so the cache is reachable from here. That matters because of the leak below.
+  const queryClient = useQueryClient();
+
+  /**
+   * Drop every cached query at an identity boundary.
+   *
+   * Logging out used to clear only React state, and nothing anywhere in the app
+   * evicted the TanStack cache (its one eviction was a scoped removeQueries for a
+   * deleted listing). So on a shared browser: user A signs out, user B signs in,
+   * and ['saved-listings'], ['my-listings'] and ['conversations'] still held A's
+   * rows until something happened to refetch them — B was shown A's saved items,
+   * A's shop and A's conversation list. That is a cross-user data leak, not mere
+   * staleness, and it bites hardest here: shared phones and shared computers are
+   * normal for this marketplace, and conversations carry meetup details.
+   *
+   * Clearing once, centrally, at the transition beats viewer-scoping every query
+   * key: a new unscoped key added later would silently reintroduce the leak,
+   * whereas this cannot be forgotten. The cost is one refetch of public data
+   * (categories, listings) at sign-in/sign-out, which is negligible.
+   */
+  const clearCacheForIdentityChange = useCallback(() => {
+    queryClient.clear();
+  }, [queryClient]);
+
   const refresh = useCallback(async () => {
     // The session probe clears cookies ONLY on an explicit 401; a transient
     // failure (Rails 5xx/unreachable) returns 503 or {transient:true} with the
@@ -105,10 +131,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
     const data = await res.json();
+    // Before adopting the new identity — a previous user's rows must never be
+    // visible to this one, even for the instant before a refetch lands.
+    clearCacheForIdentityChange();
     setUser(data.user);
     setStatus("authed");
     return { ok: true };
-  }, []);
+  }, [clearCacheForIdentityChange]);
 
   const register = useCallback(async (input: RegisterInput) => {
     const res = await fetch("/api/auth/register", {
@@ -121,16 +150,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: false, errors: data?.errors ?? undefined };
     }
     const data = await res.json();
+    clearCacheForIdentityChange();
     setUser(data.user);
     setStatus("authed");
     return { ok: true };
-  }, []);
+  }, [clearCacheForIdentityChange]);
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     setUser(null);
     setStatus("guest");
-  }, []);
+    // AFTER flipping to guest, so anything that refetches in response to the
+    // state change does so as a guest rather than re-populating with the
+    // signed-out user's data. Runs even if the logout request itself failed —
+    // the local session is being abandoned either way.
+    clearCacheForIdentityChange();
+  }, [clearCacheForIdentityChange]);
 
   const forgotPassword = useCallback(async (email: string) => {
     await fetch("/api/auth/forgot-password", {
@@ -173,10 +208,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
     const data = await res.json();
+    clearCacheForIdentityChange();
     setUser(data.user);
     setStatus("authed");
     return { ok: true };
-  }, []);
+  }, [clearCacheForIdentityChange]);
 
   return (
     <AuthContext.Provider
