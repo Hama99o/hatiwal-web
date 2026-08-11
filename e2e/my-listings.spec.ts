@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
+import en from "../messages/en.json";
 import ps from "../messages/ps.json";
 
 /** One seller card: the wrapper around the link to that listing's owner page. */
@@ -391,23 +392,57 @@ test.describe("My Shop (seller dashboard)", () => {
   // The narrowest place this row ever lands: a 2-column grid on a 375px phone.
   // Both controls must keep the house 40px tap target AND stay inside the card
   // (a wrapping label may grow the row taller, never wider).
-  test("the action row keeps its 40px targets inside a 375px 2-column card", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    await openMyShop(page);
-    const activeCard = card(page, 1);
-    const cardBox = (await activeCard.boundingBox())!;
-    for (const control of [
-      activeCard.getByRole("button", { name: "Mark as Sold" }),
-      activeCard.getByRole("button", { name: /^More options/ }),
-    ]) {
-      const box = (await control.boundingBox())!;
-      expect(box.height).toBeGreaterThanOrEqual(40);
-      expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1);
-      expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
-    }
-  });
+  //
+  // Run in `ps` as well as `en`: the primary was made louder (font-semibold /
+  // sm:text-sm), and Pashto's labels are the longest of the three locales, so ps
+  // is where a too-loud label would first clip or blow the row out.
+  for (const [locale, m] of [
+    ["en", en],
+    ["ps", ps],
+  ] as const) {
+    test(`the action row keeps its 40px targets inside a 375px 2-column card (${locale})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 375, height: 800 });
+      await openMyShop(page, locale);
+      // Listing 1 is the active one, so its footer is the full pair: the widest
+      // primary label of the set next to the compact kebab.
+      const activeCard = card(page, 1, locale);
+      const cardBox = (await activeCard.boundingBox())!;
+      const named = (template: string, title: string) =>
+        activeCard.getByRole("button", {
+          name: template.replace("{title}", title),
+          exact: true,
+        });
+      for (const control of [
+        named(m.listing.detail.actionFor.replace("{action}", m.listing.markSold), "iPhone 13 Pro"),
+        named(m.listing.detail.moreOptionsFor, "iPhone 13 Pro"),
+      ]) {
+        const box = (await control.boundingBox())!;
+        expect(box.height).toBeGreaterThanOrEqual(40);
+        expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          cardBox.x + cardBox.width + 1,
+        );
+        // The label WRAPS (whitespace-normal), it is never clipped: a control
+        // whose text overflowed its own box would still satisfy the box checks
+        // above while reading "Mark as So…". `scrollWidth <= clientWidth` is the
+        // assertion that actually catches that.
+        const { scrollWidth, clientWidth, scrollHeight, clientHeight } =
+          await control.evaluate((el) => ({
+            scrollWidth: el.scrollWidth,
+            clientWidth: el.clientWidth,
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+          }));
+        expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+        expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
+        // …and wrapping must stay proportionate: min-h-10 absorbs two lines, so
+        // anything past ~4 lines means the label no longer fits the layout.
+        expect(box.height).toBeLessThan(80);
+      }
+    });
+  }
 
   // The placeholder has to mirror the real card, action row included: without a
   // footer every card grows ~61px taller the moment ['my-listings'] lands and the
