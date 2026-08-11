@@ -23,6 +23,18 @@ const KEY = "hatiwal.searchHistory";
 const SEED_FLAG = "hatiwal.e2e.searchHistorySeeded";
 
 /**
+ * How long an App Router `replace()` may take to reach `window.location`.
+ *
+ * Every search here commits by rewriting `?q=` on the SAME pathname, and the
+ * router only moves the URL once the RSC payload for the new query lands. On a
+ * cold `.next-e2e` that payload waits behind a dev-mode compile, shared with
+ * every other spec file the suite is running in parallel — measured well past
+ * 30s on a loaded machine, with nothing actually wrong. A warm run lands in
+ * under a second and never approaches this.
+ */
+const URL_COMMIT_TIMEOUT = 45_000;
+
+/**
  * Pre-seed the stored history so a test starts from a known list.
  *
  * `addInitScript` runs on EVERY navigation, so a bare `setItem` would silently
@@ -60,6 +72,17 @@ const headerInput = (page: Page) => headerForm(page).locator("input");
 const headerPanel = (page: Page) =>
   headerForm(page).getByTestId("search-history-panel");
 
+/**
+ * A field's own clear (X) button — a sibling of the input inside `SearchField`'s
+ * relative wrapper.
+ *
+ * Doubles as a hydration proof: it is rendered from the field's REACT state
+ * (`value !== ""`), so it cannot exist while the page is still server HTML. See
+ * {@link search}.
+ */
+const clearButtonFor = (input: Locator) =>
+  input.locator("xpath=..").getByRole("button", { name: "Clear", exact: true });
+
 const sidebarForm = (page: Page) => page.locator("aside form[role=search]");
 const sidebarInput = (page: Page) => sidebarForm(page).locator("input");
 const sidebarPanel = (page: Page) =>
@@ -75,10 +98,11 @@ const feedReady = (page: Page) =>
 
 test.describe("Recent searches", () => {
   // A cold `.next-e2e` compiles each route on its first hit, and these specs
-  // navigate two or three times. `test.slow()` triples the per-test budget so
-  // the retry loops below can keep their own generous windows without ever
-  // colliding with the suite timeout (which is what made this spec flake on a
-  // cold, loaded machine).
+  // navigate two or three times and commit several searches. `test.slow()`
+  // triples the per-test budget (120s → 360s) so the retry loops below can keep
+  // the windows a cold `router.replace()` genuinely needs — see
+  // {@link URL_COMMIT_TIMEOUT} — without colliding with the suite timeout, which
+  // is what made this spec flake on a cold, loaded machine.
   test.beforeEach(() => {
     test.slow();
   });
@@ -108,20 +132,30 @@ test.describe("Recent searches", () => {
   /**
    * Type a query and wait for the debounced search to reach the URL.
    *
-   * Retried for the same reason as {@link openPanel}: the first `fill` can land
-   * before React has attached, so nothing ever commits. Each attempt empties the
-   * field first — re-filling the SAME text is a no-op for a controlled input
-   * (React bails on an unchanged value), so without the reset a lost first
-   * attempt could never be retried. The URL assertion gets a real budget because
-   * an App Router `replace()` only commits the history entry once the RSC payload
-   * lands.
+   * Two separate waits, on purpose. The `fill` is retried, for the same reason as
+   * {@link openPanel}: it can land before React has attached, in which case the
+   * text sits in the DOM, no state changes and nothing ever commits. Each attempt
+   * empties the field first, because re-filling the SAME text is a no-op for a
+   * controlled input (React bails on an unchanged value) and a lost attempt could
+   * otherwise never be retried.
+   *
+   * What that loop waits for is {@link clearButtonFor}, NOT the URL: the clear
+   * button is rendered from the field's own state, so it appears within a frame of
+   * a fill that reached React and never appears for one that didn't. Cheap either
+   * way — which is the point. The URL is then awaited exactly ONCE, outside the
+   * loop, with the full {@link URL_COMMIT_TIMEOUT}. Waiting for it *inside* the
+   * loop is the trap: emptying the field cancels the pending debounce, so a retry
+   * aborts the very commit it is waiting for, and any window shorter than a cold
+   * RSC round trip makes a slow-but-progressing search unable to finish no matter
+   * how many times it is retried.
    */
   async function search(page: Page, input: Locator, text: string, url: RegExp) {
     await expect(async () => {
       await input.fill("");
       await input.fill(text);
-      await expect(page).toHaveURL(url, { timeout: 10_000 });
-    }).toPass({ timeout: 45_000 });
+      await expect(clearButtonFor(input)).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 60_000 });
+    await expect(page).toHaveURL(url, { timeout: URL_COMMIT_TIMEOUT });
   }
 
   /**
@@ -196,7 +230,7 @@ test.describe("Recent searches", () => {
     await sidebarPanel(page)
       .getByRole("button", { name: "MacBook", exact: true })
       .click();
-    await expect(page).toHaveURL(/q=MacBook/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/q=MacBook/, { timeout: URL_COMMIT_TIMEOUT });
 
     await expect(page.getByText("MacBook Pro M2")).toBeVisible();
     await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
@@ -538,7 +572,9 @@ test.describe("Recent searches", () => {
     await sidebarForm(page)
       .getByRole("button", { name: "Clear", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/en\/bazaar$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/en\/bazaar$/, {
+      timeout: URL_COMMIT_TIMEOUT,
+    });
     await expect(headerInput(page)).toHaveValue("");
     await expect(
       headerForm(page).getByRole("button", { name: "Clear", exact: true }),
@@ -549,9 +585,44 @@ test.describe("Recent searches", () => {
     await search(page, sidebarInput(page), "MacBook", /q=MacBook/);
     await expect(headerInput(page)).toHaveValue("MacBook");
     await page.getByRole("button", { name: "Reset filters" }).click();
-    await expect(page).toHaveURL(/\/en\/bazaar$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/en\/bazaar$/, {
+      timeout: URL_COMMIT_TIMEOUT,
+    });
     await expect(sidebarInput(page)).toHaveValue("");
     await expect(headerInput(page)).toHaveValue("");
+  });
+
+  test("at 1280px the Bazaar field follows a search made in the header", async ({
+    page,
+  }) => {
+    // The mirror of the case above, pinned separately so the two-field contract
+    // is symmetric: with both fields on screen, whichever one is NOT being typed
+    // in must never be left holding a dead term. This direction travels a
+    // different road — the header drives the URL and the island re-syncs from the
+    // server's new `initialFilters` — so passing one direction proves nothing
+    // about the other.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/en/bazaar?q=MacBook");
+    await expect(page.getByText("MacBook Pro M2")).toBeVisible();
+    await expect(sidebarInput(page)).toHaveValue("MacBook");
+    // Both fields start out truthful — and this one doubles as the header
+    // island's hydration proof, for free: the server renders that field EMPTY
+    // (`readBrowseQuery` returns "" without a `window`), so the mirrored query can
+    // only be there once React is driving it.
+    await expect(headerInput(page)).toHaveValue("MacBook");
+
+    await search(page, headerInput(page), "iphone", /q=iphone/);
+    await expect(sidebarInput(page)).toHaveValue("iphone");
+    await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
+
+    // And clearing the header drops the filter from the Bazaar field too.
+    await headerForm(page)
+      .getByRole("button", { name: "Clear", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/en\/bazaar$/, {
+      timeout: URL_COMMIT_TIMEOUT,
+    });
+    await expect(sidebarInput(page)).toHaveValue("");
   });
 
   test("the header dropdown dismisses on Escape, even from a chip", async ({
@@ -683,7 +754,9 @@ test.describe("Recent searches", () => {
     await headerForm(page)
       .getByRole("button", { name: "Clear", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/en\/bazaar$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/en\/bazaar$/, {
+      timeout: URL_COMMIT_TIMEOUT,
+    });
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
   });
 

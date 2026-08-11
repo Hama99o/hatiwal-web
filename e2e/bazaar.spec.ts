@@ -52,6 +52,12 @@ test.describe("Bazaar feed", () => {
     await page.goto("/en/bazaar");
     const input = page.getByPlaceholder("Search listings...");
     await expect(async () => {
+    // Empty the field before each re-fill: re-filling the SAME text leaves a
+    // controlled input's React state unchanged, so if the first attempt landed
+    // before hydration (dev compiles chunks on demand) no later attempt could ever
+    // commit and the retry would spin out its whole budget. Same reasoning as
+    // `search()` in search-history.spec.ts.
+      await input.fill("");
       await input.fill("MacBook");
       await expect(page).toHaveURL(/q=MacBook/);
     }).toPass({ timeout: 20_000 });
@@ -67,6 +73,12 @@ test.describe("Bazaar feed", () => {
     await expect(page.getByText("MacBook Pro M2")).toBeVisible();
     const navbarSearch = page.locator("header form[role=search] input").first();
     await expect(async () => {
+    // Empty the field before each re-fill: re-filling the SAME text leaves a
+    // controlled input's React state unchanged, so if the first attempt landed
+    // before hydration (dev compiles chunks on demand) no later attempt could ever
+    // commit and the retry would spin out its whole budget. Same reasoning as
+    // `search()` in search-history.spec.ts.
+      await navbarSearch.fill("");
       await navbarSearch.fill("MacBook"); // no .press("Enter")
       await expect(page).toHaveURL(/q=MacBook/);
     }).toPass({ timeout: 20_000 });
@@ -81,6 +93,12 @@ test.describe("Bazaar feed", () => {
     await page.goto("/en");
     const navbarSearch = page.locator("header form[role=search] input").first();
     await expect(async () => {
+    // Empty the field before each re-fill: re-filling the SAME text leaves a
+    // controlled input's React state unchanged, so if the first attempt landed
+    // before hydration (dev compiles chunks on demand) no later attempt could ever
+    // commit and the retry would spin out its whole budget. Same reasoning as
+    // `search()` in search-history.spec.ts.
+      await navbarSearch.fill("");
       await navbarSearch.fill("iPhone");
       await expect(page).toHaveURL(/\/bazaar\?q=iPhone/);
     }).toPass({ timeout: 20_000 });
