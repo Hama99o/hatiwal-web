@@ -111,11 +111,13 @@ test.describe("Recent searches", () => {
    * Focus a search field until its chips show.
    *
    * Retried on purpose: the click can land before React attaches (dev compiles
-   * chunks on demand, so on a loaded machine hydration is not instant), and on
-   * `/ps|/fa` a PRE-EXISTING hydration mismatch (Node's ICU renders the plural
-   * count with Arabic-Indic digits, Chromium — which ships no Pashto Intl data —
-   * with Latin ones) makes React regenerate the tree, which drops focus. A short
+   * chunks on demand, so on a loaded machine hydration is not instant). A short
    * per-attempt timeout keeps the retries coming.
+   *
+   * The `/ps` hydration mismatch that also used to drop focus here — Node's ICU
+   * rendered the plural count with Arabic-Indic digits, Chromium (no Pashto Intl
+   * data) with Latin ones — is fixed in `src/i18n/intl-locale-alias.ts` and fenced
+   * by `e2e/i18n-digits.spec.ts`, so it is no longer a reason for this loop.
    */
   async function openPanel(input: Locator, panelLocator: Locator) {
     await expect(async () => {

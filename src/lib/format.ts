@@ -16,7 +16,10 @@ import { enUS, faIR } from "date-fns/locale";
 // "AFN 30,000" on the same screen (and any component rendered in both places
 // would hydrate mismatched). `fa-AF` shares the script, digits, calendar and the
 // ؋ symbol, and both runtimes have it, so server and browser always agree.
-const INTL_TAG: Record<string, string> = {
+// Exported so `src/i18n/intl-locale-alias.ts` can reuse this ONE mapping for the
+// numbers next-intl formats inside messages (`{count, plural, one {# …}}`), which
+// it creates with the raw routing tag and no options — see that file.
+export const INTL_TAG: Record<string, string> = {
   en: "en-US",
   ps: "fa-AF",
   fa: "fa-AF",

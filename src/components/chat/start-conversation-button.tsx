@@ -18,10 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
+import { cn } from "@/lib/utils";
 
 /**
  * Listing-detail buyer actions: message the seller or make a price offer.
- * Guests → sign in; the listing's own seller → nothing. Both actions resolve
+ * Guests → sign in; the listing's own seller → nothing; a viewer whose session
+ * has not resolved yet → a held tap, never a guess (see `resolving` below).
+ * Both actions resolve
  * (or create) the one conversation for this buyer+listing; the backend returns
  * 422 when a conversation already exists, so we fall back to fetching it — same
  * duplicate-handling as the mobile offer flow, so a message/offer is never lost.
@@ -90,6 +93,27 @@ export function StartConversationButton({
     return () => onDialogOpenChange?.(false);
   }, [open, offerOpen, dialogsMounted, onDialogOpenChange]);
 
+  // A tap taken before the session probe had answered, waiting for it. `status`
+  // starts "loading" on EVERY load (see auth-provider.tsx: one
+  // /api/auth/session round trip, and up to ~9s of backoff if it has to retry a
+  // transient failure), which the sticky bar makes maximally visible — its CTA
+  // is pinned from the first paint.
+  const resolving = status === "loading";
+  const [queuedMessage, setQueuedMessage] = useState(false);
+
+  // Replay it the moment auth resolves, against the RESOLVED identity — so a tap
+  // during bootstrap can neither be swallowed nor send a signed-in buyer to
+  // /login. Same contract as the heart beside it (see save-button.tsx).
+  useEffect(() => {
+    if (!queuedMessage || resolving) return;
+    setQueuedMessage(false);
+    if (status !== "authed") {
+      router.push("/login");
+      return;
+    }
+    setOpen(true);
+  }, [queuedMessage, resolving, status, router]);
+
   // Negotiable by default: only firm (offer hidden) when explicitly false.
   const isNegotiable = negotiable !== false;
   const compact = layout === "bar";
@@ -127,6 +151,35 @@ export function StartConversationButton({
   );
 
   if (isOwner) return null; // your own listing — <OwnerListingBar> takes over
+
+  // Auth not resolved yet. Rendering the guest branch here is worse than a dead
+  // control: a signed-in buyer taps the pinned "Message Seller" and is navigated
+  // AWAY from the listing to a login page they do not need — measured, the CTA
+  // was an <a href="/login"> for the whole probe. So the CTA stays a real button,
+  // says it is not ready (dimmed + `aria-busy`, and `aria-disabled` once a tap is
+  // held), and the effect above runs the tap when the answer lands. The offer
+  // affordance is deliberately absent, exactly as in the guest branch below, so
+  // resolving to a guest changes nothing about the layout.
+  if (resolving) {
+    return (
+      <div className={wrapperClass}>
+        <Button
+          type="button"
+          onClick={() => setQueuedMessage(true)}
+          aria-busy
+          aria-disabled={queuedMessage || undefined}
+          className={cn(
+            primaryClass,
+            "opacity-70",
+            // "I heard you" for a tap that cannot run yet.
+            queuedMessage && "animate-pulse motion-reduce:animate-none",
+          )}
+        >
+          {primaryLabel}
+        </Button>
+      </div>
+    );
+  }
 
   if (status !== "authed") {
     return (

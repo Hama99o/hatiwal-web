@@ -108,29 +108,41 @@ test.describe("Listing action bar (mobile)", () => {
     )!.trim();
     expect((await barPrice.textContent())!.trim()).toBe(hero);
 
-    // ...and it is never on screen at the same time as the hero price, at any
-    // scroll depth.
+    // ...and at every scroll depth there is EXACTLY ONE price on screen: the
+    // bar carries one if and only if the hero one is gone. Asserted as that
+    // biconditional rather than a weaker "not both", which a moment where
+    // NEITHER is on screen would also satisfy.
+    //
+    // Retried until it settles, and deliberately so: an IntersectionObserver
+    // gate cannot be frame-exact — the callback is delivered after the scroll
+    // has already happened and React renders after that, so there is always a
+    // sub-frame where the DOM still describes the previous scroll position. It
+    // is the settled state a buyer can actually read; measured here, the bar
+    // drops (or adds) its price within ~25ms of the scroll, and asserting the
+    // raw first sample instead made this spec fail 2 runs in 3.
     for (const y of [0, 200, 400, 600, 900, 1400, 1800]) {
       await page.evaluate((to) => window.scrollTo(0, to), y);
-      const both = await page.evaluate(() => {
-        const inView = (el: Element | null) => {
-          if (!el) return false;
-          const r = el.getBoundingClientRect();
-          return r.bottom > 0 && r.top < window.innerHeight;
-        };
-        const barEl = document.querySelector('[aria-label="Listing actions"]');
-        // The bar's price is the row's first child; the CTA's own label span
-        // lives inside a <button>, so this can only be the <PriceTag>.
-        const barSpan = barEl?.querySelector(":scope > div > span");
-        return {
-          hero: inView(document.getElementById("listing-price")),
-          bar: !!barSpan,
-        };
-      });
-      expect(both, `two prices at scrollY=${y}`).not.toEqual({
-        hero: true,
-        bar: true,
-      });
+      await expect(async () => {
+        const seen = await page.evaluate(() => {
+          const inView = (el: Element | null) => {
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            return r.bottom > 0 && r.top < window.innerHeight;
+          };
+          const barEl = document.querySelector('[aria-label="Listing actions"]');
+          // The bar's price is the row's first child; the CTA's own label span
+          // lives inside a <button>, so this can only be the <PriceTag>.
+          const barSpan = barEl?.querySelector(":scope > div > span");
+          return {
+            hero: inView(document.getElementById("listing-price")),
+            bar: !!barSpan,
+          };
+        });
+        expect(
+          seen.bar,
+          `bar price vs hero price at scrollY=${y} (hero on screen: ${seen.hero})`,
+        ).toBe(!seen.hero);
+      }).toPass({ timeout: 5_000 });
     }
   });
 
@@ -453,6 +465,36 @@ test.describe("Listing action bar (mobile)", () => {
     await release();
     await expect(heart).toHaveAttribute("aria-pressed", "false");
     expect(calls).toEqual(["DELETE unsave"]);
+  });
+
+  test("its CTA never bounces a signed-in buyer to /login mid-bootstrap", async ({
+    page,
+  }) => {
+    // The other half of the same defect as the heart above, and the louder one:
+    // until the session probe answers, `useAuth()` says "loading", and the CTA
+    // used to render the GUEST branch — an <a href="/login"> labelled "Message
+    // Seller", pinned from the first paint. A signed-in buyer who tapped it in
+    // that window was navigated off the listing to a login page they don't need.
+    const release = await hold(page, "**/api/auth/session");
+
+    await page.goto("/en/listings/2");
+    const bar = page.getByRole("region", { name: "Listing actions" });
+    const cta = bar.getByRole("button", { name: "Message Seller" });
+    // A button that says it is not ready — never a link to /login.
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute("aria-busy", "true");
+    await expect(bar.getByRole("link", { name: "Message Seller" })).toHaveCount(0);
+
+    // The tap is held, not honoured against a guessed identity: no navigation.
+    await cta.click();
+    await expect(cta).toHaveAttribute("aria-disabled", "true");
+    await expect(page).toHaveURL(/\/en\/listings\/2$/);
+
+    // Auth lands → the held tap opens the composer, on the listing, as if the
+    // buyer had waited for it.
+    await release();
+    await expect(page.getByPlaceholder("Ask about this item...")).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/listings\/2$/);
   });
 
   test("mirrors in RTL — price on the right in Pashto", async ({ page }) => {

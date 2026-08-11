@@ -678,7 +678,13 @@ export function BrowseClient({
         {/* Results */}
         <main className="min-w-0">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
+            {/* `data-testid`: the E2E digit fence (e2e/i18n-digits.spec.ts) reads
+                this count to prove `t()` and `formatPrice` agree on one digit
+                set per locale, server and browser alike. */}
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="results-count"
+            >
               {typeof totalCount === "number"
                 ? t("listing.shopCount", { count: totalCount })
                 : " "}
