@@ -13,6 +13,7 @@ import { updateAvatar, updateProfile, type ProfileUpdate } from "@/lib/api/me";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -189,11 +190,10 @@ export function EditProfileForm() {
           htmlFor="bio"
           error={errors.bio?.message}
         >
-          <textarea
+          <Textarea
             id="bio"
             rows={3}
             placeholder={t("profile.edit.fields.bioPlaceholder")}
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             {...register("bio")}
           />
         </Field>

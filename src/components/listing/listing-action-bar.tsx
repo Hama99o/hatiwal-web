@@ -55,7 +55,10 @@ const FOCUSABLE =
  * position where it appears at all, deleting the feature. So the bar keeps the
  * CTA pinned from the first paint — which is also what mobile does, with no price
  * in its sticky bar at all (ListingDetail.tsx: offer + contact only) — and the
- * price fades in as an extra anchor once the real one is gone.
+ * price appears as an extra anchor once the real one is gone. It appears and
+ * disappears outright, with no transition: a cross-fade would have to keep the
+ * price's width reserved the whole time (otherwise the CTA jumps anyway), which
+ * would permanently narrow the one control the bar exists for.
  *
  * Hidden for the listing's own seller (`useIsOwner` — the same one rule every
  * buyer control on the page uses) and for non-active (reserved/sold) listings,
@@ -163,10 +166,11 @@ export function ListingActionBar({
   }, [compact, sentinelId, priceAnchorId]);
 
   // The spacer must be exactly as tall as the bar. A hand-written
-  // `calc(4rem + safe-area)` was 1px short of the real 65px (12 + 40 + 12 + the
-  // 1px border) and would have drifted silently the next time anything was added
-  // to the row, so the bar publishes its measured height instead. `display: none`
-  // at `lg` measures 0, which is exactly right — no bar, no reserved space.
+  // `calc(4rem + safe-area)` was 1px short of the real bar (12 + the row + 12 +
+  // the 1px border) and drifted again the moment the row grew — the controls went
+  // from 40px to the 44px touch floor — so the bar publishes its measured height
+  // instead. `display: none` at `lg` measures 0, which is exactly right — no bar,
+  // no reserved space.
   useEffect(() => {
     const el = barRef.current;
     if (!el) return;
@@ -227,11 +231,12 @@ export function ListingActionBar({
         aria-hidden
         data-testid="action-bar-spacer"
         style={barHeight != null ? { height: barHeight } : undefined}
-        className="h-[calc(4.0625rem+env(safe-area-inset-bottom))] lg:hidden"
+        className="h-[calc(4.3125rem+env(safe-area-inset-bottom))] lg:hidden"
       />
       <div
         ref={barRef}
         role="region"
+        data-testid="listing-action-bar"
         aria-label={t("listing.detail.actionBarLabel")}
         // Keeps the hidden bar out of the a11y tree and un-focusable.
         inert={!shown}
@@ -254,8 +259,17 @@ export function ListingActionBar({
         {/* Flex row mirrors itself in RTL: the price sits on the inline-start
             side, the actions on the inline-end side, in every locale. The price is
             `shrink-0` — a truncated price would misinform the buyer, so the CTA
-            gives up width first. */}
-        <div className="mx-auto flex max-w-6xl items-center gap-3">
+            gives up width first.
+
+            Capped from `sm` up, and the cap is on the ROW rather than on the CTA.
+            Uncapped, `flex-1` stretched the primary into a 566x40 slab with its
+            label floating alone in the middle — a banner, not a toolbar action.
+            Capping the button instead fixed that but applied in the price-less
+            state too, leaving ~300px of empty frosted strip before the CTA at
+            768px: the inverse of the same problem. Capping the row keeps the group
+            compact and IDENTICAL in both price states, and centred, so it reads the
+            same in ps/fa. Below 640px the row needs every pixel and takes them. */}
+        <div className="mx-auto flex max-w-6xl items-center gap-3 sm:max-w-md">
           {/* Only once the hero price is gone: the buyer needs ONE price on
               screen, not the same number twice 120px apart (header note). Until
               then the CTA takes the width instead — the same trade mobile makes,
@@ -280,7 +294,9 @@ export function ListingActionBar({
             onDialogOpenChange={onDialogOpenChange}
           />
           {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
-              heart has to read as a sibling of the Message button beside it. */}
+              heart has to read as a sibling of the Message button beside it — and
+              at the 44px touch floor, like that button, because this bar is the
+              only touch-only surface on the site. */}
           <SaveButton
             listingId={listingId}
             initialSaved={initialSaved}

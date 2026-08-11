@@ -72,7 +72,7 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
 | `home.spec.ts` | Hero, categories, recent listings, price-drop badge, CTA → feed, footer nav |
 | `bazaar.spec.ts` | Active-only feed, category filter, search, **empty state**, sort, chip/search wiring |
 | `bazaar-filters.spec.ts` | Condition filter, price-range filter, condition-chip wiring, reset filters |
-| `listing-detail.spec.ts` | Full detail, gated actions (Message Seller / Report), **404**, reserved viewable by id, cross-sell rails (seller stock + similar, ordering, owner-hidden, ps prefix) |
+| `listing-detail.spec.ts` | Full detail, gated actions (Contact Seller / Report), **404**, reserved viewable by id, cross-sell rails (seller stock + similar, ordering, owner-hidden, ps prefix) |
 | `categories.spec.ts` | Category index, per-category page, navigation |
 | `seller.spec.ts` | Public seller profile, count, that seller's listings only |
 | `auth.spec.ts` | Login form, **invalid creds error**, guest→login redirect, valid login leaves /login |
@@ -91,8 +91,9 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
 | `profile-edit.spec.ts` | Prefilled form, required-field validation, save → /profile |
 | `my-listings.spec.ts` | Dashboard across statuses, tab filters, New Listing; **empty**; guest redirect |
 | `manage-listing.spec.ts` | Detail + analytics, mark-sold (confirm→toast), delete (confirm→redirect), edit link |
-| `message-seller.spec.ts` | Message Seller (compose→thread) and Make-an-Offer flows |
-| `report.spec.ts` | Report dialog: reason required → submit → success |
+| `message-seller.spec.ts` | Contact Seller (compose→thread) and Make-an-Offer flows |
+| `report.spec.ts` | Report dialog: reason required → submit → success; report→block follow-up; a tap during auth bootstrap is held, never bounced to `/login` |
+| `listing-action-bar.spec.ts` | Sticky mobile action bar on `/listings/[id]`: pin/hide over the inline block and the footer, price only once the hero price is gone, shared save state, dialog survival, own/reserved listings, spacer, label overflow (en 360/390/430 + ps/fa 360), tablet toolbar, 44px targets, held taps during auth bootstrap, **guest CTA is a real `/login` link in the server HTML**, ps RTL, `lg` breakpoint, desktop absence |
 | `create-listing.spec.ts` | Full form, **empty-submit validation**, save draft → new listing |
 | `edit-listing.spec.ts` | Prefilled values, save → manage screen |
 | `conversations.spec.ts` | Inbox list, open thread; **empty**; guest redirect |

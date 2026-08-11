@@ -18,6 +18,7 @@ import {
 } from "@/lib/types";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { LocationMap } from "@/components/map/location-map";
@@ -466,11 +467,10 @@ export function ListingForm({
           htmlFor="description"
           error={errors.description?.message}
         >
-          <textarea
+          <Textarea
             id="description"
             rows={4}
             placeholder={t("listing.descriptionPlaceholder")}
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             {...register("description")}
           />
         </Field>

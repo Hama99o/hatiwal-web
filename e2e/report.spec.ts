@@ -10,12 +10,12 @@ test.describe("Report a listing", () => {
     page,
   }) => {
     await page.goto("/en/listings/2");
-    // Wait for the session to settle: the Report trigger's onClick sends guests
-    // to /login, so we must be authed before clicking. "Message Seller" only
-    // renders as a button (not a login link) once authenticated.
-    await expect(
-      page.getByRole("button", { name: "Message Seller" }),
-    ).toBeVisible({ timeout: 15_000 });
+    // Wait for the session to SETTLE before clicking. The seller CTA beside the
+    // trigger is the page's auth tell, but its ELEMENT TYPE is not: a viewer whose
+    // session is still resolving now gets a `<button aria-busy>` too (it used to
+    // be an `<a href="/login">`, which is what made `getByRole("button")` a proxy
+    // for "authed"). The absence of `aria-busy` is the tell that survives.
+    await expectSettledCta(page);
     const trigger = page.getByRole("button", { name: "Report", exact: true });
     await expect(trigger).toBeVisible();
     // Retry click until the dialog opens (rides out client-island hydration).
@@ -50,13 +50,57 @@ test.describe("Report a listing", () => {
   test("a listing report never offers to block", async ({ page }) => {
     const blockCalls = trackBlockCalls(page);
     await page.goto("/en/listings/2");
-    await expect(
-      page.getByRole("button", { name: "Message Seller" }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expectSettledCta(page);
     await submitReport(page);
     // The block follow-up is for people, not items.
     await expect(blockPrompt(page)).toHaveCount(0);
     expect(blockCalls).toHaveLength(0);
+  });
+
+  test("a tap during auth bootstrap is held, not bounced to /login", async ({
+    page,
+  }) => {
+    // Same defect the seller CTA and the save heart were fixed for, on the third
+    // control of the same page: `status` is "loading" until /api/auth/session
+    // answers, and the trigger read that as "not authed" and pushed /login — a
+    // signed-in person who tapped Report during bootstrap was thrown off the very
+    // page they were reporting, and their report was lost. Hold the probe to make
+    // the window observable.
+    let open: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    await page.route("**/api/auth/session", async (route) => {
+      await gate;
+      await route.continue();
+    });
+
+    await page.goto("/en/listings/2");
+    const trigger = page.getByRole("button", { name: "Report", exact: true });
+    await expect(trigger).toBeVisible();
+    // It says it is not ready rather than looking identical to its ready state.
+    await expect(trigger).toHaveAttribute("aria-busy", "true");
+
+    // Every main-frame navigation across the click, by URL — not a bare count:
+    // Next's own hydration does a same-document `replaceState` to the current
+    // URL, which registers as a navigation, so a count of 0 is not the invariant.
+    // "It never left this listing" is, and `toHaveURL` alone cannot express it
+    // (it polls and passes on its first sample, so a bounce a tick later slips
+    // through).
+    const navigated: string[] = [];
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) navigated.push(new URL(frame.url()).pathname);
+    });
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-disabled", "true");
+    // A real window for a bounce to show up in, rather than one raw sample.
+    await page.waitForTimeout(500);
+    expect(navigated.filter((p) => p !== "/en/listings/2")).toEqual([]);
+
+    // Identity lands → the held tap opens the report dialog, on the listing.
+    open();
+    await page.unroute("**/api/auth/session");
+    await expect(page.getByText("Why are you reporting this?")).toBeVisible();
+    expect(navigated.filter((p) => p !== "/en/listings/2")).toEqual([]);
+    await expect(page).toHaveURL(/\/en\/listings\/2$/);
   });
 });
 
@@ -189,6 +233,17 @@ function trackBlockCalls(page: Page): Request[] {
 }
 
 /** Seller 2's public profile, once the session has hydrated (avatar in header). */
+/**
+ * Wait until the listing page's seller CTA is SETTLED — visible and no longer
+ * `aria-busy` — i.e. the session probe has answered. See the note at the first
+ * call site for why the element's type is no longer a usable auth tell.
+ */
+async function expectSettledCta(page: Page) {
+  const cta = page.getByRole("button", { name: "Contact Seller" });
+  await expect(cta).toBeVisible({ timeout: 15_000 });
+  await expect(cta).not.toHaveAttribute("aria-busy", "true");
+}
+
 async function gotoSellerAuthed(page: Page) {
   await page.goto("/en/sellers/2");
   // The header avatar is labelled with the signed-in user's name, so it only

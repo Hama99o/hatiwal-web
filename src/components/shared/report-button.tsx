@@ -6,7 +6,7 @@ import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { useIsOwner } from "@/components/auth/owner-gate";
+import { useIsOwner, useServerViewerId } from "@/components/auth/owner-gate";
 import {
   createReport,
   type ReportableType,
@@ -16,6 +16,8 @@ import { blockUser } from "@/lib/api/chat";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
 import { cn } from "@/lib/utils";
 
 const REASONS: ReportReason[] = [
@@ -81,15 +83,49 @@ export function ReportButton({
   const titleId = useId();
   const noteId = useId();
 
+  // Third control on the listing page that must not GUESS who the viewer is —
+  // same contract, same module, as the message CTA and the save heart
+  // (lib/unsettled.ts). `status` is "loading" on every load until
+  // /api/auth/session answers, and this trigger used to read that as "not
+  // authed" and push /login: a signed-in person who tapped Report during
+  // bootstrap was thrown off the page they wanted to report, and the report they
+  // came to file was lost. The page's SSR hint answers for free where it exists
+  // (`null` = the request carried no session, which the browser cannot
+  // contradict), so only a genuinely unknown viewer waits — and their tap is
+  // held and replayed against the resolved identity.
+  const serverGuest = useServerViewerId() === null;
+  const unsettled = status === "loading" && !serverGuest;
+  const { queued, queue } = useQueuedTap(unsettled, () => {
+    if (status !== "authed") {
+      router.push("/login");
+      return;
+    }
+    setOpen(true);
+  });
+
   if (isOwner) return null;
 
   function onTrigger() {
+    if (unsettled) {
+      queue();
+      return;
+    }
     if (status !== "authed") {
       router.push("/login");
       return;
     }
     setOpen(true);
   }
+
+  // "Not ready" without dimming: the trigger is already `text-muted-foreground`,
+  // so `tone: "text"` (no opacity) keeps it legible; the spinner replacing the
+  // flag is the "I heard you" cue once a tap is held.
+  const state = unsettledProps({
+    unknown: unsettled,
+    busy: queued,
+    queued,
+    tone: "text",
+  });
 
   async function submit() {
     if (!reason) {
@@ -148,12 +184,18 @@ export function ReportButton({
         variant="ghost"
         size="sm"
         onClick={onTrigger}
+        {...state}
         className={cn(
           "h-10 gap-1.5 px-2 font-normal text-muted-foreground hover:text-destructive",
+          state.className,
           className,
         )}
       >
-        <Flag className="size-4 shrink-0" />
+        {queued ? (
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <Flag className="size-4 shrink-0" />
+        )}
         <span>{t("report.title")}</span>
       </Button>
 
@@ -206,14 +248,13 @@ export function ReportButton({
               <label htmlFor={noteId} className="text-sm font-medium">
                 {t("report.noteLabel")}
               </label>
-              <textarea
+              <Textarea
                 id={noteId}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
                 maxLength={500}
                 placeholder={t("report.notePlaceholder")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 

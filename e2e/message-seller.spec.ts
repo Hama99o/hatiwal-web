@@ -6,11 +6,11 @@ import { BUYER_STATE } from "./auth-paths";
 test.describe("Message seller", () => {
   test.use({ storageState: BUYER_STATE });
 
-  test("Message Seller composes and opens the conversation", async ({
+  test("Contact Seller composes and opens the conversation", async ({
     page,
   }) => {
     await page.goto("/en/listings/2");
-    const msgBtn = page.getByRole("button", { name: "Message Seller" });
+    const msgBtn = page.getByRole("button", { name: "Contact Seller" });
     await expect(msgBtn).toBeVisible();
     await expect(async () => {
       await msgBtn.click();

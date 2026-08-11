@@ -92,7 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // user:null and resolves on the first attempt.
     for (let attempt = 0; attempt <= 3; attempt++) {
       try {
-        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        const res = await fetch("/api/auth/session", {
+          cache: "no-store",
+          // Bounded, because the backoff below only covers REJECTIONS: a request
+          // that simply hangs (dead mobile network, captive portal — normal in
+          // this market) left `status` at "loading" forever, and every control
+          // that waits on it stuck in its unsettled state. A timeout turns that
+          // into a rejection the retry loop can handle, and worst case it now
+          // resolves to guest, which a reload recovers from.
+          signal: AbortSignal.timeout(8_000),
+        });
         if (res.status === 503) throw new Error("transient");
         const data = await res.json();
         if (data?.transient) throw new Error("transient");

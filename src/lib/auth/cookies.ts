@@ -27,7 +27,7 @@ const FALLBACK_MAX_AGE = 60 * 60 * 24 * 14; // 14 days
  * Why it exists: public payloads are fetched anonymously, so ownership used to be
  * decided only in the browser, after `/api/auth/session` resolved. The server
  * HTML therefore always painted the buyer version first — a seller opening their
- * own listing saw "Message Seller", the save heart and the meetup tips flash by
+ * own listing saw "Contact Seller", the save heart and the meetup tips flash by
  * before their owner panel replaced them. No client-side trick can fix that (the
  * SSR HTML is painted before hydration), and re-probing Rails from an RSC is not
  * an option either: devise_token_auth rotates the access-token on every request

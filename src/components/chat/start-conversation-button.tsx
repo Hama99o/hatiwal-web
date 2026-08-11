@@ -7,7 +7,7 @@ import { Loader2, MessageCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { useIsOwner } from "@/components/auth/owner-gate";
+import { useIsOwner, useServerViewerId } from "@/components/auth/owner-gate";
 import {
   getConversations,
   sendMessage,
@@ -16,14 +16,17 @@ import {
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog } from "@/components/ui/dialog";
 import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
+import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
 import { cn } from "@/lib/utils";
 
 /**
  * Listing-detail buyer actions: message the seller or make a price offer.
- * Guests → sign in; the listing's own seller → nothing; a viewer whose session
- * has not resolved yet → a held tap, never a guess (see `resolving` below).
+ * Guests → a real sign-in link, in the server HTML; the listing's own seller →
+ * nothing; a viewer whose session genuinely isn't resolved yet → a held tap,
+ * never a guess (see the branch comments below).
  * Both actions resolve
  * (or create) the one conversation for this buyer+listing; the backend returns
  * 422 when a conversation already exists, so we fall back to fetching it — same
@@ -93,26 +96,40 @@ export function StartConversationButton({
     return () => onDialogOpenChange?.(false);
   }, [open, offerOpen, dialogsMounted, onDialogOpenChange]);
 
-  // A tap taken before the session probe had answered, waiting for it. `status`
-  // starts "loading" on EVERY load (see auth-provider.tsx: one
-  // /api/auth/session round trip, and up to ~9s of backoff if it has to retry a
-  // transient failure), which the sticky bar makes maximally visible — its CTA
-  // is pinned from the first paint.
-  const resolving = status === "loading";
-  const [queuedMessage, setQueuedMessage] = useState(false);
+  // ── Which viewer is this, right now? ──────────────────────────────────────
+  // `status` starts "loading" on EVERY load (auth-provider.tsx: one
+  // /api/auth/session round trip, retried with backoff), and the sticky bar makes
+  // that window maximally visible — its CTA is pinned from the first paint. But
+  // the answer usually already exists: a `force-dynamic` page reads the session
+  // cookies during SSR and publishes the result (see `useServerViewerId`), so the
+  // branch below is chosen from the truth rather than from a guess.
+  const serverViewerId = useServerViewerId();
+  // The server said "no session came with this request", which the browser cannot
+  // contradict (there are no cookies for it to find). So a guest gets the real
+  // sign-in link in the server HTML — working before hydration, with JS off, and
+  // when the probe never answers at all.
+  const serverGuest = serverViewerId === null;
+  const guest = status === "guest" || (status === "loading" && serverGuest);
+  // Left over: signed in per the hint but the user object hasn't landed, or no
+  // hint at all. Either way a tap cannot run yet — but it must not be dropped.
+  const unsettled = status === "loading" && !serverGuest;
+  // ...and when there IS a hint saying "signed in", a /login link is the one thing
+  // this control must never be for them (that was the whole defect).
+  const serverAuthed = typeof serverViewerId === "number";
 
-  // Replay it the moment auth resolves, against the RESOLVED identity — so a tap
-  // during bootstrap can neither be swallowed nor send a signed-in buyer to
-  // /login. Same contract as the heart beside it (see save-button.tsx).
-  useEffect(() => {
-    if (!queuedMessage || resolving) return;
-    setQueuedMessage(false);
-    if (status !== "authed") {
-      router.push("/login");
-      return;
-    }
-    setOpen(true);
-  }, [queuedMessage, resolving, status, router]);
+  // Replay a held tap the moment auth resolves, against the RESOLVED identity —
+  // so it can neither be swallowed nor send a signed-in buyer to /login. Same
+  // contract, same module, as the heart beside it (see save-button.tsx).
+  const { queued: queuedMessage, queue: queueMessage } = useQueuedTap(
+    status === "loading",
+    () => {
+      if (status !== "authed") {
+        router.push("/login");
+        return;
+      }
+      setOpen(true);
+    },
+  );
 
   // Negotiable by default: only firm (offer hidden) when explicitly false.
   const isNegotiable = negotiable !== false;
@@ -123,69 +140,125 @@ export function StartConversationButton({
   const wrapperClass = compact
     ? "flex min-w-0 flex-1 items-center gap-2"
     : "space-y-2";
-  // `px-3` in the bar: on a 360–390px phone the row is a bold price plus two
-  // 40px icon buttons, and the leftover was narrower than the label — measured
-  // 98px of box for 125px of "Message Seller", i.e. clipped mid-word.
+  // `px-3` in the bar: on a 360–390px phone the row is a bold price plus an icon
+  // button, and the leftover was narrower than the label — measured 98px of box
+  // for a 125px primary label, i.e. clipped mid-word.
   //
-  // Capped from `sm` up: on a tablet `flex-1` alone stretched this to a 566x40
-  // slab with the label floating alone in the middle of it — that reads as a
-  // banner, not a toolbar action. Above 640px it takes a sane width and `ms-auto`
-  // (logical, so it mirrors in ps/fa) parks it next to the save heart, keeping
-  // price-at-the-start / actions-at-the-end a compact group. Below 640px `flex-1`
-  // is exactly right and stays: there the row has no width to spare.
+  // `h-11` = 44px, the touch-target floor in docs/DESIGN_SYSTEM.md. The bar is
+  // `lg:hidden`, i.e. the ONE surface on this site that is touch-only, so the
+  // default 40px chrome (fine everywhere a mouse can reach) is too small here.
+  //
+  // NOT capped here: the sticky bar caps its whole ROW instead
+  // (listing-action-bar.tsx), because a cap on the button alone applied in the
+  // price-less state too and left a tablet showing ~300px of empty strip before
+  // the CTA — the inverse of the slab it was added to fix.
   const primaryClass = compact
-    ? "min-w-0 flex-1 overflow-hidden px-3 sm:ms-auto sm:max-w-xs md:max-w-sm"
+    ? "h-11 min-w-0 flex-1 overflow-hidden px-3"
     : "w-full";
   // Same label in both entry points. In the bar it drops the decorative icon
   // (the +24px of icon and gap is the difference between fitting and not) and
   // ellipsizes rather than being hard-clipped by the button's `overflow-hidden`
   // — the price beside it must never shrink, so the label is what gives. `min-w-0`
   // is what lets a flex child shrink below its content width at all.
+  //
+  // `listing.detail.contactSeller` — the SAME key mobile's CTA uses
+  // (ListingDetail.tsx), per parity rule 2: one concept, one key, so the app and
+  // the web say the same words for the same action. (Web used
+  // `listing.detail.messageSeller`, which on mobile labels the composer sheet —
+  // the analogue of the dialog this button opens, whose heading is still
+  // `chat.startConversation.title` = the same "Message Seller" copy.)
   const primaryLabel = (
     <>
       {!compact && <MessageCircle className="size-4" />}
       <span className={compact ? "min-w-0 truncate" : undefined}>
-        {t("listing.detail.messageSeller")}
+        {t("listing.detail.contactSeller")}
       </span>
     </>
   );
 
   if (isOwner) return null; // your own listing — <OwnerListingBar> takes over
 
-  // Auth not resolved yet. Rendering the guest branch here is worse than a dead
-  // control: a signed-in buyer taps the pinned "Message Seller" and is navigated
-  // AWAY from the listing to a login page they do not need — measured, the CTA
-  // was an <a href="/login"> for the whole probe. So the CTA stays a real button,
-  // says it is not ready (dimmed + `aria-busy`, and `aria-disabled` once a tap is
-  // held), and the effect above runs the tap when the answer lands. The offer
-  // affordance is deliberately absent, exactly as in the guest branch below, so
-  // resolving to a guest changes nothing about the layout.
-  if (resolving) {
+  // ── Guest ─────────────────────────────────────────────────────────────────
+  // A real link, and it is in the SERVER HTML now that the page's viewer hint can
+  // say "no session" (see `serverGuest`): the CTA works on the first tap, before
+  // React has attached, which for search traffic — the bulk of listing-detail
+  // visits — is the only state many buyers ever see. It also carries no
+  // `aria-busy`: the server answered, so nothing about this control is pending.
+  //
+  // Same wrapper as the other two branches so the element in this slot never
+  // changes type: React reconciles by position + type, and a `div`→`a` swap
+  // unmounts the node, dropping a keyboard user's focus to <body> so the next Tab
+  // restarts at the top of the document.
+  if (guest) {
     return (
       <div className={wrapperClass}>
-        <Button
-          type="button"
-          onClick={() => setQueuedMessage(true)}
-          aria-busy
-          aria-disabled={queuedMessage || undefined}
-          className={cn(
-            primaryClass,
-            "opacity-70",
-            // "I heard you" for a tap that cannot run yet.
-            queuedMessage && "animate-pulse motion-reduce:animate-none",
-          )}
-        >
-          {primaryLabel}
+        <Button asChild className={primaryClass}>
+          <Link href="/login">{primaryLabel}</Link>
         </Button>
       </div>
     );
   }
 
-  if (status !== "authed") {
+  // ── Not resolved yet ──────────────────────────────────────────────────────
+  // Only reachable when the hint says there IS a session (waiting for the user
+  // object) or when no page published a hint at all. The tap is HELD and replayed
+  // against the resolved identity, never guessed — rendering the guest branch here
+  // navigated a signed-in buyer off the listing to a login page they don't need.
+  //
+  // The cue is a `secondary` variant, not `opacity-70`: dimming the primary takes
+  // its label with it, which measured ~3.1:1 against a 4.5:1 AA floor in light
+  // mode (see lib/unsettled.ts). A spinner joins it only once a tap is held, so
+  // the untapped row never pays the +24px of icon and gap that decides whether
+  // the label fits on a 360px phone. The offer affordance is absent here exactly
+  // as in the guest branch, so neither resolution changes the layout.
+  if (unsettled) {
+    const state = unsettledProps({
+      unknown: true,
+      busy: queuedMessage,
+      queued: queuedMessage,
+      tone: "text",
+    });
+    const label = (
+      <>
+        {queuedMessage && <Loader2 className="animate-spin" />}
+        {primaryLabel}
+      </>
+    );
     return (
-      <Button asChild className={primaryClass}>
-        <Link href="/login">{primaryLabel}</Link>
-      </Button>
+      <div className={wrapperClass}>
+        {serverAuthed ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={queueMessage}
+            {...state}
+            className={cn(primaryClass, state.className)}
+          >
+            {label}
+          </Button>
+        ) : (
+          // No hint (an ISR page). Keep the guest markup and intercept it: a
+          // hydrated tap is queued and replayed exactly as above, and the very
+          // same element still degrades to a working sign-in link before
+          // hydration, with JS off, and if the probe never answers.
+          <Button
+            asChild
+            variant="secondary"
+            {...state}
+            className={cn(primaryClass, state.className)}
+          >
+            <Link
+              href="/login"
+              onClick={(e) => {
+                e.preventDefault();
+                queueMessage();
+              }}
+            >
+              {label}
+            </Link>
+          </Button>
+        )}
+      </div>
     );
   }
 
@@ -245,7 +318,7 @@ export function StartConversationButton({
       </Button>
       {/* Make an offer — hidden when the listing is firm-priced (N071), and not
           carried by the sticky bar at all: measured on a 360px phone, a second
-          40px control there left 98px of box for a 125px "Message Seller", so the
+          40px control there left 98px of box for a 125px primary label, so the
           primary CTA — the thing the bar exists for — was clipped mid-word, and
           two same-size outline icon buttons (tag beside heart) read as one
           ambiguous pair. The bar keeps price + Message + Save (its spec); the
@@ -273,12 +346,11 @@ export function StartConversationButton({
         <h2 id={msgTitleId} className="text-lg font-semibold">
           {t("chat.startConversation.title")}
         </h2>
-        <textarea
+        <Textarea
           value={msg}
           onChange={(e) => setMsg(e.target.value)}
           rows={3}
           placeholder={t("chat.startConversation.placeholder")}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>

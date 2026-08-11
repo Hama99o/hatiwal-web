@@ -9,6 +9,7 @@ import { StarRatingInput } from "./star-rating-input";
 import { UserAvatar } from "./user-avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import type { Review, Transaction } from "@/lib/types";
 
 /**
@@ -116,14 +117,13 @@ export function ReviewPromptDialog({
             <label htmlFor={commentId} className="text-sm font-medium">
               {t("commentLabel")}
             </label>
-            <textarea
+            <Textarea
               id={commentId}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
               maxLength={500}
               placeholder={t("commentPlaceholder")}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 

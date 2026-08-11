@@ -12,9 +12,9 @@ test.describe("Listing detail", () => {
     await expect(page.getByText(/12% price drop/i)).toBeVisible();
   });
 
-  test("gated actions are present (Message Seller / Report)", async ({ page }) => {
+  test("gated actions are present (Contact Seller / Report)", async ({ page }) => {
     await page.goto("/en/listings/1");
-    await expect(page.getByText(/Message Seller/i)).toBeVisible();
+    await expect(page.getByText(/Contact Seller/i)).toBeVisible();
     await expect(page.getByText(/Report/i).first()).toBeVisible();
   });
 
@@ -80,7 +80,7 @@ test.describe("Listing detail", () => {
     });
     const noJs = await ctx.newPage();
     await noJs.goto("/en/listings/1");
-    await expect(noJs.getByText(/Message Seller/i)).toBeVisible();
+    await expect(noJs.getByText(/Contact Seller/i)).toBeVisible();
     await expect(noJs.getByText(/Meetup safety tips/i)).toBeVisible();
     await expect(noJs.getByTestId("owner-listing-bar")).toHaveCount(0);
     await ctx.close();
@@ -466,7 +466,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     const noJs = await ctx.newPage();
     await noJs.goto("/en/listings/1");
     await expect(noJs.getByTestId("owner-listing-bar")).toBeVisible();
-    await expect(noJs.getByText(/Message Seller/i)).toHaveCount(0);
+    await expect(noJs.getByText(/Contact Seller/i)).toHaveCount(0);
     await expect(noJs.getByText(/Meetup safety tips/i)).toHaveCount(0);
     await expect(noJs.getByText(/Not interested/i)).toHaveCount(0);
     await expect(noJs.getByText(/Seller is away until/i)).toHaveCount(0);
@@ -511,7 +511,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(
       page.getByRole("button", { name: /Meetup safety tips/i }),
     ).toHaveCount(0);
-    await expect(page.getByText(/Message Seller/i)).toHaveCount(0);
+    await expect(page.getByText(/Contact Seller/i)).toHaveCount(0);
     await expect(page.getByText(/Not interested/i)).toHaveCount(0);
     // "Seller is away until…" is buyer information (a guest on this same
     // listing DOES get it): the away seller must not be told about themselves
@@ -664,7 +664,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // Listing 2 belongs to seller 2, so the same signed-in user is a buyer here.
     await page.goto("/en/listings/2");
     await expect(page.getByTestId("owner-listing-bar")).toHaveCount(0);
-    await expect(page.getByText(/Message Seller/i).first()).toBeVisible();
+    await expect(page.getByText(/Contact Seller/i).first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Meetup safety tips/i }),
     ).toBeVisible();
@@ -741,7 +741,7 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
   test("an active listing is untouched (no recovery card)", async ({ page }) => {
     await page.goto("/en/listings/1");
     await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
-    await expect(page.getByText(/Message Seller/i).first()).toBeVisible();
+    await expect(page.getByText(/Contact Seller/i).first()).toBeVisible();
   });
 
   test("the bottom rail is labelled 'Similar Listings', not 'Recent'", async ({
