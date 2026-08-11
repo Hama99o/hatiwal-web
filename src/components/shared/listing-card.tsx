@@ -85,6 +85,12 @@ export function ListingCard({
   ) : null;
   const cover = listing.thumbnailUrl ?? listing.images[0] ?? null;
   const showStatusBadge = showStatus && listing.status !== "active";
+  // Owner/seller contexts (`showStatus`, the same switch the lifecycle badges
+  // ride on) NAME a missing photo instead of leaving a silent grey glyph: in the
+  // seller's own shop a photoless listing is an action prompt — no photo is why
+  // nobody is messaging them — and mobile's SellerListingCard labels it the same
+  // way. On the public feed the quiet placeholder stays quiet.
+  const noPhotoLabel = showStatus ? t("noPhoto") : undefined;
 
   const saveHeart = showSave ? (
     <SaveButton
@@ -136,6 +142,7 @@ export function ListingCard({
             <RemoteImage
               src={cover}
               alt={listing.title}
+              label={noPhotoLabel}
               fill
               sizes="112px"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -209,6 +216,7 @@ export function ListingCard({
           <RemoteImage
             src={cover}
             alt={listing.title}
+            label={noPhotoLabel}
             fill
             sizes={CARD_IMAGE_SIZES[tracks]}
             className="object-cover transition-transform duration-300 group-hover:scale-105"

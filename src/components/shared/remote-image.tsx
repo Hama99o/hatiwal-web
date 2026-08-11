@@ -11,6 +11,14 @@ interface RemoteImageProps {
   sizes?: string;
   className?: string;
   priority?: boolean;
+  /**
+   * Caption under the no-photo glyph (pass `t('listing.noPhoto')`). Only for the
+   * contexts where the missing photo is something to ACT on — the seller's own
+   * card, where "no photo" is why nobody is messaging them. On the public feed
+   * leave it off: there the quiet glyph is right and a caption on every photoless
+   * card would be noise. Ignored when there is a `src`.
+   */
+  label?: string;
 }
 
 /**
@@ -27,6 +35,7 @@ export function RemoteImage({
   sizes,
   className,
   priority,
+  label,
 }: RemoteImageProps) {
   if (!src) {
     // Intentional "item has no photo" tile — a calm solid fill with a neutral
@@ -35,18 +44,31 @@ export function RemoteImage({
     // absolutely positioned to fill its relative parent, so the placeholder must
     // do the same (absolute inset-0) — otherwise it collapses to the icon's
     // height inside the aspect-ratio box. Non-fill gets an explicit size.
+    //
+    // With a `label` the tile stops being decorative and states the gap in words
+    // (seller contexts — see the prop). The caption gets the full
+    // `text-muted-foreground` token rather than the glyph's /40 wash, because it
+    // is text a seller has to read; the glyph stays quiet so the two don't
+    // compete. The children are invisible to a screen reader either way
+    // (`role="img"` prunes its subtree), so the accessible name is still the
+    // listing title and the caption adds no duplicate announcement.
     return (
       <div
         role="img"
         aria-label={alt}
         style={fill ? undefined : { width: width ?? 64, height: height ?? 64 }}
         className={cn(
-          "flex items-center justify-center bg-muted text-muted-foreground/40",
+          "flex flex-col items-center justify-center gap-1 bg-muted text-muted-foreground/40",
           fill && "absolute inset-0",
           className,
         )}
       >
         <Package className="size-7" strokeWidth={1.5} />
+        {label && (
+          <span className="max-w-full truncate px-1 text-[10px] font-medium leading-tight text-muted-foreground">
+            {label}
+          </span>
+        )}
       </div>
     );
   }

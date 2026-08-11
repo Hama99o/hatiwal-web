@@ -265,6 +265,31 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Who's buying this item?")).toBeVisible();
   });
 
+  // A photoless listing in the seller's OWN shop is an action prompt — no photo
+  // is why nobody is messaging them — so the placeholder says so in words instead
+  // of showing a silent grey glyph (mobile's SellerListingCard does the same).
+  // It rides the `showStatus` owner switch, so the public feed keeps the quiet
+  // tile: asserted both ways below.
+  test("a photoless card names the gap, and only in the seller's own shop", async ({
+    page,
+  }) => {
+    await openMyShop(page);
+    const draft = card(page, 8);
+    await expect(draft.getByText("No photo")).toBeVisible();
+    // The tile's accessible name is still the listing title (`role="img"` prunes
+    // its own subtree), so the caption adds no duplicate screen-reader noise.
+    await expect(
+      draft.getByRole("img", { name: "Antique Carpet" }),
+    ).toBeVisible();
+    // Same fixture data on the public feed — every mock listing is photoless —
+    // and there the caption must NOT appear.
+    await page.goto("/en/bazaar");
+    await expect(page.getByText("iPhone 13 Pro").first()).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByText("No photo")).toHaveCount(0);
+  });
+
   test("the kebab is labelled with its listing so the six aren't identical", async ({
     page,
   }) => {
