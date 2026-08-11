@@ -130,6 +130,7 @@
     "confirmReserve": "خوندي شوی ښودل؟",
     "confirmReserveDescription": "دا توکی د پیرودونکي لپاره خوندي ښیي.",
     "filter": {
+      "label": "د حالت له مخې چاڼول",
       "all": "ټول",
       "draft": "مسوده",
       "active": "فعال",

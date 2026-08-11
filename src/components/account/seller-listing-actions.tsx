@@ -29,7 +29,9 @@ import { cn } from "@/lib/utils";
  * likely next step) plus a kebab with the remaining transitions, Edit and
  * Delete. The transitions, labels, confirm copy, prompts and the mutation all
  * come from the shared brain in ./listing-actions — identical behaviour to the
- * owner detail screen, and mirrors mobile's SellerListingCard.
+ * owner detail screen, and the same two-control shape mobile's
+ * SellerListingCard uses (primary + overflow; see the kebab below for the one
+ * deliberate difference).
  *
  * `onSaleRecorded` is handed up to the LIST, not handled here: a sold listing
  * drops out of the Active tab the moment the grid refetches, which unmounts
@@ -87,13 +89,20 @@ export function SellerListingActions({
       )}
 
       {/* Secondary transitions + Edit + Delete. `dir` keeps Radix's alignment
-          mirrored for ps/fa. Two shapes, mirroring mobile's SellerListingCard:
-          beside a primary it is a compact kebab whose aria-label carries the
-          listing title (so a screen reader isn't read six identical "More
-          options" buttons down the grid); on a terminal `sold` card, where it is
-          the ONLY control, it takes the whole row and says "More options" — an
-          unlabeled glyph alone in a bordered row reads as a stray artifact and
-          hides that Edit and Delete are still reachable. */}
+          mirrored for ps/fa. Two shapes:
+
+          — beside a primary, a bare icon kebab whose aria-label carries the
+            listing title (so a screen reader isn't read six identical "More
+            options" buttons down the grid). This is a DELIBERATE deviation from
+            mobile, which keeps the word in both shapes (SellerListingCard's
+            compact More is a 92pt labelled button): a labelled More cannot sit
+            beside "Mark as Sold" in a 2-column card at 375px, and the kebab is
+            the native web idiom for an overflow menu — do not "restore parity"
+            by putting the label back here.
+          — on a terminal `sold` card, where it is the ONLY control, it takes the
+            whole row and says "More options" (mobile does the same): an
+            unlabeled glyph alone in a bordered row reads as a stray artifact and
+            hides that Edit and Delete are still reachable. */}
       <DropdownMenu dir={isRtl(locale) ? "rtl" : "ltr"}>
         <DropdownMenuTrigger asChild disabled={busy}>
           <Button

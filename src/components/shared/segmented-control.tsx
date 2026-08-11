@@ -24,6 +24,13 @@ export type SegmentedControlOption<T extends string> = {
  * `iconOnly` renders compact 44px icon squares (browse grid/list view toggle):
  * the label is visually hidden (`sr-only`) but still drives the accessible
  * name, plus a `title` tooltip — never pass an icon-only option without a label.
+ *
+ * `wrap` is for the wide sets — My Shop's six status filters, each carrying a
+ * count — which cannot fit one `inline-flex` row on a 375px phone. It lets the
+ * options flow onto as many rows as they need and softens the container's
+ * radius, because a pill-shaped bag around three rows of pills reads as a
+ * mistake. Everything else (tokens, the 40px floor, tablist a11y) is identical,
+ * so a wide tab row is still this one control and not a hand-rolled pill row.
  */
 export function SegmentedControl<T extends string>({
   options,
@@ -32,6 +39,7 @@ export function SegmentedControl<T extends string>({
   ariaLabel,
   fullWidth = false,
   iconOnly = false,
+  wrap = false,
   disabled = false,
   className,
 }: {
@@ -42,6 +50,8 @@ export function SegmentedControl<T extends string>({
   fullWidth?: boolean;
   /** Hide labels visually (kept for screen readers) and size buttons 44x44. */
   iconOnly?: boolean;
+  /** Let a wide set of options flow onto multiple rows instead of one row. */
+  wrap?: boolean;
   disabled?: boolean;
   className?: string;
 }) {
@@ -50,7 +60,8 @@ export function SegmentedControl<T extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex rounded-full border bg-muted p-1",
+        "border bg-muted p-1",
+        wrap ? "flex flex-wrap gap-1 rounded-2xl" : "inline-flex rounded-full",
         fullWidth && "w-full",
         className,
       )}

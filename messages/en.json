@@ -130,6 +130,7 @@
     "confirmReserve": "Mark as reserved?",
     "confirmReserveDescription": "This marks the item as reserved for a buyer.",
     "filter": {
+      "label": "Filter by status",
       "all": "All",
       "draft": "Draft",
       "active": "Active",

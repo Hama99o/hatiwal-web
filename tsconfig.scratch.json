@@ -1,0 +1,37 @@
+{
+  // TypeScript config for a run that builds into a SCRATCH dist dir — the E2E
+  // suite (`.next-e2e`, pinned by playwright.config.ts) and any
+  // `NEXT_DIST_DIR=.next-something npx next build` an agent does by hand.
+  // next.config.ts routes those runs here; nothing else reads this file.
+  //
+  // Why it exists: `next dev`/`next build` rewrites the tsconfig it reads to add
+  // an `<distDir>/types/**/*.ts` include entry. With Next reading tsconfig.json
+  // that entry was re-appended on every run and kept being swept into unrelated
+  // commits. Declaring `.next-e2e/types` here means Next finds nothing to add
+  // and tsconfig.json — the file everyone edits and commits — stays clean.
+  //
+  // A dist dir other than `.next-e2e` will still get its own entry appended
+  // BELOW: harmless (no build type-checks against this file, and tsc silently
+  // ignores an include glob that matches nothing) — delete the strays when you
+  // notice them.
+  //
+  // `include` must be spelled out in full: TypeScript REPLACES the extended
+  // config's `include` rather than merging it, and Next rewrites the file when
+  // the two disagree. Keep this list in sync with tsconfig.json's.
+  "extends": "./tsconfig.json",
+  "include": [
+    "**/*.mts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-e2e/types/**/*.ts",
+    ".next-soldnext/types/**/*.ts",
+    ".next-verify-dev/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-b3verify/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

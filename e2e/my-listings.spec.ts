@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
 import en from "../messages/en.json";
 import ps from "../messages/ps.json";
+import fa from "../messages/fa.json";
 
 /** One seller card: the wrapper around the link to that listing's owner page. */
 function card(page: Page, id: number, locale = "en") {
@@ -41,21 +42,90 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.locator('a[href*="/my-listings/"]')).toHaveCount(7);
   });
 
+  // The status filter is the shared SegmentedControl, so its options are `tab`s
+  // inside a `tablist` (a11y: six same-shaped pills need a selected state and a
+  // group name), not bare buttons.
   test("status tabs filter the grid in place", async ({ page }) => {
     await openMyShop(page);
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
-    const draftTab = page.getByRole("button", { name: /^Draft/ });
+    const draftTab = page.getByRole("tab", { name: /^Draft/ });
     await expect(async () => {
       await draftTab.click();
       await expect(page.getByText("Antique Carpet")).toBeVisible();
       await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
     }).toPass({ timeout: 20_000 });
-    // The Expired tab (active-but-past-30-days) is its own bucket, NOT Active.
+    await expect(draftTab).toHaveAttribute("aria-selected", "true");
+    // The Expired tab (active-but-past-its-run) is its own bucket, NOT Active.
     await expect(async () => {
-      await page.getByRole("button", { name: /^Expired/ }).click();
+      await page.getByRole("tab", { name: /^Expired/ }).click();
       await expect(page.getByText("Old Bicycle")).toBeVisible();
       await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
     }).toPass({ timeout: 20_000 });
+  });
+
+  // Every filter option is a real tap target: this row is the only control on the
+  // page that was ever below the 40px floor the cards' own actions hold.
+  test("the status filter is a tablist whose options clear 40px", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await openMyShop(page);
+    const tablist = page.getByRole("tablist", { name: "Filter by status" });
+    await expect(tablist).toBeVisible();
+    const tabs = tablist.getByRole("tab");
+    await expect(tabs).toHaveCount(6);
+    for (const option of await tabs.all()) {
+      expect((await option.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+    }
+    // Six options with counts cannot fit one row on a phone — they wrap inside
+    // the control instead of overflowing the page.
+    const [listBox, viewport] = [
+      (await tablist.boundingBox())!,
+      page.viewportSize()!,
+    ];
+    expect(listBox.width).toBeLessThanOrEqual(viewport.width);
+    expect(listBox.height).toBeGreaterThan(40); // more than one row
+  });
+
+  // The seller's own count of what has lapsed has to agree with the badge on the
+  // card. Rails leaves `expired: false` until something touches the record, so
+  // the tab buckets derive it from the shared `listingExpiryState()` rule (past
+  // `expiresAt` = expired) rather than the raw flag — otherwise a lapsed listing
+  // sat under Active, showing a red "Expired" pill and offering Renew, while the
+  // Expired tab read (0).
+  test("a lapsed listing counts as Expired even when the server flag is stale", async ({
+    page,
+  }) => {
+    await page.route(
+      (url) => url.pathname === "/api/me/my/listings",
+      async (route) => {
+        const response = await route.fetch();
+        const body = await response.json();
+        // Rails' own drift shape: still `active`, run finished a week ago, flag
+        // never updated. (The proxy passes Rails' snake_case straight through.)
+        const stale = body.listings.find(
+          (l: { title: string }) => l.title === "iPhone 13 Pro",
+        );
+        stale.expires_at = new Date(Date.now() - 7 * 86_400_000).toISOString();
+        stale.expired = false;
+        await route.fulfill({ response, json: body });
+      },
+    );
+    await openMyShop(page);
+    // The card says expired…
+    await expect(
+      card(page, 1).getByText("Expired", { exact: true }),
+    ).toBeVisible();
+    // …so its primary is Renew, and the tabs agree: Expired holds two, Active
+    // has dropped it.
+    await expect(card(page, 1).getByRole("button", { name: "Renew" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Expired (2)" })).toBeVisible();
+    await expect(async () => {
+      await page.getByRole("tab", { name: /^Active/ }).click();
+      await expect(page.getByText("iPhone 13 Pro")).toHaveCount(0);
+    }).toPass({ timeout: 20_000 });
+    await page.getByRole("tab", { name: /^Expired/ }).click();
+    await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
   });
 
   // TASK-WEB-C2-ACTIONS — inline lifecycle quick-actions on each card, so a
@@ -309,7 +379,7 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(card(page, 8)).toBeVisible();
     await expect(skeletons).toHaveCount(0);
     // …and the per-status tab counts are still rendered off the same query.
-    await expect(page.getByRole("button", { name: /^All \(7\)/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^All \(7\)/ })).toBeVisible();
   });
 
   test("a failed inline action toasts the error and leaves the card unchanged", async ({
@@ -389,59 +459,83 @@ test.describe("My Shop (seller dashboard)", () => {
     expect(menuBox.x).toBeGreaterThanOrEqual(0);
   });
 
-  // The narrowest place this row ever lands: a 2-column grid on a 375px phone.
-  // Both controls must keep the house 40px tap target AND stay inside the card
-  // (a wrapping label may grow the row taller, never wider).
+  // Phone widths, where this row is at its tightest: ListingGrid's `page` tracks
+  // are `grid-cols-2` from the base breakpoint up, so a 2-column card is what
+  // every phone gets. Both controls must keep the house 40px tap target, stay
+  // inside the card (a wrapping label may grow the row taller, never wider) and
+  // never clip their text.
   //
-  // Run in `ps` as well as `en`: the primary was made louder (font-semibold /
-  // sm:text-sm), and Pashto's labels are the longest of the three locales, so ps
-  // is where a too-loud label would first clip or blow the row out.
-  for (const [locale, m] of [
-    ["en", en],
-    ["ps", ps],
-  ] as const) {
-    test(`the action row keeps its 40px targets inside a 375px 2-column card (${locale})`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width: 375, height: 800 });
-      await openMyShop(page, locale);
-      // Listing 1 is the active one, so its footer is the full pair: the widest
-      // primary label of the set next to the compact kebab.
-      const activeCard = card(page, 1, locale);
-      const cardBox = (await activeCard.boundingBox())!;
-      const named = (template: string, title: string) =>
-        activeCard.getByRole("button", {
-          name: template.replace("{title}", title),
-          exact: true,
-        });
-      for (const control of [
-        named(m.listing.detail.actionFor.replace("{action}", m.listing.markSold), "iPhone 13 Pro"),
-        named(m.listing.detail.moreOptionsFor, "iPhone 13 Pro"),
-      ]) {
-        const box = (await control.boundingBox())!;
-        expect(box.height).toBeGreaterThanOrEqual(40);
-        expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1);
-        expect(box.x + box.width).toBeLessThanOrEqual(
-          cardBox.x + cardBox.width + 1,
-        );
-        // The label WRAPS (whitespace-normal), it is never clipped: a control
-        // whose text overflowed its own box would still satisfy the box checks
-        // above while reading "Mark as So…". `scrollWidth <= clientWidth` is the
-        // assertion that actually catches that.
-        const { scrollWidth, clientWidth, scrollHeight, clientHeight } =
-          await control.evaluate((el) => ({
-            scrollWidth: el.scrollWidth,
-            clientWidth: el.clientWidth,
-            scrollHeight: el.scrollHeight,
-            clientHeight: el.clientHeight,
-          }));
-        expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
-        expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
-        // …and wrapping must stay proportionate: min-h-10 absorbs two lines, so
-        // anything past ~4 lines means the label no longer fits the layout.
-        expect(box.height).toBeLessThan(80);
-      }
-    });
+  // The two widths we pin — not the only narrow ones (320px also behaves,
+  // measured) but the two that matter:
+  //   375 — iPhone portrait, and the width where `en` only just fits: the
+  //         primary's content box is 76px (92px padding box less `px-2`) and
+  //         "Mark as Sold" needs ~75px of it, on ONE line.
+  //   360 — the most common Android portrait width, and the first one where the
+  //         en label really does wrap (measured: 2 lines at 360, 1 at 375). That
+  //         is what exercises the `h-auto min-h-10 whitespace-normal` treatment —
+  //         the row keeps its 40px and stays inside the card instead of clipping.
+  //
+  // All three locales run, at both widths, but they do NOT pull equal weight.
+  // English is the binding one: "Mark as Sold" is 75px against ps's 58px and fa's
+  // 64px. Mutation-verified by forcing a real clip (`overflow-hidden
+  // whitespace-nowrap text-sm` on the primary): en fails at BOTH widths, fa fails
+  // at 360 only, and ps — the roomiest of the three — never notices. So ps is here
+  // for RTL, not typography: the box checks below are what it contributes,
+  // confirming a mirrored row still starts and ends inside the card. Do not drop
+  // the `en` cases as "covered by RTL"; they are the only ones that guard the
+  // primary's type scale.
+  for (const width of [375, 360]) {
+    for (const [locale, m] of [
+      ["en", en],
+      ["ps", ps],
+      ["fa", fa],
+    ] as const) {
+      test(`the action row keeps its 40px targets inside a ${width}px 2-column card (${locale})`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await openMyShop(page, locale);
+        // Listing 1 is the active one, so its footer is the full pair: the widest
+        // primary label of the set next to the compact kebab.
+        const activeCard = card(page, 1, locale);
+        const cardBox = (await activeCard.boundingBox())!;
+        const named = (template: string, title: string) =>
+          activeCard.getByRole("button", {
+            name: template.replace("{title}", title),
+            exact: true,
+          });
+        for (const control of [
+          named(m.listing.detail.actionFor.replace("{action}", m.listing.markSold), "iPhone 13 Pro"),
+          named(m.listing.detail.moreOptionsFor, "iPhone 13 Pro"),
+        ]) {
+          const box = (await control.boundingBox())!;
+          expect(box.height).toBeGreaterThanOrEqual(40);
+          expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+          expect(box.x + box.width).toBeLessThanOrEqual(
+            cardBox.x + cardBox.width + 1,
+          );
+          // Not clipped: a control whose text overflowed its own box would still
+          // satisfy the box checks above while reading "Mark as So…".
+          // `scrollWidth <= clientWidth` is the assertion that catches that, and
+          // `scrollHeight <= clientHeight` catches a wrapped line being cut off
+          // by a fixed height (which is why the primary is `h-auto min-h-10`).
+          const { scrollWidth, clientWidth, scrollHeight, clientHeight } =
+            await control.evaluate((el) => ({
+              scrollWidth: el.scrollWidth,
+              clientWidth: el.clientWidth,
+              scrollHeight: el.scrollHeight,
+              clientHeight: el.clientHeight,
+            }));
+          expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+          expect(scrollHeight).toBeLessThanOrEqual(clientHeight + 1);
+          // …and wrapping stays proportionate. At these widths the label is 12px
+          // with `leading-tight` (15px a line, measured), so min-h-10 swallows one
+          // AND two lines at exactly 40px; three would reach ~53px. A row past
+          // 56px means the label has taken four lines and no longer fits.
+          expect(box.height).toBeLessThanOrEqual(56);
+        }
+      });
+    }
   }
 
   // The placeholder has to mirror the real card, action row included: without a
@@ -511,6 +605,14 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(
       page.getByText(/Check your connection and try again/),
     ).toBeVisible();
+    // A transport error must never be phrased as an empty shop: the count line is
+    // gated on real data (`isPending` is false in the error state, and the list
+    // falls back to []), and the filter row — nothing to filter, no counts — is
+    // hidden so the error owns the viewport.
+    await expect(page.getByText("0 listings")).toHaveCount(0);
+    await expect(
+      page.getByRole("tablist", { name: "Filter by status" }),
+    ).toHaveCount(0);
     await page.getByRole("button", { name: "Retry" }).click();
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible({
       timeout: 30_000,

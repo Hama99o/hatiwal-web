@@ -66,6 +66,13 @@ export default defineConfig({
       env: {
         // Per-port build dir: two concurrent suites must not share .next output.
         NEXT_DIST_DIR: WEB_PORT === 3210 ? ".next-e2e" : `.next-e2e-${WEB_PORT}`,
+        // …and its own tsconfig, because Next writes an include entry for its
+        // distDir into whatever tsconfig it reads. tsconfig.scratch.json already
+        // declares `.next-e2e/types/**/*.ts`, so the default port writes nothing
+        // and tsconfig.json — the one everybody edits and commits — is never
+        // touched by a test run. (A non-default E2E_WEB_PORT still gets its
+        // `.next-e2e-<port>` entry appended, but to the scratch file.)
+        NEXT_TSCONFIG_PATH: "tsconfig.scratch.json",
         API_URL: API_BASE,
         NEXT_PUBLIC_API_URL: API_BASE,
         NEXT_PUBLIC_RAILS_ORIGIN: `http://localhost:${MOCK_API_PORT}`,

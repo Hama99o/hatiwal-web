@@ -46,11 +46,15 @@ for the browser and adds SSR/SEO. Plan: `../docs/WEB_FRONTEND_PLAN.md`. Page che
   it's the npm optional-deps bug. Fix: `npm i @tailwindcss/oxide-linux-x64-gnu@<oxide-version> --no-save`
   (this machine), or `rm -rf node_modules package-lock.json && npm install` for a clean lockfile.
 
-- **Scratch build dirs churn `tsconfig.json`:** building into your own `--distdir` (`.next-myfeature`)
-  makes Next append a `".next-myfeature/types/**/*.ts"` entry to `tsconfig.json` `include`. Those dirs are
-  gitignored (`/.next-*`) but the tsconfig entry is not — it lands in the diff and points at a directory
-  the next agent won't have. If you build into a custom distdir, **delete the dir and revert the
-  `tsconfig.json` include entry before you finish.** Prefer reusing `.next-e2e`.
+- **Scratch build dirs and `tsconfig.json`:** Next rewrites the tsconfig it reads to add a
+  `"<distDir>/types/**/*.ts"` entry, so building into your own dist dir used to dirty `tsconfig.json`
+  on every run (gitignored dir, committed entry → diff noise pointing at a directory nobody else has).
+  Now handled mechanically: `next.config.ts` sends any run that sets **`NEXT_DIST_DIR`** to the committed
+  **`tsconfig.scratch.json`** instead, and E2E pins it explicitly (`playwright.config.ts`). So set the dist
+  dir via `NEXT_DIST_DIR=.next-myfeature npx next build` — **not** `--distdir`, which bypasses the diversion
+  and writes to `tsconfig.json`. Check `git diff -- tsconfig.json` is empty before you commit either way,
+  and still delete your scratch dir when you finish. Entries other sessions leave behind in
+  `tsconfig.scratch.json` are harmless (nothing type-checks against it; `tsc` ignores a missing glob).
 
 ## Verify your work
 - `npx tsc --noEmit` (types) · `npm run build` (lint + RSC + prerender) · `npm run dev` then load `/en`,
