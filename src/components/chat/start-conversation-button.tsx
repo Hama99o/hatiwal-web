@@ -21,7 +21,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog } from "@/components/ui/dialog";
 import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
 import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
-import { cn } from "@/lib/utils";
 
 /**
  * Listing-detail buyer actions: message the seller or make a price offer.

@@ -282,35 +282,51 @@ export default async function ListingDetailPage({
 
             {/* Actions — primary CTA (message seller) first, Save below it.
                 `id="listing-actions"` is the sentinel <ListingActionBar> watches:
-                while this block is on screen the sticky mobile bar stays hidden. */}
-            <div id="listing-actions" className="space-y-5">
-              {isActive ? (
-                <div className="space-y-2">
-                  <StartConversationButton
-                    listingId={listing.id}
-                    sellerId={listing.seller?.id}
-                    price={listing.price}
-                    currency={listing.currency}
-                    negotiable={listing.negotiable}
-                  />
-                  <SellerPhoneReveal
-                    phone={listing.seller?.phone}
-                    sellerId={listing.seller?.id}
-                  />
-                </div>
-              ) : (
-                /* Sold / reserved is not a dead end: keep the status sentence but
-                   offer the two recovery paths (same category + price band, and the
-                   seller's other stock). The SaveButton below stays visible — a
-                   reservation can still fall through.
+                while this block is on screen the sticky mobile bar stays hidden.
 
-                   Buyer recovery, so it's owner-gated: telling the seller of a sold
-                   item to "see similar in Vehicles" and "shop more from Ahmad
-                   Karimi" would be sending them shopping from themselves. The owner
-                   gets <OwnerListingBar> above instead, where Manage/Edit live.
-                   HideForOwner keeps the gate client-side so UnavailableActions
-                   itself stays a Server Component on this SEO landing page. */
-                <HideForOwner ownerId={listing.seller?.id}>
+                BUYER-ONLY, gated as a whole. Every control inside self-hides for
+                the seller of the item (`StartConversationButton`,
+                `SellerPhoneReveal`, `UnavailableActions`, `SaveButton`), so for
+                an owner the block used to render as an empty wrapper around an
+                empty inner div — two real boxes, i.e. the column's `space-y-5`
+                paying 20px on each side of nothing: ~40px of dead space between
+                the seller card and the description. Gating the wrapper itself
+                removes the boxes with the content (the same treatment the
+                safety-tips row below gets from `empty:hidden`). Dropping the
+                sentinel with them is safe: it is only read for intersection, and
+                <ListingActionBar> self-suppresses for the owner anyway.
+
+                HideForOwner keeps the gate client-side, so the children — most
+                importantly <UnavailableActions> — stay Server Components on this
+                SEO landing page, and the SSR viewer hint means the owner never
+                gets a frame of buyer UI. */}
+            <HideForOwner ownerId={listing.seller?.id}>
+              <div id="listing-actions" className="space-y-5">
+                {isActive ? (
+                  <div className="space-y-2">
+                    <StartConversationButton
+                      listingId={listing.id}
+                      sellerId={listing.seller?.id}
+                      price={listing.price}
+                      currency={listing.currency}
+                      negotiable={listing.negotiable}
+                    />
+                    <SellerPhoneReveal
+                      phone={listing.seller?.phone}
+                      sellerId={listing.seller?.id}
+                    />
+                  </div>
+                ) : (
+                  /* Sold / reserved is not a dead end: keep the status sentence
+                     but offer the two recovery paths (same category + price band,
+                     and the seller's other stock). The SaveButton below stays
+                     visible — a reservation can still fall through.
+
+                     Buyer recovery, which is one of the reasons the block is
+                     owner-gated above: telling the seller of a sold item to "see
+                     similar in Vehicles" and "shop more from Ahmad Karimi" would
+                     be sending them shopping from themselves. The owner gets
+                     <OwnerListingBar> instead, where Manage/Edit live. */
                   <UnavailableActions
                     status={listing.status}
                     category={listing.category}
@@ -319,15 +335,15 @@ export default async function ListingDetailPage({
                     sellerName={listing.seller?.name}
                     locale={locale}
                   />
-                </HideForOwner>
-              )}
-              <SaveButton
-                listingId={listing.id}
-                initialSaved={listing.isSaved}
-                ownerId={listing.seller?.id}
-                variant="detail"
-              />
-            </div>
+                )}
+                <SaveButton
+                  listingId={listing.id}
+                  initialSaved={listing.isSaved}
+                  ownerId={listing.seller?.id}
+                  variant="detail"
+                />
+              </div>
+            </HideForOwner>
             {/* No payment/delivery — deals happen in person, so surface meet-safely
                 guidance right by the contact actions (mirrors mobile). "Not
                 interested" hides the listing from the buyer's feed. Both are buyer

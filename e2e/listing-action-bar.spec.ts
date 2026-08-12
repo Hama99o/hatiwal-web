@@ -707,6 +707,41 @@ test.describe("Listing action bar (mobile)", () => {
     expect(await glyphColor()).not.toBe(unknownColor);
   });
 
+  test("a held tap says so by swapping the glyph — with animations off", async ({
+    page,
+  }) => {
+    // The cue for "I have your tap, I can't run it yet" was `animate-pulse`, which
+    // is two failures in one: it troughs at `opacity: .5` (the muted heart bottoms
+    // out at 1.90:1, worse than the static `opacity-70` it replaced for missing
+    // WCAG's 3:1 non-text floor), and `motion-reduce:animate-none` left a
+    // `prefers-reduced-motion` viewer with NO feedback at all — tap, nothing, tap
+    // again, silently swallowed by the `if (busy) return` guard. So the cue is the
+    // GLYPH: `Heart` → `Loader2`, the same 16/20px box, no contrast cost, and
+    // visible with animation disabled. Emulated here precisely because that is the
+    // viewer who had nothing.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const release = await hold(page, "**/api/me/my/saved_listings**");
+    await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    const heart = page
+      .getByRole("region", { name: BAR.en })
+      .getByRole("button", { name: /save/i });
+    await expect(heart).toHaveAttribute("aria-busy", "true");
+    // The MARK itself, not a class or a colour — the assertion has to fail if the
+    // cue ever goes back to being an opacity or an animation.
+    const glyph = () => heart.locator("svg").evaluate((el) => el.innerHTML);
+    const idle = await glyph();
+
+    await heart.click();
+    await expect(heart).toHaveAttribute("aria-disabled", "true");
+    await expect.poll(glyph).not.toBe(idle);
+    expect(await heart.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+
+    // Truth lands → the queued tap runs and the heart comes back.
+    await release();
+    await expect(heart).toHaveAttribute("aria-pressed", "false");
+    expect(await glyph()).toBe(idle);
+  });
+
   test("mirrors in RTL — price on the right in Pashto", async ({ page }) => {
     await page.goto("/ps/listings/2");
     const bar = page.getByRole("region", { name: BAR.ps });
@@ -747,9 +782,18 @@ test.describe("Listing action bar (guest)", () => {
     // column announced itself pending (5 × aria-busy: this CTA, both hearts and the
     // 3 cross-sell hearts) even though the server had already answered "guest" one
     // line up in the same tree. It now picks the real branch during SSR.
+    //
+    // The href carries `?next=` (src/components/auth/login-href.ts), and that is
+    // asserted here rather than left to the login page's own suite: a bare
+    // `/login` costs a guest the listing they were reading — `login-form.tsx`
+    // (`safeNextPath`) lands them on /profile — so this ONE funnel, the pinned CTA
+    // the whole bar exists for, would end with the buyer signed in and the listing
+    // gone. Without the query string on purpose: this href is RENDERED, and the
+    // live query is unreadable during SSR, so including it would make the server
+    // HTML and the first client render disagree on the site's primary action.
     const res = await page.request.get("/en/listings/2");
     const html = await res.text();
-    expect(html).toContain('href="/en/login"');
+    expect(html).toContain('href="/en/login?next=%2Flistings%2F2"');
     expect(html).not.toContain('aria-busy="true"');
 
     await page.goto("/en/listings/2");
@@ -757,7 +801,7 @@ test.describe("Listing action bar (guest)", () => {
     await expect(bar).toHaveClass(/opacity-100/);
     await expect(
       bar.getByRole("link", { name: CTA.en }),
-    ).toHaveAttribute("href", "/en/login");
+    ).toHaveAttribute("href", "/en/login?next=%2Flistings%2F2");
     // The heart is settled too: a guest's saved state needs no probe, so it must
     // not sit in the indeterminate "we don't know yet" state either.
     const heart = bar.getByRole("button", { name: /save/i });
@@ -781,7 +825,10 @@ test.describe("Listing action bar (guest)", () => {
       .getByRole("link", { name: CTA.en });
     await expect(cta).toBeVisible();
     await cta.click();
-    await expect(page).toHaveURL(/\/en\/login/);
+    // ...and it still brings them BACK: signing in from here returns the buyer to
+    // this listing, not to /profile (see the spec above for why `next` is on the
+    // href rather than added on click).
+    await expect(page).toHaveURL(/\/en\/login\?next=%2Flistings%2F2$/);
   });
 });
 

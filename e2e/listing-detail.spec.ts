@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
 import en from "../messages/en.json";
+import ps from "../messages/ps.json";
+import fa from "../messages/fa.json";
 
 /**
  * The buyer CTA's label, READ FROM THE CATALOG rather than retyped (the pattern
@@ -12,6 +14,9 @@ import en from "../messages/en.json";
  * the `/Contact Seller/i` regexes it replaces did.
  */
 const CTA_LABEL = en.listing.detail.contactSeller;
+
+/** Every locale catalog, for the cross-locale copy invariants below. */
+const CATALOGS = { en, ps, fa } as const;
 
 /** WCAG 2.1 relative luminance of an `rgb()`/`rgba()` computed style value. */
 function luminance(color: string): number {
@@ -629,6 +634,14 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // night. The `count` badge now fills with `--primary-strong`; asserting the
     // ratio (rather than the class) is what stops the next palette tweak from
     // silently re-breaking it.
+    //
+    // A count pill has TWO contrast jobs and they pull opposite ways, so both are
+    // asserted here. The first fix darkened `--primary-strong` in dark to win the
+    // digits (~6.6:1) and left the FILL at 3.0:1 against `--background` / 2.6:1
+    // against `--card` — under the 3:1 non-text floor, and darker than the dark
+    // theme's own `--primary`, so "3 buyers are waiting on you" receded into the
+    // page at night while passing an AA-only spec. Legible but no longer loud is
+    // a regression of the pill's entire purpose, so the salience gets a floor too.
     for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await page.goto("/en/listings/1");
@@ -636,9 +649,25 @@ test.describe("Listing detail — viewed by its own seller", () => {
         .getByTestId("owner-listing-bar")
         .getByTestId("count-badge");
       await expect(pill).toBeVisible();
-      const { bg, fg } = await pill.evaluate((el) => {
+      const { bg, fg, surface } = await pill.evaluate((el) => {
         const s = getComputedStyle(el);
-        return { bg: s.backgroundColor, fg: s.color };
+        // The surface the pill actually sits ON: the nearest ancestor with an
+        // OPAQUE background. Anything translucent (this panel's own
+        // `bg-primary/10`) is skipped rather than composited, so the number the
+        // assertion reports is a real painted colour. Here that resolves to the
+        // Chats button's `bg-secondary` — the strictest of the surfaces this
+        // pill appears on (the page background is a full stop lighter/darker).
+        let node: HTMLElement | null = el.parentElement;
+        let found = "";
+        while (node) {
+          const c = getComputedStyle(node).backgroundColor;
+          if (c && !/rgba\([^)]*,\s*(0|0?\.\d+)\)/.test(c)) {
+            found = c;
+            break;
+          }
+          node = node.parentElement;
+        }
+        return { bg: s.backgroundColor, fg: s.color, surface: found };
       });
       // Opaque by construction: an alpha fill would make the real ratio depend
       // on whatever the pill happens to be sitting on (it moves — header,
@@ -652,6 +681,16 @@ test.describe("Listing detail — viewed by its own seller", () => {
         ratio,
         `${colorScheme}: count pill ${fg} on ${bg} is ${ratio.toFixed(2)}:1`,
       ).toBeGreaterThanOrEqual(4.5);
+      // Salience: the fill against the surface it is painted on. 3:1 is the WCAG
+      // non-text floor (1.4.11), the right one for "can you see the pill at all".
+      expect(surface, `${colorScheme}: no opaque surface under the pill`).not.toBe(
+        "",
+      );
+      const fillRatio = contrastRatio(bg, surface);
+      expect(
+        fillRatio,
+        `${colorScheme}: count fill ${bg} on ${surface} is ${fillRatio.toFixed(2)}:1 — the pill has stopped standing out`,
+      ).toBeGreaterThanOrEqual(3);
     }
     await page.emulateMedia({ colorScheme: "light" });
   });
@@ -768,6 +807,97 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
   });
 
+  test("no empty buyer-action block collecting the column's gaps", async ({
+    page,
+  }) => {
+    // The same dead-space defect one block over. Every control inside
+    // `#listing-actions` self-hides for the owner, but the block still rendered
+    // its wrapper AND an inner `space-y-2` div — two zero-height boxes, so the
+    // column's `space-y-5` paid 20px on each side of nothing: ~40px of blank
+    // page between the seller card and the description.
+    await page.setViewportSize({ width: 390, height: 760 });
+    await page.goto("/en/listings/1");
+    await expect(page.getByTestId("owner-listing-bar")).toBeVisible();
+    // The block is now gated as a whole, so nothing of it survives. (Buyers keep
+    // it — see "a non-owner still sees the buyer actions", which finds the CTA
+    // inside it on listing 2.)
+    await expect(page.locator("#listing-actions")).toHaveCount(0);
+
+    // …and the general form of the rule, so re-adding an always-rendered wrapper
+    // (under any id) fails here too: a child of the detail column either has
+    // height or is `display:none`. Only a `display:none` box forfeits the
+    // sibling margin, which is exactly why the safety-tips row uses
+    // `empty:hidden` rather than rendering empty.
+    const strays = await page
+      .getByTestId("owner-listing-bar")
+      .evaluate((el) =>
+        // The panel is a direct child of the column (Card `asChild` keeps it a
+        // <section>), so this is that column.
+        [...el.parentElement!.children]
+          .filter(
+            (c) =>
+              getComputedStyle(c).display !== "none" &&
+              c.getBoundingClientRect().height === 0,
+          )
+          .map((c) => `<${c.tagName.toLowerCase()} class="${c.className}">`),
+      );
+    expect(
+      strays,
+      "zero-height boxes still collect the column's 20px gaps",
+    ).toEqual([]);
+  });
+
+  test("Edit is demoted out of the action stack, not spending a band", async ({
+    page,
+  }) => {
+    // On a phone every member of the action stack is a full-width 40px band, and
+    // an expiring active listing has the most members (next transition + Renew +
+    // Manage + Chats). Edit used to make it five — ~240px of chrome between the
+    // price block and the location card — for a second route into the manage area
+    // that the Manage screen already offers an Edit of its own. Chats is the one
+    // that keeps its band: it carries the number that pulls a seller back in.
+    await page.setViewportSize({ width: 375, height: 900 });
+    await page.goto("/en/listings/11"); // active, 3 days left → the widest stack
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+    const panelWidth = (await panel.boundingBox())!.width;
+
+    const edit = panel.getByRole("link", { name: "Edit" });
+    const editBox = (await edit.boundingBox())!;
+    // Demoted, not removed, and still a house-standard tap target.
+    await expect(edit).toHaveAttribute("href", "/en/listings/11/edit");
+    expect(
+      editBox.height,
+      "the demoted Edit is under the 40px tap floor",
+    ).toBeGreaterThanOrEqual(40);
+    expect(
+      editBox.width,
+      "Edit must not spend a full-width band",
+    ).toBeLessThan(panelWidth * 0.6);
+
+    // The bands that remain are the four that earn one.
+    for (const [name, loc] of [
+      ["Renew", panel.getByRole("button", { name: "Renew" })],
+      ["Manage", panel.getByRole("link", { name: /Manage Listing/i })],
+      ["Chats", panel.getByRole("link", { name: /View Chats/i })],
+    ] as const) {
+      const box = (await loc.boundingBox())!;
+      expect(box.width, `${name} should be a full-width band`).toBeGreaterThan(
+        panelWidth * 0.8,
+      );
+    }
+    const bands = await panel.evaluate(
+      (el, w) =>
+        [...el.querySelectorAll("a, button")].filter(
+          (n) => n.getBoundingClientRect().width > w * 0.8,
+        ).length,
+      panelWidth,
+    );
+    expect(bands, "the stack has grown past four bands again").toBeLessThanOrEqual(
+      4,
+    );
+  });
+
   test("the 'More from this Seller' rail is hidden from that seller", async ({
     page,
   }) => {
@@ -824,6 +954,37 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(page.getByText(/More from Ahmad Karimi/i)).toHaveCount(0);
   });
 
+  // The loudest control in this panel is a lifecycle ACTION, and in both RTL
+  // locales it used to be labelled with a STATE. fa `listing.markReserved` was
+  // "رزرو شده" — byte-identical to `listing.status.reserved` — and `markSold`
+  // was "فروخته شده" = `status.sold`; both are passive participles, so the owner
+  // of an ACTIVE listing got a filled primary button reading "Reserved" beside
+  // an "Active" pill, with no verb anywhere in the panel. ps had the same defect
+  // against a different word: "خوندي ښودل" borrows the save/favourite root, so a
+  // Pashto seller's primary read "mark as saved". Asserting the SHAPE of the copy
+  // — an action is never its own status — is what stops the next translation pass
+  // from reintroducing it in a locale nobody reviewing this repo reads.
+  test("no locale labels a lifecycle action with its own status word", () => {
+    for (const [locale, m] of Object.entries(CATALOGS)) {
+      expect(
+        m.listing.markReserved,
+        `${locale}: the reserve ACTION must not be the reserved STATUS`,
+      ).not.toBe(m.listing.status.reserved);
+      expect(
+        m.listing.markSold,
+        `${locale}: the sold ACTION must not be the sold STATUS`,
+      ).not.toBe(m.listing.status.sold);
+    }
+    // ps also has to keep away from the save/favourite vocabulary, which is a
+    // different concept entirely (`sidebar.saved` is the buyer's wishlist). The
+    // first assertion anchors the root to the save word, so rewording that key
+    // can't quietly turn the other two into no-ops.
+    const SAVE_ROOT = "خوندي";
+    expect(ps.common.save).toContain(SAVE_ROOT);
+    expect(ps.listing.markReserved).not.toContain(SAVE_ROOT);
+    expect(ps.listing.status.reserved).not.toContain(SAVE_ROOT);
+  });
+
   test("owner panel is localized and keeps the locale prefix (ps)", async ({
     page,
   }) => {
@@ -848,6 +1009,38 @@ test.describe("Listing detail — viewed by its own seller", () => {
       panel.getByRole("button", { name: "ریزرو کول" }),
     ).toBeVisible();
     // RTL: the panel's own content flows right-to-left with the document.
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  });
+
+  test("owner panel is localized in fa too, action-labelled not state-labelled", async ({
+    page,
+  }) => {
+    // fa is the locale the copy defect above actually shipped in, and the one
+    // whose labels are widest (see the clipping loop), so it gets its own render
+    // rather than riding on ps. Read from the catalog, not retyped: this asserts
+    // that the PANEL shows what the catalog says, while the invariant above
+    // asserts the catalog says something usable as a button.
+    await page.goto("/fa/listings/1");
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+    await expect(
+      panel.getByText(fa.listing.detail.ownListingNotice),
+    ).toBeVisible();
+    await expect(
+      panel.getByRole("link", { name: fa.listing.ownerDetail.actions }),
+    ).toHaveAttribute("href", "/fa/my-listings/1");
+    await expect(
+      panel.getByRole("link", { name: fa.common.edit }),
+    ).toHaveAttribute("href", "/fa/listings/1/edit");
+    // The primary reads as a MOVE ("ثبت رزرو" = record a reservation), not as the
+    // "رزرو شده" state it used to be a byte-for-byte copy of — which the "Active"
+    // pill one line up would have contradicted.
+    await expect(
+      panel.getByRole("button", { name: fa.listing.markReserved }),
+    ).toBeVisible();
+    await expect(
+      panel.getByText(fa.listing.status.reserved, { exact: true }),
+    ).toHaveCount(0);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   });
 

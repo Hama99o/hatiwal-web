@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import type { ListingStatus, Transaction } from "@/lib/types";
 
 /**
- * Every button in the panel, so the row can never clip a translation.
+ * Every button in the action row, so the row can never clip a translation.
  *
  * `h-auto min-h-10 whitespace-normal` is the house treatment for exactly this
  * problem (see `account/seller-listing-actions.tsx`): the 40px tap target is a
@@ -36,15 +36,34 @@ import type { ListingStatus, Transaction } from "@/lib/types";
  * the verb disappeared.
  *
  * `min-w-40` (not `min-w-0`) keeps the wrap-or-stack decision coarse: the row
- * drops to two full-width buttons rather than splitting into a pair of two-line
- * stubs. That means the panel is four stacked buttons at <=375px and two rows of
- * two from ~392px up, which is DELIBERATE — pairing at every width would put the
- * primary in a half-width box on the narrowest phones, and the primary is the
- * one control here that has to be able to out-shout the rest. Lowering the floor
- * to pair at 375px too is the wrong trade; if the four-stack ever needs
- * shortening, demote Chats to a link row (it is navigation, not an action).
+ * drops to full-width buttons rather than splitting into a pair of two-line
+ * stubs. That means the row stacks 1-up at <=375px and pairs 2-up from ~392px,
+ * which is DELIBERATE — pairing at every width would put the primary in a
+ * half-width box on the narrowest phones, and the primary is the one control
+ * here that has to be able to out-shout the rest.
+ *
+ * WHAT EARNS A SLOT (the stack is the scarce resource — on a 375px phone every
+ * member is a full-width 40px band): the listing's next lifecycle transition,
+ * Renew while the clock is running out, ONE way into the manage area, and Chats.
+ * Chats stays because it carries a number — "3 buyers are waiting on you" is the
+ * one thing on this page that pulls a seller back into the app. Edit does not:
+ * it is a second route into the same manage area (which carries its own Edit),
+ * so it sits demoted in the heading row instead of spending a band. That was the
+ * whole fix for the 5-band stack an expiring listing used to produce.
  */
 const ROW_BUTTON = "h-auto min-h-10 min-w-40 flex-1 whitespace-normal py-2";
+
+/**
+ * The heading row's demoted Edit.
+ *
+ * `h-10` keeps the house 40px tap floor even though it is no longer a band, and
+ * `variant="ghost"` (not `link`) is a contrast decision: `link` paints
+ * `text-primary`, which over this panel's own `bg-primary/10` measures 4.3:1 —
+ * under AA for 14px text. Ghost inherits `foreground`, and its hover is re-tinted
+ * to the panel's palette so a grey `bg-accent` pill doesn't land on the blue.
+ */
+const HEADING_LINK =
+  "ms-auto h-10 gap-1.5 px-2 hover:bg-primary/20 dark:hover:bg-primary/25";
 
 /**
  * OwnerListingBar — what the SELLER sees on the public detail page of their own
@@ -191,11 +210,23 @@ export function OwnerListingBar({
             expiresAt={expiresAt}
             expired={expired}
           />
+          {/* Edit rides in the heading row rather than the action stack below:
+            it is navigation into the same manage area the Manage button opens,
+            and that screen carries its own Edit — so two of the stack's slots
+            used to lead to one destination. Still one tap, still 40px, just no
+            longer a full-width band between the price block and the location
+            card. See ROW_BUTTON + HEADING_LINK. */}
+          <Button asChild variant="ghost" className={HEADING_LINK}>
+            <Link href={`/listings/${listingId}/edit`}>
+              <Pencil className="size-4" />
+              <span>{t("common.edit")}</span>
+            </Link>
+          </Button>
         </div>
 
-        {/* Lifecycle row: the next transition, Renew when the clock is running
-          out, and the way to everything else. See ROW_BUTTON for why nothing in
-          here truncates. */}
+        {/* The action stack: the next transition, Renew when the clock is running
+          out, the way to everything else, and the waiting buyers. See ROW_BUTTON
+          for what earns a slot and why nothing in here truncates. */}
         <div className="flex flex-wrap gap-2">
           {primary && PrimaryIcon && (
             <Button
@@ -220,7 +251,7 @@ export function OwnerListingBar({
           )}
           {/* Filled only for a SOLD listing, which has no transition left — then
             managing it is the panel's primary action. Otherwise it steps down to
-            outline so the lifecycle button above owns the emphasis. */}
+            outline so the lifecycle button ahead of it owns the emphasis. */}
           <Button
             asChild
             variant={primary ? "outline" : "default"}
@@ -229,15 +260,6 @@ export function OwnerListingBar({
             <Link href={`/my-listings/${listingId}`}>
               <SlidersHorizontal className="size-4" />
               <span>{t("listing.ownerDetail.actions")}</span>
-            </Link>
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className={ROW_BUTTON}>
-            <Link href={`/listings/${listingId}/edit`}>
-              <Pencil className="size-4" />
-              <span>{t("common.edit")}</span>
             </Link>
           </Button>
           {/* Same `?listing=` filter the manage screen links to (Chats reads it and
