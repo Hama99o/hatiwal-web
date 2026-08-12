@@ -50,6 +50,8 @@ persona** through the real UI and saves the resulting session (httpOnly token
 cookies) to a `storageState` file; authed specs reuse it via
 `test.use({ storageState })` (paths in `auth-paths.ts`) so they start signed in.
 
+Shared helper: `route-gate.ts` — `hold(page, pattern)` freezes a route until you release it (or never), which is how specs make the normally-~1s "we don't know who you are yet" window long enough to assert on. Import it rather than re-rolling the gate.
+
 Two personas back populated-vs-empty coverage — the mock returns data keyed on
 the persona's `access-token` (attached by the `/api/me` proxy):
 
@@ -93,13 +95,13 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
 | `manage-listing.spec.ts` | Detail + analytics, mark-sold (confirm→toast), delete (confirm→redirect), edit link |
 | `message-seller.spec.ts` | Contact Seller (compose→thread) and Make-an-Offer flows |
 | `report.spec.ts` | Report dialog: reason required → submit → success; report→block follow-up; a tap during auth bootstrap is held, never bounced to `/login` |
-| `listing-action-bar.spec.ts` | Sticky mobile action bar on `/listings/[id]`: pin/hide over the inline block and the footer, price only once the hero price is gone, shared save state, dialog survival, own/reserved listings, spacer, label overflow (en 360/390/430 + ps/fa 360), tablet toolbar, 44px targets, held taps during auth bootstrap, **guest CTA is a real `/login` link in the server HTML**, ps RTL, `lg` breakpoint, desktop absence |
+| `listing-action-bar.spec.ts` | Sticky mobile action bar on `/listings/[id]`: pin/hide over the inline block and the footer, price only once the hero price is gone, shared save state, dialog survival, own/reserved listings, spacer, label overflow (en 360/390/430 + ps/fa 360), tablet toolbar, 44px targets, held taps during auth bootstrap, **guest CTA is a real `/login` link in the server HTML**, **the CTA keeps its primary fill while it waits**, **a slow session probe is waited out and never re-issued** (it rotates the token), **an unsettled heart signals by colour, never a dim**, ps RTL, `lg` breakpoint, desktop absence |
 | `create-listing.spec.ts` | Full form, **empty-submit validation**, save draft → new listing |
 | `edit-listing.spec.ts` | Prefilled values, save → manage screen |
 | `conversations.spec.ts` | Inbox list, open thread; **empty**; guest redirect |
 | `conversation-thread.spec.ts` | History, send message, closed-conversation banner, **load error** |
 | `chat-receipts.spec.ts` | Bubble meta row: time on every bubble kind, sent/seen ticks (none on incoming), day separators (Today/Yesterday/date, hidden while searching), tick flip on refetch, ps/fa RTL |
-| `saved.spec.ts` | Favorited listings; **empty**; guest redirect |
+| `saved.spec.ts` | Favorited listings; **empty**; guest redirect; **an ISR-page heart stops waiting on a probe that never answers** |
 | `blocked-users.spec.ts` | List + unblock toast; **empty** |
 
 ## Conventions

@@ -93,8 +93,23 @@ export const LIFECYCLE: Record<
 
 /**
  * Which transitions a listing offers. `primary` is the single most likely next
- * step; `secondary` are the other legal moves. Mirrors mobile's
- * SellerListingCard.
+ * step; `secondary` are the other legal moves.
+ *
+ * The mapping mirrors mobile's shared hook one-for-one —
+ * `hatiwal-mobile/src/hooks/useListingLifecycle.ts` (`primaryAction` +
+ * `moreActions`), the hook behind both SellerListingCard and MyListingDetail:
+ *
+ *   draft     → Publish            (rest: edit/delete)
+ *   active    → Mark as Reserved   (rest: sold, unpublish, renew)
+ *   lapsed    → Renew              (rest: sold, reserve, unpublish)
+ *   reserved  → Mark as Sold       (rest: activate)
+ *   sold      → nothing (terminal)
+ *
+ * `active → reserve` is the one worth spelling out: web used to promote `sold`
+ * there. Real-world order is reserve-while-you-arrange-the-meetup, THEN sold, and
+ * `sold` is terminal in this brain (no duplicate/relist on web yet), so making it
+ * the loudest control on a seller's own public listing page put the button with no
+ * path back at the top of the column. It stays one click away in `secondary`.
  *
  * Takes the LISTING (status + its expiry fields), not a pre-computed `expired`
  * flag, so that every surface derives "has it lapsed?" from the one shared rule
@@ -102,7 +117,7 @@ export const LIFECYCLE: Record<
  * pass the raw server flag, which drifts: Rails leaves `expired: false` until
  * something touches the record, while the badge escalates to "Expired" as soon
  * as `expiresAt` is past. That put a red "Expired" pill inches from a primary
- * button offering "Mark as Sold" instead of "Renew". One input, one verdict.
+ * button offering anything but "Renew". One input, one verdict.
  */
 export function actionsFor(listing: {
   status: string;
@@ -120,7 +135,7 @@ export function actionsFor(listing: {
   if (status === "active" && expired)
     return { primary: "renew", secondary: ["sold", "reserve", "unpublish"] };
   if (status === "active")
-    return { primary: "sold", secondary: ["reserve", "unpublish", "renew"] };
+    return { primary: "reserve", secondary: ["sold", "unpublish", "renew"] };
   return { secondary: [] }; // sold — terminal
 }
 

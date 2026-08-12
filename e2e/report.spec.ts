@@ -1,5 +1,14 @@
 import { test, expect, type Page, type Request } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import en from "../messages/en.json";
+
+/**
+ * The listing page's seller CTA, READ FROM THE CATALOG rather than retyped, the
+ * same way `listing-action-bar.spec.ts` does it: a copy change to
+ * `listing.detail.contactSeller` must not leave this suite waiting for a string
+ * the UI no longer shows.
+ */
+const CTA_LABEL = en.listing.detail.contactSeller;
 
 // Report is hidden on your own content, so we report listing 2 (owned by
 // seller 2, not the buyer persona who is seller 1).
@@ -232,18 +241,18 @@ function trackBlockCalls(page: Page): Request[] {
   return calls;
 }
 
-/** Seller 2's public profile, once the session has hydrated (avatar in header). */
 /**
  * Wait until the listing page's seller CTA is SETTLED — visible and no longer
  * `aria-busy` — i.e. the session probe has answered. See the note at the first
  * call site for why the element's type is no longer a usable auth tell.
  */
 async function expectSettledCta(page: Page) {
-  const cta = page.getByRole("button", { name: "Contact Seller" });
+  const cta = page.getByRole("button", { name: CTA_LABEL });
   await expect(cta).toBeVisible({ timeout: 15_000 });
   await expect(cta).not.toHaveAttribute("aria-busy", "true");
 }
 
+/** Seller 2's public profile, once the session has hydrated (avatar in header). */
 async function gotoSellerAuthed(page: Page) {
   await page.goto("/en/sellers/2");
   // The header avatar is labelled with the signed-in user's name, so it only

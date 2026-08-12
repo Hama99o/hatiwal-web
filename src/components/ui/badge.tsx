@@ -9,12 +9,19 @@ const badgeVariants = cva(
       variant: {
         default: "border-transparent bg-primary/10 text-primary",
         /**
-         * Solid primary — for COUNTS (unread messages, waiting chats). The tinted
-         * `default` only reaches ~3.6:1 against its own fill, which fails AA for
-         * the 12px digits these pills carry; a count a seller is meant to act on
-         * has to be legible in both themes, so it gets the full-contrast fill.
+         * Solid — for COUNTS (unread messages, buyers waiting on a listing).
+         * Render it through `<CountBadge>` (components/shared/count-badge.tsx)
+         * rather than directly, so every count in the app also agrees on digits.
+         *
+         * `--primary-strong`, not `--primary`: the tinted `default` reaches only
+         * ~3.6:1 against its own fill, and a solid `--primary` is 4.9:1 in light
+         * but *3.6:1 in dark* — both under the 4.5:1 AA floor that the 12px
+         * digits in these pills sit at. `--primary-strong` is ~6.7:1 in either
+         * theme (asserted in e2e/listing-detail.spec.ts, so a palette tweak
+         * can't silently re-break the one number the owner panel exists to make
+         * a seller act on).
          */
-        count: "border-transparent bg-primary text-primary-foreground",
+        count: "border-transparent bg-primary-strong text-primary-foreground",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",

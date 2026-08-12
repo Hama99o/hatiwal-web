@@ -1,5 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import en from "../messages/en.json";
+
+/**
+ * The CTA that opens the composer, READ FROM THE CATALOG rather than retyped
+ * (`listing.detail.contactSeller` — see listing-action-bar.spec.ts), so a copy
+ * change cannot leave this suite clicking a name the button no longer has.
+ */
+const CTA_LABEL = en.listing.detail.contactSeller;
 
 // Listing 2 (Samsung) is owned by seller 2 — the buyer persona (seller 1) can
 // message/offer on it. (StartConversationButton hides itself on your own listing.)
@@ -10,7 +18,7 @@ test.describe("Message seller", () => {
     page,
   }) => {
     await page.goto("/en/listings/2");
-    const msgBtn = page.getByRole("button", { name: "Contact Seller" });
+    const msgBtn = page.getByRole("button", { name: CTA_LABEL });
     await expect(msgBtn).toBeVisible();
     await expect(async () => {
       await msgBtn.click();

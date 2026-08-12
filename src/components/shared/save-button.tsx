@@ -106,13 +106,25 @@ export function SaveButton({
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const { status, user } = useAuth();
+  const { status, user, probeTimedOut } = useAuth();
   const isOwner = useIsOwner(ownerId);
   // What the SERVER already knew about this viewer (see `useServerViewerId`).
   // `null` = the request carried no session at all, which the browser cannot
   // contradict, so a guest's heart is knowable from the first paint instead of
   // announcing itself pending for a probe whose answer is already in this tree.
-  const serverGuest = useServerViewerId() === null;
+  const serverViewerId = useServerViewerId();
+  const serverGuest = serverViewerId === null;
+  // ...and `undefined` = no page published a hint at all. This heart is the ONE
+  // control of the unsettled trio that renders on such pages — every ListingCard
+  // on `/`, `/bazaar` and `/categories/*` is ISR, which cannot read cookies — so
+  // it is also the only one that can wait on a probe with no fallback answer in
+  // the tree. If that probe never answers (a hung socket never rejects, so the
+  // retry loop in auth-provider.tsx never runs), the heart would announce itself
+  // pending forever. After the probe's budget it stops waiting and reads
+  // `initialSaved` like a guest; a tap then goes to /login, which recovers. Only
+  // ever with NO hint: a viewer the server said is signed in must never be
+  // demoted this way, and one the server said is a guest was never waiting.
+  const probeGaveUp = serverViewerId === undefined && probeTimedOut;
   const queryClient = useQueryClient();
 
   const authed = status === "authed";
@@ -196,7 +208,8 @@ export function SaveButton({
   // frame of every search visit (measured: 5 `aria-busy="true"` in the guest SSR
   // HTML of a listing page — this heart, the bar's, and the 3 cross-sell hearts).
   const resolving =
-    (status === "loading" && !serverGuest) || (authed && savedQuery.isPending);
+    (status === "loading" && !serverGuest && !probeGaveUp) ||
+    (authed && savedQuery.isPending);
   // The list request failed. We still don't know — and silently claiming "not
   // saved" forever, with no toast and no retry, is the same lie with no way out.
   const failed = authed && savedQuery.isError;
@@ -253,11 +266,12 @@ export function SaveButton({
     toggle.mutate(saved);
   }
 
-  // Unsettled chrome: the control must never render byte-identical to its ready
-  // state while it cannot honour a tap immediately. `aria-disabled`, not
-  // `disabled` — the button stays focusable, and the tap is queued, not dropped.
-  // One shared implementation with the message CTA beside it; `tone: "icon"` is
-  // what licenses the dim (WCAG's 3:1 non-text rule) — see lib/unsettled.ts.
+  // Unsettled chrome, from the one shared implementation the message CTA beside
+  // it uses (lib/unsettled.ts). `aria-disabled`, not `disabled` — the button
+  // stays focusable and the tap is queued, not dropped. `tone: "icon"` selects
+  // the pulse for a HELD tap; the visible "I don't know yet" cue is the muted
+  // glyph below, NOT a dim: `opacity-70` on either heart colour measured 2.47–2.64:1
+  // against WCAG's 3:1 non-text floor (see that module for the numbers).
   const { className: unsettledClass, ...unsettledAria } = unsettledProps({
     unknown,
     busy,

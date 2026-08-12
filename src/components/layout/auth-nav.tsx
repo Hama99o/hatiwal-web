@@ -14,7 +14,7 @@ import {
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { Badge } from "@/components/ui/badge";
+import { CountBadge } from "@/components/shared/count-badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -62,17 +62,15 @@ export function AuthNav() {
       >
         <Link href="/conversations">
           <MessageSquare className="size-5" />
-          {/* The shared count pill (same primitive + same solid fill as the
-              owner panel's waiting-chats badge), not a bespoke span — that one
-              also hardcoded its own 10px type. */}
-          {unread > 0 && (
-            <Badge
-              variant="count"
-              className="absolute end-0.5 top-0.5 min-w-4 justify-center px-1 py-0 font-semibold leading-4"
-            >
-              {unread > 9 ? "9+" : unread}
-            </Badge>
-          )}
+          {/* The shared count pill — same primitive, same AA-safe fill AND the
+              same digits as every other count in the app. This used to print
+              `unread > 9 ? "9+" : unread` raw, so on /ps and /fa the header
+              showed a Latin "2" beside Arabic-Indic digits everywhere else.
+              No `label`: the button's own aria-label names this control. */}
+          <CountBadge
+            count={unread}
+            className="absolute end-0.5 top-0.5 min-w-4 px-1 py-0 leading-4"
+          />
         </Link>
       </Button>
       {user.sellerMode && (

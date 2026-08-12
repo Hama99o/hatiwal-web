@@ -15,6 +15,7 @@
     "confirmDelete": "Confirm Delete",
     "confirmDeleteDescription": "This action cannot be undone.",
     "noResults": "No results found",
+    "countOverflow": "{count}+",
     "search": "Search",
     "filter": "Filter",
     "all": "All",
@@ -705,6 +706,7 @@
     "deleteConversation": "Delete Conversation",
     "deleteConversationDescription": "This will permanently remove the conversation and all messages.",
     "unknownUser": "Unknown User",
+    "unreadCount": "{count, plural, one {# unread message} other {# unread messages}}",
     "noMessages": "No messages yet",
     "preview": {
       "meetup": "Meetup proposal",

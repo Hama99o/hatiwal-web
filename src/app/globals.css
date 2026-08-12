@@ -16,6 +16,14 @@
   --popover-foreground: hsl(222 47% 11%);
   --primary: hsl(221 83% 53%);
   --primary-foreground: hsl(0 0% 100%);
+  /* Deeper primary for SMALL SOLID fills — the count pills (unread messages,
+     buyers waiting on a listing). White on `--primary` is 4.9:1 in light and
+     only 3.6:1 in dark, and these pills carry 12px digits, i.e. the 4.5:1 AA
+     floor applies. This value clears ~6.7:1 in BOTH themes with the same white
+     `--primary-foreground`, so the pill reads the same in either theme instead
+     of flipping to dark-on-bright. Web-only: mobile draws its count pills at a
+     larger size, so its palette has no equivalent yet. */
+  --primary-strong: hsl(221 83% 45%);
   --secondary: hsl(214 32% 91%);
   --secondary-foreground: hsl(222 47% 11%);
   --muted: hsl(210 40% 96%);
@@ -45,6 +53,9 @@
   --popover-foreground: hsl(210 40% 98%);
   --primary: hsl(217 91% 60%);
   --primary-foreground: hsl(0 0% 100%);
+  /* Same hue as this theme's primary, dark enough for white 12px digits (~6.6:1
+     against ~3.6:1 for `--primary` itself). See the light value above. */
+  --primary-strong: hsl(217 91% 42%);
   --secondary: hsl(217 33% 17%);
   --secondary-foreground: hsl(210 40% 98%);
   --muted: hsl(217 33% 17%);
@@ -72,6 +83,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

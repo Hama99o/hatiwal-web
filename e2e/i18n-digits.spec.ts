@@ -166,6 +166,61 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       expect(complaints).toEqual([]);
     });
 
+    // The three count PILLS (header unread · inbox row · the owner panel's
+    // waiting-chats badge) all render through the shared `<CountBadge>` now. Two
+    // of them used to print `count > 9 ? "9+" : count` straight into JSX, so the
+    // header showed a Latin "2" beside Arabic-Indic digits everywhere else on the
+    // same page — this file's exact failure mode, one component over.
+    test("the header's unread pill renders in Pashto digits", async ({
+      page,
+    }) => {
+      const complaints = watchHydration(page);
+      await page.goto("/ps/my-listings");
+      const pill = page.locator("header").getByTestId("count-badge");
+      await expect(pill).toBeVisible({ timeout: 60_000 });
+      await expect(pill).toHaveText(ARABIC_INDIC);
+      await expect(pill).not.toHaveText(LATIN_DIGIT);
+      expect(complaints).toEqual([]);
+    });
+
+    // Past the cap the pill shows "9+", which is a NUMBER plus a sign — so the
+    // digit has to be formatted for the locale and the "+" has to come from the
+    // catalog (`common.countOverflow`), not be concatenated in JSX where an RTL
+    // locale cannot move it.
+    test("an unread count past the cap is capped in Pashto digits", async ({
+      page,
+    }) => {
+      const complaints = watchHydration(page);
+      // Mutate the real session payload rather than inventing one: `{ user }`,
+      // camelCase (src/app/api/auth/session/route.ts).
+      await page.route("**/api/auth/session", async (route) => {
+        const response = await route.fetch();
+        const body = await response.json();
+        if (body.user) body.user.unreadMessageCount = 12;
+        await route.fulfill({ response, json: body });
+      });
+      await page.goto("/ps/my-listings");
+      const pill = page.locator("header").getByTestId("count-badge");
+      await expect(pill).toBeVisible({ timeout: 60_000 });
+      await expect(pill).toHaveText("۹+");
+      await expect(pill).not.toHaveText(LATIN_DIGIT);
+      expect(complaints).toEqual([]);
+    });
+
+    test("the owner panel's waiting-chats pill renders in Pashto digits", async ({
+      page,
+    }) => {
+      const complaints = watchHydration(page);
+      await page.goto("/ps/listings/1");
+      const pill = page
+        .getByTestId("owner-listing-bar")
+        .getByTestId("count-badge");
+      await expect(pill).toBeVisible({ timeout: 60_000 });
+      await expect(pill).toHaveText(ARABIC_INDIC);
+      await expect(pill).not.toHaveText(LATIN_DIGIT);
+      expect(complaints).toEqual([]);
+    });
+
     test("Manage listing: the conversations count renders in Pashto digits", async ({
       page,
     }) => {

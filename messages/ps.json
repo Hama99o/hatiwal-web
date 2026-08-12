@@ -15,6 +15,7 @@
     "confirmDelete": "د ړنګولو تایید",
     "confirmDeleteDescription": "دا کار بیرته نه شي اخیستل کیدای.",
     "noResults": "هیڅ پایله ونه موندل شوه",
+    "countOverflow": "{count}+",
     "search": "لټول",
     "filter": "چاڼول",
     "all": "ټول",
@@ -705,6 +706,7 @@
     "deleteConversation": "خبرې حذف کړئ",
     "deleteConversationDescription": "دا به خبرې او ټول پیغامونه تل لپاره لرې کړي.",
     "unknownUser": "نامعلوم کارونکی",
+    "unreadCount": "{count, plural, one {# نالوستل شوی پیغام} other {# نالوستل شوي پیغامونه}}",
     "noMessages": "لاهم هیڅ پیغام نشته",
     "preview": {
       "meetup": "د لیدنې وړاندیز",

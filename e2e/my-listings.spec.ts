@@ -133,8 +133,11 @@ test.describe("My Shop (seller dashboard)", () => {
   test("each card shows the primary action for its status", async ({ page }) => {
     await openMyShop(page);
     await expect(card(page, 8).getByRole("button", { name: "Publish" })).toBeVisible(); // draft
+    // Active → Mark as Reserved, the same next step mobile's shared hook offers
+    // (useListingLifecycle.ts). Sold is terminal, so it is not the primary
+    // anywhere except on a listing that is already reserved.
     await expect(
-      card(page, 1).getByRole("button", { name: "Mark as Sold" }),
+      card(page, 1).getByRole("button", { name: "Mark as Reserved" }),
     ).toBeVisible(); // active
     await expect(
       card(page, 9).getByRole("button", { name: "Mark as Sold" }),
@@ -153,13 +156,17 @@ test.describe("My Shop (seller dashboard)", () => {
   // The primary is the loudest control in the footer, so it must not be set at
   // the card's caption size — and it must announce WHICH listing it acts on,
   // because a shop of seven active items would otherwise read out seven
-  // identical "Mark as Sold" buttons.
+  // identical "Mark as Reserved" buttons.
   test("the primary action is emphasised and names its listing", async ({
     page,
   }) => {
     await openMyShop(page);
-    const primary = card(page, 1).getByRole("button", { name: "Mark as Sold" });
-    await expect(primary).toHaveAccessibleName("Mark as Sold — iPhone 13 Pro");
+    const primary = card(page, 1).getByRole("button", {
+      name: "Mark as Reserved",
+    });
+    await expect(primary).toHaveAccessibleName(
+      "Mark as Reserved — iPhone 13 Pro",
+    );
     const { size, weight } = await primary.evaluate((el) => {
       const s = getComputedStyle(el);
       return { size: parseFloat(s.fontSize), weight: Number(s.fontWeight) };
@@ -199,7 +206,7 @@ test.describe("My Shop (seller dashboard)", () => {
     await openMyShop(page);
     await card(page, 1).getByRole("button", { name: /^More options/ }).click();
     const items = page.getByRole("menu").getByRole("menuitem");
-    await expect(items).toHaveCount(5); // reserve · unpublish · renew · edit · delete
+    await expect(items).toHaveCount(5); // sold · unpublish · renew · edit · delete
     for (const item of await items.all()) {
       expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(40);
     }
@@ -212,7 +219,9 @@ test.describe("My Shop (seller dashboard)", () => {
     await card(page, 1).getByRole("button", { name: "More options" }).click();
     const menu = page.getByRole("menu");
     for (const label of [
-      "Mark as Reserved",
+      // Sold is here, not on the primary: it is terminal (no relist on web yet),
+      // so it takes the deliberate route through the overflow menu.
+      "Mark as Sold",
       "Unpublish",
       "Renew",
       "Edit",
@@ -256,13 +265,15 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Listing unpublished")).toBeVisible();
   });
 
-  test("Mark as Reserved from the kebab opens the buyer picker", async ({
+  test("Mark as Sold from the kebab opens the buyer picker", async ({
     page,
   }) => {
+    // Both buyer-recording transitions go through the picker wherever they are
+    // offered — this is the one that lives in the menu on an active card.
     await openMyShop(page);
     await card(page, 1).getByRole("button", { name: "More options" }).click();
-    await page.getByRole("menuitem", { name: "Mark as Reserved" }).click();
-    await expect(page.getByText("Who's buying this item?")).toBeVisible();
+    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
   });
 
   // A photoless listing in the seller's OWN shop is an action prompt — no photo
@@ -335,25 +346,29 @@ test.describe("My Shop (seller dashboard)", () => {
     const confirm = page.getByRole("dialog");
     await expect(confirm.getByText("Antique Carpet")).toBeVisible();
     await confirm.getByRole("button", { name: "Cancel" }).click();
-    // …including the buyer picker, which is the one that records a sale.
-    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
+    // …including the buyer picker, which is the one that records a transaction.
+    await card(page, 1)
+      .getByRole("button", { name: "Mark as Reserved" })
+      .click();
     await expect(
       page.getByRole("dialog").getByText("iPhone 13 Pro"),
     ).toBeVisible();
   });
 
-  test("Mark as Sold inline opens the buyer picker", async ({ page }) => {
+  test("Mark as Reserved inline opens the buyer picker", async ({ page }) => {
     await openMyShop(page);
-    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
-    await expect(page.getByText("Who bought this item?")).toBeVisible();
+    await card(page, 1)
+      .getByRole("button", { name: "Mark as Reserved" })
+      .click();
+    await expect(page.getByText("Who's buying this item?")).toBeVisible();
     await page
       .getByRole("button", { name: /Sold to someone not on Hatiwal/ })
       .click();
     await page
       .getByRole("dialog")
-      .getByRole("button", { name: "Confirm sold" })
+      .getByRole("button", { name: "Confirm reserve" })
       .click();
-    await expect(page.getByText("Listing marked as sold")).toBeVisible();
+    await expect(page.getByText("Listing marked as reserved")).toBeVisible();
   });
 
   // A sale that identifies a real buyer records a Transaction, so the seller is
@@ -365,7 +380,11 @@ test.describe("My Shop (seller dashboard)", () => {
     page,
   }) => {
     await openMyShop(page);
-    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
+    // Via the kebab: on an active card Mark as Sold is a secondary transition
+    // (the primary is Mark as Reserved). The review prompt is what a *sale*
+    // earns, so this is the path that has to reach it.
+    await card(page, 1).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
     await expect(page.getByText("Who bought this item?")).toBeVisible();
     await page.getByRole("button", { name: /Sara Ahmadi/ }).click();
     await page
@@ -426,7 +445,7 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(confirm).toBeVisible();
     await confirm.getByRole("button", { name: "Cancel" }).click();
     await expect(
-      card(page, 1).getByRole("button", { name: "Mark as Sold" }),
+      card(page, 1).getByRole("button", { name: "Mark as Reserved" }),
     ).toBeVisible();
   });
 
@@ -491,24 +510,20 @@ test.describe("My Shop (seller dashboard)", () => {
   // never clip their text.
   //
   // The two widths we pin — not the only narrow ones (320px also behaves,
-  // measured) but the two that matter:
-  //   375 — iPhone portrait, and the width where `en` only just fits: the
-  //         primary's content box is 76px (92px padding box less `px-2`) and
-  //         "Mark as Sold" needs ~75px of it, on ONE line.
-  //   360 — the most common Android portrait width, and the first one where the
-  //         en label really does wrap (measured: 2 lines at 360, 1 at 375). That
-  //         is what exercises the `h-auto min-h-10 whitespace-normal` treatment —
-  //         the row keeps its 40px and stays inside the card instead of clipping.
+  // measured) but the two that matter: 375 (iPhone portrait) and 360 (the most
+  // common Android portrait width). Both are narrower than the ~150px of content
+  // box this primary gets in a 2-column card, so both exercise the
+  // `h-auto min-h-10 whitespace-normal` treatment — the label wraps, the row
+  // keeps its 40px floor and stays inside the card instead of clipping.
   //
   // All three locales run, at both widths, but they do NOT pull equal weight.
-  // English is the binding one: "Mark as Sold" is 75px against ps's 58px and fa's
-  // 64px. Mutation-verified by forcing a real clip (`overflow-hidden
-  // whitespace-nowrap text-sm` on the primary): en fails at BOTH widths, fa fails
-  // at 360 only, and ps — the roomiest of the three — never notices. So ps is here
-  // for RTL, not typography: the box checks below are what it contributes,
-  // confirming a mirrored row still starts and ends inside the card. Do not drop
-  // the `en` cases as "covered by RTL"; they are the only ones that guard the
-  // primary's type scale.
+  // English is the binding one: the primary label is now "Mark as Reserved"
+  // (active listings offer reserve, not the terminal sold — mobile parity), which
+  // is LONGER than the "Mark as Sold" this spec was first written against, so it
+  // wraps at both widths in en. ps ("خوندي ښودل") and fa ("رزرو شده") are the
+  // roomier two, and are here for RTL: the box checks confirm a mirrored row
+  // still starts and ends inside the card. Do not drop the `en` cases as "covered
+  // by RTL"; they are the only ones that guard the primary's type scale.
   for (const width of [375, 360]) {
     for (const [locale, m] of [
       ["en", en],
@@ -530,7 +545,7 @@ test.describe("My Shop (seller dashboard)", () => {
             exact: true,
           });
         for (const control of [
-          named(m.listing.detail.actionFor.replace("{action}", m.listing.markSold), "iPhone 13 Pro"),
+          named(m.listing.detail.actionFor.replace("{action}", m.listing.markReserved), "iPhone 13 Pro"),
           named(m.listing.detail.moreOptionsFor, "iPhone 13 Pro"),
         ]) {
           const box = (await control.boundingBox())!;

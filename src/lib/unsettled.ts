@@ -12,26 +12,44 @@ import { cn } from "@/lib/utils";
  * things, and both used to hand-roll them, so a fix to one silently skipped the
  * other:
  *
- *  1. Never render byte-identical to the ready state while a tap cannot run
- *     immediately — a dead control that looks alive is worse than a disabled one.
- *  2. `aria-busy` for "not ready", `aria-disabled` for "your tap is already
+ *  1. `aria-busy` for "not ready", `aria-disabled` for "your tap is already
  *     accepted" — never `disabled`, which would drop the tap and the focus.
- *  3. Remember the tap and replay it against the RESOLVED answer, so nothing is
+ *  2. Remember the tap and replay it against the RESOLVED answer, so nothing is
  *     swallowed and nothing is guessed (`useQueuedTap` below).
+ *  3. Say so visibly wherever a cue can be shown without costing contrast or the
+ *     control's own affordance — which is not everywhere, and `UnsettledTone`
+ *     below is where that is decided ONCE rather than per caller.
  */
 
 /**
- * Whether the "not ready" cue may touch the control's own opacity.
+ * Which visible "not ready" cue this control can carry.
  *
- * `icon`  — icon-only controls (the hearts). Dimming is judged against WCAG's
- *           3:1 non-text rule, which `opacity-70` clears.
- * `text`  — controls with a visible label (the primary CTA). Dimming these fails
- *           AA: measured, white `--primary-foreground` on `--primary`
- *           hsl(221 83% 53%) at 70% over the bar's `bg-background/95` is ~3.1:1
- *           for 14px `text-sm font-medium`, against a 4.5:1 floor — and it is the
- *           pinned primary action on every cold load. A text control must signal
- *           "not ready" with chrome that leaves the label alone: a `secondary`
- *           variant for the window, or a spinner beside the label.
+ * NEITHER tone dims. `opacity-70` was measured against this project's own tokens,
+ * composited on the sticky bar's `bg-background/95`, and it fails on both sides:
+ *  - text: white `--primary-foreground` on `--primary` hsl(221 83% 53%) at 70% is
+ *    ~3.1:1 for 14px `text-sm font-medium`, against the 4.5:1 AA floor.
+ *  - icon: the `unknown` heart (`text-muted-foreground` + `opacity-70`, two cues
+ *    stacked) is 2.64:1 light, and the optimistically-filled `fill-destructive`
+ *    heart 2.56:1 light / 2.47:1 dark — all under WCAG's 3:1 non-text floor, and
+ *    `animate-pulse` dips further. (An earlier version of this comment claimed
+ *    ~6.5:1; that holds only for a `text-foreground` glyph, which is exactly the
+ *    glyph the unknown branch replaces.) Undimmed, the colour swap alone clears
+ *    the floor — muted 4.52:1, destructive 3.62:1 — so the COLOUR is the cue.
+ *
+ * What the tone actually selects is how a HELD tap says "I heard you":
+ *  `icon`  — an icon-only control (the hearts) has no room beside its glyph, so
+ *            it pulses.
+ *  `text`  — a labelled control swaps its icon for a spinner, rendered by the
+ *            caller (`report-button.tsx`, `start-conversation-button.tsx`), so
+ *            this module adds no class for it. Before a tap it is deliberately
+ *            UN-CUED, and that is the decision, not an omission: nothing is
+ *            misleading, because the tap is queued and replayed against the
+ *            resolved answer, and `aria-busy` carries the state for assistive
+ *            tech. Anything louder costs more than it buys — a `secondary`
+ *            variant on the pinned CTA dropped fill-vs-bar contrast from 4.97:1
+ *            to 1.19:1 light / 1.35:1 dark, i.e. it erased the button shape of
+ *            the one loud action the sticky bar exists for, on every signed-in
+ *            cold load.
  */
 export type UnsettledTone = "icon" | "text";
 
@@ -58,15 +76,15 @@ export function unsettledProps({
   "aria-disabled": true | undefined;
   className: string;
 } {
-  const dim = tone === "icon";
   return {
     "aria-busy": unknown || busy || undefined,
     "aria-disabled": busy || undefined,
     className: cn(
-      dim && (unknown || busy) && "opacity-70",
-      // The in-flight case already has its own cue (the heart flipped
-      // optimistically); this is for a tap that is held, not running.
-      dim && queued && "animate-pulse motion-reduce:animate-none",
+      // The `unknown` and in-flight states already carry their own cue — the
+      // muted glyph, then the heart flipped optimistically. This is for a tap
+      // that is HELD, not running, and only an icon-only control needs it (a
+      // labelled one shows a spinner instead — see `UnsettledTone`).
+      tone === "icon" && queued && "animate-pulse motion-reduce:animate-none",
     ),
   };
 }

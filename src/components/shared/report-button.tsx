@@ -117,9 +117,11 @@ export function ReportButton({
     setOpen(true);
   }
 
-  // "Not ready" without dimming: the trigger is already `text-muted-foreground`,
-  // so `tone: "text"` (no opacity) keeps it legible; the spinner replacing the
-  // flag is the "I heard you" cue once a tap is held.
+  // `tone: "text"` — a labelled control, so no visible pre-tap cue (the trigger is
+  // already `text-muted-foreground`, and dimming it further would fail AA);
+  // `aria-busy` carries the state, and the spinner replacing the flag is the
+  // "I heard you" the moment a tap is held. Same treatment as the primary CTA on
+  // the listing page, because lib/unsettled.ts decides it for both.
   const state = unsettledProps({
     unknown: unsettled,
     busy: queued,

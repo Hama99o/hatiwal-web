@@ -28,6 +28,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import type { Conversation } from "@/lib/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { CountBadge } from "@/components/shared/count-badge";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SegmentedControl } from "@/components/shared/segmented-control";
@@ -261,11 +262,18 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                         className="size-12 object-cover"
                       />
                     </div>
-                    {unread && (
-                      <span className="absolute -end-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-card bg-primary px-1 text-[11px] font-bold leading-none text-primary-foreground">
-                        {(c.unreadCount ?? 0) > 9 ? "9+" : c.unreadCount}
-                      </span>
-                    )}
+                    {/* The shared count pill (see the header's and the owner
+                        panel's): this used to be a third hand-rolled span with
+                        its own 11px type and its own raw `> 9 ? "9+"`, which
+                        printed Latin digits on /ps and /fa. The ring keeps it
+                        legible over the thumbnail it is pinned to. */}
+                    <CountBadge
+                      count={c.unreadCount}
+                      label={t("chat.unreadCount", {
+                        count: c.unreadCount ?? 0,
+                      })}
+                      className="absolute -end-1.5 -top-1.5 h-5 min-w-5 border-2 border-card px-1 leading-none"
+                    />
                   </div>
                 </Link>
                 <DropdownMenu>

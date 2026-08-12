@@ -110,12 +110,14 @@ export function StartConversationButton({
   // when the probe never answers at all.
   const serverGuest = serverViewerId === null;
   const guest = status === "guest" || (status === "loading" && serverGuest);
-  // Left over: signed in per the hint but the user object hasn't landed, or no
-  // hint at all. Either way a tap cannot run yet — but it must not be dropped.
+  // Left over: signed in per the hint but the user object hasn't landed. (This
+  // component only ever renders under a `ViewerIdProvider` — the listing detail
+  // and seller pages are both `force-dynamic` — so "no hint at all" is not a
+  // reachable third case here; the heart beside it is the control that also lives
+  // on ISR pages, and it handles that case itself.) A tap cannot run yet, so it
+  // is held — never dropped, and never turned into a /login link for someone the
+  // server just told us is signed in (that was the whole defect).
   const unsettled = status === "loading" && !serverGuest;
-  // ...and when there IS a hint saying "signed in", a /login link is the one thing
-  // this control must never be for them (that was the whole defect).
-  const serverAuthed = typeof serverViewerId === "number";
 
   // Replay a held tap the moment auth resolves, against the RESOLVED identity —
   // so it can neither be swallowed nor send a signed-in buyer to /login. Same
@@ -205,12 +207,19 @@ export function StartConversationButton({
   // against the resolved identity, never guessed — rendering the guest branch here
   // navigated a signed-in buyer off the listing to a login page they don't need.
   //
-  // The cue is a `secondary` variant, not `opacity-70`: dimming the primary takes
-  // its label with it, which measured ~3.1:1 against a 4.5:1 AA floor in light
-  // mode (see lib/unsettled.ts). A spinner joins it only once a tap is held, so
-  // the untapped row never pays the +24px of icon and gap that decides whether
-  // the label fits on a 360px phone. The offer affordance is absent here exactly
-  // as in the guest branch, so neither resolution changes the layout.
+  // Chrome-wise this is the READY button, deliberately: `aria-busy` carries the
+  // state for assistive tech and the spinner appears the instant a tap is held,
+  // but nothing touches the fill or the label before that. Both louder options
+  // were measured and cost more than they buy — `opacity-70` dims the label to
+  // ~3.1:1 against a 4.5:1 AA floor, and a `secondary` variant drops fill-vs-bar
+  // contrast from 4.97:1 to 1.19:1, i.e. the pinned primary action renders as
+  // bare text with no button shape on every signed-in cold load, which is the one
+  // thing the sticky bar exists to provide. See lib/unsettled.ts, where that
+  // trade is decided once for every labelled control (`ReportButton` too).
+  // Keeping the untapped row spinner-less also keeps it off the +24px of icon and
+  // gap that decides whether the label fits on a 360px phone. The offer
+  // affordance is absent here exactly as in the guest branch, so no resolution of
+  // the probe changes the layout.
   if (unsettled) {
     const state = unsettledProps({
       unknown: true,
@@ -218,46 +227,17 @@ export function StartConversationButton({
       queued: queuedMessage,
       tone: "text",
     });
-    const label = (
-      <>
-        {queuedMessage && <Loader2 className="animate-spin" />}
-        {primaryLabel}
-      </>
-    );
     return (
       <div className={wrapperClass}>
-        {serverAuthed ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={queueMessage}
-            {...state}
-            className={cn(primaryClass, state.className)}
-          >
-            {label}
-          </Button>
-        ) : (
-          // No hint (an ISR page). Keep the guest markup and intercept it: a
-          // hydrated tap is queued and replayed exactly as above, and the very
-          // same element still degrades to a working sign-in link before
-          // hydration, with JS off, and if the probe never answers.
-          <Button
-            asChild
-            variant="secondary"
-            {...state}
-            className={cn(primaryClass, state.className)}
-          >
-            <Link
-              href="/login"
-              onClick={(e) => {
-                e.preventDefault();
-                queueMessage();
-              }}
-            >
-              {label}
-            </Link>
-          </Button>
-        )}
+        <Button
+          type="button"
+          onClick={queueMessage}
+          {...state}
+          className={cn(primaryClass, state.className)}
+        >
+          {queuedMessage && <Loader2 className="animate-spin" />}
+          {primaryLabel}
+        </Button>
       </div>
     );
   }

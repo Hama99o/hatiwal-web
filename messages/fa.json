@@ -15,6 +15,7 @@
     "confirmDelete": "تأیید حذف",
     "confirmDeleteDescription": "این عمل قابل بازگشت نیست.",
     "noResults": "نتیجه‌ای یافت نشد",
+    "countOverflow": "{count}+",
     "search": "جستجو",
     "filter": "فیلتر",
     "all": "همه",
@@ -705,6 +706,7 @@
     "deleteConversation": "حذف گفتگو",
     "deleteConversationDescription": "این گفتگو و تمام پیام‌ها برای همیشه حذف می‌شوند.",
     "unknownUser": "کاربر ناشناس",
+    "unreadCount": "{count, plural, one {# پیام خوانده‌نشده} other {# پیام خوانده‌نشده}}",
     "noMessages": "هنوز پیامی وجود ندارد",
     "preview": {
       "meetup": "پیشنهاد ملاقات",

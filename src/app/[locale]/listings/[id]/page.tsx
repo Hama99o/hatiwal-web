@@ -37,6 +37,7 @@ import {
   CrossSellRailsSkeleton,
 } from "@/components/listing/cross-sell-rails";
 import { LocationMap } from "@/components/map/location-map";
+import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { readViewerIdFromCookies } from "@/lib/auth/cookies";
 
@@ -209,7 +210,9 @@ export default async function ListingDetailPage({
             />
 
             {listing.location && (
-              <div className="space-y-2 rounded-lg border bg-card p-3">
+              /* The shared card surface, not another inline
+                 `rounded-lg border bg-card` — see `ui/card.tsx`. */
+              <Card className="space-y-2 p-3">
                 <div className="flex items-start gap-2 text-sm">
                   <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
@@ -231,12 +234,12 @@ export default async function ListingDetailPage({
                     className="h-48"
                   />
                 )}
-              </div>
+              </Card>
             )}
 
             {/* Seller */}
             {listing.seller && (
-              <div className="rounded-lg border bg-card p-4">
+              <Card className="p-4">
                 <p className="mb-3 text-sm font-medium text-muted-foreground">
                   {t("listing.detail.seller")}
                 </p>
@@ -274,7 +277,7 @@ export default async function ListingDetailPage({
                     className="mt-3"
                   />
                 </HideForOwner>
-              </div>
+              </Card>
             )}
 
             {/* Actions — primary CTA (message seller) first, Save below it.

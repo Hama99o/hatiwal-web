@@ -1,5 +1,33 @@
 import { test, expect } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import en from "../messages/en.json";
+
+/**
+ * The buyer CTA's label, READ FROM THE CATALOG rather than retyped (the pattern
+ * `listing-action-bar.spec.ts` set): the key is `listing.detail.contactSeller`,
+ * this suite asserts it six times — present for a buyer, absent for the owner,
+ * present with JS off — and a copy change must fail here loudly instead of
+ * leaving every one of them asserting a string the UI no longer shows.
+ * A bare string locator is a case-insensitive substring match, i.e. exactly what
+ * the `/Contact Seller/i` regexes it replaces did.
+ */
+const CTA_LABEL = en.listing.detail.contactSeller;
+
+/** WCAG 2.1 relative luminance of an `rgb()`/`rgba()` computed style value. */
+function luminance(color: string): number {
+  const [r, g, b] = (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+  const channel = (c: number) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+/** WCAG contrast ratio between two computed-style colors (both opaque). */
+function contrastRatio(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
 
 test.describe("Listing detail", () => {
   test("shows full listing info, seller and description", async ({ page }) => {
@@ -14,7 +42,7 @@ test.describe("Listing detail", () => {
 
   test("gated actions are present (Contact Seller / Report)", async ({ page }) => {
     await page.goto("/en/listings/1");
-    await expect(page.getByText(/Contact Seller/i)).toBeVisible();
+    await expect(page.getByText(CTA_LABEL)).toBeVisible();
     await expect(page.getByText(/Report/i).first()).toBeVisible();
   });
 
@@ -80,7 +108,7 @@ test.describe("Listing detail", () => {
     });
     const noJs = await ctx.newPage();
     await noJs.goto("/en/listings/1");
-    await expect(noJs.getByText(/Contact Seller/i)).toBeVisible();
+    await expect(noJs.getByText(CTA_LABEL)).toBeVisible();
     await expect(noJs.getByText(/Meetup safety tips/i)).toBeVisible();
     await expect(noJs.getByTestId("owner-listing-bar")).toHaveCount(0);
     await ctx.close();
@@ -373,15 +401,22 @@ test.describe("Listing detail — viewed by its own seller", () => {
   // The panel must be able to fix what it reports. Every status resolves its
   // most likely next transition through the SHARED brain (actionsFor +
   // useListingLifecycle), so the panel, /my-listings and the manage screen offer
-  // the same move under the same label.
+  // the same move under the same label — and the same move MOBILE offers
+  // (useListingLifecycle.ts's `primaryAction`).
   test("the panel offers the listing's next lifecycle action", async ({
     page,
   }) => {
-    await page.goto("/en/listings/1"); // active → sell it
+    // Active → hold it for the buyer you are meeting. NOT "Mark as Sold": that
+    // is terminal (web has no relist), and the loudest control on the seller's
+    // own public page must not be the one with no path back. Mobile agrees.
+    await page.goto("/en/listings/1");
     const panel = page.getByTestId("owner-listing-bar");
     await expect(
-      panel.getByRole("button", { name: "Mark as Sold" }),
+      panel.getByRole("button", { name: "Mark as Reserved" }),
     ).toBeVisible();
+    await expect(
+      panel.getByRole("button", { name: "Mark as Sold" }),
+    ).toHaveCount(0);
 
     await page.goto("/en/listings/9"); // reserved → complete the sale
     await expect(
@@ -432,7 +467,52 @@ test.describe("Listing detail — viewed by its own seller", () => {
   }) => {
     // Identical flow to /my-listings and the manage screen: the shared buyer
     // picker records the Transaction, and a real buyer is immediately rateable.
-    await page.goto("/en/listings/1");
+    // Listing 9 is the RESERVED one — the status whose primary is Mark as Sold
+    // (an active listing's primary is Reserve; see the spec above).
+    //
+    // The picker lists this listing's own threads, and the fixture's two
+    // conversations hang off listings 1 and 3 — so the buyer is injected here
+    // rather than in the fixture, where a third conversation would shift the
+    // inbox specs. It is the one authed call the picker makes.
+    await page.route("**/api/me/conversations?listing_id=9", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          conversations: [
+            {
+              id: 91,
+              status: "open",
+              last_message_at: "2026-06-21T15:00:00Z",
+              created_at: "2026-06-20T10:00:00Z",
+              listing: {
+                id: 9,
+                title: "Gaming PC",
+                thumbnail_url: null,
+                status: "reserved",
+                price: 70000,
+                currency: "AFN",
+                location: "Kabul",
+              },
+              other_participant: {
+                id: 2,
+                name: "Sara Ahmadi",
+                city: "Herat",
+                verified: false,
+                avatar_url: null,
+              },
+              buyer: { id: 2, name: "Sara Ahmadi", city: "Herat", avatar_url: null },
+              seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+              unread_count: 0,
+              last_message_body: "I'll take it.",
+              last_message_kind: "text",
+              blocked_with_participant: false,
+            },
+          ],
+        }),
+      }),
+    );
+    await page.goto("/en/listings/9");
     await page
       .getByTestId("owner-listing-bar")
       .getByRole("button", { name: "Mark as Sold" })
@@ -466,7 +546,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     const noJs = await ctx.newPage();
     await noJs.goto("/en/listings/1");
     await expect(noJs.getByTestId("owner-listing-bar")).toBeVisible();
-    await expect(noJs.getByText(/Contact Seller/i)).toHaveCount(0);
+    await expect(noJs.getByText(CTA_LABEL)).toHaveCount(0);
     await expect(noJs.getByText(/Meetup safety tips/i)).toHaveCount(0);
     await expect(noJs.getByText(/Not interested/i)).toHaveCount(0);
     await expect(noJs.getByText(/Seller is away until/i)).toHaveCount(0);
@@ -504,6 +584,78 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(page.getByText(/renewed/i).first()).toBeVisible();
   });
 
+  test("an expiring listing can be renewed too, not just an expired one", async ({
+    page,
+  }) => {
+    // Listing 11 is user 1's active listing 3 days from the end of its run: the
+    // amber "Expires in 3 days" pill. The panel renders only the PRIMARY
+    // transition, and for a not-yet-lapsed listing Renew sits in `secondary` —
+    // so the pill used to state urgency whose fix was a navigation away, the same
+    // "names a status it can't fix" gap that justified wiring Renew for the
+    // already-expired case. Renew now joins the row while the clock is running
+    // out, WITHOUT displacing the status's own next step (Mark as Reserved).
+    await page.goto("/en/listings/11");
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText(/Expires in/i)).toBeVisible();
+    await expect(
+      panel.getByRole("button", { name: "Mark as Reserved" }),
+    ).toBeVisible();
+
+    await panel.getByRole("button", { name: "Renew" }).click();
+    await expect(page.getByText("Renew this listing?")).toBeVisible();
+    await page.getByRole("dialog").getByRole("button", { name: "Renew" }).click();
+    await expect(page.getByText(/renewed/i).first()).toBeVisible();
+  });
+
+  test("a listing with weeks left offers no Renew (it isn't a fix for anything)", async ({
+    page,
+  }) => {
+    // The counterpart of the spec above: listing 1 has no expiry pill, so a
+    // Renew button there would be a control with nothing to answer.
+    await page.goto("/en/listings/1");
+    const panel = page.getByTestId("owner-listing-bar");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText(/Expires|Expired/i)).toHaveCount(0);
+    await expect(panel.getByRole("button", { name: "Renew" })).toHaveCount(0);
+  });
+
+  test("the waiting-chats count clears AA in light AND dark", async ({
+    page,
+  }) => {
+    // This is the one number the panel exists to make a seller act on, and it is
+    // 12px — so the 4.5:1 AA floor applies. It used to be a solid `--primary`:
+    // 4.9:1 in light but 3.6:1 in dark, i.e. failing for half the app's users at
+    // night. The `count` badge now fills with `--primary-strong`; asserting the
+    // ratio (rather than the class) is what stops the next palette tweak from
+    // silently re-breaking it.
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      await page.goto("/en/listings/1");
+      const pill = page
+        .getByTestId("owner-listing-bar")
+        .getByTestId("count-badge");
+      await expect(pill).toBeVisible();
+      const { bg, fg } = await pill.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { bg: s.backgroundColor, fg: s.color };
+      });
+      // Opaque by construction: an alpha fill would make the real ratio depend
+      // on whatever the pill happens to be sitting on (it moves — header,
+      // thumbnail, tinted panel), which is exactly what made the old
+      // `bg-primary/…` suggestion unverifiable.
+      expect(bg, `${colorScheme}: the count pill must be opaque`).not.toMatch(
+        /rgba\([^)]*,\s*0?\.\d+\)/,
+      );
+      const ratio = contrastRatio(bg, fg);
+      expect(
+        ratio,
+        `${colorScheme}: count pill ${fg} on ${bg} is ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    await page.emulateMedia({ colorScheme: "light" });
+  });
+
   test("buyer-only affordances stay hidden for the owner", async ({ page }) => {
     await page.goto("/en/listings/1");
     await expect(page.getByTestId("owner-listing-bar")).toBeVisible();
@@ -511,7 +663,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(
       page.getByRole("button", { name: /Meetup safety tips/i }),
     ).toHaveCount(0);
-    await expect(page.getByText(/Contact Seller/i)).toHaveCount(0);
+    await expect(page.getByText(CTA_LABEL)).toHaveCount(0);
     await expect(page.getByText(/Not interested/i)).toHaveCount(0);
     // "Seller is away until…" is buyer information (a guest on this same
     // listing DOES get it): the away seller must not be told about themselves
@@ -544,31 +696,67 @@ test.describe("Listing detail — viewed by its own seller", () => {
     expect(panelBox.y).toBeLessThan(760 * 2);
   });
 
-  test("the chats label is not clipped on a phone, in en or ps", async ({
-    page,
-  }) => {
-    // The panel's longest label, and the only one followed by a pill: split 2-up
-    // in a ~310px panel it overflowed, and `truncate` ate the verb ("View Cha…")
-    // — which the visibility/href specs above would still pass. The row now
-    // carries the same `min-w-40` floor as the row above it, so it wraps to two
-    // full-width rows instead. ps ("چټونه وګورئ") is the tighter of the two.
-    await page.setViewportSize({ width: 375, height: 800 });
-    for (const locale of ["en", "ps"]) {
-      await page.goto(`/${locale}/listings/1`);
-      const label = page
-        .getByTestId("owner-listing-bar")
-        .getByTestId("owner-chats-label");
-      await expect(label).toBeVisible();
-      const { scrollWidth, clientWidth } = await label.evaluate((el) => ({
-        scrollWidth: el.scrollWidth,
-        clientWidth: el.clientWidth,
-      }));
-      expect(
-        scrollWidth,
-        `${locale}: the chats label is truncated at 375px`,
-      ).toBeLessThanOrEqual(clientWidth);
-    }
-  });
+  // The panel's longest label, and the only one followed by a pill. `truncate`
+  // used to eat the verb ("View Cha…", "مشاهده گفت…") — a defect every
+  // visibility/href spec above happily passes. The buttons are now
+  // `h-auto min-h-10 whitespace-normal`, so a label too wide for its box wraps
+  // and grows the button instead of disappearing.
+  //
+  // fa is the BINDING locale, not en: "مشاهده گفتگوها" needs ~184px of button
+  // against 72px for en and ps. The three widths are chosen around the 2-up
+  // split, because `min-w-40 flex-1` only clipped INSIDE that window:
+  //   375 — the row is still stacked 1-up (full-width buttons); nothing clips
+  //         even with `truncate`, which is why the old en/ps-at-375 spec was
+  //         green while the bug was live.
+  //   412 · 430 — the panel's inner width has passed 328px, so the row splits
+  //         2-up at ~150px a cell. Measured on the pre-fix build: fa scrollWidth
+  //         96 vs clientWidth 84 (412px) and 96 vs 93 (430px) — CLIPPED, and
+  //         clean again only from ~480px.
+  // Mutation-checked: putting `truncate` back fails fa at 412 and 430.
+  for (const width of [375, 412, 430]) {
+    test(`the chats label is not clipped at ${width}px, in en / ps / fa`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      for (const locale of ["en", "ps", "fa"]) {
+        await page.goto(`/${locale}/listings/1`);
+        const label = page
+          .getByTestId("owner-listing-bar")
+          .getByTestId("owner-chats-label");
+        await expect(label).toBeVisible();
+        // Both axes, on the label AND on the button that boxes it: a wrapped
+        // line cut off by a fixed height is the same defect one dimension over
+        // (which is why the button is `h-auto min-h-10`, not `h-10`).
+        for (const [what, target] of [
+          ["label", label],
+          ["button", label.locator("xpath=ancestor::a[1]")],
+        ] as const) {
+          const box = await target.evaluate((el) => ({
+            scrollWidth: el.scrollWidth,
+            clientWidth: el.clientWidth,
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+          }));
+          expect(
+            box.scrollWidth,
+            `${locale} @${width}px: the chats ${what} is clipped horizontally`,
+          ).toBeLessThanOrEqual(box.clientWidth + 1);
+          expect(
+            box.scrollHeight,
+            `${locale} @${width}px: the chats ${what} is clipped vertically`,
+          ).toBeLessThanOrEqual(box.clientHeight + 1);
+        }
+        // The wrap must not cost the row its tap target either.
+        const buttonBox = (await label
+          .locator("xpath=ancestor::a[1]")
+          .boundingBox())!;
+        expect(
+          buttonBox.height,
+          `${locale} @${width}px: the chats button is under the 40px floor`,
+        ).toBeGreaterThanOrEqual(40);
+      }
+    });
+  }
 
   test("no sticky-bar space is reserved for the owner", async ({ page }) => {
     // The bar self-suppresses for the owner, so its spacer must go with it —
@@ -651,8 +839,9 @@ test.describe("Listing detail — viewed by its own seller", () => {
       panel.getByRole("link", { name: /چټونه وګورئ/ }),
     ).toHaveAttribute("href", "/ps/conversations?listing=1");
     // The lifecycle action is translated too — the panel is not English-only.
+    // "خوندي ښودل" = Mark as Reserved, an active listing's next step.
     await expect(
-      panel.getByRole("button", { name: "خرڅ ښودل" }),
+      panel.getByRole("button", { name: "خوندي ښودل" }),
     ).toBeVisible();
     // RTL: the panel's own content flows right-to-left with the document.
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -664,7 +853,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // Listing 2 belongs to seller 2, so the same signed-in user is a buyer here.
     await page.goto("/en/listings/2");
     await expect(page.getByTestId("owner-listing-bar")).toHaveCount(0);
-    await expect(page.getByText(/Contact Seller/i).first()).toBeVisible();
+    await expect(page.getByText(CTA_LABEL).first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Meetup safety tips/i }),
     ).toBeVisible();
@@ -741,7 +930,7 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
   test("an active listing is untouched (no recovery card)", async ({ page }) => {
     await page.goto("/en/listings/1");
     await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
-    await expect(page.getByText(/Contact Seller/i).first()).toBeVisible();
+    await expect(page.getByText(CTA_LABEL).first()).toBeVisible();
   });
 
   test("the bottom rail is labelled 'Similar Listings', not 'Recent'", async ({

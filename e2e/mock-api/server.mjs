@@ -122,8 +122,25 @@ const EXPIRED_MINE = {
   expired: true, expires_at: "2026-05-31T08:00:00Z",
 };
 
+// Seller 1's ACTIVE listing whose run is nearly up (the amber "Expires in N
+// days" state, 1..7 days out). Kept out of LISTINGS *and* out of myListings()
+// for the same reason as EXPIRED_MINE — it must not shift the public feed or My
+// Shop's tab counts — so it exists only to drive the owner panel's
+// expiring-soon case on /listings/11. Computed from `Date.now()` rather than a
+// literal: a hardcoded date would silently become "expired" (a different state,
+// with a different primary action) once it slipped into the past.
+const EXPIRING_SOON_MINE = {
+  id: 11, title: "Wooden Desk", price: 4000, currency: "AFN", status: "active",
+  location: "Kabul", address: null, condition: "good", category_id: 3, seller_id: 1,
+  views_count: 22, created_at: "2026-06-01T08:00:00Z", price_drop_percent: null,
+  price_dropped_at: null, description: "Solid wood desk, run nearly up.",
+  expired: false, expires_at: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+};
+
 function findListing(id) {
-  return [...LISTINGS, EXPIRED_MINE].find((l) => String(l.id) === String(id));
+  return [...LISTINGS, EXPIRED_MINE, EXPIRING_SOON_MINE].find(
+    (l) => String(l.id) === String(id),
+  );
 }
 
 function listView(l) {

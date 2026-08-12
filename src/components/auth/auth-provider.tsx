@@ -23,6 +23,17 @@ interface RegisterInput {
 interface AuthContextValue {
   user: User | null;
   status: AuthStatus;
+  /**
+   * The session probe has gone unanswered for longer than `PROBE_BUDGET_MS` and
+   * `status` is still "loading". PRESENTATIONAL ONLY — the probe itself is still
+   * running (it is never aborted, see `refresh`) and still wins when it lands.
+   * It exists so a control whose viewer is GENUINELY unknown (no SSR hint — an
+   * ISR page) can stop claiming "pending" forever and fall back to its guest
+   * markup, which a tap can recover from. A control the server already answered
+   * for must ignore it: rendering "sign in" UI for a viewer the server said is
+   * signed in is the one thing it must never do.
+   */
+  probeTimedOut: boolean;
   login: (
     email: string,
     password: string,
@@ -54,9 +65,17 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * How long an unanswered session probe may keep dependent controls waiting
+ * before they stop claiming "pending" (see `probeTimedOut`). It bounds the UI,
+ * never the request.
+ */
+const PROBE_BUDGET_MS = 8_000;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
+  const [probeTimedOut, setProbeTimedOut] = useState(false);
 
   // AuthProvider is nested INSIDE QueryClientProvider (see components/providers.tsx),
   // so the cache is reachable from here. That matters because of the leak below.
@@ -92,16 +111,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // user:null and resolves on the first attempt.
     for (let attempt = 0; attempt <= 3; attempt++) {
       try {
-        const res = await fetch("/api/auth/session", {
-          cache: "no-store",
-          // Bounded, because the backoff below only covers REJECTIONS: a request
-          // that simply hangs (dead mobile network, captive portal — normal in
-          // this market) left `status` at "loading" forever, and every control
-          // that waits on it stuck in its unsettled state. A timeout turns that
-          // into a rejection the retry loop can handle, and worst case it now
-          // resolves to guest, which a reload recovers from.
-          signal: AbortSignal.timeout(8_000),
-        });
+        // NEVER give this request an abort signal. Two independent reasons:
+        //
+        //  1. It ROTATES the session. `/api/auth/session` calls Rails and then
+        //     re-persists the rotated devise access-token, which only reaches
+        //     the browser in THIS response's Set-Cookie. Abort it after Rails
+        //     has already rotated and the browser keeps a token Rails has
+        //     replaced; the next request presents the stale one, and once that
+        //     is outside devise_token_auth's `batch_request_buffer_throttle`
+        //     (default 5s — see lib/auth/cookies.ts) Rails answers 401 and the
+        //     route clears the cookies. We would manufacture the one 401 this
+        //     whole file is careful never to cause: a valid session silently
+        //     signed out on exactly the slow network the timeout was for.
+        //  2. `AbortSignal.timeout` is not universal — absent on Safari <16
+        //     (every iPhone still on iOS 15), Chrome/WebView <103, Firefox <100
+        //     — and Next does not polyfill it. The expression THROWS
+        //     synchronously there, before `fetch` is called, so all four
+        //     attempts would fail without a single network request and every
+        //     signed-in visitor on those browsers would be shown as a guest.
+        //
+        // A hang is bounded in the UI instead, by `probeTimedOut` below.
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
         if (res.status === 503) throw new Error("transient");
         const data = await res.json();
         if (data?.transient) throw new Error("transient");
@@ -123,6 +153,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // The backoff in `refresh` only covers REJECTIONS. A probe that simply HANGS
+  // (dead mobile network, captive portal — normal in this market) never rejects,
+  // so the retry loop never gets a turn and `status` stays "loading" for as long
+  // as the socket does. This bounds what that costs the UI without touching the
+  // request: after the budget, a control that has no server hint about its viewer
+  // may stop announcing itself pending and render its guest markup instead (see
+  // save-button.tsx). Nothing is demoted — `user`/`status` are untouched, the
+  // probe is still in flight, and whatever it finally answers wins.
+  useEffect(() => {
+    if (status !== "loading") {
+      setProbeTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setProbeTimedOut(true), PROBE_BUDGET_MS);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await fetch("/api/auth/login", {
@@ -228,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         status,
+        probeTimedOut,
         login,
         register,
         logout,

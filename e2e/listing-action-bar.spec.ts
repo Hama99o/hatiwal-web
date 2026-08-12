@@ -1,5 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import { hold } from "./route-gate";
 import en from "../messages/en.json";
 import ps from "../messages/ps.json";
 import fa from "../messages/fa.json";
@@ -27,6 +28,11 @@ const CTA = {
   ps: ps.listing.detail.contactSeller,
   fa: fa.listing.detail.contactSeller,
 } as const;
+/**
+ * The composer's placeholder (`chat.startConversation.placeholder`), from the
+ * catalog for the same reason as the labels above.
+ */
+const COMPOSER = en.chat.startConversation.placeholder;
 /** Same for the bar's own accessible name (`listing.detail.actionBarLabel`). */
 const BAR = {
   en: en.listing.detail.actionBarLabel,
@@ -46,23 +52,6 @@ async function scrollBelowInlineActions(page: Page) {
     if (!el) throw new Error("#listing-actions missing");
     window.scrollTo(0, window.scrollY + el.getBoundingClientRect().bottom + 8);
   });
-}
-
-/**
- * Freeze a route until the returned function is called — how the save/unsave
- * specs below make the (normally ~1s) "we don't know yet" window observable.
- */
-async function hold(page: Page, pattern: string) {
-  let open: () => void = () => {};
-  const gate = new Promise<void>((resolve) => (open = resolve));
-  await page.route(pattern, async (route) => {
-    await gate;
-    await route.continue();
-  });
-  return async () => {
-    open();
-    await page.unroute(pattern);
-  };
 }
 
 /** Every save/unsave the browser actually sends, in order, as "METHOD action". */
@@ -209,7 +198,7 @@ test.describe("Listing action bar (mobile)", () => {
 
     await expect(async () => {
       await bar.getByRole("button", { name: CTA.en }).click();
-      await expect(page.getByPlaceholder("Ask about this item...")).toBeVisible({
+      await expect(page.getByPlaceholder(COMPOSER)).toBeVisible({
         timeout: 2000,
       });
     }).toPass({ timeout: 15_000 });
@@ -267,7 +256,7 @@ test.describe("Listing action bar (mobile)", () => {
     await page.goto("/en/listings/2");
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
-    const composer = page.getByPlaceholder("Ask about this item...");
+    const composer = page.getByPlaceholder(COMPOSER);
     await expect(async () => {
       await bar.getByRole("button", { name: CTA.en }).click();
       await expect(composer).toBeVisible({ timeout: 2000 });
@@ -316,7 +305,7 @@ test.describe("Listing action bar (mobile)", () => {
     await page.goto("/en/listings/2");
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
-    const composer = page.getByPlaceholder("Ask about this item...");
+    const composer = page.getByPlaceholder(COMPOSER);
     await expect(async () => {
       await bar.getByRole("button", { name: CTA.en }).click();
       await expect(composer).toBeVisible({ timeout: 2000 });
@@ -608,9 +597,114 @@ test.describe("Listing action bar (mobile)", () => {
     // Auth lands → the held tap opens the composer, on the listing, as if the
     // buyer had waited for it.
     await release();
-    await expect(page.getByPlaceholder("Ask about this item...")).toBeVisible();
+    await expect(page.getByPlaceholder(COMPOSER)).toBeVisible();
     expect(navigations).toBe(0);
     await expect(page).toHaveURL(/\/en\/listings\/2$/);
+  });
+
+  test("...and it keeps its primary fill the whole time it waits", async ({
+    page,
+  }) => {
+    // The unsettled cue must not cost the bar the thing it exists for. A
+    // `secondary` variant here dropped fill-vs-bar contrast from 4.97:1 to
+    // 1.19:1 light / 1.35:1 dark, so on every signed-in cold load the pinned
+    // primary action rendered as bare text with no button shape and then popped
+    // to blue when the probe answered. `aria-busy` carries "not ready" (asserted
+    // in the spec above) and the spinner arrives when a tap is held; the fill
+    // never changes. See src/lib/unsettled.ts, where that is decided once for
+    // every labelled control.
+    const release = await hold(page, "**/api/auth/session");
+    await page.goto("/en/listings/2");
+    const cta = page
+      .getByRole("region", { name: BAR.en })
+      .getByRole("button", { name: CTA.en });
+    await expect(cta).toHaveAttribute("aria-busy", "true");
+    const fill = (el: Locator) =>
+      el.evaluate((n) => getComputedStyle(n).backgroundColor);
+    const waiting = await fill(cta);
+    // Not the bar's own frosted surface, i.e. a real button is on screen.
+    expect(waiting).not.toBe("rgba(0, 0, 0, 0)");
+
+    await release();
+    await expect(cta).not.toHaveAttribute("aria-busy", "true");
+    expect(await fill(cta)).toBe(waiting);
+  });
+
+  test("waits a slow session probe out instead of cutting it off", async ({
+    page,
+  }) => {
+    // `/api/auth/session` ROTATES the devise access-token: Rails issues a new one
+    // and it only reaches the browser in that response's Set-Cookie. An
+    // `AbortSignal.timeout(8_000)` on it therefore discarded a token Rails had
+    // already replaced, and the retry 1.5s later presented the stale one —
+    // outside devise_token_auth's 5s batch buffer, so Rails answered 401 and the
+    // route cleared the cookies: a VALID session signed out, on exactly the slow
+    // network the timeout was meant to help. (It was also a synchronous
+    // `TypeError` on Safari <16 / WebView <103, where the method does not exist,
+    // which made every visitor on those browsers a guest.) So the probe now runs
+    // to completion however long it takes, and a hang costs the UI nothing worse
+    // than "still waiting".
+    const probes: number[] = [];
+    const t0 = Date.now();
+    page.on("request", (req) => {
+      if (new URL(req.url()).pathname === "/api/auth/session")
+        probes.push(Date.now() - t0);
+    });
+    const release = await hold(page, "**/api/auth/session");
+    await page.goto("/en/listings/2");
+    const cta = page
+      .getByRole("region", { name: BAR.en })
+      .getByRole("button", { name: CTA.en });
+    await expect(cta).toBeVisible();
+    await cta.click(); // held, exactly as in the spec above
+
+    // Past the 8s the abort used to fire at, plus its first 1.5s backoff.
+    await page.waitForTimeout(10_000);
+    // Nothing was RE-issued — that retry is what presented the stale token.
+    // Measured from the first probe rather than from the navigation, and with a
+    // window rather than a count: dev-mode Strict Mode double-invokes the mount
+    // effect, and a cold compile can put that mount seconds after `goto`. What
+    // matters is that nothing fires LATER, where the abort's 1500ms backoff would
+    // have put it.
+    expect(probes.length).toBeGreaterThan(0);
+    expect(probes.filter((at) => at - probes[0] > 2_000)).toEqual([]);
+    // ...and the viewer the server already identified is never demoted to guest
+    // by a slow probe: still waiting, still holding the tap, still no /login.
+    await expect(cta).toHaveAttribute("aria-busy", "true");
+    await expect(
+      page.getByRole("region", { name: BAR.en }).getByRole("link"),
+    ).toHaveCount(0);
+
+    await release();
+    await expect(page.getByPlaceholder(COMPOSER)).toBeVisible();
+  });
+
+  test("an unsettled heart signals with colour, never a dim", async ({
+    page,
+  }) => {
+    // `opacity-70` stacked on the muted glyph measured 2.64:1 against the bar's
+    // `bg-background/95` — under WCAG's 3:1 non-text floor — and 2.56:1 light /
+    // 2.47:1 dark once a tap flips the heart to `fill-destructive`. Undimmed, the
+    // colour swap alone clears it (4.52:1 / 3.62:1), so the colour is the cue and
+    // nothing touches opacity. Worst case was here: the heart is this bar's
+    // pinned state indicator on the site's one touch-only surface.
+    const release = await hold(page, "**/api/me/my/saved_listings**");
+    await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    const heart = page
+      .getByRole("region", { name: BAR.en })
+      .getByRole("button", { name: /save/i });
+    await expect(heart).toHaveAttribute("aria-busy", "true");
+    const opacity = await heart.evaluate((el) => getComputedStyle(el).opacity);
+    expect(opacity).toBe("1");
+    const glyphColor = () =>
+      heart.locator("svg").evaluate((el) => getComputedStyle(el).color);
+    const unknownColor = await glyphColor();
+
+    await release();
+    await expect(heart).toHaveAttribute("aria-pressed", "true");
+    expect(await heart.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+    // The one cue that is left has to actually be visible.
+    expect(await glyphColor()).not.toBe(unknownColor);
   });
 
   test("mirrors in RTL — price on the right in Pashto", async ({ page }) => {
