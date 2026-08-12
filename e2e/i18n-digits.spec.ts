@@ -221,6 +221,42 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       expect(complaints).toEqual([]);
     });
 
+    // /profile prints THREE independent numbers now that REP815 put your own
+    // reputation there: the stat tiles, the rating score, and the review count
+    // inside the same link as the score. The score used to be `toFixed(1)` and
+    // the tiles raw `{value}`, so the page showed a Latin "4.7" and three Latin
+    // tiles beside an Arabic-Indic "۳ نظرونه" — this file's failure mode, three
+    // components over. The review dates below them were English on /ps.
+    test("Profile: your own rating, stats and review dates are all Pashto", async ({
+      page,
+    }) => {
+      const complaints = watchHydration(page);
+      await page.goto("/ps/profile");
+
+      // The score and the count share one line (and one accessible name), so
+      // this single assertion is what makes two digit systems impossible there.
+      const rating = page.locator('a[href="#my-reviews"]');
+      await expect(rating).toBeVisible({ timeout: 60_000 });
+      await expect(rating).toHaveText(ARABIC_INDIC);
+      await expect(rating).not.toHaveText(LATIN_DIGIT);
+
+      const tiles = page.getByTestId("profile-stat-value");
+      await expect(tiles).toHaveCount(3);
+      for (const tile of await tiles.all()) {
+        await expect(tile).toHaveText(ARABIC_INDIC);
+        await expect(tile).not.toHaveText(LATIN_DIGIT);
+      }
+
+      // ReviewCard's date: client-rendered by definition (TanStack Query fills
+      // the list), which is precisely where the raw `ps` tag fell back to en-US.
+      const date = page.locator("#my-reviews time").first();
+      await expect(date).toBeVisible({ timeout: 60_000 });
+      await expect(date).toHaveText(ARABIC_INDIC);
+      await expect(date).not.toHaveText(LATIN_DIGIT);
+
+      expect(complaints).toEqual([]);
+    });
+
     test("Manage listing: the conversations count renders in Pashto digits", async ({
       page,
     }) => {

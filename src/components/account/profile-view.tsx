@@ -1,8 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Eye, LogOut, Pencil } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
+import { formatNumber } from "@/lib/format";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { RatingDisplay } from "@/components/shared/rating-display";
@@ -29,6 +30,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export function ProfileView() {
   const t = useTranslations();
+  const locale = useLocale();
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -99,7 +101,12 @@ export function ProfileView() {
       <div className="grid grid-cols-3 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="rounded-lg border bg-card p-4 text-center">
-            <div className="text-xl font-bold">{s.value}</div>
+            {/* `formatNumber`, not `{s.value}`: these printed raw, so on /ps and
+                /fa three Latin tile numbers sat under an Arabic-Indic review
+                count on the same screen (see `e2e/i18n-digits.spec.ts`). */}
+            <div className="text-xl font-bold" data-testid="profile-stat-value">
+              {formatNumber(s.value, locale)}
+            </div>
             <div className="text-xs text-muted-foreground">{s.label}</div>
           </div>
         ))}

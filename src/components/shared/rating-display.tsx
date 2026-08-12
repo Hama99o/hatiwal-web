@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,6 +21,7 @@ export function RatingDisplay({
   className?: string;
 }) {
   const t = useTranslations("reviews");
+  const locale = useLocale();
   const lg = size === "lg";
   const hasReviews = reviewCount > 0 && avgRating != null;
 
@@ -50,7 +52,17 @@ export function RatingDisplay({
       <span
         className={cn("font-bold text-foreground", lg ? "text-xl" : "text-sm")}
       >
-        {avgRating!.toFixed(1)}
+        {/* Through `formatNumber`, never `toFixed`: the count beside it is
+            formatted by next-intl, so a locale-blind score printed Latin "4.7"
+            directly next to Arabic-Indic "۳ نظرونه" on /ps and /fa — the exact
+            two-digit-systems-in-one-line defect `e2e/i18n-digits.spec.ts`
+            fences, and a divergence from mobile, which formats the same value
+            through `useLocalization().formatNumber`. One decimal always, so a
+            perfect score reads "5.0" and not "5". */}
+        {formatNumber(avgRating!, locale, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })}
       </span>
       <span className={cn("text-muted-foreground", lg ? "text-sm" : "text-xs")}>
         {t("reviewCount", { count: reviewCount })}

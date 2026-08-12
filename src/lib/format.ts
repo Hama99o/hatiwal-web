@@ -51,9 +51,21 @@ export function formatPrice(
   }
 }
 
-export function formatNumber(value: number, locale: string): string {
+/**
+ * Any bare number a screen prints (a count, a rating). `options` covers the one
+ * case that isn't an integer — a rating pinned to one decimal — so that value
+ * still goes through this ONE table instead of `toFixed`, which is locale-blind
+ * and would put Latin digits beside the locale's own (see `intl-locale-alias`).
+ */
+export function formatNumber(
+  value: number,
+  locale: string,
+  options?: Intl.NumberFormatOptions,
+): string {
   try {
-    return new Intl.NumberFormat(INTL_TAG[locale] ?? "en-US").format(value);
+    return new Intl.NumberFormat(INTL_TAG[locale] ?? "en-US", options).format(
+      value,
+    );
   } catch {
     return String(value);
   }
