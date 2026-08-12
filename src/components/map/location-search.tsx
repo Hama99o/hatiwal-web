@@ -149,7 +149,11 @@ export function LocationSearch({
                 type="button"
                 role="option"
                 aria-selected="false"
-                className="flex w-full items-start gap-2 px-3 py-2 text-start text-sm hover:bg-accent focus:bg-accent focus:outline-none"
+                // `min-h-11`: a suggestion row measures 36px on `py-2` alone —
+                // under the house 40px tap floor, on the geocoder a seller uses
+                // from the create-listing form on a phone. `items-start` and the
+                // 2-line clamp are unaffected.
+                className="flex min-h-11 w-full items-start gap-2 px-3 py-2 text-start text-sm hover:bg-accent focus:bg-accent focus:outline-none"
                 onClick={() => {
                   onSelect({
                     label: shortLabel(s.display_name),
@@ -165,7 +169,9 @@ export function LocationSearch({
               </button>
             </li>
           ))}
-          <li className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+          {/* `text-xs`, the bottom of the house type scale: a hardcoded 10px is
+              off-scale and unreadable in the Arabic script ps/fa use. */}
+          <li className="border-t px-3 py-1.5 text-xs text-muted-foreground">
             {t("listing.form.searchAttribution")}
           </li>
         </ul>

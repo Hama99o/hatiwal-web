@@ -170,6 +170,11 @@ export function SellerListingsView() {
         <ListingGrid
           listings={filtered}
           showStatus
+          // This is the ONE surface that names a missing photo: the seller who
+          // can fix it is the one reading the card. Buyer-facing grids (including
+          // the public seller profile's Sold tab, which also sets `showStatus`)
+          // keep the quiet placeholder.
+          nameMissingPhoto
           showSave={false}
           hrefFor={(l) => `/my-listings/${l.id}`}
           // Inline lifecycle quick-actions: publish/reserve/sold/renew/delete

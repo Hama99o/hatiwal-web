@@ -21,12 +21,13 @@
  *
  * The chips WRAP: a sideways-scrolling row is a phone gesture, and both web
  * hosts are pointer-first. Chip LABELS shrink and truncate to whatever the panel
- * offers (the remove target never does — see below), and at `lg`+ the panel is
- * allowed to be wider than the field it hangs from: it takes no space in the
- * layout, so a 250px sidebar field can still show a readable history two chips
- * to a row instead of ten stacked ones. The height cap keeps it from covering
- * the whole viewport; past that the list scrolls vertically, which a wheel can
- * reach.
+ * offers (the remove target never does — see below), and from `md` up the panel
+ * is allowed to be wider than the field it hangs from: it takes no space in the
+ * layout, so a narrow field — the Bazaar's 250px sidebar one at `lg`+, or the
+ * header's bar field wherever the nav squeezes it (measured 379px at 768px) —
+ * can still show a readable history two chips to a row instead of ten stacked
+ * ones. The height cap keeps it from covering the whole viewport; past that the
+ * list scrolls vertically, which a wheel can reach.
  *
  * Touch/pointer targets: every chip half (label + X) and "Clear all" is 44px
  * tall, and the X holds its 44px WIDTH however long the term is — a truncating
@@ -85,20 +86,23 @@ export function SearchHistoryPanel({
         //
         // Width is per-breakpoint, and both halves are field-relative so the
         // panel can never overhang the page's content box:
-        //  - below `lg` the only field on screen is the header's, already as wide
-        //    as the content column, so `w-full` (= the field) is both the widest
-        //    useful panel and inherently inside the padding. A `100vw` cap can't
-        //    do that job: `100vw` INCLUDES the scrollbar, so it resolves wider
-        //    than the box the field sits in.
-        //  - at `lg`+ the Bazaar's host column is only 250px, and matching it
-        //    turned a full 10-term history into 10 stacked rows, most behind a
-        //    scroll. It is a floating popover that takes no layout space, so it
-        //    is allowed to be wider than its field: 24rem fits TWO chips per row
-        //    at this type scale (measured), which puts the whole capped history
-        //    on screen. `max(100%, …)` never narrows a field that is already
-        //    wider (the header's is up to `max-w-md`), and at `lg`+ the viewport
-        //    is ≥1024px, so 24rem from the column's start edge always fits.
-        "absolute start-0 top-full z-50 mt-1 w-full p-3 lg:w-[max(100%,24rem)]",
+        //  - below `md` the only field on screen is the header's, dropped under
+        //    the bar and already as wide as the content column, so `w-full` (=
+        //    the field) is both the widest useful panel and inherently inside the
+        //    padding. A `100vw` cap can't do that job: `100vw` INCLUDES the
+        //    scrollbar, so it resolves wider than the box the field sits in.
+        //  - from `md` up the field can be NARROW — the Bazaar's sidebar column is
+        //    250px, and the header's bar field is only as wide as the nav leaves it
+        //    (measured 379px at 768px, 448px = `max-w-md` from ~900px) — and
+        //    matching it turned a full 10-term history into 10 stacked rows, most
+        //    behind a scroll. It is a floating popover that takes no layout space,
+        //    so it is allowed to be wider than its field: 24rem fits TWO chips per
+        //    row at this type scale, which puts the whole capped history on screen.
+        //    `max(100%, …)` never narrows a field that is already wider, and the
+        //    floor is gated at `md` rather than `lg` because the squeeze starts
+        //    there — measured at 768px and up, 24rem from the field's start edge
+        //    stays inside the content box (`insideContentBox`, no page overflow).
+        "absolute start-0 top-full z-50 mt-1 w-full p-3 md:w-[max(100%,24rem)]",
         // Surface (radius/border/background/shadow) is the shared recipe, so this
         // panel, the location autocomplete and every Radix menu are one object.
         FLOATING_PANEL_SURFACE,
@@ -152,8 +156,17 @@ export function SearchHistoryPanel({
             >
               {/* No fixed cap: the term uses whatever the panel has left (up to
                   the field's full width) and only truncates when it must.
-                  `min-w-0` is what lets a nowrap flex child shrink at all. */}
-              <span className="min-w-0 truncate">{term}</span>
+                  `min-w-0` is what lets a nowrap flex child shrink at all.
+
+                  `dir="auto"` so each term lays out — and ELIDES — in its own
+                  base direction: inheriting the panel's `rtl` in ps/fa clipped a
+                  Latin term from its START ("…galaxy a54 128gb"), dropping the
+                  brand word, which is the most identifying token in the term and
+                  the thing mobile's `numberOfLines={1}` always keeps. Pashto and
+                  Dari terms are unaffected (they resolve to rtl either way). */}
+              <span dir="auto" className="min-w-0 truncate">
+                {term}
+              </span>
             </Button>
             <Button
               type="button"
@@ -167,7 +180,14 @@ export function SearchHistoryPanel({
               // floor, on the one control whose mis-tap costs a saved search. It
               // holds its 44px and the label (`min-w-0 truncate`) absorbs all the
               // shrink instead. `ring-offset-0` as on the label half.
-              className="size-11 shrink-0 rounded-none rounded-e-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-offset-0"
+              //
+              // Hover keeps `text-foreground` for the same reason the label half
+              // does: the destructive TINT carries "this forgets it", while a
+              // `text-destructive` glyph on `destructive/10` computes to 3.04:1
+              // light / 2.94:1 dark — at or under the 3:1 non-text floor, and
+              // dimmer than the same X at rest. The one control whose mis-tap
+              // costs a saved search may not get harder to see when aimed at.
+              className="size-11 shrink-0 rounded-none rounded-e-full text-muted-foreground hover:bg-destructive/10 hover:text-foreground focus-visible:ring-offset-0"
             >
               <X aria-hidden />
             </Button>

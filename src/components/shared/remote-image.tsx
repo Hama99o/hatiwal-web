@@ -14,9 +14,10 @@ interface RemoteImageProps {
   /**
    * Caption under the no-photo glyph (pass `t('listing.noPhoto')`). Only for the
    * contexts where the missing photo is something to ACT on — the seller's own
-   * card, where "no photo" is why nobody is messaging them. On the public feed
-   * leave it off: there the quiet glyph is right and a caption on every photoless
-   * card would be noise. Ignored when there is a `src`.
+   * card on `/my-listings`, where "no photo" is why nobody is messaging them
+   * (`ListingCard`'s `nameMissingPhoto`). On any buyer-facing grid leave it off:
+   * there the quiet glyph is right and a caption on every photoless card would be
+   * noise. Ignored when there is a `src`.
    */
   label?: string;
 }
@@ -49,7 +50,11 @@ export function RemoteImage({
     // (seller contexts — see the prop). The caption gets the full
     // `text-muted-foreground` token rather than the glyph's /40 wash, because it
     // is text a seller has to read; the glyph stays quiet so the two don't
-    // compete. The children are invisible to a screen reader either way
+    // compete. `text-xs` is the bottom of the house type scale (DESIGN_SYSTEM §3)
+    // and matches mobile's two equivalents (both 11px) — and it still fits the
+    // tightest tile: "No photo" is ~54px and the ps/fa strings ~60px inside the
+    // ~88px content box of the 96px `list` thumbnail, so `truncate` never fires at
+    // the narrow end. The children are invisible to a screen reader either way
     // (`role="img"` prunes its subtree), so the accessible name is still the
     // listing title and the caption adds no duplicate announcement.
     return (
@@ -65,7 +70,7 @@ export function RemoteImage({
       >
         <Package className="size-7" strokeWidth={1.5} />
         {label && (
-          <span className="max-w-full truncate px-1 text-[10px] font-medium leading-tight text-muted-foreground">
+          <span className="max-w-full truncate px-1 text-xs font-medium leading-tight text-muted-foreground">
             {label}
           </span>
         )}

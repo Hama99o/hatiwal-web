@@ -92,6 +92,22 @@ const panel = (page: Page) => page.getByTestId("search-history-panel");
 /** The Bazaar's filter card — the last child of the sidebar, below the field. */
 const filterCard = (page: Page) => page.locator("aside > div").last();
 
+/**
+ * How far a panel's edges sit from its FIELD's, in CSS px (positive = further
+ * right). The field is the panel's `position: relative` wrapper — panel → slot
+ * div → wrapper — i.e. the box `start-0` anchors to.
+ */
+const anchorGaps = (panelLocator: Locator) =>
+  panelLocator.evaluate((el) => {
+    const field = el.parentElement?.parentElement as HTMLElement;
+    const panelBox = el.getBoundingClientRect();
+    const fieldBox = field.getBoundingClientRect();
+    return {
+      start: Math.round(panelBox.left - fieldBox.left),
+      end: Math.round(panelBox.right - fieldBox.right),
+    };
+  });
+
 /** SSR marker for the Bazaar feed — proves the route rendered before we click. */
 const feedReady = (page: Page) =>
   expect(page.getByText("iPhone 13 Pro")).toBeVisible();
@@ -428,12 +444,29 @@ test.describe("Recent searches", () => {
 
   test("renders right-to-left in Pashto", async ({ page }) => {
     await seedHistory(page, ["iphone"]);
+    await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/ps/bazaar");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await openSidebarPanel(page);
     await expect(
       sidebarPanel(page).getByRole("button", { name: "iphone", exact: true }),
     ).toBeVisible();
+
+    // The panel is ANCHORED to the field's start edge, which in RTL is its RIGHT
+    // one — pinned because the panel is wider than the sidebar field, so a
+    // `start-0` that regressed to `left-0` would hang it the other way and detach
+    // it from its field while still passing a chips-are-visible check.
+    const rtl = await anchorGaps(sidebarPanel(page));
+    expect(Math.abs(rtl.end)).toBeLessThanOrEqual(1); // shares the RIGHT edge…
+    expect(rtl.start).toBeLessThan(-1); // …and overhangs to the left.
+
+    // …and the mirror image in LTR: same panel, start edge = left.
+    await page.goto("/en/bazaar");
+    await feedReady(page);
+    await openSidebarPanel(page);
+    const ltr = await anchorGaps(sidebarPanel(page));
+    expect(Math.abs(ltr.start)).toBeLessThanOrEqual(1);
+    expect(ltr.end).toBeGreaterThan(1);
   });
 
   test("arrow keys walk the chips and Escape returns to the field", async ({
@@ -833,10 +866,17 @@ test.describe("Recent searches", () => {
     await openPanel(headerInput(page), headerPanel(page));
 
     // Long terms truncate instead of stretching the layout: the document never
-    // scrolls sideways. Exact, no tolerance — below `lg` the panel is as wide as
+    // scrolls sideways. Exact, no tolerance — below `md` the panel is as wide as
     // its field and nothing else, so there is no legitimate slack to allow.
+    //
+    // Measured against `clientWidth`, NOT `window.innerWidth`: the latter counts
+    // the classic scrollbar Chromium renders on this (long) page while
+    // `scrollWidth` does not, so the difference would sit near -15 with zero
+    // overflow and a `<= 0` bound would tolerate ~15px of REAL overflow.
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
 

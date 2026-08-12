@@ -44,10 +44,31 @@ export function HeaderSearch({ className }: { className?: string }) {
   // The query we last drove into the URL — lets the debounce skip a no-op push.
   const lastPushed = useRef("");
 
+  /**
+   * A query another field published that this one had to SKIP because it was
+   * mid-edit, held until the field goes clean again (drained by the debounce
+   * effect below). `null` = nothing owed.
+   */
+  const skipped = useRef<string | null>(null);
+
+  /**
+   * Show `q` and treat it as this field's own committed query, so the debounce
+   * below never re-pushes it and it is never recorded as a search made here.
+   * Any pending news is superseded by what we are showing now.
+   */
+  const adopt = useCallback((q: string) => {
+    skipped.current = null;
+    lastPushed.current = q;
+    setValue(q);
+  }, []);
+
   const go = useCallback(
     (raw: string) => {
       const q = raw.trim();
       lastPushed.current = q;
+      // Our own commit outranks anything queued while we were typing — and the
+      // publish below is deduped by value, so it may not fire to clear this.
+      skipped.current = null;
       add(q); // Remembered locally only — never sent to Rails, never in the URL.
       // Tell the other fields on screen (the second header copy, and the Bazaar
       // island once it adopts the new URL) what is now applied.
@@ -80,13 +101,14 @@ export function HeaderSearch({ className }: { className?: string }) {
     const sync = () => {
       const q = readBrowseQuery(pathname);
       if (q === lastPushed.current) return;
-      lastPushed.current = q;
-      setValue(q);
+      // The URL is the source of truth: adopting it also drops any publication
+      // we were still holding, which this navigation has just made stale.
+      adopt(q);
     };
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
-  }, [pathname]);
+  }, [pathname, adopt]);
 
   /**
    * Adopt a query committed by ANOTHER field.
@@ -106,32 +128,56 @@ export function HeaderSearch({ className }: { className?: string }) {
    *   - the field is DIRTY (its text is no longer what it last committed, i.e.
    *     keystrokes are waiting on the 350ms debounce) → the buyer's in-progress
    *     query outranks any other field's news, so a late echo can never revert
-   *     the text mid-word. Nothing is lost by waiting: what they are typing
-   *     commits moments later and publishes in turn, leaving this field showing
-   *     the query it applied itself.
+   *     the text mid-word.
+   *
+   * The dirty case DEFERS the news, it does not drop it: the term is stashed in
+   * `skipped` and adopted the moment the field goes clean without publishing
+   * anything of its own. Without that, erasing the in-progress text back to what
+   * this field last committed would leave it EMPTY while the feed and the Bazaar
+   * field both show the other field's term — a publication is announced once
+   * (the store dedupes by value), so a dropped one never comes round again.
+   * (Not pinned by a spec: reaching that state needs another field to commit
+   * inside this one's 350ms debounce and the text erased before it fires — a
+   * ~100ms window that real-timer Playwright cannot hit reliably, and web has no
+   * unit runner to fake the clock in.)
    *
    * Dirtiness is read through a ref, so this effect runs ONLY on a real
-   * publication and not on every keystroke — with `value` in the deps, restoring
-   * the field to its committed text (the Back button's `popstate` sync above
-   * does exactly that) would re-run the effect against a still-stale published
-   * term and adopt it, putting the query the buyer just left back in the box.
+   * publication and not on every keystroke. Re-running it on the dirty→clean
+   * edge instead would look equivalent and is not: `committed` is a standing
+   * value, not an event, so any later return to a clean field would re-adopt it
+   * — type and erase two characters in the header of a listing page after an
+   * earlier search and the box would fill itself with that dead term.
    */
   const committed = useCommittedBrowseQuery();
   const valueRef = useRef(value);
   valueRef.current = value;
   useEffect(() => {
-    if (committed === null || committed === lastPushed.current) return;
-    if (valueRef.current.trim() !== lastPushed.current) return;
-    lastPushed.current = committed;
-    setValue(committed);
-  }, [committed]);
+    if (committed === null || committed === lastPushed.current) {
+      skipped.current = null; // Already showing it — nothing owed.
+      return;
+    }
+    if (valueRef.current.trim() !== lastPushed.current) {
+      skipped.current = committed; // Mid-edit — hold it (drained below).
+      return;
+    }
+    adopt(committed);
+  }, [committed, adopt]);
 
   // Live search: filter the bazaar as you type — no Enter required.
   useEffect(() => {
-    if (value.trim() === lastPushed.current) return;
+    if (value.trim() === lastPushed.current) {
+      // Nothing to push: the field shows exactly what it last committed. This is
+      // also the dirty→clean edge, so it is where a publication skipped while
+      // the buyer was typing gets drained — the field ends up agreeing with the
+      // query that is actually applied instead of contradicting it.
+      const pending = skipped.current;
+      skipped.current = null;
+      if (pending !== null && pending !== lastPushed.current) adopt(pending);
+      return;
+    }
     const id = setTimeout(() => go(value), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(id);
-  }, [value, go]);
+  }, [value, go, adopt]);
 
   return (
     <SearchBox

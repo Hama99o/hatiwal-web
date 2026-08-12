@@ -37,6 +37,7 @@ export function ListingGrid({
   viewMode = "grid",
   columns = "page",
   showStatus,
+  nameMissingPhoto,
   showSave,
   priorityCount = 0,
   hrefFor,
@@ -49,6 +50,11 @@ export function ListingGrid({
   /** `page` (default) = full feed tracks; `rail` = 2→4 for a capped rail. */
   columns?: ListingGridColumns;
   showStatus?: boolean;
+  /**
+   * Caption photoless cards "No photo" — the OWNER's own inventory only (see the
+   * prop on `ListingCard`). Never pass it on a buyer-facing grid.
+   */
+  nameMissingPhoto?: boolean;
   /** Save-heart on each card (default true). Turn off in owner contexts. */
   showSave?: boolean;
   priorityCount?: number;
@@ -72,6 +78,7 @@ export function ListingGrid({
           variant={viewMode}
           tracks={columns}
           showStatus={showStatus}
+          nameMissingPhoto={nameMissingPhoto}
           showSave={showSave}
           priority={i < priorityCount}
           href={hrefFor?.(listing)}

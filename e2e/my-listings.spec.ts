@@ -279,8 +279,11 @@ test.describe("My Shop (seller dashboard)", () => {
   // A photoless listing in the seller's OWN shop is an action prompt — no photo
   // is why nobody is messaging them — so the placeholder says so in words instead
   // of showing a silent grey glyph (mobile's SellerListingCard does the same).
-  // It rides the `showStatus` owner switch, so the public feed keeps the quiet
-  // tile: asserted both ways below.
+  //
+  // It rides its OWN `nameMissingPhoto` flag, not the `showStatus` badge switch,
+  // so every buyer-facing grid keeps the quiet tile. Both public surfaces are
+  // asserted below — the feed, and the public seller profile's Sold grid, which
+  // also sets `showStatus` and was the one that leaked the caption to buyers.
   test("a photoless card names the gap, and only in the seller's own shop", async ({
     page,
   }) => {
@@ -298,6 +301,18 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("iPhone 13 Pro").first()).toBeVisible({
       timeout: 60_000,
     });
+    await expect(page.getByText("No photo")).toHaveCount(0);
+    // The public seller profile's Sold tab: `showStatus` is on here too (the
+    // cards carry a dimmed "Sold" badge), so this is the surface that proves the
+    // caption is gated on OWNERSHIP and not on the badge switch.
+    await page.goto("/en/sellers/1");
+    await page.getByRole("tab", { name: "Sold" }).click();
+    const soldCard = page.locator('a[href="/en/listings/7"]');
+    await expect(soldCard).toBeVisible({ timeout: 60_000 });
+    // The lifecycle badge still renders on this photoless card — it is only the
+    // caption that is suppressed, so the assertion below cannot pass by the grid
+    // simply having failed to load.
+    await expect(soldCard.getByText("Sold", { exact: true })).toBeVisible();
     await expect(page.getByText("No photo")).toHaveCount(0);
   });
 

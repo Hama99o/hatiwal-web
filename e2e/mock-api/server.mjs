@@ -453,6 +453,20 @@ function route(req, res, method, path, q, body) {
     });
   }
 
+  // A seller's SOLD listings — guest-readable, the public profile's Sold tab
+  // (`seller/seller-listings-tabs.tsx`, lazy-loaded when the tab is opened).
+  // Rails' :list view, same envelope as /listings. Declared before /users/:id/…
+  // authed routes for the same reason as the other public ones.
+  const soldListingsMatch = path.match(/^\/users\/(\d+)\/sold_listings$/);
+  if (method === "GET" && soldListingsMatch) {
+    const uid = Number(soldListingsMatch[1]);
+    const items = LISTINGS.filter(
+      (l) => l.status === "sold" && l.seller_id === uid,
+    );
+    const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
+    return send(res, 200, { listings: slice.map(listView), meta: { pagination } });
+  }
+
   // Reviews of a user — guest-readable (public trust surface, VISIBLE only).
   const reviewsMatch = path.match(/^\/users\/(\d+)\/reviews$/);
   if (method === "GET" && reviewsMatch) {

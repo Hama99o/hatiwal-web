@@ -44,6 +44,13 @@ interface ListingCardProps {
   tracks?: ListingCardTracks;
   /** Show the lifecycle badge for non-active listings (seller/owner contexts). */
   showStatus?: boolean;
+  /**
+   * Caption a photoless card "No photo" instead of showing the silent glyph.
+   * ONLY for the owner's own inventory (`/my-listings`), where the person who can
+   * add the photo is the one reading it. Deliberately separate from `showStatus`
+   * — see the note at `noPhotoLabel` below.
+   */
+  nameMissingPhoto?: boolean;
   /** Save-heart overlay on the photo (default). Turn off in owner contexts. */
   showSave?: boolean;
   priority?: boolean;
@@ -68,6 +75,7 @@ export function ListingCard({
   variant = "grid",
   tracks = "page",
   showStatus = false,
+  nameMissingPhoto = false,
   showSave = true,
   priority = false,
   href,
@@ -85,12 +93,23 @@ export function ListingCard({
   ) : null;
   const cover = listing.thumbnailUrl ?? listing.images[0] ?? null;
   const showStatusBadge = showStatus && listing.status !== "active";
-  // Owner/seller contexts (`showStatus`, the same switch the lifecycle badges
-  // ride on) NAME a missing photo instead of leaving a silent grey glyph: in the
-  // seller's own shop a photoless listing is an action prompt — no photo is why
-  // nobody is messaging them — and mobile's SellerListingCard labels it the same
-  // way. On the public feed the quiet placeholder stays quiet.
-  const noPhotoLabel = showStatus ? t("noPhoto") : undefined;
+  // The seller's OWN inventory names a missing photo in words instead of leaving
+  // a silent grey glyph: there a photoless listing is an action prompt — no photo
+  // is why nobody is messaging them — and mobile's SellerListingCard labels it
+  // the same way.
+  //
+  // It rides its own explicit flag, NOT `showStatus`: that prop means "show the
+  // lifecycle badges" and is also on for the PUBLIC seller profile's Sold grid
+  // (`seller/seller-listings-tabs.tsx`), where a buyer would get "No photo"
+  // stamped on every photoless sold card. Ownership and badges are two different
+  // questions — keep them two props.
+  //
+  // Suppressing the caption for buyers is a DELIBERATE DIVERGENCE from mobile,
+  // not an oversight: mobile's shared ListingCard captions a photoless listing
+  // unconditionally, so its buyer feed is captioned too. On web the public feed
+  // keeps the quiet unlabelled tile on purpose (a caption is noise to someone who
+  // cannot act on it) — do not "restore parity" by dropping this gate.
+  const noPhotoLabel = nameMissingPhoto ? t("noPhoto") : undefined;
 
   const saveHeart = showSave ? (
     <SaveButton
