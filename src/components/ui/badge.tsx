@@ -16,12 +16,17 @@ const badgeVariants = cva(
          * `--primary-strong`, not `--primary`: the tinted `default` reaches only
          * ~3.6:1 against its own fill, and a solid `--primary` is 4.9:1 in light
          * but *3.6:1 in dark* — both under the 4.5:1 AA floor that the 12px
-         * digits in these pills sit at. `--primary-strong` is ~6.7:1 in either
-         * theme (asserted in e2e/listing-detail.spec.ts, so a palette tweak
-         * can't silently re-break the one number the owner panel exists to make
-         * a seller act on).
+         * digits in these pills sit at. The pair goes together: the fill flips
+         * away from each theme's background (deep in light, bright in dark) and
+         * `--primary-strong-foreground` supplies the matching ink, so the pill
+         * clears AA for its digits (6.8:1 light · 5.5:1 dark) AND stays a good
+         * 3:1+ louder than the surface under it (6.5:1 · 5.5:1). Both are
+         * asserted in e2e/listing-detail.spec.ts, so a palette tweak can't
+         * silently re-break — or quietly mute — the one number the owner panel
+         * exists to make a seller act on.
          */
-        count: "border-transparent bg-primary-strong text-primary-foreground",
+        count:
+          "border-transparent bg-primary-strong text-primary-strong-foreground",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",

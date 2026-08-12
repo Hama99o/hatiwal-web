@@ -839,9 +839,13 @@ test.describe("Listing detail — viewed by its own seller", () => {
       panel.getByRole("link", { name: /چټونه وګورئ/ }),
     ).toHaveAttribute("href", "/ps/conversations?listing=1");
     // The lifecycle action is translated too — the panel is not English-only.
-    // "خوندي ښودل" = Mark as Reserved, an active listing's next step.
+    // "ریزرو کول" = Mark as Reserved, an active listing's next step. The ps
+    // wording was corrected from "خوندي ښودل" (literally "mark safe") to the
+    // loanword every other reserve string in messages/ps.json already uses —
+    // "ریزرو شوی", "اعلان ریزرو شو", "ریزرو تایید کړئ" — so one concept no
+    // longer has two unrelated roots in the same language.
     await expect(
-      panel.getByRole("button", { name: "خوندي ښودل" }),
+      panel.getByRole("button", { name: "ریزرو کول" }),
     ).toBeVisible();
     // RTL: the panel's own content flows right-to-left with the document.
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");

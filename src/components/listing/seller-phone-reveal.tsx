@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Phone } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useLoginHref } from "@/components/auth/login-href";
 import { useIsOwner } from "@/components/auth/owner-gate";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ export function SellerPhoneReveal({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  const loginHref = useLoginHref();
   const { status } = useAuth();
   // Shared owner rule (`useIsOwner`) — the same test every owner-gated control
   // on the listing page uses, so "is this mine?" is decided in exactly one place.
@@ -38,7 +40,9 @@ export function SellerPhoneReveal({
         className="w-full"
         onClick={() => {
           if (status !== "authed") {
-            router.push("/login");
+            // `?next=` so signing in returns them to this listing instead of
+            // /profile — one shared helper for every gated action (login-href.ts).
+            router.push(loginHref());
             return;
           }
           setRevealed(true);

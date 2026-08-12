@@ -7,6 +7,7 @@ import { Loader2, MessageCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useLoginHref } from "@/components/auth/login-href";
 import { useIsOwner, useServerViewerId } from "@/components/auth/owner-gate";
 import {
   getConversations,
@@ -67,6 +68,7 @@ export function StartConversationButton({
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const loginHref = useLoginHref();
   const qc = useQueryClient();
   const { status } = useAuth();
   // Shared owner rule (`useIsOwner`) — the same test <OwnerListingBar>,
@@ -126,7 +128,7 @@ export function StartConversationButton({
     status === "loading",
     () => {
       if (status !== "authed") {
-        router.push("/login");
+        router.push(loginHref());
         return;
       }
       setOpen(true);
@@ -163,15 +165,32 @@ export function StartConversationButton({
   // — the price beside it must never shrink, so the label is what gives. `min-w-0`
   // is what lets a flex child shrink below its content width at all.
   //
+  // The GLYPH is also this control's unsettled cue, per rule 1 of
+  // lib/unsettled.ts: while the identity is unresolved the stacked layout shows
+  // `Loader2` where it would show `MessageCircle` — the same 16px box, so it costs
+  // no width and no contrast, and unlike a pulse it is still visible with
+  // `prefers-reduced-motion`. The compact bar row is the module's one documented
+  // exception: it renders no icon at all, and adding one before a tap would spend
+  // the +24px measured above on an idle wait. A HELD tap earns it in both layouts
+  // — an ellipsized label is a fair price for "I heard you".
+  //
   // `listing.detail.contactSeller` — the SAME key mobile's CTA uses
   // (ListingDetail.tsx), per parity rule 2: one concept, one key, so the app and
   // the web say the same words for the same action. (Web used
   // `listing.detail.messageSeller`, which on mobile labels the composer sheet —
   // the analogue of the dialog this button opens, whose heading is still
   // `chat.startConversation.title` = the same "Message Seller" copy.)
-  const primaryLabel = (
+  const primaryLabel = ({
+    waiting = false,
+    held = false,
+  }: { waiting?: boolean; held?: boolean } = {}) => (
     <>
-      {!compact && <MessageCircle className="size-4" />}
+      {(!compact || held) &&
+        (waiting || held ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <MessageCircle className="size-4" />
+        ))}
       <span className={compact ? "min-w-0 truncate" : undefined}>
         {t("listing.detail.contactSeller")}
       </span>
@@ -187,15 +206,32 @@ export function StartConversationButton({
   // visits — is the only state many buyers ever see. It also carries no
   // `aria-busy`: the server answered, so nothing about this control is pending.
   //
-  // Same wrapper as the other two branches so the element in this slot never
+  // Same wrapper as the other two branches so the WRAPPER in this slot never
   // changes type: React reconciles by position + type, and a `div`→`a` swap
   // unmounts the node, dropping a keyboard user's focus to <body> so the next Tab
   // restarts at the top of the document.
+  //
+  // The BUTTON itself is the one element that cannot be type-stable across all
+  // resolutions, and the residual path is worth naming rather than implying it is
+  // gone: this branch is `Button asChild > Link` (an `<a>`, deliberately — it has
+  // to work in the server HTML before hydration), while the resolved branch opens
+  // a dialog and so must be a real `<button>`. The unsettled branch is a
+  // `<button>` too, which makes the common transition (hint says signed in →
+  // probe confirms it) type-stable and leaves the rare one (hint says signed in →
+  // probe answers guest, i.e. a `hatiwal_viewer_id` cookie whose devise tokens
+  // have expired) as the swap. That is the trade, not an oversight: making the
+  // unsettled branch an `<a>` would only move the swap onto the path almost every
+  // signed-in viewer takes.
+  //
+  // `?next=` without the live query string (`includeQuery: false`): this href is
+  // rendered, and the query is unreadable during SSR, so including it would make
+  // the server HTML and the first client render disagree on the site's primary
+  // action. See login-href.ts.
   if (guest) {
     return (
       <div className={wrapperClass}>
         <Button asChild className={primaryClass}>
-          <Link href="/login">{primaryLabel}</Link>
+          <Link href={loginHref({ includeQuery: false })}>{primaryLabel()}</Link>
         </Button>
       </div>
     );
@@ -207,36 +243,26 @@ export function StartConversationButton({
   // against the resolved identity, never guessed — rendering the guest branch here
   // navigated a signed-in buyer off the listing to a login page they don't need.
   //
-  // Chrome-wise this is the READY button, deliberately: `aria-busy` carries the
-  // state for assistive tech and the spinner appears the instant a tap is held,
-  // but nothing touches the fill or the label before that. Both louder options
-  // were measured and cost more than they buy — `opacity-70` dims the label to
-  // ~3.1:1 against a 4.5:1 AA floor, and a `secondary` variant drops fill-vs-bar
-  // contrast from 4.97:1 to 1.19:1, i.e. the pinned primary action renders as
-  // bare text with no button shape on every signed-in cold load, which is the one
-  // thing the sticky bar exists to provide. See lib/unsettled.ts, where that
-  // trade is decided once for every labelled control (`ReportButton` too).
-  // Keeping the untapped row spinner-less also keeps it off the +24px of icon and
-  // gap that decides whether the label fits on a 360px phone. The offer
-  // affordance is absent here exactly as in the guest branch, so no resolution of
-  // the probe changes the layout.
+  // Chrome-wise this keeps the READY button's FILL and label, deliberately: the
+  // cue is the glyph swap above, and nothing touches the shape or the colours.
+  // Both louder options were measured and cost more than they buy — `opacity-70`
+  // composites the whole button to ≈2.0:1 against a 4.5:1 AA floor, and a
+  // `secondary` variant drops fill-vs-bar contrast from 4.97:1 to 1.19:1, i.e. the
+  // pinned primary action renders as bare text with no button shape on every
+  // signed-in cold load, which is the one thing the sticky bar exists to provide.
+  // See lib/unsettled.ts, where that trade is decided once for every labelled
+  // control (`ReportButton` too). The offer affordance is absent here exactly as
+  // in the guest branch, so no resolution of the probe changes the layout.
   if (unsettled) {
-    const state = unsettledProps({
-      unknown: true,
-      busy: queuedMessage,
-      queued: queuedMessage,
-      tone: "text",
-    });
     return (
       <div className={wrapperClass}>
         <Button
           type="button"
           onClick={queueMessage}
-          {...state}
-          className={cn(primaryClass, state.className)}
+          {...unsettledProps({ unknown: true, busy: queuedMessage })}
+          className={primaryClass}
         >
-          {queuedMessage && <Loader2 className="animate-spin" />}
-          {primaryLabel}
+          {primaryLabel({ waiting: true, held: queuedMessage })}
         </Button>
       </div>
     );
@@ -294,7 +320,7 @@ export function StartConversationButton({
   return (
     <div className={wrapperClass}>
       <Button className={primaryClass} onClick={() => setOpen(true)}>
-        {primaryLabel}
+        {primaryLabel()}
       </Button>
       {/* Make an offer — hidden when the listing is firm-priced (N071), and not
           carried by the sticky bar at all: measured on a 360px phone, a second

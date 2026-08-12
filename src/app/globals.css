@@ -16,14 +16,20 @@
   --popover-foreground: hsl(222 47% 11%);
   --primary: hsl(221 83% 53%);
   --primary-foreground: hsl(0 0% 100%);
-  /* Deeper primary for SMALL SOLID fills — the count pills (unread messages,
-     buyers waiting on a listing). White on `--primary` is 4.9:1 in light and
-     only 3.6:1 in dark, and these pills carry 12px digits, i.e. the 4.5:1 AA
-     floor applies. This value clears ~6.7:1 in BOTH themes with the same white
-     `--primary-foreground`, so the pill reads the same in either theme instead
-     of flipping to dark-on-bright. Web-only: mobile draws its count pills at a
-     larger size, so its palette has no equivalent yet. */
+  /* The fill for SMALL SOLID pills — the counts (unread messages, buyers waiting
+     on a listing). `--primary` itself is only 4.9:1 against white in light and
+     3.6:1 in dark, and these pills carry 12px digits, i.e. the 4.5:1 AA floor
+     applies. A count pill has TWO contrast jobs, though, and they pull opposite
+     ways: its digits must clear 4.5:1 against the fill, AND the fill must clear
+     the 3:1 non-text floor against the surface it sits on — otherwise "3 buyers
+     are waiting on you" is legible but no longer loud, which is the pill's whole
+     purpose. So each theme goes AWAY from its own background rather than always
+     darkening: deeper than `--primary` on the near-white page here, brighter than
+     it in the dark theme (see `.dark`). Light: 6.8:1 for the digits, 6.5:1
+     against the page. Web-only — mobile draws its count pills larger, so its
+     palette has no equivalent yet. */
   --primary-strong: hsl(221 83% 45%);
+  --primary-strong-foreground: hsl(0 0% 100%);
   --secondary: hsl(214 32% 91%);
   --secondary-foreground: hsl(222 47% 11%);
   --muted: hsl(210 40% 96%);
@@ -53,9 +59,15 @@
   --popover-foreground: hsl(210 40% 98%);
   --primary: hsl(217 91% 60%);
   --primary-foreground: hsl(0 0% 100%);
-  /* Same hue as this theme's primary, dark enough for white 12px digits (~6.6:1
-     against ~3.6:1 for `--primary` itself). See the light value above. */
-  --primary-strong: hsl(217 91% 42%);
+  /* INVERTED, not darkened (see the light value above for both jobs a count pill
+     has to do). Darkening to `hsl(217 91% 42%)` won the digits ~6.6:1 but left the
+     fill at 3.0:1 against `--background` and 2.6:1 against `--card` — under the
+     3:1 non-text floor, on the very surfaces these pills sit on, and DARKER than
+     this theme's own `--primary`, so the number receded into the page at night.
+     A bright fill with the page's near-black as its ink instead: 5.5:1 for the
+     digits AND 5.5:1 against the page (4.7:1 on a card). */
+  --primary-strong: hsl(217 91% 60%);
+  --primary-strong-foreground: var(--background);
   --secondary: hsl(217 33% 17%);
   --secondary-foreground: hsl(210 40% 98%);
   --muted: hsl(217 33% 17%);
@@ -84,6 +96,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-strong: var(--primary-strong);
+  --color-primary-strong-foreground: var(--primary-strong-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

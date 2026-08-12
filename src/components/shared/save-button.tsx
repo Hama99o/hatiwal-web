@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   useMutation,
@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useLoginHref } from "@/components/auth/login-href";
 import { useIsOwner, useServerViewerId } from "@/components/auth/owner-gate";
 import { getSavedListings, toggleSaved } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
@@ -63,9 +64,9 @@ function writeFlip(
  *
  * INDETERMINATE, not "not saved" (see `unknown` below): until BOTH the session
  * probe and that shared list have landed, this button does not know the answer
- * and says so — dimmed heart, `aria-busy`, no `aria-pressed` — instead of
- * painting the outline heart and calling it "Save listing". A tap in that window
- * is remembered and replayed once the truth arrives, so it can never send
+ * and says so — muted glyph, `aria-busy`, no `aria-pressed` — instead of painting
+ * the outline heart and claiming a state it has not confirmed. A tap in that
+ * window is remembered and replayed once the truth arrives, so it can never send
  * `POST save` for a listing that was already saved. The exception is a page that
  * already published the server's answer (`useServerViewerId()` → `null`): a
  * guest's heart needs no probe, so it renders settled on the first frame.
@@ -106,6 +107,7 @@ export function SaveButton({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  const loginHref = useLoginHref();
   const { status, user, probeTimedOut } = useAuth();
   const isOwner = useIsOwner(ownerId);
   // What the SERVER already knew about this viewer (see `useServerViewerId`).
@@ -121,9 +123,21 @@ export function SaveButton({
   // the tree. If that probe never answers (a hung socket never rejects, so the
   // retry loop in auth-provider.tsx never runs), the heart would announce itself
   // pending forever. After the probe's budget it stops waiting and reads
-  // `initialSaved` like a guest; a tap then goes to /login, which recovers. Only
-  // ever with NO hint: a viewer the server said is signed in must never be
-  // demoted this way, and one the server said is a guest was never waiting.
+  // `initialSaved` like a guest; a tap then goes to `/login?next=` — the ONE path
+  // by which a signed-in viewer can still be sent to sign in, which is why it
+  // carries `next` (login-form.tsx bounces an already-authed visitor straight
+  // back, so they land where they were rather than on /profile).
+  //
+  // Why the tap is not simply HELD until the probe answers, which would avoid
+  // that trip entirely: on a hint-less page the two viewers are provably
+  // indistinguishable in the browser. `hatiwal_viewer_id` is httpOnly
+  // (lib/auth/cookies.ts), so page JS cannot tell "signed in, probe hung" from
+  // "guest, probe hung" — and holding forever is exactly the dead control the
+  // budget exists to prevent (e2e/saved.spec.ts pins that a guest whose probe
+  // never answers can still reach /login from this heart). So the budget keeps its
+  // release, and the release was made recoverable instead. Only ever with NO
+  // hint: a viewer the server said is signed in must never be demoted this way,
+  // and one the server said is a guest was never waiting.
   const probeGaveUp = serverViewerId === undefined && probeTimedOut;
   const queryClient = useQueryClient();
 
@@ -202,28 +216,46 @@ export function SaveButton({
   // makes it maximally visible: the heart is pinned from the first paint as one
   // of only three things in the bar.
   const trusted = initialSaved === true;
-  // `status === "loading"` is NOT pending when the page already published "this
-  // request had no session": a guest's heart then reads `initialSaved` and is
-  // final, so the whole action column stops painting itself busy on the first
+  // ── Do we know WHO this is? ───────────────────────────────────────────────
+  // Named separately from `resolving`/`unknown` because it governs something
+  // else: whether a tap may be honoured at all. Any tap taken while this is true
+  // has to be held, even when the heart itself looks settled for another reason
+  // (a `trusted` payload, an existing optimistic flip) — otherwise `run()` reads
+  // `status === "loading"` as "guest" and pushes a signed-in buyer to /login,
+  // which is the defect this whole line of work exists to prevent.
+  //
+  // `status === "loading"` is NOT unresolved when the page already published
+  // "this request had no session": a guest's heart then reads `initialSaved` and
+  // is final, so the whole action column stops painting itself busy on the first
   // frame of every search visit (measured: 5 `aria-busy="true"` in the guest SSR
   // HTML of a listing page — this heart, the bar's, and the 3 cross-sell hearts).
-  const resolving =
-    (status === "loading" && !serverGuest && !probeGaveUp) ||
-    (authed && savedQuery.isPending);
+  // And it stops being unresolved once the budget is spent (`probeGaveUp`), which
+  // is the hint-less fallback documented above — the one case where /login is the
+  // honest answer because nothing else can be known.
+  const identityUnresolved =
+    status === "loading" && !serverGuest && !probeGaveUp;
+  const resolving = identityUnresolved || (authed && savedQuery.isPending);
   // The list request failed. We still don't know — and silently claiming "not
   // saved" forever, with no toast and no retry, is the same lie with no way out.
   const failed = authed && savedQuery.isError;
   const unknown = flip === undefined && !trusted && (resolving || failed);
 
   // Replay a queued tap the moment the truth lands — with the RESOLVED value, so
-  // a tap during bootstrap can never assume "not saved". Guests (a bootstrap
-  // that resolves to no session) get the /login push they would have got. Shared
-  // with the message CTA beside it (see lib/unsettled.ts).
+  // a tap during bootstrap can never assume "not saved" OR "not signed in".
+  // Guests (a bootstrap that resolves to no session) get the /login push they
+  // would have got. Shared with the message CTA beside it (see lib/unsettled.ts).
+  //
+  // `identityUnresolved` is part of `pending` in its own right, not folded into
+  // `unknown`: `unknown` also answers "is it saved?", which a `trusted` payload or
+  // an existing flip can settle on its own while the viewer is still anonymous to
+  // us. Releasing on `unknown` alone therefore ran this callback with `status`
+  // still "loading", read `!authed` as guest, and pushed a signed-in buyer to
+  // /login (reproduced with a held probe + a tap on a feed heart).
   const { queued, queue, release } = useQueuedTap(
-    unknown || toggle.isPending,
+    identityUnresolved || unknown || toggle.isPending,
     () => {
       if (!authed) {
-        router.push("/login");
+        router.push(loginHref());
         return;
       }
       toggle.mutate(saved);
@@ -241,10 +273,13 @@ export function SaveButton({
     // The card heart sits inside a <Link> — never navigate.
     e.preventDefault();
     e.stopPropagation();
-    // Already working on one; the heart says so (dimmed + aria-disabled) rather
+    // Already working on one; the heart says so (spinner + aria-disabled) rather
     // than swallowing the tap in silence.
     if (busy) return;
-    if (unknown) {
+    // Either half unknown is enough to hold the tap: WHAT the state is, or WHOSE
+    // it is. The second one is why this is not just `unknown` — see `useQueuedTap`
+    // above.
+    if (unknown || identityUnresolved) {
       // Don't guess — remember the tap and let `useQueuedTap` run it against the
       // resolved value.
       queue();
@@ -260,36 +295,44 @@ export function SaveButton({
       return;
     }
     if (!authed) {
-      router.push("/login");
+      router.push(loginHref());
       return;
     }
     toggle.mutate(saved);
   }
 
-  // Unsettled chrome, from the one shared implementation the message CTA beside
-  // it uses (lib/unsettled.ts). `aria-disabled`, not `disabled` — the button
-  // stays focusable and the tap is queued, not dropped. `tone: "icon"` selects
-  // the pulse for a HELD tap; the visible "I don't know yet" cue is the muted
-  // glyph below, NOT a dim: `opacity-70` on either heart colour measured 2.47–2.64:1
-  // against WCAG's 3:1 non-text floor (see that module for the numbers).
-  const { className: unsettledClass, ...unsettledAria } = unsettledProps({
-    unknown,
-    busy,
-    queued,
-    tone: "icon",
-  });
+  // Unsettled ARIA, from the one shared implementation the message CTA and the
+  // Report trigger beside it use (lib/unsettled.ts). `aria-disabled`, not
+  // `disabled` — the button stays focusable and the tap is queued, not dropped.
   const stateProps = {
-    ...unsettledAria,
+    ...unsettledProps({ unknown: unknown || identityUnresolved, busy }),
     // Never announce a pressed state we have not confirmed.
     "aria-pressed": unknown ? undefined : saved,
   } as const;
-  // Held, not repainted: an unknown state must not claim the empty heart of
-  // "not saved", so it goes muted until the answer arrives.
+  // The two visible cues, and neither one touches opacity (that module has the
+  // contrast numbers; `opacity-70` measured 2.47–2.64:1 against WCAG's 3:1
+  // non-text floor, and `animate-pulse` troughs lower still):
+  //  - COLOUR while the answer is unknown — held, not repainted, because an
+  //    unknown state must not claim the empty heart of "not saved";
+  //  - GLYPH once a tap is HELD — `Loader2` in place of the heart. A swap is
+  //    visible with `prefers-reduced-motion` (where a pulse renders nothing at
+  //    all), costs no contrast, and is the same 16/20px box, so nothing reflows.
+  //    Only while QUEUED: an in-flight mutation already shows its own cue, the
+  //    optimistically flipped heart, which a spinner would hide.
   const heartClass = unknown
     ? "text-muted-foreground"
     : saved
       ? "fill-destructive text-destructive"
       : undefined;
+  // `restColor` is what the heart inherits when it carries no state colour of its
+  // own: nothing for the labelled `detail` button (it takes the label's), an
+  // explicit `text-foreground` for the icon-only chrome.
+  const glyph = (restColor?: string) =>
+    queued ? (
+      <Loader2 className="animate-spin text-muted-foreground" />
+    ) : (
+      <Heart className={cn(heartClass ?? restColor)} />
+    );
 
   if (variant === "detail") {
     return (
@@ -298,9 +341,9 @@ export function SaveButton({
         variant="outline"
         onClick={onToggle}
         {...stateProps}
-        className={cn("w-full", unsettledClass, className)}
+        className={cn("w-full", className)}
       >
-        <Heart className={heartClass} />
+        {glyph()}
         {label}
       </Button>
     );
@@ -328,14 +371,20 @@ export function SaveButton({
         // edge — so there it takes the 44px floor docs/DESIGN_SYSTEM.md mandates,
         // matching the CTA beside it. The bar's spacer is ResizeObserver-measured,
         // so it follows on its own.
-        variant === "bar" ? "size-11" : "size-10",
+        //
+        // The GLYPH grows with it there, and only there: `ui/button.tsx` forces
+        // `[&_svg]:size-4`, so the bar's heart was a 16px mark inside a 44px box
+        // beside a `text-lg font-bold` price and a filled 44px CTA — the second
+        // most important action on the site's one touch-only surface reading
+        // lighter than its target implies. The card overlay keeps 16px: it floats
+        // on a photo at 40px and its convention is shared with every feed.
+        variant === "bar" ? "size-11 [&_svg]:size-5" : "size-10",
         onPhoto &&
           "rounded-full bg-background/80 shadow-sm backdrop-blur-sm hover:bg-background",
-        unsettledClass,
         className,
       )}
     >
-      <Heart className={cn(heartClass ?? "text-foreground")} />
+      {glyph("text-foreground")}
     </Button>
   );
 }

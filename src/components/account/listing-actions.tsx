@@ -95,7 +95,7 @@ export const LIFECYCLE: Record<
  * Which transitions a listing offers. `primary` is the single most likely next
  * step; `secondary` are the other legal moves.
  *
- * The mapping mirrors mobile's shared hook one-for-one —
+ * The PRIMARY of each status matches mobile's shared hook exactly —
  * `hatiwal-mobile/src/hooks/useListingLifecycle.ts` (`primaryAction` +
  * `moreActions`), the hook behind both SellerListingCard and MyListingDetail:
  *
@@ -104,6 +104,16 @@ export const LIFECYCLE: Record<
  *   lapsed    → Renew              (rest: sold, reserve, unpublish)
  *   reserved  → Mark as Sold       (rest: activate)
  *   sold      → nothing (terminal)
+ *
+ * The SECONDARY set is mobile's minus one action, and the gap is worth naming
+ * because it is a dead end: mobile's `moreActions` also offers **Duplicate** for
+ * every status *including sold* (its relist path), which web has nowhere — there
+ * is no `?duplicateFrom=` on `/listings/new` yet, and this brain only speaks the
+ * `POST /listings/:id/<action>` transitions, so `duplicate` cannot simply be
+ * added to the table. Consequence: a SOLD listing gives a web seller Manage +
+ * Edit + Chats and no way to put the item back on sale, while the same seller on
+ * mobile gets one tap. Closing it needs the duplicate flow first; until then this
+ * is the one place web offers a seller strictly less than mobile.
  *
  * `active → reserve` is the one worth spelling out: web used to promote `sold`
  * there. Real-world order is reserve-while-you-arrange-the-meetup, THEN sold, and

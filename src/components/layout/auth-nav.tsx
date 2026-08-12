@@ -58,7 +58,14 @@ export function AuthNav() {
         variant="ghost"
         size="icon"
         className="relative"
-        aria-label={t("sidebar.chat")}
+        // The COUNT has to ride in the aria-label itself: an aria-label replaces
+        // the name computed from the contents, so the `aria-hidden` pill — and any
+        // sr-only sibling a child might render — is dropped. Without this a screen
+        // reader user heard "Chat" whether nine buyers were waiting or none, while
+        // sighted users got the badge. Same pluralized key the thread list uses.
+        aria-label={
+          unread > 0 ? t("chat.unreadCount", { count: unread }) : t("sidebar.chat")
+        }
       >
         <Link href="/conversations">
           <MessageSquare className="size-5" />
@@ -66,7 +73,8 @@ export function AuthNav() {
               same digits as every other count in the app. This used to print
               `unread > 9 ? "9+" : unread` raw, so on /ps and /fa the header
               showed a Latin "2" beside Arabic-Indic digits everywhere else.
-              No `label`: the button's own aria-label names this control. */}
+              No `label`: an sr-only sibling could never win against the
+              aria-label above, which carries the number instead. */}
           <CountBadge
             count={unread}
             className="absolute end-0.5 top-0.5 min-w-4 px-1 py-0 leading-4"

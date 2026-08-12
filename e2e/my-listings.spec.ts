@@ -535,7 +535,7 @@ test.describe("My Shop (seller dashboard)", () => {
   // English is the binding one: the primary label is now "Mark as Reserved"
   // (active listings offer reserve, not the terminal sold — mobile parity), which
   // is LONGER than the "Mark as Sold" this spec was first written against, so it
-  // wraps at both widths in en. ps ("خوندي ښودل") and fa ("رزرو شده") are the
+  // wraps at both widths in en. ps ("ریزرو کول") and fa ("ثبت رزرو") are the
   // roomier two, and are here for RTL: the box checks confirm a mirrored row
   // still starts and ends inside the card. Do not drop the `en` cases as "covered
   // by RTL"; they are the only ones that guard the primary's type scale.

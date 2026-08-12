@@ -6,6 +6,7 @@ import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useLoginHref } from "@/components/auth/login-href";
 import { useIsOwner, useServerViewerId } from "@/components/auth/owner-gate";
 import {
   createReport,
@@ -67,6 +68,7 @@ export function ReportButton({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  const loginHref = useLoginHref();
   const { status } = useAuth();
   // Don't let people report their own listing / their own profile. Reporting a
   // *user* means the reportable IS the owner; for a listing it's its seller.
@@ -97,7 +99,7 @@ export function ReportButton({
   const unsettled = status === "loading" && !serverGuest;
   const { queued, queue } = useQueuedTap(unsettled, () => {
     if (status !== "authed") {
-      router.push("/login");
+      router.push(loginHref());
       return;
     }
     setOpen(true);
@@ -111,23 +113,20 @@ export function ReportButton({
       return;
     }
     if (status !== "authed") {
-      router.push("/login");
+      router.push(loginHref());
       return;
     }
     setOpen(true);
   }
 
-  // `tone: "text"` — a labelled control, so no visible pre-tap cue (the trigger is
-  // already `text-muted-foreground`, and dimming it further would fail AA);
-  // `aria-busy` carries the state, and the spinner replacing the flag is the
-  // "I heard you" the moment a tap is held. Same treatment as the primary CTA on
-  // the listing page, because lib/unsettled.ts decides it for both.
-  const state = unsettledProps({
-    unknown: unsettled,
-    busy: queued,
-    queued,
-    tone: "text",
-  });
+  // A labelled control, so the cue is the GLYPH it already renders and never the
+  // colour of the label (the trigger is `text-muted-foreground` at its readable
+  // floor; dimming it further would fail AA) and never opacity — see
+  // lib/unsettled.ts for why, and for the numbers. `Flag` → `Loader2` costs
+  // nothing, survives `prefers-reduced-motion`, and matches the primary CTA on the
+  // same page, because that module decides it for both. `aria-busy` carries the
+  // same state for assistive tech.
+  const state = unsettledProps({ unknown: unsettled, busy: queued });
 
   async function submit() {
     if (!reason) {
@@ -189,11 +188,10 @@ export function ReportButton({
         {...state}
         className={cn(
           "h-10 gap-1.5 px-2 font-normal text-muted-foreground hover:text-destructive",
-          state.className,
           className,
         )}
       >
-        {queued ? (
+        {unsettled || queued ? (
           <Loader2 className="size-4 shrink-0 animate-spin" />
         ) : (
           <Flag className="size-4 shrink-0" />

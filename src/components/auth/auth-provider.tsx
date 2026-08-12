@@ -66,11 +66,25 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
+ * Backoff before each retry of the session probe, in ms — 1.5s, 3s, 4.5s, i.e.
+ * four attempts in all. Only REJECTIONS use it (see `refresh`).
+ */
+const PROBE_BACKOFF_MS = [1_500, 3_000, 4_500];
+
+/**
  * How long an unanswered session probe may keep dependent controls waiting
  * before they stop claiming "pending" (see `probeTimedOut`). It bounds the UI,
  * never the request.
+ *
+ * DERIVED from the ladder above rather than written as a number, because it is
+ * the backstop FOR that ladder and must outlast it: at a flat 8s it fired while a
+ * fast-rejecting probe (offline, DNS failure) was still legitimately working its
+ * way through 9s of backoff, so hearts on ISR pages settled to the guest state a
+ * beat before the retries resolved them properly — a needless guess, and one that
+ * drifts silently the moment the ladder is retuned.
  */
-const PROBE_BUDGET_MS = 8_000;
+const PROBE_BUDGET_MS =
+  PROBE_BACKOFF_MS.reduce((total, ms) => total + ms, 0) + 3_000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -109,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // blip — retry with backoff, and only fall back to guest (for a
     // never-authed load) once retries are exhausted. A real guest is a 200 with
     // user:null and resolves on the first attempt.
-    for (let attempt = 0; attempt <= 3; attempt++) {
+    for (let attempt = 0; attempt <= PROBE_BACKOFF_MS.length; attempt++) {
       try {
         // NEVER give this request an abort signal. Two independent reasons:
         //
