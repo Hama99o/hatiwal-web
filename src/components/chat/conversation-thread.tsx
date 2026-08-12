@@ -220,6 +220,15 @@ export function ConversationThread({ id }: { id: string }) {
   // calendar day, labelled Today/Yesterday when it lands on one. Suppressed
   // while searching — filtered results are not contiguous days, so a separator
   // between two matches would claim a day boundary that isn't there.
+  //
+  // Deliberate divergence from mobile (do not "fix" to match it): mobile's
+  // `buildThreadRows` also emits a day row ABOVE the very first message, so a
+  // single-day thread there carries one chip. Web renders separators only at a
+  // real day *boundary* (hence the `prev != null` guard below) — a single-day
+  // thread gets none. The chip earns its space by marking a gap in time; on the
+  // web thread, where the pinned listing header already sits directly above the
+  // first bubble, a leading chip only pushes the conversation down. This is the
+  // behaviour TASK-WEB-D2READ acceptance #4 specifies.
   const todayKey = dayKey(new Date().toISOString());
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
