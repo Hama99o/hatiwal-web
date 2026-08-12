@@ -13,7 +13,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 
-export const revalidate = 600;
+// One minute: the counts are the whole point of this page, and a buyer who just
+// published (or sold) an item should not be told the category is empty for the
+// next ten. Still cached hard enough that the hub never costs a query per view.
+export const revalidate = 60;
 
 /** Subcategory chips shown inline on a hub card before overflowing to "+N more". */
 const MAX_VISIBLE_SUBCATEGORIES = 4;
@@ -50,7 +53,7 @@ export default async function CategoriesIndexPage({
   // different copy, so the failure is kept distinguishable (null).
   let categories: Category[] | null = null;
   try {
-    categories = await getCategories({ revalidate: 600, withCounts: true });
+    categories = await getCategories({ revalidate, withCounts: true });
   } catch {
     categories = null;
   }
@@ -98,14 +101,17 @@ export default async function CategoriesIndexPage({
           const count = category.activeListingsCount ?? 0;
           const isEmpty = count === 0;
 
-          // Only children that actually have stock get an inline chip, biggest
-          // first — a chip promising a subcategory that turns out to be empty is
-          // the dead end this hub exists to prevent. Every other child stays one
-          // click away behind "+N more" (the drill-down lists them all, with
-          // their counts).
+          // Children are ranked by stock (biggest first) and capped, but never
+          // filtered out: sellers file almost everything on the top-level
+          // category, so a "stocked children only" rule renders NOTHING on a
+          // real marketplace — the drill-down would be invisible even though
+          // every parent has children. An empty child still ships as a chip,
+          // marked empty (dashed, count spelled out for screen readers) so the
+          // buyer sees the dead end before clicking it instead of after.
+          // Overflow stays one click away behind "+N more".
+          // .sort() is stable, so equal counts keep Rails' `position` order.
           const subcategories = category.subcategories ?? [];
-          const visibleSubcategories = subcategories
-            .filter((s) => (s.activeListingsCount ?? 0) > 0)
+          const visibleSubcategories = [...subcategories]
             .sort(
               (a, b) =>
                 (b.activeListingsCount ?? 0) - (a.activeListingsCount ?? 0),
@@ -144,7 +150,9 @@ export default async function CategoriesIndexPage({
                     <LayoutGrid className="size-5" aria-hidden />
                   </span>
                 )}
-                <span className="text-sm font-medium text-foreground">
+                {/* Clamped: a long localized name must not push the count line
+                    out of alignment with its neighbours in the grid. */}
+                <span className="line-clamp-2 text-sm font-medium text-foreground">
                   {name}
                 </span>
                 <span
@@ -161,28 +169,38 @@ export default async function CategoriesIndexPage({
                 </span>
               </Link>
 
-              {/* Drill-down. Skipped when no child has stock: the card already
-                  states the branch total, and a lone "+N more" (which reads as
-                  "beyond the ones shown" when nothing is shown) pointing at the
-                  same href the card already links to is pure noise. */}
-              {visibleSubcategories.length > 0 && (
+              {/* Drill-down. Rendered whenever the category HAS children —
+                  their stock is irrelevant to whether the taxonomy is
+                  reachable. */}
+              {subcategories.length > 0 && (
                 <div className="mt-3 border-t pt-3">
                   <p className="mb-1.5 text-center text-xs font-medium text-muted-foreground">
                     {t("categoriesPage.subcategories")}
                   </p>
                   <div className="flex flex-wrap justify-center gap-1.5">
-                    {visibleSubcategories.map((sub) => (
-                      <CategoryBadge
-                        key={sub.id}
-                        category={sub}
-                        asLink
-                        size="touch"
-                        count={sub.activeListingsCount ?? 0}
-                      />
-                    ))}
+                    {visibleSubcategories.map((sub) => {
+                      const subCount = sub.activeListingsCount ?? 0;
+                      return (
+                        <CategoryBadge
+                          key={sub.id}
+                          category={sub}
+                          asLink
+                          size="touch"
+                          // Same treatment as the drill-down page's chip row:
+                          // stocked chips solid, empty ones dashed + muted.
+                          tone={subCount > 0 ? "default" : "empty"}
+                          count={subCount}
+                        />
+                      );
+                    })}
                     {hiddenSubcategoryCount > 0 && (
                       <Link
                         href={`/categories/${category.slug}`}
+                        // "+1 more" says nothing on its own out of context, and
+                        // this link lands on the parent page — name it that.
+                        aria-label={t("categoriesPage.allIn", {
+                          category: name,
+                        })}
                         className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         {/* Same chip recipe as CategoryBadge — one source of truth. */}

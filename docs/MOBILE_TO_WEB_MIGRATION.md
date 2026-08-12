@@ -79,7 +79,7 @@ mark-unread, away mode, counter-offer, etc.).
 | ID | Feature | Web | Migration note |
 |---|---|---|---|
 | C736 | Categories hub (grid + live counts) | ✅ | `/categories` (also SEO landing pages) — one `categories?with_counts=true` call feeds the counts + children; a parent's count **rolls its subcategories up** (matches what `?category_id=` returns); empty categories are de-emphasised and sorted last; skeleton/empty/error states |
-| S417 | Subcategory drill-down | ✅ | `CategoryBadge` chips (44px, own count) on each hub card → `/categories/<child-slug>`, overflowing to "+N more"; Bazaar sidebar nests children under the selected parent (`?category=<child-slug>`) |
+| S417 | Subcategory drill-down | ✅ | `CategoryBadge` chips (44px, own count) on each hub card → `/categories/<child-slug>`, overflowing to "+N more"; Bazaar sidebar nests children under the selected parent (`?category=<child-slug>`). **Every** child gets a chip — ranked by stock, never filtered by it: sellers file on the top-level category, so on the real DB all 39 subcategories sit at 0 and a "stocked children only" rule renders no chips at all. An empty child is marked `tone="empty"` (dashed, count in the accessible name) instead of being hidden |
 
 ## B2 — Listing Detail (buyer view)
 

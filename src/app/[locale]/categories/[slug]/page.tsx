@@ -41,8 +41,9 @@ export default async function CategoryPage({ params }: { params: Params }) {
 
   // withCounts: this is where the hub's "+N more" lands, so every sibling chip
   // has to state whether there is anything behind it. Same one request.
+  // 60s to match the hub — the two pages must not disagree about a count.
   const categories = await safe(
-    getCategories({ revalidate: 600, withCounts: true }),
+    getCategories({ revalidate: 60, withCounts: true }),
     [],
   );
   const category = findCategoryBySlug(categories, slug);
@@ -64,22 +65,34 @@ export default async function CategoryPage({ params }: { params: Params }) {
     : categories.find((c) =>
         c.subcategories?.some((s) => s.slug === slug),
       );
-  const chips: Category[] = subcategories.length
-    ? subcategories
-    : (parent?.subcategories ?? []);
+  // "You are here" first, then the siblings with stock, then the empty ones —
+  // so the row leads with the chips worth clicking instead of burying them.
+  // .sort() is stable, so equal counts keep Rails' `position` order.
+  const chips: Category[] = [
+    ...(subcategories.length ? subcategories : (parent?.subcategories ?? [])),
+  ].sort((a, b) => {
+    if (a.slug === slug) return -1;
+    if (b.slug === slug) return 1;
+    return (b.activeListingsCount ?? 0) - (a.activeListingsCount ?? 0);
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {parent && (
         <Link
           href={`/categories/${parent.slug}`}
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline"
+          // min-h-11 + the negative inline start margin: a 44px tap target (the
+          // DESIGN_SYSTEM minimum, same as mobile's back affordance) without the
+          // text shifting away from the heading below it.
+          className="-ms-2 mb-1 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <ArrowLeft className="size-4 rtl:-scale-x-100" />
-          {categoryName(parent, locale)}
+          <ArrowLeft className="size-4 shrink-0 rtl:-scale-x-100" aria-hidden />
+          {/* Clamped: a long localized parent name must not wrap the link into
+              a paragraph above the heading. */}
+          <span className="line-clamp-1">{categoryName(parent, locale)}</span>
         </Link>
       )}
-      <h1 className="text-2xl font-bold">
+      <h1 className="text-2xl font-bold break-words">
         {category.icon ? `${category.icon} ` : ""}
         {name}
       </h1>
@@ -98,6 +111,7 @@ export default async function CategoryPage({ params }: { params: Params }) {
                 category={sub}
                 // The chip for the page you are already on is not a link.
                 asLink={!isCurrent}
+                current={isCurrent}
                 size="touch"
                 tone={
                   isCurrent ? "active" : subCount > 0 ? "default" : "empty"

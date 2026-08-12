@@ -64,8 +64,14 @@ const REVIEWS_OF_SELLER_1 = [
 //   1 electronics → direct stock + two stocked children + one EMPTY child
 //                   (drives the "+N more" overflow and the empty-tone chip)
 //   2 vehicles / 3 clothes → leaf categories with stock
-//   4 home-garden → NO browsable stock anywhere (drives the de-emphasised
-//                   "No listings" card, which is otherwise untested)
+//   4 home-garden → NO browsable stock anywhere, with children that are ALSO
+//                   all empty. This is the real production shape (sellers file
+//                   on the top-level category, so every subcategory sits at 0)
+//                   and it is the case an earlier "chips only for stocked
+//                   children" rule silently swallowed — the whole drill-down
+//                   rendered nothing live while this fixture, where the only
+//                   parent with children happened to have stocked ones, stayed
+//                   green. Keep at least one all-empty parent here.
 const CATEGORIES = [
   { id: 1, slug: "electronics", icon: "📱", position: 1,
     name_en: "Electronics", name_ps: "برقي وسایل", name_fa: "وسایل برقی",
@@ -76,7 +82,18 @@ const CATEGORIES = [
     ] },
   { id: 2, slug: "vehicles", icon: "🚗", position: 2, name_en: "Vehicles", name_ps: "موټرونه", name_fa: "وسایل نقلیه", subcategories: [] },
   { id: 3, slug: "clothes", icon: "👗", position: 3, name_en: "Clothes & Fashion", name_ps: "کالي او فیشن", name_fa: "لباس و مد", subcategories: [] },
-  { id: 4, slug: "home-garden", icon: "🏡", position: 4, name_en: "Home & Garden", name_ps: "کور او باغ", name_fa: "خانه و باغ", subcategories: [] },
+  { id: 4, slug: "home-garden", icon: "🏡", position: 4,
+    name_en: "Home & Garden", name_ps: "کور او باغ", name_fa: "خانه و باغ",
+    subcategories: [
+      { id: 401, slug: "furniture", icon: "🛋️", position: 1, name_en: "Furniture", name_ps: "فرنیچر", name_fa: "مبلمان", subcategories: [] },
+      { id: 402, slug: "garden", icon: "🌱", position: 2, name_en: "Garden", name_ps: "باغ", name_fa: "باغ", subcategories: [] },
+      { id: 403, slug: "kitchen", icon: "🍽️", position: 3, name_en: "Kitchen", name_ps: "پخلنځی", name_fa: "آشپزخانه", subcategories: [] },
+      { id: 404, slug: "decor", icon: "🖼️", position: 4, name_en: "Decor", name_ps: "ډیکور", name_fa: "دکور", subcategories: [] },
+      // Fifth child: pushes this all-empty parent past MAX_VISIBLE_SUBCATEGORIES
+      // so the "+N more" overflow is covered here rather than depending on which
+      // children happen to hold stock.
+      { id: 405, slug: "lighting", icon: "💡", position: 5, name_en: "Lighting", name_ps: "روښانه", name_fa: "روشنایی", subcategories: [] },
+    ] },
 ];
 
 // id → category, derived from the tree so a new fixture row can never drift.
