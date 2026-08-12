@@ -99,15 +99,31 @@ export function HeaderSearch({ className }: { className?: string }) {
    * applied. It also keeps the header's two copies (bar + below-bar) in step, so
    * resizing across `md` never reveals a stale box.
    *
-   * Skipped when the published term is the one THIS field pushed: the field
-   * already shows it, and re-setting it would clobber characters typed in the
-   * frame between the debounce firing and this effect running.
+   * Two guards, and both are about never eating what the buyer typed:
+   *   - the published term is the one THIS field pushed → it already shows it,
+   *     and re-setting it would clobber characters typed in the frame between
+   *     the debounce firing and this effect running;
+   *   - the field is DIRTY (its text is no longer what it last committed, i.e.
+   *     keystrokes are waiting on the 350ms debounce) → the buyer's in-progress
+   *     query outranks any other field's news, so a late echo can never revert
+   *     the text mid-word. Nothing is lost by waiting: what they are typing
+   *     commits moments later and publishes in turn, leaving this field showing
+   *     the query it applied itself.
+   *
+   * Dirtiness is read through a ref, so this effect runs ONLY on a real
+   * publication and not on every keystroke — with `value` in the deps, restoring
+   * the field to its committed text (the Back button's `popstate` sync above
+   * does exactly that) would re-run the effect against a still-stale published
+   * term and adopt it, putting the query the buyer just left back in the box.
    */
   const committed = useCommittedBrowseQuery();
+  const valueRef = useRef(value);
+  valueRef.current = value;
   useEffect(() => {
-    if (!committed || committed.q === lastPushed.current) return;
-    lastPushed.current = committed.q;
-    setValue(committed.q);
+    if (committed === null || committed === lastPushed.current) return;
+    if (valueRef.current.trim() !== lastPushed.current) return;
+    lastPushed.current = committed;
+    setValue(committed);
   }, [committed]);
 
   // Live search: filter the bazaar as you type — no Enter required.

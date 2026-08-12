@@ -25,12 +25,14 @@
     "**/*.tsx",
     ".next-b3verify/types/**/*.ts",
     ".next-e2e-3241/types/**/*.ts",
+    ".next-e2e-3310/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
     ".next-soldnext/types/**/*.ts",
     ".next-verify-dev/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".next-c2verify/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

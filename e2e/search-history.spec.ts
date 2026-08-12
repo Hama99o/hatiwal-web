@@ -377,6 +377,55 @@ test.describe("Recent searches", () => {
     ).toBeVisible();
   });
 
+  test("an 11th search drops the oldest term (cap on WRITE)", async ({
+    page,
+  }) => {
+    // The case above proves the cap on the READ path (a stored list longer than
+    // the cap is trimmed when rendered). This one proves it on the WRITE path,
+    // which is the one a buyer actually walks: recording an 11th term must
+    // forget the oldest instead of growing the list. Seeding the first ten keeps
+    // it to a single real search — eleven debounced RSC round trips would buy
+    // nothing but minutes.
+    await seedHistory(page, [
+      "term10",
+      "term09",
+      "term08",
+      "term07",
+      "term06",
+      "term05",
+      "term04",
+      "term03",
+      "term02",
+      "oldest term",
+    ]);
+    await page.goto("/en/bazaar");
+    await feedReady(page);
+
+    // The 11th, through the real path: the debounced query settles and records.
+    await search(page, sidebarInput(page), "MacBook", /q=MacBook/);
+
+    // Re-read what was STORED (the seed does not run twice — see seedHistory).
+    await page.goto("/en/bazaar");
+    await feedReady(page);
+    await openSidebarPanel(page);
+
+    const p = sidebarPanel(page);
+    await expect(p.locator("li")).toHaveCount(10);
+    // Newest first…
+    await expect(p.locator("li").first()).toContainText("MacBook");
+    // …the oldest is gone…
+    await expect(
+      p.getByRole("button", { name: "oldest term", exact: true }),
+    ).toHaveCount(0);
+    // …and everything between it and the new term survived.
+    await expect(
+      p.getByRole("button", { name: "term02", exact: true }),
+    ).toBeVisible();
+    await expect(
+      p.getByRole("button", { name: "term10", exact: true }),
+    ).toBeVisible();
+  });
+
   test("renders right-to-left in Pashto", async ({ page }) => {
     await seedHistory(page, ["iphone"]);
     await page.goto("/ps/bazaar");
@@ -524,9 +573,13 @@ test.describe("Recent searches", () => {
         fieldWidth: Math.round(field.getBoundingClientRect().width),
         rows: rows.size,
         hiddenByScroll: list.scrollHeight - list.clientHeight,
+        // `documentElement.clientWidth`, NOT `window.innerWidth`: the latter
+        // includes the scrollbar, so it would call a panel that overhangs the
+        // content box by the scrollbar's width "inside the viewport".
         insideViewport:
           el.getBoundingClientRect().left >= 0 &&
-          el.getBoundingClientRect().right <= window.innerWidth,
+          el.getBoundingClientRect().right <=
+            document.documentElement.clientWidth,
       };
     });
 
@@ -780,10 +833,39 @@ test.describe("Recent searches", () => {
     await openPanel(headerInput(page), headerPanel(page));
 
     // Long terms truncate instead of stretching the layout: the document never
-    // scrolls sideways.
+    // scrolls sideways. Exact, no tolerance — below `lg` the panel is as wide as
+    // its field and nothing else, so there is no legitimate slack to allow.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
-    expect(overflow).toBeLessThanOrEqual(1);
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    // And the panel itself stays inside the page's CONTENT box, measured
+    // scrollbar-free: a `100vw`-based width passes the check above (the document
+    // does not grow) while still overhanging the padding by the scrollbar.
+    const fits = await headerPanel(page).evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      return box.left >= 0 && box.right <= document.documentElement.clientWidth;
+    });
+    expect(fits).toBe(true);
+
+    // Every chip keeps a real remove TARGET, even when the term is long enough
+    // to truncate. The pill is an `inline-flex`, so both halves are shrinkable by
+    // default and the X collapsed to ~32px — under the 40px floor — with the
+    // label taking the room. The label absorbs the shrink now, so measure the
+    // box: an aria-label alone says nothing about whether it can be hit.
+    const removeTargets = await headerPanel(page).evaluate((el) =>
+      Array.from(
+        el.querySelectorAll<HTMLElement>("li > button:last-child"),
+      ).map((button) => {
+        const box = button.getBoundingClientRect();
+        return { w: Math.round(box.width), h: Math.round(box.height) };
+      }),
+    );
+    expect(removeTargets).toHaveLength(3);
+    for (const target of removeTargets) {
+      expect(target.w).toBeGreaterThanOrEqual(40);
+      expect(target.h).toBeGreaterThanOrEqual(40);
+    }
   });
 });

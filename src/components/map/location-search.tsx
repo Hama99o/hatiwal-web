@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Loader2, MapPin } from "lucide-react";
+import { FLOATING_PANEL_SURFACE } from "@/components/shared/floating-panel";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 // Place search backed by OpenStreetMap Nominatim — the same geocoder the
 // mobile app's LocationRangePicker uses, so both clients behave identically.
@@ -134,7 +136,12 @@ export function LocationSearch({
       {open && (
         <ul
           role="listbox"
-          className="absolute z-[1000] mt-1 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
+          // `z-[1000]` clears Leaflet's own panes; the surface itself is the
+          // shared floating-panel recipe (see components/shared/floating-panel).
+          className={cn(
+            "absolute z-[1000] mt-1 w-full overflow-hidden",
+            FLOATING_PANEL_SURFACE,
+          )}
         >
           {suggestions.map((s, i) => (
             <li key={`${s.lat}-${s.lon}-${i}`}>
