@@ -1059,24 +1059,30 @@ test.describe("Listing detail — viewed by its own seller", () => {
 
 // A sold/reserved listing used to end the visit in a flat grey notice. These
 // pages are indexed and stock turns over fast, so the notice now carries two
-// recovery paths (same category + price band, and the seller's other stock).
+// recovery paths: the same category (plus a price band when that band provably
+// holds stock) and the seller's other stock. The hard rule these specs enforce
+// is that a recovery CTA NEVER lands on an empty page — a second, emptier dead
+// end is worse than the notice on its own.
 test.describe("Listing detail — sold/reserved recovery CTAs", () => {
+  const D = en.listing.detail;
+
   test("a sold listing keeps the notice and offers both next steps", async ({
     page,
   }) => {
     // Listing 7: sold, AFN 8,000, "Clothes & Fashion" (slug clothes), Ahmad Karimi.
+    // The category's only live stock is the Winter Jacket at AFN 1,200, which is
+    // OUTSIDE a +/-30% band of 8,000 (5,600-10,400) — so the band is dropped and
+    // the CTA falls back to the category, which that jacket proves is non-empty.
     await page.goto("/en/listings/7");
     const card = page.getByTestId("unavailable-actions");
     await expect(card).toBeVisible();
-    await expect(card.getByText("This item has been sold")).toBeVisible();
+    await expect(card.getByText(D.soldNotice)).toBeVisible();
     // Sold is final — the "may free up" nudge belongs to reserved only.
-    await expect(card.getByText(/reservation can fall through/i)).toHaveCount(0);
+    await expect(card.getByText(D.reservedMayFreeUp)).toHaveCount(0);
 
-    // ±30% of 8,000, rounded → 5,600 … 10,400, using the shared browse param
-    // names (category/min/max) so the Bazaar sidebar renders them as filters.
     await expect(
       card.getByRole("link", { name: /See similar in Clothes & Fashion/i }),
-    ).toHaveAttribute("href", "/en/bazaar?category=clothes&min=5600&max=10400");
+    ).toHaveAttribute("href", "/en/bazaar?category=clothes");
     await expect(
       card.getByRole("link", { name: /More from Ahmad Karimi/i }),
     ).toHaveAttribute("href", "/en/sellers/1");
@@ -1090,31 +1096,32 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
   });
 
   test("a reserved listing adds the 'may free up' line", async ({ page }) => {
-    // Listing 6: reserved, AFN 5,000, Vehicles, Sara Ahmadi.
+    // Listing 6: reserved, AFN 5,000, Vehicles, Sara Ahmadi. Vehicles' only live
+    // stock is the AFN 600,000 Corolla — far outside the band — so category only.
     await page.goto("/en/listings/6");
     const card = page.getByTestId("unavailable-actions");
-    await expect(card.getByText("This item is reserved")).toBeVisible();
-    await expect(card.getByText(/reservation can fall through/i)).toBeVisible();
+    await expect(card.getByText(D.reservedNotice)).toBeVisible();
+    await expect(card.getByText(D.reservedMayFreeUp)).toBeVisible();
     await expect(
       card.getByRole("link", { name: /See similar in Vehicles/i }),
-    ).toHaveAttribute("href", "/en/bazaar?category=vehicles&min=3500&max=6500");
+    ).toHaveAttribute("href", "/en/bazaar?category=vehicles");
     await expect(
       card.getByRole("link", { name: /More from Sara Ahmadi/i }),
     ).toHaveAttribute("href", "/en/sellers/2");
   });
 
-  test("'See similar' lands on a pre-filtered Bazaar without the dead listing", async ({
-    page,
-  }) => {
-    // Listing 9: reserved, AFN 70,000, Computers & Laptops → band 49,000–91,000,
-    // which the active MacBook Pro M2 (90,000) falls inside.
+  test("the price band rides along when it holds stock", async ({ page }) => {
+    // Listing 9: reserved, AFN 70,000, Computers & Laptops -> band 49,000-91,000,
+    // which the active MacBook Pro M2 (90,000) falls inside, so the band stays.
     await page.goto("/en/listings/9");
     await page
       .getByTestId("unavailable-actions")
       .getByRole("link", { name: /See similar in/i })
       .click();
 
-    await expect(page).toHaveURL(/\/en\/bazaar\?category=laptops&min=49000&max=91000/);
+    await expect(page).toHaveURL(
+      /\/en\/bazaar\?category=laptops&min=49000&max=91000/,
+    );
     // Category + min + max are all live filters, so the pill counts three.
     await expect(page.getByText("3 filters active")).toBeVisible();
     await expect(page.getByPlaceholder("Min Price")).toHaveValue("49000");
@@ -1124,10 +1131,66 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     await expect(page.getByText("Gaming PC")).toHaveCount(0);
   });
 
+  test("'See similar' never lands on an empty Bazaar", async ({ page }) => {
+    // The band around listing 7 contains nothing, so following its CTA must
+    // still arrive on real stock rather than "No listings found".
+    await page.goto("/en/listings/7");
+    await page
+      .getByTestId("unavailable-actions")
+      .getByRole("link", { name: /See similar in/i })
+      .click();
+
+    await expect(page).toHaveURL(/\/en\/bazaar\?category=clothes$/);
+    await expect(page.getByText("1 filter active")).toBeVisible();
+    await expect(page.getByText(en.browse.noResults)).toHaveCount(0);
+    await expect(page.getByText("Winter Jacket")).toBeVisible();
+    // No band means no price inputs to pre-fill.
+    await expect(page.getByPlaceholder("Min Price")).toHaveValue("");
+    await expect(page.getByPlaceholder("Max Price")).toHaveValue("");
+  });
+
+  test("a listing priced in USD gets no price band", async ({ page }) => {
+    // Listing 12: sold, USD 900, Computers & Laptops. Rails' price filter is
+    // currency-blind, so a band of 630-1,170 would query the AFN feed with
+    // dollar numbers — the CTA keeps the category and drops the band.
+    await page.goto("/en/listings/12");
+    const card = page.getByTestId("unavailable-actions");
+    await expect(
+      card.getByRole("link", { name: /See similar in Computers & Laptops/i }),
+    ).toHaveAttribute("href", "/en/bazaar?category=laptops");
+  });
+
+  test("no 'See similar' CTA when the category has nothing live", async ({
+    page,
+  }) => {
+    // Listing 13: sold, AFN 2,500, Furniture — a category with zero active
+    // stock. Sending the buyer there would just be a second dead end, so only
+    // the seller CTA renders, and it takes the primary weight as the sole action.
+    await page.goto("/en/listings/13");
+    const card = page.getByTestId("unavailable-actions");
+    await expect(card.getByText(D.soldNotice)).toBeVisible();
+    await expect(card.getByText(/See similar in/i)).toHaveCount(0);
+    const links = card.getByRole("link");
+    await expect(links).toHaveCount(1);
+    await expect(links).toHaveAttribute("href", "/en/sellers/2");
+  });
+
+  test("a sold listing is dimmed, a live one is not", async ({ page }) => {
+    await page.goto("/en/listings/7");
+    await expect(page.getByTestId("listing-gallery")).toHaveCSS(
+      "opacity",
+      "0.7",
+    );
+    // Reserved can still fall through, so it keeps its full-strength photo.
+    await page.goto("/en/listings/6");
+    await expect(page.getByTestId("listing-gallery")).toHaveCSS("opacity", "1");
+  });
+
   test("an active listing is untouched (no recovery card)", async ({ page }) => {
     await page.goto("/en/listings/1");
     await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
     await expect(page.getByText(CTA_LABEL).first()).toBeVisible();
+    await expect(page.getByTestId("listing-gallery")).toHaveCSS("opacity", "1");
   });
 
   test("the bottom rail is labelled 'Similar Listings', not 'Recent'", async ({
@@ -1135,10 +1198,10 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
   }) => {
     await page.goto("/en/listings/7");
     await expect(
-      page.getByRole("heading", { name: "Similar Listings" }),
+      page.getByRole("heading", { name: D.similarListings }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /Recent listings/i }),
+      page.getByRole("heading", { name: en.home.recent }),
     ).toHaveCount(0);
   });
 
@@ -1147,13 +1210,40 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
   }) => {
     await page.goto("/ps/listings/7");
     const card = page.getByTestId("unavailable-actions");
-    await expect(card.getByText("دا توکی خرڅ شوی دی")).toBeVisible();
+    await expect(card.getByText(ps.listing.detail.soldNotice)).toBeVisible();
     await expect(card.getByRole("link").first()).toHaveAttribute(
       "href",
-      "/ps/bazaar?category=clothes&min=5600&max=10400",
+      "/ps/bazaar?category=clothes",
     );
     await expect(
       card.getByRole("link", { name: /Ahmad Karimi/ }),
     ).toHaveAttribute("href", "/ps/sellers/1");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  });
+
+  test("the card fits a 375px phone in en and ps", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    for (const path of ["/en/listings/7", "/ps/listings/7"]) {
+      await page.goto(path);
+      await expect(page.getByTestId("unavailable-actions")).toBeVisible();
+      // The card's buttons must wrap/ellipsize inside the column, never widen
+      // the document — a page that scrolls sideways on a phone is the state this
+      // whole column is laid out to avoid.
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      );
+      expect(overflow, `${path} must not scroll horizontally`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("the reserved line is localized in fa too", async ({ page }) => {
+    await page.goto("/fa/listings/6");
+    const card = page.getByTestId("unavailable-actions");
+    await expect(card.getByText(fa.listing.detail.reservedNotice)).toBeVisible();
+    await expect(
+      card.getByText(fa.listing.detail.reservedMayFreeUp),
+    ).toBeVisible();
   });
 });

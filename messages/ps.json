@@ -183,7 +183,7 @@
       "soldNotice": "دا توکی خرڅ شوی دی",
       "reservedNotice": "دا توکی ریزرو شوی دی",
       "unavailableNotice": "دا توکی نور شتون نلري",
-      "reservedMayFreeUp": "ځینې وختونه ریزرو ناکامه شي — دا توکی خوندي کړئ چې څارنه یې وکړئ.",
+      "reservedMayFreeUp": "ریزرو ځینې وختونه ناکامه شي، نو دا توکی کیدای شي بیا شتون ولري.",
       "seeSimilarIn": "په {category} کې ورته توکي وګورئ",
       "moreFromSellerNamed": "د {name} نور توکي",
       "location": "موقعیت",

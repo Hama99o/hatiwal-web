@@ -183,7 +183,7 @@
       "soldNotice": "This item has been sold",
       "reservedNotice": "This item is reserved",
       "unavailableNotice": "This item is no longer available",
-      "reservedMayFreeUp": "A reservation can fall through — save it to keep an eye on it.",
+      "reservedMayFreeUp": "A reservation can fall through, so this item may become available again.",
       "seeSimilarIn": "See similar in {category}",
       "moreFromSellerNamed": "More from {name}",
       "location": "Location",

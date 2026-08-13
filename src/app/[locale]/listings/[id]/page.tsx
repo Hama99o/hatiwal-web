@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { getListing } from "@/lib/api/listings";
+import { getListing, getSimilarListings } from "@/lib/api/listings";
 import { localizedAlternates } from "@/lib/seo";
 import { categoryName } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
@@ -97,6 +97,19 @@ export default async function ListingDetailPage({
 
   const sellerId = listing.seller?.id;
   const isActive = listing.status === "active";
+  const isSold = listing.status === "sold";
+
+  // Recovery-CTA gate. <UnavailableActions> must never promise stock that isn't
+  // there — "See similar in Clothes & Fashion" landing on an empty Bazaar is the
+  // very dead end this card removes — so it is handed the live stock its CTA
+  // would show. That is exactly the `similar_to` set <CrossSellRails> renders
+  // below, and both call sites issue the identical GET, so Next's per-render
+  // fetch memoization makes this one request, not two. Only awaited for a
+  // sold/reserved listing: an active one never renders the card, and the rail
+  // keeps streaming behind its own <Suspense>.
+  const similarStock = isActive
+    ? []
+    : await safe(getSimilarListings(listing.id), []);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -134,7 +147,15 @@ export default async function ListingDetailPage({
 
 
         <div className="grid gap-8 lg:grid-cols-2">
-          <ListingGallery images={listing.images} title={listing.title} />
+          {/* Sold stock is dimmed, photo and price both (DESIGN_SYSTEM §2), so
+              the page reads as an archive at a glance instead of looking like a
+              live offer with a notice bolted on. Reserved keeps full strength —
+              a reservation can fall through. */}
+          <ListingGallery
+            images={listing.images}
+            title={listing.title}
+            dimmed={isSold}
+          />
 
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">
@@ -164,6 +185,7 @@ export default async function ListingDetailPage({
                 price={listing.price}
                 currency={listing.currency}
                 size="lg"
+                tone={isSold ? "muted" : "default"}
               />
               {/* Firm-price badge — quiet trust signal when negotiable is false */}
               <FirmPriceBadge negotiable={listing.negotiable} />
@@ -331,6 +353,8 @@ export default async function ListingDetailPage({
                     status={listing.status}
                     category={listing.category}
                     price={listing.price}
+                    currency={listing.currency}
+                    similarPrices={similarStock.map((l) => l.price)}
                     sellerId={listing.seller?.id}
                     sellerName={listing.seller?.name}
                     locale={locale}

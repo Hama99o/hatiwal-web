@@ -7,15 +7,26 @@ import { cn } from "@/lib/utils";
 export function ListingGallery({
   images,
   title,
+  dimmed = false,
 }: {
   images: string[];
   title: string;
+  /**
+   * Archived stock reads as archived: a sold listing's photos are dimmed, the
+   * `sold` row of DESIGN_SYSTEM §2 ("grey, dimmed"). Opacity only — no filter,
+   * so the photo stays true in both themes — and only ever set for `sold`, so a
+   * reserved item (which can still come back) keeps its full-strength photo.
+   */
+  dimmed?: boolean;
 }) {
   const [active, setActive] = useState(0);
   const main = images[active] ?? images[0] ?? null;
 
   return (
-    <div className="space-y-3">
+    <div
+      className={cn("space-y-3", dimmed && "opacity-70")}
+      data-testid="listing-gallery"
+    >
       <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted sm:aspect-[4/3]">
         <RemoteImage
           src={main}

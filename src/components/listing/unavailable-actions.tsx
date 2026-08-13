@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { categoryName } from "@/lib/api/categories";
 import { cn } from "@/lib/utils";
+import { recoveryBand } from "@/components/listing/recovery-band";
 import {
   DEFAULT_FILTERS,
   filtersToSearchString,
@@ -17,11 +18,12 @@ import type { CategoryRef, ListingStatus } from "@/lib/types";
  * A sold or reserved listing used to be a dead end: a flat grey "This item has
  * been sold" box and nothing to do next. These pages are indexed and stock
  * turns over fast, so guests landing from search hit that constantly. This keeps
- * the same status sentence but adds the two next steps that actually recover the
+ * the same status sentence but adds the next steps that actually recover the
  * visit:
  *
  *   1. PRIMARY — "See similar in {category}" → the Bazaar, pre-filtered to the
- *      same category and a ±30% price band around this listing's price.
+ *      same category (plus a ±30% price band when that band provably holds
+ *      stock — see `recovery-band.ts`).
  *   2. SECONDARY — "More from {seller}" → that seller's public profile. While
  *      this card is on screen it is the page's ONLY link to that profile: the
  *      "More from this Seller" rail below drops its "view all" for a
@@ -32,36 +34,21 @@ import type { CategoryRef, ListingStatus } from "@/lib/types";
  * filters and the active-filter pill counts them — no new param vocabulary.
  * Bazaar always queries `status: "active"`, so the sold item can't come back.
  *
- * Pure props → stays a Server Component (no client JS on an SEO landing page).
- * Reserved items also get a muted "may free up" line, because the SaveButton
- * directly below is still worth using when a reservation falls through.
- */
-
-/**
- * ±30% price band around a listing price, as URL-ready strings.
+ * NEVER promises stock that isn't there. `similarPrices` is the live stock the
+ * category CTA would land on (the same `similar_to` set the rail below renders,
+ * fetched once by the page and shared): with none, the category CTA is dropped
+ * entirely rather than sending the buyer from one dead end to a second, emptier
+ * one. When that leaves the seller CTA as the only action it is promoted to the
+ * primary weight, so the card is never a stack of equally quiet buttons.
  *
- * Returns empty strings (→ no `min`/`max` params) when the price is missing,
- * zero, negative or non-finite — a free/priceless item must not send a bogus
- * band. `min` is floored at 0 and, for any positive price, is always ≤ `max`.
+ * Pure props → stays a Server Component (no client JS on an SEO landing page).
  */
-export function priceBand(price: number | null | undefined): {
-  min: string;
-  max: string;
-} {
-  const p = Number(price);
-  if (!Number.isFinite(p) || p <= 0) return { min: "", max: "" };
-  const min = Math.max(0, Math.round(p * 0.7));
-  const max = Math.round(p * 1.3);
-  // Belt-and-braces: never emit an inverted range (unreachable for p > 0, but
-  // a silently empty result set is worse than simply dropping the band).
-  if (min > max) return { min: "", max: "" };
-  return { min: String(min), max: String(max) };
-}
-
 export function UnavailableActions({
   status,
   category,
   price,
+  currency,
+  similarPrices,
   sellerId,
   sellerName,
   locale,
@@ -71,6 +58,15 @@ export function UnavailableActions({
   /** Null on listings with no category → the category CTA is omitted. */
   category: CategoryRef | null;
   price: number | null | undefined;
+  /** Needed to decide whether a price band means anything (Rails' filter is
+   *  currency-blind — see `BANDABLE_CURRENCY`). */
+  currency: string | null | undefined;
+  /**
+   * Prices of the active listings in this category (`GET /listings/:id/similar`).
+   * EMPTY ⇒ the "see similar" CTA would land on an empty Bazaar, so it is not
+   * rendered at all.
+   */
+  similarPrices: ReadonlyArray<number | null | undefined>;
   /** Null/undefined when the seller isn't on the payload → seller CTA omitted. */
   sellerId?: number | null;
   sellerName?: string | null;
@@ -87,21 +83,28 @@ export function UnavailableActions({
         ? t("listing.detail.reservedNotice")
         : t("listing.detail.unavailableNotice");
 
-  // A reservation can fall through, so saving is still worth it — but a sold
-  // item is final, and saying "may free up" there would be a false promise.
+  // A reservation can fall through, so the item may come back — worth saying,
+  // because the SaveButton just below this card is how a buyer catches that. A
+  // sold item is final, and the same line there would be a false promise.
   const mayFreeUp = status === "reserved";
 
-  const band = category ? priceBand(price) : { min: "", max: "" };
-  const similarHref = category
-    ? `/bazaar${filtersToSearchString({
-        ...DEFAULT_FILTERS,
-        categorySlug: category.slug,
-        priceMin: band.min,
-        priceMax: band.max,
-      })}`
-    : null;
+  // Only offer the category when it demonstrably has something to show.
+  const hasSimilarStock = similarPrices.length > 0;
+  const band = recoveryBand(price, currency, similarPrices);
+  const similarHref =
+    category && hasSimilarStock
+      ? `/bazaar${filtersToSearchString({
+          ...DEFAULT_FILTERS,
+          categorySlug: category.slug,
+          priceMin: band.min,
+          priceMax: band.max,
+        })}`
+      : null;
 
   const sellerHref = sellerId != null ? `/sellers/${sellerId}` : null;
+  // With no category CTA the seller's shelf IS the recovery path, so it takes
+  // the primary weight instead of reading like an afterthought.
+  const sellerIsPrimary = !similarHref;
 
   return (
     <div
@@ -120,10 +123,10 @@ export function UnavailableActions({
         </div>
       </div>
 
-      {/* Never render an empty button row: a listing with neither a category
-          nor a seller keeps just the status sentence. */}
+      {/* Never render an empty button row: a listing with neither in-stock
+          category nor a seller keeps just the status sentence. */}
       {(similarHref || sellerHref) && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {similarHref && category && (
             <Button asChild className="w-full">
               <Link href={similarHref}>
@@ -140,7 +143,12 @@ export function UnavailableActions({
             </Button>
           )}
           {sellerHref && (
-            <Button asChild variant="outline" className="w-full">
+            <Button
+              asChild
+              variant={sellerIsPrimary ? "default" : "ghost"}
+              size={sellerIsPrimary ? "default" : "sm"}
+              className={cn("w-full", !sellerIsPrimary && "text-muted-foreground")}
+            >
               <Link href={sellerHref}>
                 <Store className="size-4" />
                 <span className="min-w-0 truncate">

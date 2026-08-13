@@ -183,7 +183,7 @@
       "soldNotice": "این کالا فروخته شده است",
       "reservedNotice": "این کالا رزرو شده است",
       "unavailableNotice": "این کالا دیگر موجود نیست",
-      "reservedMayFreeUp": "گاهی رزرو لغو می‌شود — برای پیگیری آن را ذخیره کنید.",
+      "reservedMayFreeUp": "گاهی رزرو لغو می‌شود و ممکن است این کالا دوباره موجود شود.",
       "seeSimilarIn": "دیدن موارد مشابه در {category}",
       "moreFromSellerNamed": "آگهی‌های بیشتر از {name}",
       "location": "موقعیت",

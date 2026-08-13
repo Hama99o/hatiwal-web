@@ -154,10 +154,40 @@ const EXPIRING_SOON_MINE = {
   expired: false, expires_at: new Date(Date.now() + 3 * 86_400_000).toISOString(),
 };
 
+// Two sold listings for the recovery-CTA edge cases. Kept out of LISTINGS for
+// the same reason as the two above — they must not shift the public feed, the
+// category counts or My Shop — so they exist only to be opened by id.
+//
+// 12: priced in USD. Rails' price filter (`price_at_least`/`price_at_most`) is
+//     currency-blind, so a ±30% band around $900 would ask the AFN feed for
+//     630–1,170 and land on junk: the CTA must fall back to category-only.
+//     Filed in Computers & Laptops, which HAS active stock (MacBook Pro M2), so
+//     the CTA itself still renders and only the band is dropped.
+// 13: filed in Furniture — a category with no active stock at all (Home &
+//     Garden is the deliberately all-empty parent above), so the "see similar"
+//     CTA must not render at all rather than promise an empty Bazaar.
+const SOLD_FOREIGN_CURRENCY = {
+  id: 12, title: "Dell XPS 13 (Sold, USD)", price: 900, currency: "USD", status: "sold",
+  location: "Kabul", address: null, condition: "good", category_id: 102, seller_id: 2,
+  views_count: 31, created_at: "2026-06-08T08:00:00Z", price_drop_percent: null,
+  price_dropped_at: null, description: "Priced in dollars, already sold.",
+};
+
+const SOLD_EMPTY_CATEGORY = {
+  id: 13, title: "Oak Wardrobe (Sold)", price: 2500, currency: "AFN", status: "sold",
+  location: "Herat", address: null, condition: "fair", category_id: 401, seller_id: 2,
+  views_count: 12, created_at: "2026-06-07T08:00:00Z", price_drop_percent: null,
+  price_dropped_at: null, description: "Nothing else in this category.",
+};
+
 function findListing(id) {
-  return [...LISTINGS, EXPIRED_MINE, EXPIRING_SOON_MINE].find(
-    (l) => String(l.id) === String(id),
-  );
+  return [
+    ...LISTINGS,
+    EXPIRED_MINE,
+    EXPIRING_SOON_MINE,
+    SOLD_FOREIGN_CURRENCY,
+    SOLD_EMPTY_CATEGORY,
+  ].find((l) => String(l.id) === String(id));
 }
 
 function listView(l) {
