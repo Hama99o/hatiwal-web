@@ -2,6 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { categoryName } from "@/lib/api/categories";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Category, CategoryRef } from "@/lib/types";
 
@@ -85,7 +86,16 @@ export function CategoryBadge({
       {icon ? <span aria-hidden>{icon}</span> : null}
       {name}
       {hasCount && count > 0 ? (
-        <span className="text-xs font-semibold tabular-nums">{count}</span>
+        // Through `formatNumber`, never the raw number: React stringifies a JS
+        // number with ASCII digits whatever the locale, so on /ps this chip
+        // printed a Latin "3" directly under the same card's Arabic-Indic
+        // "۳ اعلانونه" (`listing.shopCount`) and beside "+۲ نورې"
+        // (`categoriesPage.moreSubcategories`) — three numbers, two numeral
+        // systems, one card. `format.ts` is the only place numbers are
+        // formatted, and it maps ps → fa-AF exactly like the ICU path does.
+        <span className="text-xs font-semibold tabular-nums">
+          {formatNumber(count, locale)}
+        </span>
       ) : null}
     </span>
   );

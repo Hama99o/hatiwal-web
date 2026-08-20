@@ -164,6 +164,46 @@ test.describe("Locale digits (no hydration mismatch)", () => {
     expect(complaints).toEqual([]);
   });
 
+  // The location panel is the one place the Bazaar prints numbers that are
+  // neither a count nor a price: the zone presets and the slider read-out. Both
+  // used to interpolate a raw JS number (`{km}`), which React stringifies with
+  // ASCII digits in every locale — so a Latin "5 کیلومتر" sat in the same panel
+  // as the Arabic-Indic filters-active line and the prices behind it. Reading
+  // the whole block keeps the two from drifting apart again.
+  test("Pashto Bazaar: the radius presets and slider read-out are Pashto digits", async ({
+    page,
+  }) => {
+    const complaints = watchHydration(page);
+    // lat+lng are what reveal the panel (see `filtersToQuery`); radius 25 is a
+    // preset, so the read-out and one chip must agree on the same digits.
+    await page.goto("/ps/bazaar?lat=34.53&lng=69.17&radius=25");
+    const radius = page.getByTestId("browse-radius");
+    await expect(radius).toBeVisible({ timeout: 60_000 });
+    await expect(radius).toHaveText(ARABIC_INDIC);
+    await expect(radius).not.toHaveText(LATIN_DIGIT);
+    expect(complaints).toEqual([]);
+  });
+
+  // A category card prints its own rolled-up count through `t()` (a plural `#`)
+  // and its children's counts through `CategoryBadge`, which used to render the
+  // raw number — so one card showed "۲ اعلانونه" above two Latin "1" chips.
+  // Asserting the whole CARD is what makes two digit sets impossible there.
+  test("Pashto categories: a card's chips agree with its own count line", async ({
+    page,
+  }) => {
+    const complaints = watchHydration(page);
+    await page.goto("/ps/categories");
+    // Electronics is the only mock category with stocked children (phones 1,
+    // laptops 1), i.e. the only one whose chips print a count at all.
+    const card = page
+      .getByTestId("category-card")
+      .filter({ hasText: "موبایلونه" });
+    await expect(card).toBeVisible({ timeout: 60_000 });
+    await expect(card).toHaveText(ARABIC_INDIC);
+    await expect(card).not.toHaveText(LATIN_DIGIT);
+    expect(complaints).toEqual([]);
+  });
+
   // Server-rendered, so this is the `format.ts` half of the same contract: the
   // hero count sits directly under a locale-formatted rating.
   test("Pashto seller profile: the active-listings count is Pashto digits", async ({

@@ -204,10 +204,17 @@ export function SaveButton({
   // ── Do we actually KNOW the saved state? ──────────────────────────────────
   // On a cold load the answer is two SEQUENTIAL round-trips away:
   // /api/auth/session (who is this?) then /api/me/my/saved_listings (what have
-  // they saved?). `initialSaved` cannot bridge that gap — every public listing
-  // payload on this site is fetched anonymously (see lib/api/client.ts), so
-  // `isSaved` comes back false for a listing the viewer saved months ago. Only
-  // `true` is trustworthy there: nothing but an authed payload can produce it.
+  // they saved?). `initialSaved` cannot bridge that gap on every surface: an
+  // ANONYMOUS listing payload (see lib/api/client.ts — SSR seeds, the home rail,
+  // the category hubs) reports `isSaved: false` for a listing the viewer saved
+  // months ago. Only `true` is trustworthy: nothing but an authed payload can
+  // produce it.
+  //
+  // Which is exactly why the Bazaar feed refetches itself as the viewer
+  // (`getListingsAsViewer`, TASK-WEB-FEED250): once `isSaved` arrives from a
+  // personalised payload this heart is `trusted` on the spot and never announces
+  // itself unsettled while ['saved-listings'] is still in flight. Do NOT
+  // "simplify" this to wait on that list — the surfaces above still send false.
   //
   // Painting the outline heart meanwhile is a lie the buyer acts on. They tap to
   // save something already saved — server-side a no-op (the controller uses

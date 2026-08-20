@@ -297,7 +297,7 @@
     "searchLocation": "Search a province…",
     "searchRadius": "Search radius",
     "confirmLocation": "Confirm location",
-    "withinRadius": "Within {km} km",
+    "withinRadius": "Within {km, number} km",
     "mapUnavailable": "Map couldn't load. Check your connection — you can still pick a range below.",
     "savedSearch": "Saved search",
     "locationDenied": "Location access is blocked. Allow location for this site (tap the lock/location icon in the address bar on web, or enable it in Settings), then try again.",

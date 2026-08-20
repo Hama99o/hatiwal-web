@@ -289,3 +289,92 @@ test.describe("Bazaar feed (guest — unchanged)", () => {
     expect(authedCalls).toEqual([]);
   });
 });
+
+/**
+ * Handing one tab from user A to user B — the normal case on a shared phone or
+ * computer in this market, and the reason the feed query is keyed by viewer id
+ * (`["listings", viewerId ?? "guest", filters]`) on top of the cache clear in
+ * auth-provider.tsx. A personalised payload is now cached per identity, so
+ * without that key B's Bazaar would be served A's rows: A's hidden listing still
+ * missing, A's "Seen" pills, A's filled hearts.
+ *
+ * Same discipline (and the same limits) as the saved-listings counterpart in
+ * e2e/auth.spec.ts:
+ *  • It DOES catch a persistent leak — one cache entry shared by both viewers,
+ *    or a key B never triggers a fetch for, leaves A's feed on screen and fails.
+ *  • It does NOT catch a transient flash: Playwright's assertions auto-retry, so
+ *    a frame of A's data before B's fetch lands would be waited out.
+ *  • Every step after the first load is CLIENT-SIDE. A page.goto would tear down
+ *    the JS context and the in-memory cache with it, hiding the bug entirely.
+ *
+ * WHICH GUARD EACH ASSERTION PINS (measured by removing them one at a time, so
+ * the next reader doesn't have to guess):
+ *  • The rows and the "Seen" pill are held by the VIEWER-SCOPED KEY alone —
+ *    with `queryClient.clear()` disabled they still come back correct for B.
+ *  • The heart is held by the CACHE CLEAR: `SAVED_LISTINGS_KEY` is a single
+ *    global key (see shared/save-button.tsx), so with the clear disabled B is
+ *    shown A's filled heart even though the feed itself is clean.
+ * Both guards are required, and the test fails if either half regresses.
+ */
+test.describe("Bazaar feed (one tab, two users)", () => {
+  test("B never inherits A's hidden / seen / saved state", async ({ page }) => {
+    async function signIn(email: string) {
+      await page.getByLabel(/Email/i).fill(email);
+      await page.getByLabel(/Password/i).fill("Password123!");
+      await page.getByRole("button", { name: /Sign In/i }).click();
+      await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+    }
+    const openAccountMenu = (name: string) =>
+      page.locator(`button[aria-label="${name}"]`).click();
+    const gotoBazaar = () =>
+      page.locator("header").getByRole("link", { name: "Bazaar" }).click();
+
+    // The ONLY hard load in this test.
+    await page.goto("/en/login");
+    // Mark onboarding seen BEFORE signing in — the welcome modal opens the moment
+    // a user becomes authed and would then cover the account menu for the rest of
+    // the test. localStorage survives client-side navigation, so one write covers
+    // both users.
+    await page.evaluate(() =>
+      window.localStorage.setItem("hatiwal.onboarded", "1"),
+    );
+
+    // ── User A: fill the feed cache with a PERSONALISED payload ──────────────
+    await signIn("buyer@hatiwal.test");
+    await gotoBazaar();
+    await expect(page.getByText("Samsung 4K TV")).toHaveCount(0, {
+      timeout: 30_000,
+    });
+    await expect(
+      page.locator('a[href="/en/listings/1"]').getByText("Seen", { exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page
+        .locator('a[href="/en/listings/4"]')
+        .getByRole("button", { name: "Remove from saved" }),
+    ).toHaveAttribute("aria-pressed", "true", { timeout: 30_000 });
+
+    // ── Hand the browser over, without ever reloading ────────────────────────
+    await openAccountMenu("Ahmad Karimi");
+    await page.getByRole("menuitem", { name: /Sign Out/i }).click();
+    await page.getByRole("link", { name: /^Login$/i }).first().click();
+    await expect(page).toHaveURL(/\/login/, { timeout: 30_000 });
+
+    // ── User B: hid nothing, viewed nothing, saved nothing ───────────────────
+    await signIn("empty@hatiwal.test");
+    await gotoBazaar();
+    // A's hidden listing is not hidden from B.
+    await expect(page.getByText("Samsung 4K TV")).toBeVisible({
+      timeout: 30_000,
+    });
+    // Not one of A's "Seen" pills anywhere in the grid...
+    await expect(page.getByText("Seen", { exact: true })).toHaveCount(0);
+    // ...and A's saved listing is an OUTLINE heart for B: settled (it carries a
+    // pressed state at all) and false, not A's filled one.
+    await expect(
+      page
+        .locator('a[href="/en/listings/4"]')
+        .getByRole("button", { name: "Save listing" }),
+    ).toHaveAttribute("aria-pressed", "false", { timeout: 30_000 });
+  });
+});

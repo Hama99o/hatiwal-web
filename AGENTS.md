@@ -56,6 +56,12 @@ for the browser and adds SSR/SEO. Plan: `../docs/WEB_FRONTEND_PLAN.md`. Page che
   and still delete your scratch dir when you finish. Entries other sessions leave behind in
   `tsconfig.scratch.json` are harmless (nothing type-checks against it; `tsc` ignores a missing glob).
 
+- **`NODE_ENV` when you build by hand:** an agent shell here exports `NODE_ENV=development` and
+  `npx next build` inherits it — the build then dies prerendering `/404` with the misleading
+  `<Html> should not be imported outside of pages/_document`. Nothing is wrong with the code:
+  `package.json`'s `build` script sets `NODE_ENV=production`, which is what avoids it. So a scratch
+  build is `NODE_ENV=production NEXT_DIST_DIR=.next-myfeature npx next build`.
+
 ## Verify your work
 - `npx tsc --noEmit` (types) · `npm run build` (lint + RSC + prerender) · `npm run dev` then load `/en`,
   `/ps`, `/fa` and toggle dark mode. Test RTL on `ps`/`fa`. Check loading/empty/error on every data view.

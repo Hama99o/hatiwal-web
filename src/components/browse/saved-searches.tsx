@@ -14,6 +14,7 @@ import {
   markSeenSavedSearch,
   type SavedSearch,
 } from "@/lib/api/saved-searches";
+import { formatNumber } from "@/lib/format";
 import type { BrowseFilters } from "./filters";
 import type { Category } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -101,11 +102,17 @@ export function SavedSearches({
       const cat = flat.find((c) => c.id === s.categoryId);
       parts.push(cat ? categoryName(cat, locale) : (s.categoryName ?? ""));
     }
+    // Every number in this summary goes through `format.ts`, never into the
+    // template raw: a JS number stringifies with ASCII digits in every locale,
+    // so on /ps a saved search read "100–500 · 📍 5 کیلومتر" right beside its
+    // own Arabic-Indic "۳ نوي" pill (`browse.newMatches`, a plural `#`).
     if (s.priceMin || s.priceMax) {
-      parts.push(`${s.priceMin ?? ""}–${s.priceMax ?? ""}`);
+      const min = s.priceMin != null ? formatNumber(s.priceMin, locale) : "";
+      const max = s.priceMax != null ? formatNumber(s.priceMax, locale) : "";
+      parts.push(`${min}–${max}`);
     }
     if (s.locationBased && s.radius) {
-      parts.push(`📍 ${s.radius} ${t("browse.km")}`);
+      parts.push(`📍 ${formatNumber(s.radius, locale)} ${t("browse.km")}`);
     }
     return parts.filter(Boolean).join(" · ") || t("browse.savedSearchAll");
   }

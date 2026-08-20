@@ -583,7 +583,10 @@ export function BrowseClient({
         />
 
         {filters.lat ? (
-          <div className="mt-3 space-y-2">
+          // `data-testid`: the digit fence (e2e/i18n-digits.spec.ts) reads this
+          // whole block, so the presets and the slider read-out can never drift
+          // back to ASCII digits independently.
+          <div className="mt-3 space-y-2" data-testid="browse-radius">
             {/* Zone presets (like mobile) */}
             <div className="flex flex-wrap gap-1.5">
               {RADIUS_PRESETS.map((km) => {
@@ -594,7 +597,12 @@ export function BrowseClient({
                     active={active}
                     onClick={() => update({ radius: String(km) })}
                   >
-                    {km} {t("browse.km")}
+                    {/* `formatNumber`, not the raw number: React stringifies a
+                        JS number with ASCII digits in every locale, so on /ps
+                        these chips read "5 کیلومتر" inside the same filter
+                        panel as the Arabic-Indic "۱ چاڼ فعال" line and the
+                        Arabic-Indic prices behind it. */}
+                    {formatNumber(km, locale)} {t("browse.km")}
                   </Chip>
                 );
               })}
@@ -603,7 +611,13 @@ export function BrowseClient({
             <label className="flex justify-between text-xs text-muted-foreground">
               <span>{t("browse.distance")}</span>
               <span>
-                {filters.radius || DEFAULT_RADIUS_KM} {t("browse.km")}
+                {/* Same digit set as the presets above and the prices behind
+                    the panel — the slider's read-out is the same number. */}
+                {formatNumber(
+                  Number(filters.radius) || DEFAULT_RADIUS_KM,
+                  locale,
+                )}{" "}
+                {t("browse.km")}
               </span>
             </label>
             <input
