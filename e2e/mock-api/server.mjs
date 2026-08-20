@@ -181,9 +181,12 @@ const SOLD_EMPTY_CATEGORY = {
 };
 
 // ── Per-viewer state for the FULL persona ────────────────────────────────────
-// Rails personalises GET /listings whenever a bearer is present: hidden
-// listings are filtered out (`not_hidden_for`), `is_viewed` comes from the
-// caller's ListingView rows and `is_saved` from their SavedListings. These three
+// Rails personalises GET /listings whenever a bearer is present, in two ways:
+// hidden listings are filtered out (`not_hidden_for`) and `is_viewed` comes from
+// the caller's ListingView rows. It does NOT send `is_saved` on this endpoint —
+// that field lives only in the serializer's :detailed view, so the :list payload
+// omits it for bearer and guest alike, and SAVED_IDS below feeds only
+// /my/saved_listings (which is what every heart actually reads). These three
 // arrays are the single source for BOTH the index and the /my/* lists below, so
 // the feed can never disagree with the management screens (a hidden listing that
 // still shows in the feed is exactly the defect the authed feed fixes).
@@ -203,8 +206,15 @@ function findListing(id) {
 
 /**
  * Rails' :list view. `viewer` is the persona the request authenticated as (null
- * for a guest) — only an authed payload can carry is_viewed / is_saved, which is
- * the whole point of fetching the feed through /api/me.
+ * for a guest) — only an authed payload can carry is_viewed, which is one half of
+ * the point of fetching the feed through /api/me (the other half is the hidden
+ * filter, applied by the route).
+ *
+ * Do NOT add `is_saved` here, however convenient it would make a heart
+ * assertion: `view :list` in hatiwal-api/app/serializers/listing_serializer.rb
+ * has no such field, and a fixture that invents one lets a spec prove a
+ * behaviour the real API cannot produce. (Filed to bring this whole function
+ * onto the serializer views field-for-field: TASK-WEB-MOCKSHAPE.)
  */
 function listView(l, viewer = null) {
   const mine = viewer === "full";
@@ -217,7 +227,6 @@ function listView(l, viewer = null) {
     conversations_count: l.conversations_count ?? 2, thumbnail_url: null, image_urls: [],
     expired: l.expired ?? false, expires_at: l.expires_at ?? null,
     is_viewed: mine && VIEWED_IDS.includes(l.id),
-    is_saved: mine && SAVED_IDS.includes(l.id),
     seller: SELLERS[l.seller_id], category: catRef(l.category_id),
     price_drop_percent: l.price_drop_percent, price_dropped_at: l.price_dropped_at,
   };
@@ -231,6 +240,8 @@ function detailView(l) {
     expires_at: l.expires_at ?? null,
     images: [], image_attachments: [], expired: l.expired ?? false,
     conversations_count: l.conversations_count ?? 2,
+    // The ONE view Rails computes this in (`view :detailed`). Hardcoded false
+    // because the detail page's payload is fetched by an RSC, i.e. as a guest.
     is_saved: false,
     seller: { ...SELLERS[l.seller_id], phone: null },
     category: catRef(l.category_id),
@@ -552,8 +563,9 @@ function route(req, res, method, path, q, body) {
 
   // The feed. Public, but PERSONALISED when devise headers are attached (i.e.
   // when the browser fetched it through /api/me instead of /api/proxy): the
-  // caller's hidden listings drop out and the payload carries is_viewed /
-  // is_saved. A guest's response is byte-identical to what it always was.
+  // caller's hidden listings drop out and the payload carries is_viewed. (No
+  // is_saved — see `listView`.) A guest's response is byte-identical to what it
+  // always was.
   if (method === "GET" && path === "/listings") {
     let items = filterListings(q);
     if (who === "full") items = items.filter((l) => !HIDDEN_IDS.includes(l.id));
@@ -643,8 +655,9 @@ function route(req, res, method, path, q, body) {
   // Saved listings
   if (path === "/my/saved_listings" && method === "GET") {
     if (!requireAuth()) return;
-    // Derived from SAVED_IDS so this list and the feed's `is_saved` flag cannot
-    // drift apart (a filled heart on a listing missing from /saved, or vice versa).
+    // Derived from SAVED_IDS, which is the ONLY thing that decides a heart:
+    // `is_saved` is not on the :list payload, so every heart in the app — feed,
+    // detail, sticky bar — resolves against this list (see save-button.tsx).
     const listings = empty ? [] : SAVED_IDS.map((id) => listView(findListing(id), who));
     return send(res, 200, { listings });
   }

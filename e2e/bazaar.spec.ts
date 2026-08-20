@@ -128,15 +128,22 @@ test.describe("Bazaar feed", () => {
  *
  * `GET /listings` is one endpoint with two payloads: anonymous, and — when a
  * devise bearer is attached — filtered by the caller's hidden listings and
- * carrying their `is_viewed` / `is_saved` flags. The web feed used to fetch it
- * only anonymously, so "Not interested" was a no-op, the card's "Seen" pill was
- * unreachable code and every heart started empty. The mock API mirrors Rails
- * here: it personalises `/listings` only when the request carries the persona's
- * token, i.e. only when the browser routed it through /api/me.
+ * carrying their `is_viewed` flag. The web feed used to fetch it only
+ * anonymously, so "Not interested" was a no-op and the card's "Seen" pill was
+ * unreachable code. The mock API mirrors Rails here: it personalises `/listings`
+ * only when the request carries the persona's token, i.e. only when the browser
+ * routed it through /api/me.
+ *
+ * The hearts are NOT part of that payload and these specs must not pretend they
+ * are: `is_saved` exists only in the serializer's `:detailed` view, so a feed row
+ * never carries it for anyone (TASK-BE-SAVEDLIST would change that, and would
+ * change mobile with it). Every feed heart resolves against the separate
+ * `['saved-listings']` query instead — which is what the third spec below pins,
+ * including the state it must show while that answer is still in flight.
  *
  * Fixture contract (e2e/mock-api/server.mjs): for the buyer persona, listing 2
  * (Samsung 4K TV) is hidden, listing 1 (iPhone 13 Pro) is already viewed, and
- * listings 2 + 4 (Winter Jacket) are saved.
+ * listings 2 + 4 (Winter Jacket) are in /my/saved_listings.
  */
 test.describe("Bazaar feed (signed in — personalised)", () => {
   test.use({ storageState: BUYER_STATE });
@@ -201,22 +208,48 @@ test.describe("Bazaar feed (signed in — personalised)", () => {
     await expect(card.getByText("Seen", { exact: true })).toBeVisible();
   });
 
-  test("a saved listing paints a filled heart straight from the feed payload", async ({
+  test("a saved listing's heart says 'unknown', never 'not saved', until ['saved-listings'] lands", async ({
     page,
   }) => {
+    // The personalised feed tells this heart NOTHING: `is_saved` is absent from
+    // the :list payload (see the header above), so `initialSaved` is undefined on
+    // every Bazaar card and the state comes from the shared ['saved-listings']
+    // query, exactly as it did before this card. What must never appear in the
+    // meantime is the OUTLINE heart: a buyer who taps that either re-POSTs `save`
+    // for something already saved (server-side a no-op via find_or_create_by!, so
+    // visibly nothing happens) or spends their first tap flipping the wrong way.
+    //
+    // So hold the saved list open and make that window deterministic rather than
+    // racing the assertion against it.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(/\/api\/me\/my\/saved_listings/, async (route) => {
+      await held;
+      await route.continue();
+    });
+
     await page.goto("/en/bazaar");
-    // Winter Jacket (listing 4) is saved and is not the persona's own listing, so
-    // it carries a heart. `is_saved: true` on the payload is trustworthy on its
-    // own (only an authed response can produce it), so the heart is pressed
-    // immediately and never announces itself unsettled while ['saved-listings']
-    // is still in flight.
-    const heart = page
-      .locator('a[href="/en/listings/4"]')
-      .getByRole("button", { name: "Remove from saved" });
-    await expect(heart).toHaveAttribute("aria-pressed", "true", {
+    // Winter Jacket (listing 4) is saved by this persona and is not their own
+    // listing, so it carries a heart. While the answer is in flight it is
+    // `aria-busy` and — the load-bearing half — publishes no pressed state at all.
+    const card = page.locator('a[href="/en/listings/4"]');
+    const unsettled = card.getByRole("button", { name: "Save listing" });
+    await expect(unsettled).toHaveAttribute("aria-busy", "true", {
       timeout: 30_000,
     });
-    expect(await heart.evaluate((el) => el.hasAttribute("aria-busy"))).toBe(
+    expect(
+      await unsettled.evaluate((el) => el.hasAttribute("aria-pressed")),
+    ).toBe(false);
+
+    release();
+    // Then it settles filled — from the list — and stops claiming to be busy.
+    const saved = card.getByRole("button", { name: "Remove from saved" });
+    await expect(saved).toHaveAttribute("aria-pressed", "true", {
+      timeout: 30_000,
+    });
+    expect(await saved.evaluate((el) => el.hasAttribute("aria-busy"))).toBe(
       false,
     );
   });
@@ -296,7 +329,9 @@ test.describe("Bazaar feed (guest — unchanged)", () => {
  * (`["listings", viewerId ?? "guest", filters]`) on top of the cache clear in
  * auth-provider.tsx. A personalised payload is now cached per identity, so
  * without that key B's Bazaar would be served A's rows: A's hidden listing still
- * missing, A's "Seen" pills, A's filled hearts.
+ * missing and A's "Seen" pills. A's HEARTS leak by a different route — they are
+ * not in the feed payload at all, they come from the one global
+ * ['saved-listings'] key — which is why this test needs both guards, below.
  *
  * Same discipline (and the same limits) as the saved-listings counterpart in
  * e2e/auth.spec.ts:
@@ -313,7 +348,10 @@ test.describe("Bazaar feed (guest — unchanged)", () => {
  *    with `queryClient.clear()` disabled they still come back correct for B.
  *  • The heart is held by the CACHE CLEAR: `SAVED_LISTINGS_KEY` is a single
  *    global key (see shared/save-button.tsx), so with the clear disabled B is
- *    shown A's filled heart even though the feed itself is clean.
+ *    shown A's filled heart even though the feed itself is clean. Note both
+ *    hearts below therefore resolve from ['saved-listings'], not from the feed
+ *    payload (which carries no `is_saved`) — the assertions are the settled
+ *    state, reached whenever that query lands for the viewer in question.
  * Both guards are required, and the test fails if either half regresses.
  */
 test.describe("Bazaar feed (one tab, two users)", () => {

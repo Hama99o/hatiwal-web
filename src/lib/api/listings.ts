@@ -106,12 +106,25 @@ export async function getListings(
  * The SAME feed, fetched AS THE SIGNED-IN VIEWER (browser only).
  *
  * `GET /listings` is personalised by Rails whenever a bearer is present
- * (listings_controller#index): `not_hidden_for(current_user)` drops the buyer's
- * "Not interested" listings, `viewed_ids:` fills `is_viewed` (the card's "Seen"
- * pill + dim) and `is_saved` comes back true for what they've saved. None of
- * that can arrive through `apiGet` — neither transport it picks attaches devise
+ * (listings_controller#index), in exactly TWO ways:
+ *   1. `not_hidden_for(current_user)` drops the buyer's "Not interested" listings;
+ *   2. `viewed_ids:` fills `is_viewed` — the card's "Seen" pill + dim.
+ * Neither can arrive through `apiGet`: no transport it picks attaches devise
  * tokens (see client.ts), so every anonymous fetch of this endpoint claims the
- * viewer has hidden nothing, seen nothing and saved nothing.
+ * viewer has hidden nothing and seen nothing.
+ *
+ * `is_saved` is NOT one of them — and do not add a third bullet for it. It is
+ * defined only in the serializer's `view :detailed`
+ * (hatiwal-api/app/serializers/listing_serializer.rb), while `#index` renders
+ * `view: :list`, so the key is absent from this payload for a bearer and a guest
+ * alike. Feed hearts therefore still reconcile against the separate
+ * `['saved-listings']` query (shared/save-button.tsx), which is why
+ * `initialSaved` is `undefined` on every Bazaar card. Making the flag reachable
+ * here is a backend change (add the field to `view :list` + pass a pre-computed
+ * `saved_ids:` Set from `#index`, or it is an N+1 across the page) and is filed
+ * as `TASK-BE-SAVEDLIST` — it fixes mobile's Browse at the same time
+ * (hatiwal-mobile/src/screens/buyer/Browse.tsx already guards
+ * `if (l.isSaved !== undefined)` for precisely this absence).
  *
  * So route it through the authed proxy instead, which attaches the tokens from
  * the httpOnly cookies and persists rotation. Same `toParams` mapping, same
@@ -124,9 +137,16 @@ export async function getListings(
  * there manufactures a 401 and signs a valid session out. SSR seeds stay
  * anonymous by design; the client reconciles.
  *
- * A 401/403 (session expired mid-browse, cookies cleared, proxy allow-list
- * miss) falls back to the anonymous feed: a personalisation gap is a far better
- * outcome than an empty or errored Bazaar.
+ * FALLBACK: anything that makes the AUTHED transport fail while the anonymous
+ * one would have worked falls back to `getListings()`, because a personalisation
+ * gap is a far better outcome than an empty or errored Bazaar. That is
+ * 401/403 (session expired mid-browse, cookies cleared, proxy allow-list miss)
+ * AND 5xx AND a bare network throw: `/api/me` answers 502 `upstream_failed`
+ * whenever its Rails fetch throws (see that route handler), so without the
+ * wider guard a single upstream blip gave a SIGNED-IN buyer an error panel on a
+ * feed a guest on the same blip still saw in full. A 4xx that is not an auth
+ * failure (a malformed filter, say) is a real bug in our own request and still
+ * surfaces — retrying it anonymously would only hide it.
  */
 export async function getListingsAsViewer(
   query: ListingsQuery = {},
@@ -141,7 +161,11 @@ export async function getListingsAsViewer(
     };
   } catch (err) {
     const status = (err as { status?: number } | null)?.status;
-    if (status === 401 || status === 403) return getListings(query);
+    // `undefined` = the fetch itself rejected (offline, DNS, aborted) — no
+    // response, so nothing to distinguish it from a dead proxy.
+    const authFailure = status === 401 || status === 403;
+    const transportFailure = status === undefined || status >= 500;
+    if (authFailure || transportFailure) return getListings(query);
     throw err;
   }
 }

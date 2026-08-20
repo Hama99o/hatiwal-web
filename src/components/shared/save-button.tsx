@@ -92,7 +92,11 @@ export function SaveButton({
   className,
 }: {
   listingId: number;
-  /** Seed from listing.isSaved when the payload has it (authed contexts). */
+  /**
+   * Seed from listing.isSaved when the payload actually carries it — i.e. the
+   * serializer's `:detailed` view (a listing page fetched with a bearer), never
+   * a `:list` feed row, where the field does not exist at all. See `trusted`.
+   */
   initialSaved?: boolean;
   /** The listing's seller id — the heart hides on your own listing. */
   ownerId?: number;
@@ -208,13 +212,19 @@ export function SaveButton({
   // ANONYMOUS listing payload (see lib/api/client.ts — SSR seeds, the home rail,
   // the category hubs) reports `isSaved: false` for a listing the viewer saved
   // months ago. Only `true` is trustworthy: nothing but an authed payload can
-  // produce it.
+  // produce it. So `trusted` is a shortcut that a payload may or may not offer —
+  // never a replacement for ['saved-listings'], which is the only source EVERY
+  // heart has. Do not "simplify" this to `initialSaved ?? false`.
   //
-  // Which is exactly why the Bazaar feed refetches itself as the viewer
-  // (`getListingsAsViewer`, TASK-WEB-FEED250): once `isSaved` arrives from a
-  // personalised payload this heart is `trusted` on the spot and never announces
-  // itself unsettled while ['saved-listings'] is still in flight. Do NOT
-  // "simplify" this to wait on that list — the surfaces above still send false.
+  // Which payloads can offer it: only the serializer's `:detailed` views — a
+  // listing page fetched client-side with a bearer. NOT the feed. `is_saved` is
+  // absent from `view :list` altogether (see `getListingsAsViewer` in
+  // lib/api/listings.ts), so a Bazaar card's `initialSaved` is `undefined` even
+  // for a signed-in buyer on the personalised payload that TASK-WEB-FEED250
+  // introduced: that fetch buys the hidden-listing filter and `is_viewed`, and
+  // nothing for this heart. Every feed heart therefore resolves from
+  // ['saved-listings'] and is `unknown` until it lands — which is exactly what
+  // the muted/`aria-busy` state below is for. Filed as TASK-BE-SAVEDLIST.
   //
   // Painting the outline heart meanwhile is a lie the buyer acts on. They tap to
   // save something already saved — server-side a no-op (the controller uses
