@@ -281,6 +281,30 @@ test.describe("Bazaar feed (signed in — personalised)", () => {
     ).toHaveCount(0);
   });
 
+  test("a 502 from the proxy falls back too — a blip is not an error panel", async ({
+    page,
+  }) => {
+    // The other half of the fallback, added after review: `/api/me` answers 502
+    // `upstream_failed` whenever its own Rails fetch throws, so a transient blip
+    // used to give a SIGNED-IN buyer an error panel on a feed that a guest on the
+    // same blip still saw in full. Personalisation is what a blip may cost.
+    await page.route(/\/api\/me\/listings\?/, (route) =>
+      route.fulfill({
+        status: 502,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "upstream_failed" }),
+      }),
+    );
+    await page.goto("/en/bazaar");
+    await expect(page.getByText("iPhone 13 Pro")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByText("MacBook Pro M2")).toBeVisible();
+    await expect(
+      page.getByText("Try changing your search or filter."),
+    ).toHaveCount(0);
+  });
+
   test("infinite scroll stays on the authed path", async ({ page }) => {
     // Page 2+ must carry the token too, or the tail of the feed would quietly
     // re-admit hidden listings. The fixture has one page, so assert the transport
