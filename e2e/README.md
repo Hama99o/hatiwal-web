@@ -84,6 +84,7 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
 | `navigation.spec.ts` | Header links, footer legal links, logo → home, unknown route 404 |
 | `redirects.spec.ts` | `/browse` → `/bazaar`, `/users/[id]` → `/sellers/[id]` |
 | `auth-guard.spec.ts` | Every gated route bounces a guest to `/login` |
+| `mock-shape.spec.ts` | **No browser.** The fixture's own payload shape: every `:list` / `:seller_list` / `:detailed` / `:owner_detailed` surface asserted against the committed snapshot of the real serializer views, plus the per-surface `is_viewed` / `is_saved` / price-at-save semantics |
 
 **Authenticated** (buyer + empty personas)
 
@@ -112,7 +113,16 @@ response / optimistic UI / toast / redirect — not cross-request persistence.
   interactive controls (chip click, typing) are asserted by the URL they produce,
   wrapped in `expect(...).toPass()` to ride out dev-mode hydration latency.
 - **Edit fixtures** in `e2e/mock-api/server.mjs`. Keep them snake_case and shaped like
-  the real serializer views (`:list` / `:detailed`).
+  the real serializer views — and for listings that is **enforced**, not a convention:
+  `listView` / `sellerListView` / `detailView` / `ownerDetailView` each mirror ONE view
+  of `hatiwal-api/app/serializers/listing_serializer.rb` field for field, their key sets
+  are snapshotted in `e2e/mock-api/serializer-view-keys.ts`, and `mock-shape.spec.ts`
+  fails if a fixture invents or drops a field. A field the mock invents lets a spec prove
+  behaviour the real API cannot produce (that is how TASK-WEB-FEED250 shipped with an
+  unmeetable acceptance criterion); a field it drops leaves real UI unreachable in E2E
+  (the "Firm price" badge was, for months). So: change the serializer first, then the
+  snapshot, then the fixture. The other payloads (users, conversations, reviews,
+  saved searches) are not pinned yet — extending the same guard is a follow-up.
 - Demo login: `buyer@hatiwal.test` / `Password123!`.
 
 ## Notes / gotchas

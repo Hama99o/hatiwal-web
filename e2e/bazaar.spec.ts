@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import { hold } from "./route-gate";
 
 // The Bazaar feed is fully URL-driven (filter state ⇄ querystring ⇄ Rails query),
 // so filtering is asserted via direct navigation (deterministic SSR), and the
@@ -41,6 +42,22 @@ test.describe("Bazaar feed", () => {
       await chip.first().click();
       await expect(page).toHaveURL(/category=vehicles/);
     }).toPass({ timeout: 20_000 });
+  });
+
+  test('a firm-price listing carries the "Firm price" badge on its card', async ({
+    page,
+  }) => {
+    // `negotiable` is a real `view :list` field that the merged mock fixture used
+    // to swallow, so this badge — rendered by every ListingCard in both variants —
+    // was unreachable in E2E for months (TASK-WEB-MOCKSHAPE). Winter Jacket
+    // (listing 4) is the one firm-price row; everything else is negotiable, which
+    // is the column default.
+    await page.goto("/en/bazaar");
+    const firm = page.locator('a[href="/en/listings/4"]');
+    await expect(firm.getByText("Firm price")).toBeVisible();
+    await expect(
+      page.locator('a[href="/en/listings/1"]').getByText("Firm price"),
+    ).toHaveCount(0);
   });
 
   test("search filters by title", async ({ page }) => {
@@ -134,12 +151,15 @@ test.describe("Bazaar feed", () => {
  * only when the request carries the persona's token, i.e. only when the browser
  * routed it through /api/me.
  *
- * The hearts are NOT part of that payload and these specs must not pretend they
- * are: `is_saved` exists only in the serializer's `:detailed` view, so a feed row
- * never carries it for anyone (TASK-BE-SAVEDLIST would change that, and would
- * change mobile with it). Every feed heart resolves against the separate
- * `['saved-listings']` query instead — which is what the third spec below pins,
- * including the state it must show while that answer is still in flight.
+ * The hearts are the THIRD thing that payload personalises, as of
+ * TASK-BE-SAVEDLIST: `view :list` now carries `is_saved`, filled from a
+ * pre-computed `saved_ids:` Set the controller passes. But only `true` is
+ * trustworthy — an ANONYMOUS payload of the same endpoint reports `false` for a
+ * listing the viewer saved months ago (see `trusted` in
+ * shared/save-button.tsx) — so the two heart specs below pin both directions:
+ * a saved row paints filled straight from the feed, and a row the payload calls
+ * `false` still waits on `['saved-listings']` instead of showing the outline
+ * heart it has not confirmed.
  *
  * Fixture contract (e2e/mock-api/server.mjs): for the buyer persona, listing 2
  * (Samsung 4K TV) is hidden, listing 1 (iPhone 13 Pro) is already viewed, and
@@ -208,32 +228,63 @@ test.describe("Bazaar feed (signed in — personalised)", () => {
     await expect(card.getByText("Seen", { exact: true })).toBeVisible();
   });
 
-  test("a saved listing's heart says 'unknown', never 'not saved', until ['saved-listings'] lands", async ({
+  test("a saved listing's heart fills from the feed payload, without waiting for ['saved-listings']", async ({
     page,
   }) => {
-    // The personalised feed tells this heart NOTHING: `is_saved` is absent from
-    // the :list payload (see the header above), so `initialSaved` is undefined on
-    // every Bazaar card and the state comes from the shared ['saved-listings']
-    // query, exactly as it did before this card. What must never appear in the
-    // meantime is the OUTLINE heart: a buyer who taps that either re-POSTs `save`
-    // for something already saved (server-side a no-op via find_or_create_by!, so
-    // visibly nothing happens) or spends their first tap flipping the wrong way.
+    // What TASK-BE-SAVEDLIST bought: the personalised feed now says `is_saved:
+    // true` for Winter Jacket (listing 4, saved by this persona and not their own
+    // listing, so it carries a heart), and `trusted` takes that as final. So the
+    // second round-trip is no longer on the critical path for the FILLED state.
     //
-    // So hold the saved list open and make that window deterministic rather than
-    // racing the assertion against it.
-    let release!: () => void;
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route(/\/api\/me\/my\/saved_listings/, async (route) => {
-      await held;
-      await route.continue();
-    });
+    // Hold /my/saved_listings for the whole test — never released — so the
+    // assertion can only be satisfied by the feed payload itself. If the field
+    // ever disappears from `view :list` again this fails immediately instead of
+    // being carried by the list fetch.
+    await hold(page, "**/api/me/my/saved_listings**");
 
     await page.goto("/en/bazaar");
-    // Winter Jacket (listing 4) is saved by this persona and is not their own
-    // listing, so it carries a heart. While the answer is in flight it is
-    // `aria-busy` and — the load-bearing half — publishes no pressed state at all.
+    const heart = page
+      .locator('a[href="/en/listings/4"]')
+      .getByRole("button", { name: "Remove from saved" });
+    await expect(heart).toHaveAttribute("aria-pressed", "true", {
+      timeout: 30_000,
+    });
+    // …and it is not merely "pending, showing filled": nothing about it is busy.
+    expect(await heart.evaluate((el) => el.hasAttribute("aria-busy"))).toBe(
+      false,
+    );
+  });
+
+  test("a `false` in the feed payload is not trusted — the heart waits, never shows the outline", async ({
+    page,
+  }) => {
+    // The other direction, and the one that must never regress into
+    // `initialSaved ?? false`. `is_saved: false` is exactly what an ANONYMOUS
+    // fetch of this endpoint reports for a listing the viewer saved long ago (the
+    // SSR seed, the home rail and the category hubs are all anonymous, and the
+    // authed fetch falls back to one on a 401/5xx), so a `false` proves nothing
+    // and the heart must keep waiting on ['saved-listings'].
+    //
+    // Forced here rather than fixture-driven: every non-owned listing in this
+    // persona's feed IS saved, and a payload that lies in this exact way is the
+    // situation being pinned.
+    await page.route(/\/api\/me\/listings\?/, async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.listings = body.listings.map((l: Record<string, unknown>) => ({
+        ...l,
+        is_saved: false,
+      }));
+      await route.fulfill({ response, json: body });
+    });
+    const release = await hold(page, "**/api/me/my/saved_listings**");
+
+    await page.goto("/en/bazaar");
+    // While the answer is in flight the heart is `aria-busy` and — the
+    // load-bearing half — publishes no pressed state at all. A buyer who taps an
+    // outline heart here either re-POSTs `save` for something already saved
+    // (server-side a no-op via find_or_create_by!, so visibly nothing happens) or
+    // spends their first tap flipping the wrong way.
     const card = page.locator('a[href="/en/listings/4"]');
     const unsettled = card.getByRole("button", { name: "Save listing" });
     await expect(unsettled).toHaveAttribute("aria-busy", "true", {
@@ -243,7 +294,7 @@ test.describe("Bazaar feed (signed in — personalised)", () => {
       await unsettled.evaluate((el) => el.hasAttribute("aria-pressed")),
     ).toBe(false);
 
-    release();
+    await release();
     // Then it settles filled — from the list — and stops claiming to be busy.
     const saved = card.getByRole("button", { name: "Remove from saved" });
     await expect(saved).toHaveAttribute("aria-pressed", "true", {
@@ -353,9 +404,10 @@ test.describe("Bazaar feed (guest — unchanged)", () => {
  * (`["listings", viewerId ?? "guest", filters]`) on top of the cache clear in
  * auth-provider.tsx. A personalised payload is now cached per identity, so
  * without that key B's Bazaar would be served A's rows: A's hidden listing still
- * missing and A's "Seen" pills. A's HEARTS leak by a different route — they are
- * not in the feed payload at all, they come from the one global
- * ['saved-listings'] key — which is why this test needs both guards, below.
+ * missing, A's "Seen" pills and A's `is_saved` flags. A's HEARTS can additionally
+ * leak by a second route — the one global ['saved-listings'] key, which no
+ * viewer-scoped query key can protect — which is why this test needs both
+ * guards, below.
  *
  * Same discipline (and the same limits) as the saved-listings counterpart in
  * e2e/auth.spec.ts:
@@ -370,12 +422,12 @@ test.describe("Bazaar feed (guest — unchanged)", () => {
  * the next reader doesn't have to guess):
  *  • The rows and the "Seen" pill are held by the VIEWER-SCOPED KEY alone —
  *    with `queryClient.clear()` disabled they still come back correct for B.
- *  • The heart is held by the CACHE CLEAR: `SAVED_LISTINGS_KEY` is a single
- *    global key (see shared/save-button.tsx), so with the clear disabled B is
- *    shown A's filled heart even though the feed itself is clean. Note both
- *    hearts below therefore resolve from ['saved-listings'], not from the feed
- *    payload (which carries no `is_saved`) — the assertions are the settled
- *    state, reached whenever that query lands for the viewer in question.
+ *  • The heart is held by BOTH: the viewer-scoped key keeps B off A's `is_saved`
+ *    flags, and the CACHE CLEAR keeps B off A's ['saved-listings'] — a single
+ *    global key (see shared/save-button.tsx), so with the clear disabled B was
+ *    shown A's filled heart even when the feed itself was clean. A's heart below
+ *    settles from either source; B's can only settle from the list, since a
+ *    `false` in the payload is deliberately not trusted.
  * Both guards are required, and the test fails if either half regresses.
  */
 test.describe("Bazaar feed (one tab, two users)", () => {

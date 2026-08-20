@@ -67,10 +67,9 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^my\/reviews\/pending$/],
   // Authed listing INDEX — the personalised feed. Rails filters the caller's
   // hidden ("Not interested") listings out of this exact endpoint and fills
-  // is_viewed from their own view history; an anonymous fetch of it claims they
-  // have hidden nothing and seen nothing. NOT is_saved: that field exists only
-  // in the serializer's :detailed view, so it is absent here for bearer and
-  // guest alike (TASK-BE-SAVEDLIST). See `getListingsAsViewer`.
+  // is_viewed and is_saved from their own history (TASK-BE-SAVEDLIST); an
+  // anonymous fetch of it claims they have hidden nothing, seen nothing and saved
+  // nothing. See `getListingsAsViewer`.
   ["GET", /^listings$/],
   // Authed listing show — fired client-side on the detail page so Rails records
   // a Recently-Viewed entry (the SSR fetch is a guest and never attributes it).

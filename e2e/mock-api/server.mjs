@@ -101,9 +101,20 @@ const CAT = Object.fromEntries(
   CATEGORIES.flatMap((c) => [[c.id, c], ...c.subcategories.map((s) => [s.id, s])]),
 );
 
+/**
+ * The `field(:category)` sub-object on every listing view — Rails renders it
+ * through `CategorySerializer.render_as_hash(l.category)`, i.e. that
+ * serializer's DEFAULT view: `fields :id, :slug, :icon, :position` plus the
+ * three localized names. `icon`/`position` are unread by the web today (its
+ * `CategoryRef` type is the other five), but they are on the wire, so they are
+ * here too — see e2e/mock-api/serializer-view-keys.ts.
+ */
 function catRef(id) {
   const c = CAT[id] || CAT[1];
-  return { id: c.id, name_en: c.name_en, name_ps: c.name_ps, name_fa: c.name_fa, slug: c.slug };
+  return {
+    id: c.id, slug: c.slug, icon: c.icon, position: c.position,
+    name_en: c.name_en, name_ps: c.name_ps, name_fa: c.name_fa,
+  };
 }
 
 // Master listings table. /listings exposes only active (like Listing.browsable);
@@ -114,17 +125,27 @@ const LISTINGS = [
   { id: 1, title: "iPhone 13 Pro", price: 45000, currency: "AFN", status: "active", location: "Kabul", address: "Shar-e-Naw", condition: "good", category_id: 101, seller_id: 1, views_count: 120, created_at: "2026-06-20T10:00:00Z", price_drop_percent: 12, price_dropped_at: "2026-06-19T10:00:00Z", description: "Barely used iPhone 13 Pro, 256GB." },
   { id: 2, title: "Samsung 4K TV", price: 30000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "like_new", category_id: 1, seller_id: 2, views_count: 80, created_at: "2026-06-18T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "55 inch 4K smart TV." },
   { id: 3, title: "Toyota Corolla 2015", price: 600000, currency: "AFN", status: "active", location: "Herat", address: null, condition: "fair", category_id: 2, seller_id: 1, views_count: 300, created_at: "2026-06-15T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Clean title, well maintained." },
-  { id: 4, title: "Winter Jacket", price: 1200, currency: "AFN", status: "active", location: "Mazar-i-Sharif", address: null, condition: "like_new", category_id: 3, seller_id: 2, views_count: 25, created_at: "2026-06-21T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Warm winter jacket, size L." },
+  // The one FIRM-PRICE listing (`negotiable: false`, a real `view :list` field):
+  // drives the "Firm price" badge on a feed card and on the detail page, plus the
+  // gate that hides the make-an-offer affordance. Every other row is negotiable,
+  // which is the column default. Also the only row with a non-zero `saves_count`,
+  // so `:detailed`'s "N saves" line is reachable.
+  { id: 4, title: "Winter Jacket", price: 1200, currency: "AFN", status: "active", location: "Mazar-i-Sharif", address: null, condition: "like_new", category_id: 3, seller_id: 2, views_count: 25, negotiable: false, saves_count: 3, created_at: "2026-06-21T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Warm winter jacket, size L." },
   // The one listing NOBODY has messaged about (conversations_count 0, which Rails
   // always emits): drives the "count badge hides at zero" case that the majority
   // of owner views actually are.
   { id: 5, title: "MacBook Pro M2", price: 90000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "good", category_id: 102, seller_id: 1, views_count: 210, conversations_count: 0, created_at: "2026-06-17T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "16GB RAM, 512GB SSD." },
   // Not in the public feed; reachable by id for detail edge cases.
   { id: 6, title: "Mountain Bike (Reserved)", price: 5000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "good", category_id: 2, seller_id: 2, views_count: 40, created_at: "2026-06-10T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Reserved for a buyer." },
-  { id: 7, title: "Leather Sofa (Sold)", price: 8000, currency: "AFN", status: "sold", location: "Herat", address: null, condition: "fair", category_id: 3, seller_id: 1, views_count: 95, created_at: "2026-06-05T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Already sold." },
+  // Sold WITH a buyer, so it carries the owner-only `sale` block (`SALE_FIELD`)
+  // that `:seller_list` and `:owner_detailed` render — the same transaction the
+  // /my/reviews/pending fixture below hangs the review nudge off (id 501).
+  { id: 7, title: "Leather Sofa (Sold)", price: 8000, currency: "AFN", status: "sold", location: "Herat", address: null, condition: "fair", category_id: 3, seller_id: 1, views_count: 95, created_at: "2026-06-05T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Already sold.",
+    sale: { id: 501, status: "sold", final_price: 8000, currency: "AFN", completed_at: "2026-06-25T10:00:00Z", buyer: { id: 2, name: "Sara Ahmadi", avatar_url: null, verified: false }, conversation_id: null } },
   // Seller 1's draft + reserved, so My Shop has all statuses.
   { id: 8, title: "Antique Carpet", price: 15000, currency: "AFN", status: "draft", location: "Kabul", address: null, condition: "good", category_id: 3, seller_id: 1, views_count: 0, created_at: "2026-06-22T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Hand-woven, not yet published." },
-  { id: 9, title: "Gaming PC", price: 70000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "like_new", category_id: 102, seller_id: 1, views_count: 60, created_at: "2026-06-12T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "RTX 3070, reserved for a buyer." },
+  { id: 9, title: "Gaming PC", price: 70000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "like_new", category_id: 102, seller_id: 1, views_count: 60, created_at: "2026-06-12T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "RTX 3070, reserved for a buyer.",
+    sale: { id: 601, status: "reserved", final_price: 70000, currency: "AFN", completed_at: null, buyer: { id: 3, name: "Najib Rahimi", avatar_url: null, verified: true }, conversation_id: null } },
 ];
 
 // Seller 1's ACTIVE-but-past-its-30-day-run listing. Kept OUT of LISTINGS on
@@ -181,18 +202,30 @@ const SOLD_EMPTY_CATEGORY = {
 };
 
 // ── Per-viewer state for the FULL persona ────────────────────────────────────
-// Rails personalises GET /listings whenever a bearer is present, in two ways:
-// hidden listings are filtered out (`not_hidden_for`) and `is_viewed` comes from
-// the caller's ListingView rows. It does NOT send `is_saved` on this endpoint —
-// that field lives only in the serializer's :detailed view, so the :list payload
-// omits it for bearer and guest alike, and SAVED_IDS below feeds only
-// /my/saved_listings (which is what every heart actually reads). These three
-// arrays are the single source for BOTH the index and the /my/* lists below, so
-// the feed can never disagree with the management screens (a hidden listing that
-// still shows in the feed is exactly the defect the authed feed fixes).
+// Rails personalises GET /listings whenever a bearer is present, in three ways:
+// hidden listings are filtered out (`not_hidden_for`), `is_viewed` comes from the
+// caller's ListingView rows, and `is_saved` from the pre-computed `saved_ids:`
+// Set the controller passes (TASK-BE-SAVEDLIST). The three collections below are
+// the single source for BOTH the index and the /my/* lists, so the feed can never
+// disagree with the management screens (a hidden listing that still shows in the
+// feed is exactly the defect the authed feed fixes).
 const HIDDEN_IDS = [2]; // Samsung 4K TV — "Not interested"
 const VIEWED_IDS = [1]; // iPhone 13 Pro — already opened → "Seen" pill + dim
-const SAVED_IDS = [2, 4]; // Samsung 4K TV (also hidden) + Winter Jacket
+
+// The `{ listing_id => SavedListing }` map GET /my/saved_listings passes as
+// `saved_by_listing_id:`. It is the ONLY :list surface that fills the
+// price-at-save trio, and the only one that proves `is_saved` without a
+// `saved_ids:` Set (every row it renders is a saved row by construction).
+// `price_drop_amount` is nil unless the price actually dropped — see
+// SavedListing#price_drop_amount.
+const SAVED_META = {
+  // Samsung 4K TV (also hidden): saved at 35,000, now 30,000 → a real drop.
+  2: { price_at_save: 35000, price_dropped: true, price_drop_amount: 5000 },
+  // Winter Jacket: saved at today's price → no drop.
+  4: { price_at_save: 1200, price_dropped: false, price_drop_amount: null },
+};
+// Derived so the two can never disagree: whatever is in SAVED_META is saved.
+const SAVED_IDS = Object.keys(SAVED_META).map(Number);
 
 function findListing(id) {
   return [
@@ -204,56 +237,203 @@ function findListing(id) {
   ].find((l) => String(l.id) === String(id));
 }
 
-/**
- * Rails' :list view. `viewer` is the persona the request authenticated as (null
- * for a guest) — only an authed payload can carry is_viewed, which is one half of
- * the point of fetching the feed through /api/me (the other half is the hidden
- * filter, applied by the route).
- *
- * Do NOT add `is_saved` here, however convenient it would make a heart
- * assertion: `view :list` in hatiwal-api/app/serializers/listing_serializer.rb
- * has no such field, and a fixture that invents one lets a spec prove a
- * behaviour the real API cannot produce. (Filed to bring this whole function
- * onto the serializer views field-for-field: TASK-WEB-MOCKSHAPE.)
- */
-function listView(l, viewer = null) {
-  const mine = viewer === "full";
+// ── Serializer views ─────────────────────────────────────────────────────────
+// The four functions below mirror ONE view each of
+// hatiwal-api/app/serializers/listing_serializer.rb, FIELD FOR FIELD. Their key
+// sets are pinned against the committed snapshot in
+// e2e/mock-api/serializer-view-keys.ts by the browser-free e2e/mock-shape.spec.ts,
+// because a fixture that invents a field lets a Playwright spec prove behaviour
+// the real API cannot produce — which is exactly how TASK-WEB-FEED250 first
+// shipped reported-complete against an unmeetable acceptance criterion (an
+// invented `is_saved` on `view :list`).
+//
+// So: never add a key here without adding it to the serializer AND to the
+// snapshot. One function per view, never one function for two views — the merged
+// `listView` was what let `:seller_list`'s extras leak into every feed row.
+
+/** `fields :id, :title, … :created_at` — declared OUTSIDE any view, so
+ *  Blueprinter includes them in every named view below. */
+function baseFields(l) {
   return {
     id: l.id, title: l.title, price: l.price, currency: l.currency, status: l.status,
-    location: l.location, address: l.address, condition: l.condition, created_at: l.created_at,
-    category_id: l.category_id, views_count: l.views_count,
-    // Rails emits this for every listing, 0 included — per-fixture override so a
-    // listing with no chats can be asserted on.
-    conversations_count: l.conversations_count ?? 2, thumbnail_url: null, image_urls: [],
-    expired: l.expired ?? false, expires_at: l.expires_at ?? null,
-    is_viewed: mine && VIEWED_IDS.includes(l.id),
-    seller: SELLERS[l.seller_id], category: catRef(l.category_id),
-    price_drop_percent: l.price_drop_percent, price_dropped_at: l.price_dropped_at,
+    location: l.location, address: l.address, condition: l.condition,
+    created_at: l.created_at,
   };
 }
 
+/** Lifecycle timestamps. A draft was never published; only a reserved listing
+ *  carries reserved_at, only a sold one sold_at (`:seller_list` + `:detailed`). */
+function lifecycleFields(l) {
+  return {
+    published_at: l.status === "draft" ? null : l.created_at,
+    reserved_at: l.status === "reserved" ? l.created_at : null,
+    sold_at: l.status === "sold" ? l.created_at : null,
+  };
+}
+
+/** `field(:seller)` inside `view :list` — five public identity keys and no more.
+ *  The response-rate / away / rating signals belong to the `:detailed` seller
+ *  block (see `detailedSeller`); a feed row has never carried them. */
+function listSeller(l) {
+  const u = SELLERS[l.seller_id];
+  return { id: u.id, name: u.name, city: u.city, verified: u.verified, avatar_url: u.avatar_url };
+}
+
+/** The trust summary the `:detailed` seller block adds (UserSerializer-derived
+ *  values). Kept out of SELLERS so it cannot leak into the
+ *  /users/:id/public_profile fixture, whose shape belongs to a different
+ *  serializer (UserSerializer's `:public` view — not covered by this snapshot). */
+const SELLER_TRUST = {
+  1: { avg_rating: 4.7, review_count: 3, last_active_label: "today" },
+  2: { avg_rating: null, review_count: 0, last_active_label: "this_week" },
+  3: { avg_rating: null, review_count: 0, last_active_label: null },
+};
+
+/** `field(:seller)` inside `view :detailed`. `phone` is exposed only to an
+ *  authenticated non-owner, and the detail payload is fetched by an RSC (i.e. as
+ *  a guest), so it is always null here. `seller_away_until` is a key on every
+ *  seller — null unless they are CURRENTLY away. */
+function detailedSeller(l) {
+  const u = SELLERS[l.seller_id];
+  const trust = SELLER_TRUST[l.seller_id];
+  return {
+    id: u.id, name: u.name, city: u.city, phone: null, verified: u.verified,
+    avatar_url: u.avatar_url,
+    avg_rating: trust.avg_rating, review_count: trust.review_count,
+    response_rate_percent: u.response_rate_percent,
+    response_time_label: u.response_time_label,
+    last_active_label: trust.last_active_label,
+    seller_is_away: Boolean(u.seller_away_until),
+    seller_away_until: u.seller_away_until ?? null,
+  };
+}
+
+/** `SALE_FIELD` — the owner-only buyer block shared by `:seller_list` and
+ *  `:owner_detailed`. null until the listing has a Transaction (every draft and
+ *  active listing, plus a buyer-less legacy reserve/sold). */
+function saleView(l) {
+  return l.sale ?? null;
+}
+
+/**
+ * `view :list` — GET /listings, GET /listings/:id/similar,
+ * GET /my/saved_listings, GET /my/hidden_listings, GET /users/:id/sold_listings.
+ *
+ * `opts` are the serializer's local_options, and ONLY the controllers that
+ * actually pass them get a non-default answer. That asymmetry is deliberate in
+ * Rails and documented on the serializer, so it is mirrored here rather than
+ * smoothed over:
+ *   viewedIds        — `viewed_ids:`          (index + similar only)
+ *   savedIds         — `saved_ids:`           (index + similar only)
+ *   savedByListingId — `saved_by_listing_id:` (the Saved screen only) → is_saved
+ *                      plus the price_at_save / price_dropped / price_drop_amount
+ *                      trio, which is null/false on every other :list surface.
+ */
+function listView(l, { viewedIds = null, savedIds = null, savedByListingId = null } = {}) {
+  const save = savedByListingId?.[l.id] ?? null;
+  return {
+    ...baseFields(l),
+    category_id: l.category_id,
+    views_count: l.views_count,
+    negotiable: l.negotiable ?? true,
+    thumbnail_url: null,
+    image_urls: [],
+    is_viewed: viewedIds?.includes(l.id) ?? false,
+    is_saved: save !== null || (savedIds?.includes(l.id) ?? false),
+    seller: listSeller(l),
+    category: catRef(l.category_id),
+    price_drop_percent: l.price_drop_percent,
+    price_dropped_at: l.price_dropped_at,
+    price_at_save: save?.price_at_save ?? null,
+    price_dropped: save?.price_dropped ?? false,
+    price_drop_amount: save?.price_drop_amount ?? null,
+  };
+}
+
+/**
+ * The `viewed_ids:` + `saved_ids:` Sets that ListingsController#index and
+ * #similar (and ONLY those two) pass to `view :list`. Both are empty for a guest
+ * — `return Set.new if current_user.nil?` — and for a persona with no rows.
+ */
+function viewerSets(who) {
+  return who === "full" ? { viewedIds: VIEWED_IDS, savedIds: SAVED_IDS } : {};
+}
+
+/**
+ * `view :seller_list` — GET /my/listings (My Shop) and nothing else.
+ *
+ * The extras a feed row must NOT have live here: the lifecycle timestamps, the
+ * expiry pair the Expired tab and the Renew action read, `conversations_count`,
+ * and the owner-only `sale`. There is deliberately no `is_saved`/`is_viewed`/
+ * `seller` — whether the owner bookmarked or opened their own listing is not a
+ * product concept, and the seller of every row is the caller.
+ */
+function sellerListView(l) {
+  return {
+    ...baseFields(l),
+    category_id: l.category_id,
+    views_count: l.views_count,
+    ...lifecycleFields(l),
+    expires_at: l.expires_at ?? null,
+    negotiable: l.negotiable ?? true,
+    thumbnail_url: null,
+    image_urls: [],
+    // Rails emits this for every listing, 0 included — per-fixture override so a
+    // listing with no chats can be asserted on.
+    conversations_count: l.conversations_count ?? 2,
+    expired: l.expired ?? false,
+    category: catRef(l.category_id),
+    price_drop_percent: l.price_drop_percent,
+    price_dropped_at: l.price_dropped_at,
+    sale: saleView(l),
+  };
+}
+
+/** `view :detailed` — the public GET /listings/:id. */
 function detailView(l) {
   return {
-    ...listView(l),
-    description: l.description, latitude: 34.55, longitude: 69.2,
-    published_at: l.created_at, reserved_at: null, sold_at: null, updated_at: l.created_at,
+    ...baseFields(l),
+    description: l.description,
+    category_id: l.category_id,
+    latitude: 34.55,
+    longitude: 69.2,
+    views_count: l.views_count,
+    ...lifecycleFields(l),
+    updated_at: l.created_at,
     expires_at: l.expires_at ?? null,
-    images: [], image_attachments: [], expired: l.expired ?? false,
+    negotiable: l.negotiable ?? true,
+    images: [],
+    image_attachments: [],
+    thumbnail_url: null,
+    expired: l.expired ?? false,
     conversations_count: l.conversations_count ?? 2,
-    // The ONE view Rails computes this in (`view :detailed`). Hardcoded false
-    // because the detail page's payload is fetched by an RSC, i.e. as a guest.
+    saves_count: l.saves_count ?? 0,
+    // Both are computed from the caller's own rows in Rails. Hardcoded false
+    // because the detail page's payload is fetched by an RSC, i.e. as a guest —
+    // never claim a save/view this fixture cannot attribute to anyone.
     is_saved: false,
-    seller: { ...SELLERS[l.seller_id], phone: null },
+    is_viewed: false,
+    seller: detailedSeller(l),
     category: catRef(l.category_id),
+    price_dropped_at: l.price_dropped_at,
+    price_drop_percent: l.price_drop_percent,
+    // `Listing.share_url_for` is nil unless PUBLIC_SHARE_BASE_URL is set.
+    share_url: null,
   };
+}
+
+/** `view :owner_detailed` — `include_view :detailed` plus the owner-only sale.
+ *  Everything under /my/listings/:id (show, create, update, lifecycle). */
+function ownerDetailView(l) {
+  return { ...detailView(l), sale: saleView(l) };
 }
 
 /** A listing owned by user 1 by id — falls back to a synthesized draft so a
  * freshly-created listing (POST → redirect → detail) always renders. */
 function myListingView(id) {
   const found = findListing(id);
-  if (found) return detailView(found);
-  return detailView({
+  if (found) return ownerDetailView(found);
+  return ownerDetailView({
     id: Number(id), title: "New Listing", price: 1000, currency: "AFN", status: "draft",
     location: "Kabul", address: null, condition: "good", category_id: 101, seller_id: 1,
     views_count: 0, created_at: "2026-06-22T09:00:00Z", price_drop_percent: null,
@@ -470,12 +650,26 @@ function filterListings(q) {
   return items;
 }
 
-// My Shop: seller 1's listings across all statuses (newest first).
+// My Shop: seller 1's listings across all statuses (newest first). The ONE
+// `:seller_list` surface.
 function myListings() {
   return [...LISTINGS.filter((l) => l.seller_id === 1), EXPIRED_MINE]
     .slice()
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .map(listView);
+    .map(sellerListView);
+}
+
+/** The single-page `meta.pagination` envelope Rails' paginate_blue always sends. */
+function onePage(items) {
+  return {
+    pagination: {
+      current_page: 1,
+      next_page: null,
+      prev_page: null,
+      total_count: items.length,
+      total_pages: 1,
+    },
+  };
 }
 
 // ── Server ───────────────────────────────────────────────────────────────────
@@ -563,15 +757,16 @@ function route(req, res, method, path, q, body) {
 
   // The feed. Public, but PERSONALISED when devise headers are attached (i.e.
   // when the browser fetched it through /api/me instead of /api/proxy): the
-  // caller's hidden listings drop out and the payload carries is_viewed. (No
-  // is_saved — see `listView`.) A guest's response is byte-identical to what it
-  // always was.
+  // caller's hidden listings drop out and the payload carries their is_viewed and
+  // is_saved flags — the two Sets ListingsController#index pre-computes. A guest
+  // passes neither, so every flag is false, and their response is byte-identical
+  // to what it always was.
   if (method === "GET" && path === "/listings") {
     let items = filterListings(q);
     if (who === "full") items = items.filter((l) => !HIDDEN_IDS.includes(l.id));
     const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
     return send(res, 200, {
-      listings: slice.map((l) => listView(l, who)),
+      listings: slice.map((l) => listView(l, viewerSets(who))),
       meta: { pagination },
     });
   }
@@ -589,7 +784,10 @@ function route(req, res, method, path, q, body) {
       .filter((l) => l.status === "active" && ids.includes(l.category_id) && l.id !== source.id)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 8);
-    return send(res, 200, { listings: items.map(listView) });
+    // #similar passes the same two Sets #index does, so a signed-in buyer's
+    // cross-sell rail is flagged like their feed. (The web fetches this rail from
+    // an RSC, i.e. always as a guest — mirrored anyway, not special-cased.)
+    return send(res, 200, { listings: items.map((l) => listView(l, viewerSets(who))) });
   }
 
   // Public profile — guest-readable (mirrors Rails: skip_before_action
@@ -618,7 +816,10 @@ function route(req, res, method, path, q, body) {
       (l) => l.status === "sold" && l.seller_id === uid,
     );
     const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
-    return send(res, 200, { listings: slice.map(listView), meta: { pagination } });
+    // No `viewed_ids:`/`saved_ids:` here — Users::SoldListingsController passes
+    // neither, so every row reports is_viewed/is_saved false. Deliberate and
+    // documented on that controller, not an oversight.
+    return send(res, 200, { listings: slice.map((l) => listView(l)), meta: { pagination } });
   }
 
   // Reviews of a user — guest-readable (public trust surface, VISIBLE only).
@@ -655,11 +856,14 @@ function route(req, res, method, path, q, body) {
   // Saved listings
   if (path === "/my/saved_listings" && method === "GET") {
     if (!requireAuth()) return;
-    // Derived from SAVED_IDS, which is the ONLY thing that decides a heart:
-    // `is_saved` is not on the :list payload, so every heart in the app — feed,
-    // detail, sticky bar — resolves against this list (see save-button.tsx).
-    const listings = empty ? [] : SAVED_IDS.map((id) => listView(findListing(id), who));
-    return send(res, 200, { listings });
+    // The `saved_by_listing_id:` surface: every row is a saved row by
+    // construction, so is_saved is true from the map alone and the price-at-save
+    // trio is filled here and nowhere else. This list is also the source EVERY
+    // heart in the app can read (feed, detail, sticky bar) — see save-button.tsx.
+    const listings = empty
+      ? []
+      : SAVED_IDS.map((id) => listView(findListing(id), { savedByListingId: SAVED_META }));
+    return send(res, 200, { listings, meta: onePage(listings) });
   }
   const saveMatch = path.match(/^\/listings\/(\d+)\/(save|unsave)$/);
   if (saveMatch) {
@@ -671,20 +875,12 @@ function route(req, res, method, path, q, body) {
   if (path === "/my/hidden_listings" && method === "GET") {
     if (!requireAuth()) return;
     // Derived from HIDDEN_IDS, the same array the feed filters on — so "hidden"
-    // means one thing across both surfaces.
-    const listings = empty ? [] : HIDDEN_IDS.map((id) => listView(findListing(id), who));
-    return send(res, 200, {
-      listings,
-      meta: {
-        pagination: {
-          current_page: 1,
-          next_page: null,
-          prev_page: null,
-          total_count: listings.length,
-          total_pages: 1,
-        },
-      },
-    });
+    // means one thing across both surfaces. My::HiddenListingsController passes
+    // no viewer Sets, so is_viewed/is_saved are false even though listing 2 is in
+    // fact saved: a dismissal list is not a buyer-intent surface (documented on
+    // that controller).
+    const listings = empty ? [] : HIDDEN_IDS.map((id) => listView(findListing(id)));
+    return send(res, 200, { listings, meta: onePage(listings) });
   }
   const hideMatch = path.match(/^\/listings\/(\d+)\/(hide|unhide)$/);
   if (hideMatch) {
@@ -733,7 +929,8 @@ function route(req, res, method, path, q, body) {
   // Seller dashboard
   if (path === "/my/listings" && method === "GET") {
     if (!requireAuth()) return;
-    return send(res, 200, { listings: empty ? [] : myListings() });
+    const listings = empty ? [] : myListings();
+    return send(res, 200, { listings, meta: onePage(listings) });
   }
   if (path === "/my/listings" && method === "POST") {
     if (!requireAuth()) return;

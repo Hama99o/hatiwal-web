@@ -106,25 +106,20 @@ export async function getListings(
  * The SAME feed, fetched AS THE SIGNED-IN VIEWER (browser only).
  *
  * `GET /listings` is personalised by Rails whenever a bearer is present
- * (listings_controller#index), in exactly TWO ways:
+ * (listings_controller#index), in exactly THREE ways:
  *   1. `not_hidden_for(current_user)` drops the buyer's "Not interested" listings;
- *   2. `viewed_ids:` fills `is_viewed` — the card's "Seen" pill + dim.
- * Neither can arrive through `apiGet`: no transport it picks attaches devise
+ *   2. `viewed_ids:` fills `is_viewed` — the card's "Seen" pill + dim;
+ *   3. `saved_ids:` fills `is_saved` — the card's heart (TASK-BE-SAVEDLIST; both
+ *      Sets are pre-computed for the page, never a per-row `exists?`).
+ * None of them can arrive through `apiGet`: no transport it picks attaches devise
  * tokens (see client.ts), so every anonymous fetch of this endpoint claims the
- * viewer has hidden nothing and seen nothing.
+ * viewer has hidden nothing, seen nothing and saved nothing.
  *
- * `is_saved` is NOT one of them — and do not add a third bullet for it. It is
- * defined only in the serializer's `view :detailed`
- * (hatiwal-api/app/serializers/listing_serializer.rb), while `#index` renders
- * `view: :list`, so the key is absent from this payload for a bearer and a guest
- * alike. Feed hearts therefore still reconcile against the separate
- * `['saved-listings']` query (shared/save-button.tsx), which is why
- * `initialSaved` is `undefined` on every Bazaar card. Making the flag reachable
- * here is a backend change (add the field to `view :list` + pass a pre-computed
- * `saved_ids:` Set from `#index`, or it is an N+1 across the page) and is filed
- * as `TASK-BE-SAVEDLIST` — it fixes mobile's Browse at the same time
- * (hatiwal-mobile/src/screens/buyer/Browse.tsx already guards
- * `if (l.isSaved !== undefined)` for precisely this absence).
+ * That last one is why an anonymous `is_saved: false` must never be believed:
+ * the field is on the wire for guests too, reporting `false` for a listing the
+ * viewer saved months ago. Only `true` is trustworthy — see `trusted` in
+ * components/shared/save-button.tsx, which still reconciles every heart against
+ * the shared `['saved-listings']` query and takes the payload only as a shortcut.
  *
  * So route it through the authed proxy instead, which attaches the tokens from
  * the httpOnly cookies and persists rotation. Same `toParams` mapping, same

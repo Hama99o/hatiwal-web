@@ -45,6 +45,26 @@ test.describe("Listing detail", () => {
     await expect(page.getByText(/12% price drop/i)).toBeVisible();
   });
 
+  test("renders the :detailed fields the fixture used to omit entirely", async ({
+    page,
+  }) => {
+    // Three pieces of shipped UI that were unreachable in E2E until
+    // TASK-WEB-MOCKSHAPE brought the mock's `detailView` onto `view :detailed`
+    // field for field. Each one is rendered from a key the merged fixture simply
+    // did not send, so each rendered its "nothing to say" branch on every page.
+    //
+    // The seller trust score (`avg_rating`/`review_count` on the :detailed seller
+    // block — see docs/MOBILE_WEB_PARITY.md's 2026-07-20 sweep, which added them
+    // to the serializer for exactly this card).
+    await page.goto("/en/listings/1");
+    await expect(page.getByText("4.7")).toBeVisible();
+    await expect(page.getByText("3 reviews")).toBeVisible();
+    // …and `negotiable` + `saves_count`, on the one firm-price, saved-by-others row.
+    await page.goto("/en/listings/4");
+    await expect(page.getByText("Firm price")).toBeVisible();
+    await expect(page.getByText("Saved by 3 people")).toBeVisible();
+  });
+
   test("gated actions are present (Contact Seller / Report)", async ({ page }) => {
     await page.goto("/en/listings/1");
     await expect(page.getByText(CTA_LABEL)).toBeVisible();

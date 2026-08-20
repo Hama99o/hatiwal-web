@@ -117,10 +117,9 @@ export function BrowseClient({
   const router = useRouter();
   const pathname = usePathname();
   // WHO is browsing. The feed is personalised server-side for a bearer (the
-  // viewer's hidden listings filtered out, `is_viewed` filled — NOT `is_saved`,
-  // which the :list view does not carry; see `getListingsAsViewer`), so this
-  // island has to fetch as the viewer once it knows there is one — see the query
-  // below.
+  // viewer's hidden listings filtered out, `is_viewed` and `is_saved` filled from
+  // pre-computed Sets — see `getListingsAsViewer`), so this island has to fetch
+  // as the viewer once it knows there is one — see the query below.
   const { status, user } = useAuth();
   const authed = status === "authed";
 
@@ -217,9 +216,10 @@ export function BrowseClient({
   const query = useInfiniteQuery({
     // VIEWER-SCOPED. A guest's feed and a buyer's personalised feed are two
     // different result sets for the same filters (which rows are hidden, which
-    // carry a "Seen" pill), so they must never share one cache entry. The saved
-    // hearts are keyed elsewhere — they come from ['saved-listings'], cleared at
-    // every identity change. Belt-and-braces
+    // carry a "Seen" pill, which carry `is_saved: true`), so they must never share
+    // one cache entry. The hearts have a SECOND leak path no query key can close —
+    // the single global ['saved-listings'] key — which is cleared at every
+    // identity change instead. Belt-and-braces
     // beside the `queryClient.clear()` at every identity change in
     // auth-provider.tsx: A → logout → B in one tab cannot serve A's rows here
     // even if that clear is ever weakened.

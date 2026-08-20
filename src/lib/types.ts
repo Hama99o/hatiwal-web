@@ -145,11 +145,12 @@ export interface Listing {
   savesCount?: number;
   conversationsCount?: number;
   /**
-   * DETAIL VIEW ONLY, and only for a bearer — Rails defines `is_saved` in the
-   * serializer's `:detailed` view, never in `:list`. So it is `undefined` on
-   * every feed/grid row (browse, saved, hidden, my listings) whoever is asking:
-   * treat "not present" as "unknown", never as "not saved" (see
-   * components/shared/save-button.tsx). Tracked: TASK-BE-SAVEDLIST.
+   * On `:detailed` and — since TASK-BE-SAVEDLIST — on `:list` too, so every feed
+   * row carries it. Still not the whole truth: an ANONYMOUS fetch (ISR pages, the
+   * Bazaar's SSR seed, the anonymous fallback) reports `false` for a listing the
+   * viewer has saved, and `:seller_list` omits the field entirely. So treat only
+   * `true` as authoritative, never `false`/absent as "not saved" — see
+   * components/shared/save-button.tsx.
    */
   isSaved?: boolean;
   /** Feed rows too, but only on a payload fetched WITH a bearer (`:list` +

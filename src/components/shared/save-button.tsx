@@ -58,9 +58,10 @@ function writeFlip(
  * and invalidates ['saved-listings'] so /saved stays in sync everywhere.
  *
  * True saved-state: public/ISR listing payloads are fetched without auth, so
- * `isSaved` is unreliable there. When signed in we derive the state from the
- * shared ['saved-listings'] query (one cached fetch app-wide) and fall back to
- * `initialSaved`. Guests see the outline heart and are sent to /login on tap.
+ * `isSaved` is `false` there whatever the viewer has actually saved. When signed
+ * in we derive the state from the shared ['saved-listings'] query (one cached
+ * fetch app-wide) and fall back to `initialSaved`. Guests see the outline heart
+ * and are sent to /login on tap.
  *
  * INDETERMINATE, not "not saved" (see `unknown` below): until BOTH the session
  * probe and that shared list have landed, this button does not know the answer
@@ -93,9 +94,10 @@ export function SaveButton({
 }: {
   listingId: number;
   /**
-   * Seed from listing.isSaved when the payload actually carries it — i.e. the
-   * serializer's `:detailed` view (a listing page fetched with a bearer), never
-   * a `:list` feed row, where the field does not exist at all. See `trusted`.
+   * Seed from listing.isSaved. Every listing view carries the field (`:list`
+   * too, since TASK-BE-SAVEDLIST) — but a payload fetched WITHOUT a bearer
+   * reports `false` for a listing the viewer really has saved, so only `true`
+   * is believed. See `trusted`.
    */
   initialSaved?: boolean;
   /** The listing's seller id — the heart hides on your own listing. */
@@ -216,15 +218,14 @@ export function SaveButton({
   // never a replacement for ['saved-listings'], which is the only source EVERY
   // heart has. Do not "simplify" this to `initialSaved ?? false`.
   //
-  // Which payloads can offer it: only the serializer's `:detailed` views — a
-  // listing page fetched client-side with a bearer. NOT the feed. `is_saved` is
-  // absent from `view :list` altogether (see `getListingsAsViewer` in
-  // lib/api/listings.ts), so a Bazaar card's `initialSaved` is `undefined` even
-  // for a signed-in buyer on the personalised payload that TASK-WEB-FEED250
-  // introduced: that fetch buys the hidden-listing filter and `is_viewed`, and
-  // nothing for this heart. Every feed heart therefore resolves from
-  // ['saved-listings'] and is `unknown` until it lands — which is exactly what
-  // the muted/`aria-busy` state below is for. Filed as TASK-BE-SAVEDLIST.
+  // Which payloads can offer it: any view fetched WITH a bearer. That is the
+  // serializer's `:detailed` view on a listing page, and — since
+  // TASK-BE-SAVEDLIST added `is_saved` to `view :list` — the personalised feed
+  // too, whenever the browser routed it through /api/me (`getListingsAsViewer`
+  // in lib/api/listings.ts). A card on an ISR surface (`/`, `/categories/*`, the
+  // Bazaar's SSR seed) is still fetched anonymously and still says `false`, so
+  // those hearts remain `unknown` until ['saved-listings'] lands — which is
+  // exactly what the muted/`aria-busy` state below is for.
   //
   // Painting the outline heart meanwhile is a lie the buyer acts on. They tap to
   // save something already saved — server-side a no-op (the controller uses
