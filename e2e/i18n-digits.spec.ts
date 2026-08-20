@@ -145,6 +145,39 @@ test.describe("Locale digits (no hydration mismatch)", () => {
     expect(complaints).toEqual([]);
   });
 
+  // The filter pill is `lg:hidden`, i.e. it only exists on the viewport where the
+  // Bazaar is one narrow column — so it was the one count on this screen no
+  // desktop-width spec could see. It printed `{filterCount}` straight into JSX,
+  // which put a Latin digit in the same button as the Arabic-Indic "۱ چاڼ فعال"
+  // line directly below it.
+  test("Pashto Bazaar on a phone: the filter pill agrees with the filters-active line", async ({
+    page,
+  }) => {
+    const complaints = watchHydration(page);
+    await page.setViewportSize({ width: 390, height: 780 });
+    await page.goto("/ps/bazaar?q=MacBook");
+
+    const pill = page.getByTestId("browse-filter-count");
+    await expect(pill).toBeVisible({ timeout: 60_000 });
+    await expect(pill).toHaveText(ARABIC_INDIC);
+    await expect(pill).not.toHaveText(LATIN_DIGIT);
+    expect(complaints).toEqual([]);
+  });
+
+  // Server-rendered, so this is the `format.ts` half of the same contract: the
+  // hero count sits directly under a locale-formatted rating.
+  test("Pashto seller profile: the active-listings count is Pashto digits", async ({
+    page,
+  }) => {
+    const complaints = watchHydration(page);
+    await page.goto("/ps/sellers/1");
+    const count = page.locator("main .text-2xl.font-bold").first();
+    await expect(count).toBeVisible({ timeout: 60_000 });
+    await expect(count).toHaveText(ARABIC_INDIC);
+    await expect(count).not.toHaveText(LATIN_DIGIT);
+    expect(complaints).toEqual([]);
+  });
+
   test.describe("authed Pashto surfaces that print a count", () => {
     test.use({ storageState: BUYER_STATE });
 
@@ -257,16 +290,51 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       expect(complaints).toEqual([]);
     });
 
-    test("Manage listing: the conversations count renders in Pashto digits", async ({
+    // The manage screen's stats row is the tightest case in the app: TWO counts
+    // side by side, reaching `Intl` by two different routes — `listing.viewsCount`
+    // is a typed `{count, number}` placeholder, `listing.conversationsCount` a
+    // plural `#` — with the PriceTag directly above. An untyped `{count}` is
+    // stringified by ICU and never formatted, so this row used to print a Latin
+    // "120 لیدنې" immediately beside an Arabic-Indic "۲ چټونه". Asserting the
+    // whole ROW (not one element) is what makes that state impossible to restore.
+    test("Manage listing: views AND conversations counts are Pashto digits on one row", async ({
       page,
     }) => {
       const complaints = watchHydration(page);
       await page.goto("/ps/my-listings/1");
-      // "# چټونه" — the chats link on the stats row (ps `listing.conversationsCount`).
-      const chats = page.getByText(/چټ/).first();
-      await expect(chats).toBeVisible({ timeout: 60_000 });
+      const stats = page.getByTestId("manage-listing-stats");
+      await expect(stats).toBeVisible({ timeout: 60_000 });
+      await expect(stats).toHaveText(ARABIC_INDIC);
+      await expect(stats).not.toHaveText(LATIN_DIGIT);
+
+      // "# چټونه" — the chats link inside that row (ps `listing.conversationsCount`).
+      const chats = stats.getByText(/چټ/).first();
       await expect(chats).toHaveText(ARABIC_INDIC);
-      await expect(chats).not.toHaveText(LATIN_DIGIT);
+      // …and the views count beside it (ps `listing.viewsCount`), so a regression
+      // names the placeholder that broke instead of just failing the row.
+      const views = stats.getByText(/لیدنې/).first();
+      await expect(views).toHaveText(ARABIC_INDIC);
+      await expect(views).not.toHaveText(LATIN_DIGIT);
+
+      // The price above the row is `formatPrice` (fa-AF) — the "same screen"
+      // half of the contract: one digit set, whoever formatted it.
+      const price = page.locator("main .tabular-nums").first();
+      await expect(price).toHaveText(ARABIC_INDIC);
+      await expect(price).not.toHaveText(LATIN_DIGIT);
+      expect(complaints).toEqual([]);
+    });
+
+    // The price-drop pill prints a PERCENT through `t()` (`{percent, number}`) and
+    // sits on the same screen as the price — mock listing 1 is at -12%.
+    test("Listing detail: the price-drop percent is Pashto digits beside the price", async ({
+      page,
+    }) => {
+      const complaints = watchHydration(page);
+      await page.goto("/ps/listings/1");
+      const drop = page.getByText(/٪/).first();
+      await expect(drop).toBeVisible({ timeout: 60_000 });
+      await expect(drop).toHaveText(ARABIC_INDIC);
+      await expect(drop).not.toHaveText(LATIN_DIGIT);
       expect(complaints).toEqual([]);
     });
   });

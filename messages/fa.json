@@ -68,7 +68,7 @@
     "confirmRenew": "این آگهی تمدید شود؟",
     "confirmRenewDescription": "برای ۳۰ روز دیگر در فهرست فعال خواهد بود.",
     "expiredBadge": "منقضی",
-    "expiresInDays": "تا {count} روز دیگر منقضی می‌شود",
+    "expiresInDays": "تا {count, number} روز دیگر منقضی می‌شود",
     "expiresTomorrow": "فردا منقضی می‌شود",
     "expiresToday": "امروز منقضی می‌شود",
     "unpublishSuccess": "آگهی از انتشار خارج شد",
@@ -115,7 +115,7 @@
     "save": "ذخیره آگهی",
     "unsave": "حذف از ذخیره‌شده‌ها",
     "postedAgo": "ارسال شده {date}",
-    "viewsCount": "{count} بازدید",
+    "viewsCount": "{count, number} بازدید",
     "savesCount": "{count, plural, one {ذخیره شده توسط # نفر} other {ذخیره شده توسط # نفر}}",
     "share": {
       "body": "{title} — {price}"
@@ -152,8 +152,8 @@
     "noPhoto": "عکس ندارد",
     "seen": "دیده‌شده",
     "priceDrop": {
-      "badge": "{percent}٪ کاهش قیمت",
-      "badgeCardShort": "-{percent}٪"
+      "badge": "{percent, number}٪ کاهش قیمت",
+      "badgeCardShort": "-{percent, number}٪"
     },
     "detail": {
       "save": "ذخیره آگهی",
@@ -262,7 +262,7 @@
     },
     "analytics": {
       "title": "بازدیدها (۷ روز اخیر)",
-      "totalViews": "{count} بازدید در ۷ روز اخیر",
+      "totalViews": "{count, number} بازدید در ۷ روز اخیر",
       "noData": "هنوز بازدیدی نیست"
     }
   },
@@ -281,7 +281,6 @@
     "viewDetails": "مشاهده جزئیات",
     "postedBy": "توسط",
     "postedOn": "تاریخ",
-    "viewsCount": "{count} بازدید",
     "all": "همه",
     "noResults": "آگهی‌ای یافت نشد",
     "noResultsDescription": "جستجو یا فیلتر را تغییر دهید.",
@@ -369,9 +368,9 @@
     "noInfo": "هنوز اطلاعاتی اضافه نشده",
     "sellerProfile": {
       "title": "پروفایل فروشنده",
-      "soldCount": "{count} فروخته شده",
+      "soldCount": "{count, number} فروخته شده",
       "soldCountZero": "هنوز فروشی نداشته",
-      "activeListings": "{count} آگهی فعال",
+      "activeListings": "{count, number} آگهی فعال",
       "memberSince": "عضو از: {date}",
       "trustScore": "اعتبار فروشنده",
       "viewListings": "مشاهده آگهی‌ها",
@@ -382,7 +381,7 @@
         "within_a_day": "معمولاً در عرض یک روز پاسخ می‌دهد",
         "within_a_few_days": "معمولاً در عرض چند روز پاسخ می‌دهد"
       },
-      "responseRate": "{percent}٪ نرخ پاسخ"
+      "responseRate": "{percent, number}٪ نرخ پاسخ"
     },
     "userProfile": {
       "title": "پروفایل فروشنده",
@@ -402,7 +401,7 @@
       "unblockSuccess": "مسدودیت کاربر برداشته شد",
       "unblockFailed": "رفع مسدودیت کاربر ناموفق بود",
       "searchListings": "جستجوی آگهی‌ها...",
-      "listingsCount": "{count} آگهی"
+      "listingsCount": "{count, number} آگهی"
     },
     "sellerDashboard": "داشبورد فروشنده",
     "buyerProfile": "پروفایل خریدار",
@@ -542,7 +541,7 @@
   "footer": {
     "tagline": "بازار محلی افغانستان — خرید و فروش در نزدیکی شما.",
     "explore": "کاوش",
-    "rights": "© {year} هتیوال. تمام حقوق محفوظ است.",
+    "rights": "© {year, number, ::group-off} هتیوال. تمام حقوق محفوظ است.",
     "legal": "حقوقی",
     "privacy": "سیاست حفظ حریم خصوصی",
     "deleteAccount": "حذف حساب"
@@ -564,7 +563,7 @@
     "emptyTitle": "هنوز دسته‌بندی‌ای وجود ندارد",
     "emptyDescription": "دسته‌بندی‌ها پس از افزوده شدن اینجا نمایش داده می‌شوند.",
     "noListings": "بدون آگهی",
-    "moreSubcategories": "+{count} مورد دیگر",
+    "moreSubcategories": "+{count, number} مورد دیگر",
     "subcategories": "زیردسته‌ها"
   },
   "seller": {
@@ -712,12 +711,12 @@
       "meetup": "پیشنهاد ملاقات",
       "meetupAccepted": "ملاقات پذیرفته شد",
       "meetupDeclined": "ملاقات رد شد",
-      "offer": "پیشنهاد: {amount} {currency}",
+      "offer": "پیشنهاد: {price}",
       "offerAccepted": "پیشنهاد پذیرفته شد",
       "offerDeclined": "پیشنهاد رد شد",
       "photo": "عکس",
       "file": "فایل",
-      "counterOffer": "پیشنهاد متقابل: {amount} {currency}"
+      "counterOffer": "پیشنهاد متقابل: {price}"
     },
     "thread": {
       "closedNotice": "این گفتگو بسته شده است.",
@@ -822,9 +821,14 @@
     },
     "search": {
       "placeholder": "جستجو در پیام‌ها...",
-      "matchCount": "{current} از {total}",
+      "matchCount": "{current, number} از {total, number}",
       "partialResults": "نتایج فقط در پیام‌های بارگذاری‌شده نشان داده می‌شود",
-      "noResults": "هیچ پیامی با جستجوی شما مطابقت ندارد"
+      "noResults": "هیچ پیامی با جستجوی شما مطابقت ندارد",
+      "noMatchTitle": "هیچ نتیجه‌ای برای \"{term}\" یافت نشد",
+      "noMatchDescription": "نام دیگر، عنوان آگهی یا پیام دیگری را امتحان کنید.",
+      "noMatchDescriptionPartial": "نام دیگر، عنوان آگهی یا پیام دیگری را امتحان کنید. نتایج فقط در گفتگوهای بارگذاری‌شده نشان داده می‌شود.",
+      "partialResultsConversations": "نتایج فقط در گفتگوهای بارگذاری‌شده نشان داده می‌شود",
+      "clearSearch": "پاک کردن جستجو"
     },
     "listingFilter": {
       "title": "گفتگوهای این آگهی",
@@ -869,7 +873,7 @@
   },
   "warnings": {
     "title": "هشدار حساب",
-    "body": "شما {count} هشدار فعال دارید. {threshold} هشدار منجر به تعلیق حساب می‌شود.",
+    "body": "شما {count, number} هشدار فعال دارید. {threshold, number} هشدار منجر به تعلیق حساب می‌شود.",
     "acknowledge": "متوجه شدم"
   },
   "sidebar": {
@@ -892,7 +896,7 @@
     "asSeller": "به عنوان فروشنده",
     "asBuyer": "به عنوان خریدار",
     "tabsLabel": "فیلتر نظرها بر اساس نقش",
-    "starsAria": "{rating} از ۵ ستاره",
+    "starsAria": "{rating, number} از ۵ ستاره",
     "promptSellerTitle": "{name} به عنوان خریدار چگونه بود؟",
     "promptBuyerTitle": "{name} به عنوان فروشنده چگونه بود؟",
     "ratingLabel": "امتیاز شما",

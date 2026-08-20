@@ -30,19 +30,23 @@
     ".next-e2e-3214/types/**/*.ts",
     ".next-e2e-3215/types/**/*.ts",
     ".next-e2e-3216/types/**/*.ts",
+    ".next-e2e-3219/types/**/*.ts",
     ".next-e2e-3231/types/**/*.ts",
     ".next-e2e-3241/types/**/*.ts",
+    ".next-e2e-3251/types/**/*.ts",
     ".next-e2e-3260/types/**/*.ts",
     ".next-e2e-3262/types/**/*.ts",
     ".next-e2e-3310/types/**/*.ts",
+    ".next-e2e-3319/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
+    ".next-psdigits/types/**/*.ts",
     ".next-rep815/types/**/*.ts",
+    ".next-review947/types/**/*.ts",
     ".next-soldnext/types/**/*.ts",
     ".next-verify-dev/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-review947/types/**/*.ts"
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules"

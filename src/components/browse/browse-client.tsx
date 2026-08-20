@@ -15,8 +15,9 @@ import {
   X,
 } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { getListings } from "@/lib/api/listings";
+import { getListings, getListingsAsViewer } from "@/lib/api/listings";
 import { categoryName } from "@/lib/api/categories";
+import { useAuth } from "@/components/auth/auth-provider";
 import {
   LISTING_CONDITIONS,
   type Category,
@@ -48,6 +49,7 @@ import { LocationMap } from "@/components/map/location-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface BrowseClientProps {
@@ -114,6 +116,11 @@ export function BrowseClient({
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  // WHO is browsing. The feed is personalised server-side for a bearer (hidden
+  // listings filtered out, is_viewed / is_saved filled), so this island has to
+  // fetch as the viewer once it knows there is one — see the query below.
+  const { status, user } = useAuth();
+  const authed = status === "authed";
 
   const [filters, setFilters] = useState<BrowseFilters>(initialFilters);
   const [searchInput, setSearchInput] = useState(initialFilters.q);
@@ -206,15 +213,36 @@ export function BrowseClient({
   const sameAsInitial =
     filtersToSearchString(filters) === filtersToSearchString(initialFilters);
   const query = useInfiniteQuery({
-    queryKey: ["listings", filters],
+    // VIEWER-SCOPED. A guest's feed and a buyer's personalised feed are two
+    // different result sets for the same filters (hidden listings, Seen pills,
+    // saved hearts), so they must never share one cache entry. Belt-and-braces
+    // beside the `queryClient.clear()` at every identity change in
+    // auth-provider.tsx: A → logout → B in one tab cannot serve A's rows here
+    // even if that clear is ever weakened.
+    queryKey: ["listings", authed ? (user?.id ?? "authed") : "guest", filters],
     initialPageParam: 1,
+    // Authed → through the /api/me proxy, which attaches the devise tokens so
+    // Rails can personalise. Guests (and the window before the session probe
+    // answers) keep the plain public fetch. Page 2+ take the same branch, so
+    // infinite scroll stays personalised all the way down.
     queryFn: ({ pageParam }) =>
-      getListings(filtersToQuery(filters, categories, pageParam)),
+      (authed ? getListingsAsViewer : getListings)(
+        filtersToQuery(filters, categories, pageParam),
+      ),
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
     initialData:
       sameAsInitial && initialResult
         ? { pages: [initialResult], pageParams: [1] }
         : undefined,
+    // The SSR seed is a GUEST payload — the Bazaar page cannot fetch as the
+    // viewer (an RSC cannot write devise's rotated token back, which is how you
+    // sign a valid session out). Keep it, because it is the LCP paint, but for
+    // an authed viewer declare it ancient so the personalised refetch starts on
+    // mount instead of being treated as fresh for the whole 60s staleTime. A
+    // listing they hid can therefore show for the first paint only, and is gone
+    // once that fetch settles. Guests keep the default (fresh) — their SSR feed
+    // is already the right answer and must not trigger an extra round-trip.
+    initialDataUpdatedAt: authed ? 0 : undefined,
   });
 
   // Flatten pages, de-duplicating by id: offset pagination can repeat a listing
@@ -654,8 +682,15 @@ export function BrowseClient({
               <SlidersHorizontal className="size-4" />
               {t("browse.filters")}
               {filterCount > 0 && (
-                <Badge className="min-w-5 justify-center px-1.5 py-0">
-                  {filterCount}
+                <Badge
+                  data-testid="browse-filter-count"
+                  className="min-w-5 justify-center px-1.5 py-0"
+                >
+                  {/* Through `formatNumber`, never raw: the "N filters active"
+                      line right below this button prints the SAME number through
+                      `t()` (Arabic-Indic on ps/fa), so a raw `{filterCount}`
+                      showed a Latin digit beside it on one screen. */}
+                  {formatNumber(filterCount, locale)}
                 </Badge>
               )}
             </Button>

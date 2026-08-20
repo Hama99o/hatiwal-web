@@ -1,29 +1,18 @@
 import { formatDistanceToNow } from "date-fns";
 import { enUS, faIR } from "date-fns/locale";
+import { INTL_TAG } from "./intl-tag";
 
 /**
  * Locale-aware formatting. ALWAYS format prices/dates through here — never
  * concatenate currency strings or call toLocaleString ad hoc.
+ *
+ * The routing-tag → `Intl` tag mapping (`ps` → `fa-AF`) lives in `./intl-tag`,
+ * import-free, because `src/i18n/intl-locale-alias.ts` reuses that ONE table for
+ * the numbers next-intl formats inside messages (`{count, plural, one {# …}}`)
+ * and is installed from the root client component of every page — see that file.
+ * Deliberately NOT re-exported from here: one import path keeps that heavy edge
+ * (`date-fns` in the root client bundle) from coming back.
  */
-
-// `ps` deliberately formats through `fa-AF`, NOT `ps-AF` — the same mapping the
-// mobile app uses (`useLocalization.ts`), so one listing reads the same on both
-// clients. It is also the only tag that works everywhere: V8/Chromium ships no
-// Pashto Intl data (`Intl.NumberFormat('ps-AF').resolvedOptions().locale` is
-// `en-US` there), while Node's full ICU has it. With `ps-AF` a Pashto price
-// rendered by a Server Component came out "؋ ۳۰٬۰۰۰" and the very same price
-// rendered by a client island — e.g. the sticky <ListingActionBar> — came out
-// "AFN 30,000" on the same screen (and any component rendered in both places
-// would hydrate mismatched). `fa-AF` shares the script, digits, calendar and the
-// ؋ symbol, and both runtimes have it, so server and browser always agree.
-// Exported so `src/i18n/intl-locale-alias.ts` can reuse this ONE mapping for the
-// numbers next-intl formats inside messages (`{count, plural, one {# …}}`), which
-// it creates with the raw routing tag and no options — see that file.
-export const INTL_TAG: Record<string, string> = {
-  en: "en-US",
-  ps: "fa-AF",
-  fa: "fa-AF",
-};
 
 // date-fns has no Pashto locale; faIR (Persian) shares the script, so it's the
 // closest fit for ps and fa. en uses enUS.

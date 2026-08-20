@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { getListingAnalytics } from "@/lib/api/me";
+import { formatNumber } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function ListingViewsChart({ id }: { id: number | string }) {
   const t = useTranslations();
+  const locale = useLocale();
   const { data, isPending, isError } = useQuery({
     queryKey: ["listing-analytics", String(id)],
     queryFn: () => getListingAnalytics(id),
@@ -53,14 +55,19 @@ export function ListingViewsChart({ id }: { id: number | string }) {
         </p>
       ) : (
         <div className="flex h-28 items-end gap-1.5 rounded-lg border bg-card p-3">
+          {/* Every digit in this chart goes through `formatNumber` — the bar
+              labels and the tooltip used to print the raw count, so on /ps a
+              Latin "12" sat under the Arabic-Indic total above and beside the
+              listing's Arabic-Indic price (see `src/lib/format.ts`: it is the
+              only place a number is formatted). */}
           {entries.map((e, i) => (
             <div
               key={`${e.date}-${i}`}
               className="flex flex-1 flex-col items-center justify-end gap-1"
-              title={`${e.date}: ${e.count}`}
+              title={`${e.date}: ${formatNumber(e.count, locale)}`}
             >
               <span className="text-[10px] tabular-nums text-muted-foreground">
-                {e.count}
+                {formatNumber(e.count, locale)}
               </span>
               <div
                 className="w-full rounded-t bg-primary/70"

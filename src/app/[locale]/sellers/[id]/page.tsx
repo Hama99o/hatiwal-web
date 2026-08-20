@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
 import { localizedAlternates } from "@/lib/seo";
+import { formatNumber } from "@/lib/format";
 import { safe } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
@@ -86,8 +87,11 @@ export default async function SellerPage({ params }: { params: Params }) {
           />
           <LastActiveLabel label={seller.lastActiveLabel} className="justify-center" />
           <div className="text-sm">
+            {/* Through `formatNumber`: the rating and review count directly above
+                are locale-formatted, so a raw `{totalCount}` printed a Latin
+                digit beside Arabic-Indic ones on /ps and /fa. */}
             <span className="block text-2xl font-bold text-foreground">
-              {totalCount}
+              {formatNumber(totalCount, locale)}
             </span>
             <span className="text-muted-foreground">
               {t("seller.activeListings")}

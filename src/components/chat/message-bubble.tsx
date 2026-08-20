@@ -13,9 +13,9 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HighlightedText } from "@/components/shared/highlighted-text";
 import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { splitHighlight } from "@/lib/message-search";
 import type { Message } from "@/lib/types";
 
 type RespondKind =
@@ -248,20 +248,9 @@ export function MessageBubble({
           )
         ) : (
           <p className="whitespace-pre-wrap break-words">
-            {highlight
-              ? splitHighlight(m.body, highlight).map((part, i) =>
-                  part.isMatch ? (
-                    <mark
-                      key={i}
-                      className="rounded-sm bg-brand-gold/40 text-inherit"
-                    >
-                      {part.text}
-                    </mark>
-                  ) : (
-                    <span key={i}>{part.text}</span>
-                  ),
-                )
-              : m.body}
+            {/* Shared with the inbox list search — one <mark> treatment for
+                every search in the app (see shared/highlighted-text.tsx). */}
+            <HighlightedText text={m.body} query={highlight} />
           </p>
         )}
         {(isMeetup || isOfferLike) && !mine && !responded && (

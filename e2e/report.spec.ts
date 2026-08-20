@@ -151,6 +151,42 @@ test.describe("Report a user → offer to block", () => {
     expect(blockCalls).toHaveLength(0);
   });
 
+  test("someone already blocked is never offered again", async ({ page }) => {
+    // Seller 3 (Najib Rahimi) is on the viewer's blocked list. Every surface
+    // asks the same shared `["blocked-users"]` query, so the profile answers
+    // this identically to the chat header — it is not a per-host prop any more.
+    const blockCalls = trackBlockCalls(page);
+    await gotoSellerAuthed(page, 3);
+    await submitReport(page);
+    await expect(blockPrompt(page)).toHaveCount(0);
+    expect(blockCalls).toHaveLength(0);
+  });
+
+  test("a duplicate report is named, not swallowed as a generic error", async ({
+    page,
+  }) => {
+    // Rails answers 422 `{ errors: [...] }` for "already reported" AND for
+    // "can't report your own content". The status alone can't tell them apart,
+    // so the reason has to survive the failed request — it used to be thrown
+    // away, and the reporter was told "something went wrong" when in truth
+    // their earlier report was already on file.
+    await page.route("**/api/me/reports", (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({
+          errors: ["Reportable has already been reported by you"],
+        }),
+      }),
+    );
+    await gotoSellerAuthed(page);
+    await fillAndSubmitReport(page);
+
+    await expect(page.getByText("You have already reported this.")).toBeVisible();
+    // A report that never landed must not offer a block follow-up.
+    await expect(blockPrompt(page)).toHaveCount(0);
+  });
+
   test("a failed block shows the error and keeps the report", async ({
     page,
   }) => {
@@ -198,29 +234,19 @@ test.describe("Report → block from the conversation thread", () => {
   test("an already-blocked participant is never offered again", async ({
     page,
   }) => {
-    await page.goto("/en/conversations/1");
-    await expect(
-      page.getByText("Hello, I'm interested in the iPhone."),
-    ).toBeVisible();
+    // Conversation 2's participant (Najib Rahimi, #3) is on the viewer's
+    // blocked list, so the follow-up has nothing to offer. The question is
+    // answered by `GET /blocks` — the people *I* have blocked — and NOT by the
+    // conversation's `blockedWithParticipant`, which is true in either
+    // direction: reading that one would have denied the block to the person
+    // being harassed, the very case this feature exists for.
+    const blockCalls = trackBlockCalls(page);
+    await page.goto("/en/conversations/2");
+    await expect(page.getByText("Thanks!")).toBeVisible();
 
-    // Block from the header first, so the thread's own block state is true.
-    const shield = page.getByRole("button", { name: "Block User" });
-    await expect(async () => {
-      await shield.click();
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 2000 });
-    }).toPass({ timeout: 15_000 });
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Block User" })
-      .click();
-    await expect(page.getByText("User blocked.").first()).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Unblock User" }),
-    ).toBeVisible();
-
-    // Reporting them now must NOT re-offer a block.
     await submitReport(page);
     await expect(blockPrompt(page)).toHaveCount(0);
+    expect(blockCalls).toHaveLength(0);
   });
 });
 
@@ -252,9 +278,9 @@ async function expectSettledCta(page: Page) {
   await expect(cta).not.toHaveAttribute("aria-busy", "true");
 }
 
-/** Seller 2's public profile, once the session has hydrated (avatar in header). */
-async function gotoSellerAuthed(page: Page) {
-  await page.goto("/en/sellers/2");
+/** A seller's public profile, once the session has hydrated (avatar in header). */
+async function gotoSellerAuthed(page: Page, sellerId = 2) {
+  await page.goto(`/en/sellers/${sellerId}`);
   // The header avatar is labelled with the signed-in user's name, so it only
   // appears once auth has resolved — the Report trigger sends guests to /login.
   await expect(
@@ -262,8 +288,8 @@ async function gotoSellerAuthed(page: Page) {
   ).toBeVisible({ timeout: 15_000 });
 }
 
-/** Open the report dialog, pick a reason, submit, and wait for the toast. */
-async function submitReport(page: Page) {
+/** Open the report dialog, pick a reason and submit — without judging the outcome. */
+async function fillAndSubmitReport(page: Page) {
   const trigger = page.getByRole("button", { name: "Report", exact: true });
   await expect(async () => {
     await trigger.click();
@@ -273,5 +299,10 @@ async function submitReport(page: Page) {
   }).toPass({ timeout: 15_000 });
   await page.getByRole("button", { name: "Fraud or scam" }).click();
   await page.getByRole("button", { name: "Submit Report" }).click();
+}
+
+/** File a report and wait for it to be accepted. */
+async function submitReport(page: Page) {
+  await fillAndSubmitReport(page);
   await expect(page.getByText("Report submitted. Thank you.")).toBeVisible();
 }

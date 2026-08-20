@@ -65,6 +65,11 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^transactions\/\d+\/reviews$/],
   ["PATCH", /^reviews\/\d+$/],
   ["GET", /^my\/reviews\/pending$/],
+  // Authed listing INDEX — the personalised feed. Rails filters the caller's
+  // hidden ("Not interested") listings out of this exact endpoint and fills
+  // is_viewed / is_saved from their own history; an anonymous fetch of it claims
+  // they have hidden, seen and saved nothing. See `getListingsAsViewer`.
+  ["GET", /^listings$/],
   // Authed listing show — fired client-side on the detail page so Rails records
   // a Recently-Viewed entry (the SSR fetch is a guest and never attributes it).
   ["GET", /^listings\/\d+$/],

@@ -68,7 +68,7 @@
     "confirmRenew": "دا اعلان نوی کړئ؟",
     "confirmRenewDescription": "دا به د نورو ۳۰ ورځو لپاره په فید کې فعال وي.",
     "expiredBadge": "نیټه تېره",
-    "expiresInDays": "په {count} ورځو کې پای ته رسیږي",
+    "expiresInDays": "په {count, number} ورځو کې پای ته رسیږي",
     "expiresTomorrow": "سبا پای ته رسیږي",
     "expiresToday": "نن پای ته رسیږي",
     "unpublishSuccess": "اعلان له خپرولو ووتل",
@@ -115,7 +115,7 @@
     "save": "اعلان خوندي کول",
     "unsave": "د خوندي شویو څخه لرې کول",
     "postedAgo": "خپور شو {date}",
-    "viewsCount": "{count} لیدنې",
+    "viewsCount": "{count, number} لیدنې",
     "savesCount": "{count, plural, one {د # کس لخوا خوندي شوی} other {د # کسانو لخوا خوندي شوی}}",
     "share": {
       "body": "{title} — {price}"
@@ -152,8 +152,8 @@
     "noPhoto": "انځور نشته",
     "seen": "لیدل شوی",
     "priceDrop": {
-      "badge": "{percent}٪ د نرخ کمښت",
-      "badgeCardShort": "-{percent}٪"
+      "badge": "{percent, number}٪ د نرخ کمښت",
+      "badgeCardShort": "-{percent, number}٪"
     },
     "detail": {
       "save": "اعلان خوندي کول",
@@ -262,7 +262,7 @@
     },
     "analytics": {
       "title": "کتنې (تېرې ۷ ورځې)",
-      "totalViews": "په تېرو ۷ ورځو کې {count} کتنې",
+      "totalViews": "په تېرو ۷ ورځو کې {count, number} لیدنې",
       "noData": "تر اوسه کتنه نشته"
     }
   },
@@ -281,7 +281,6 @@
     "viewDetails": "توضیحات وګورئ",
     "postedBy": "د لخوا ورکړل شوی",
     "postedOn": "نیټه",
-    "viewsCount": "{count} کتنې",
     "all": "ټول",
     "noResults": "هیڅ توکي ونه موندل شول",
     "noResultsDescription": "د لټون یا فلټر بدلولو هڅه وکړئ.",
@@ -369,9 +368,9 @@
     "noInfo": "لا هیڅ معلومات نه دي اضافه شوي",
     "sellerProfile": {
       "title": "د پلورونکي پروفایل",
-      "soldCount": "{count} پلورل شوي",
+      "soldCount": "{count, number} پلورل شوي",
       "soldCountZero": "لا هیڅ پلور نه دی",
-      "activeListings": "{count} فعال اعلانونه",
+      "activeListings": "{count, number} فعال اعلانونه",
       "memberSince": "غړیتوب: {date}",
       "trustScore": "د پلورونکي اعتبار",
       "viewListings": "اعلانونه وګورئ",
@@ -382,7 +381,7 @@
         "within_a_day": "معمولاً د یوه ورځ دننه ځواب ورکوي",
         "within_a_few_days": "معمولاً د څو ورځو دننه ځواب ورکوي"
       },
-      "responseRate": "{percent}٪ د ځواب کچه"
+      "responseRate": "{percent, number}٪ د ځواب کچه"
     },
     "userProfile": {
       "title": "د پلورونکي پروفایل",
@@ -402,7 +401,7 @@
       "unblockSuccess": "کاروونکی خلاص شو",
       "unblockFailed": "کاروونکی خلاصولو کې ستونزه وه",
       "searchListings": "اعلانونه لټول...",
-      "listingsCount": "{count} اعلانونه"
+      "listingsCount": "{count, number} اعلانونه"
     },
     "sellerDashboard": "د پلورونکي ډیش بورډ",
     "buyerProfile": "د اخیستونکي پروفایل",
@@ -542,7 +541,7 @@
   "footer": {
     "tagline": "د افغانستان محلي بازار — ستاسو نږدې پیر او پلور.",
     "explore": "وپلټئ",
-    "rights": "© {year} هتیوال. ټول حقونه خوندي دي.",
+    "rights": "© {year, number, ::group-off} هتیوال. ټول حقونه خوندي دي.",
     "legal": "حقوقي",
     "privacy": "د محرمیت تګلاره",
     "deleteAccount": "ګڼون ړنګول"
@@ -564,7 +563,7 @@
     "emptyTitle": "لاهم هیڅ ډلې نشته",
     "emptyDescription": "ډلې به دلته ښکاره شي کله چې زیاتې شي.",
     "noListings": "هیڅ اعلان نشته",
-    "moreSubcategories": "+{count} نورې",
+    "moreSubcategories": "+{count, number} نورې",
     "subcategories": "فرعي ډلې"
   },
   "seller": {
@@ -712,12 +711,12 @@
       "meetup": "د لیدنې وړاندیز",
       "meetupAccepted": "لیدنه ومنل شوه",
       "meetupDeclined": "لیدنه رد شوه",
-      "offer": "وړاندیز: {amount} {currency}",
+      "offer": "وړاندیز: {price}",
       "offerAccepted": "وړاندیز ومنل شو",
       "offerDeclined": "وړاندیز رد شو",
       "photo": "انځور",
       "file": "فایل",
-      "counterOffer": "مقابل وړاندیز: {amount} {currency}"
+      "counterOffer": "مقابل وړاندیز: {price}"
     },
     "thread": {
       "closedNotice": "دا خبرې بندې دي.",
@@ -822,9 +821,14 @@
     },
     "search": {
       "placeholder": "پیغامونه ولټوئ...",
-      "matchCount": "{current} له {total} نه",
+      "matchCount": "{current, number} له {total, number} نه",
       "partialResults": "یوازې پورته شوي پیغامونو کې نتایج ښودل کیږي",
-      "noResults": "هیڅ پیغام ستاسو لټون سره سمون نه لري"
+      "noResults": "هیڅ پیغام ستاسو لټون سره سمون نه لري",
+      "noMatchTitle": "د \"{term}\" سره هیچ سمون ونه موندل شو",
+      "noMatchDescription": "د بل نوم، د اعلان سرلیک، یا پیغام سره هڅه وکړئ.",
+      "noMatchDescriptionPartial": "د بل نوم، د اعلان سرلیک، یا پیغام سره هڅه وکړئ. یوازې پورته شوي خبرو کې نتایج ښودل کیږي.",
+      "partialResultsConversations": "یوازې پورته شوي خبرو کې نتایج ښودل کیږي",
+      "clearSearch": "لټون پاک کړئ"
     },
     "listingFilter": {
       "title": "د دې لیست لپاره خبرې اترې",
@@ -869,7 +873,7 @@
   },
   "warnings": {
     "title": "د حساب خبرتیا",
-    "body": "تاسو {count} فعالې خبرتیاوې لرئ. {threshold} خبرتیاوې د بندیدو لامل کیږي.",
+    "body": "تاسو {count, number} فعالې خبرتیاوې لرئ. {threshold, number} خبرتیاوې د بندیدو لامل کیږي.",
     "acknowledge": "پوهیږم"
   },
   "sidebar": {
@@ -892,7 +896,7 @@
     "asSeller": "د پلورونکي په توګه",
     "asBuyer": "د پیرودونکي په توګه",
     "tabsLabel": "نظرونه د رول له مخې فلټر کړئ",
-    "starsAria": "{rating} له ۵ ستوریو",
+    "starsAria": "{rating, number} له ۵ ستوریو",
     "promptSellerTitle": "{name} د پیرودونکي په توګه څنګه و؟",
     "promptBuyerTitle": "{name} د پلورونکي په توګه څنګه و؟",
     "ratingLabel": "ستاسو درجه",

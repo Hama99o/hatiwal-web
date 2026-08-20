@@ -48,9 +48,12 @@ export function SellBuyerDialog({
   const [price, setPrice] = useState("");
   const titleId = useId();
 
+  // Page 1 of this listing's threads (20, newest-message-first) — the buyers a
+  // seller is actually mid-deal with. The picker deliberately has no load-more:
+  // it is a decision surface, not a list to browse.
   const { data: conversations, isPending } = useQuery({
     queryKey: ["listing-conversations", listingId],
-    queryFn: () => getConversations(listingId),
+    queryFn: () => getConversations(listingId).then((r) => r.items),
   });
 
   function confirm() {

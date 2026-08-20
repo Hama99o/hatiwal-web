@@ -68,7 +68,7 @@
     "confirmRenew": "Renew this listing?",
     "confirmRenewDescription": "It will be active in the feed for another 30 days.",
     "expiredBadge": "Expired",
-    "expiresInDays": "Expires in {count} days",
+    "expiresInDays": "Expires in {count, number} days",
     "expiresTomorrow": "Expires tomorrow",
     "expiresToday": "Expires today",
     "unpublishSuccess": "Listing unpublished",
@@ -115,7 +115,7 @@
     "save": "Save listing",
     "unsave": "Remove from saved",
     "postedAgo": "posted {date}",
-    "viewsCount": "{count} views",
+    "viewsCount": "{count, number} views",
     "savesCount": "{count, plural, one {Saved by # person} other {Saved by # people}}",
     "share": {
       "body": "{title} — {price}"
@@ -152,8 +152,8 @@
     "noPhoto": "No photo",
     "seen": "Seen",
     "priceDrop": {
-      "badge": "{percent}% price drop",
-      "badgeCardShort": "-{percent}%"
+      "badge": "{percent, number}% price drop",
+      "badgeCardShort": "-{percent, number}%"
     },
     "detail": {
       "save": "Save listing",
@@ -262,7 +262,7 @@
     },
     "analytics": {
       "title": "Views (last 7 days)",
-      "totalViews": "{count} views in the last 7 days",
+      "totalViews": "{count, number} views in the last 7 days",
       "noData": "No views yet"
     }
   },
@@ -281,7 +281,6 @@
     "viewDetails": "View Details",
     "postedBy": "Posted by",
     "postedOn": "Posted",
-    "viewsCount": "{count} views",
     "all": "All",
     "noResults": "No listings found",
     "noResultsDescription": "Try changing your search or filter.",
@@ -369,9 +368,9 @@
     "noInfo": "No info added yet",
     "sellerProfile": {
       "title": "Seller Profile",
-      "soldCount": "{count} sold",
+      "soldCount": "{count, number} sold",
       "soldCountZero": "No sales yet",
-      "activeListings": "{count} active listings",
+      "activeListings": "{count, number} active listings",
       "memberSince": "Member since {date}",
       "trustScore": "Seller Reputation",
       "viewListings": "View Listings",
@@ -382,7 +381,7 @@
         "within_a_day": "Usually responds within a day",
         "within_a_few_days": "Usually responds within a few days"
       },
-      "responseRate": "{percent}% reply rate"
+      "responseRate": "{percent, number}% reply rate"
     },
     "userProfile": {
       "title": "Seller Profile",
@@ -402,7 +401,7 @@
       "unblockSuccess": "User unblocked",
       "unblockFailed": "Could not unblock user",
       "searchListings": "Search listings...",
-      "listingsCount": "{count} listings"
+      "listingsCount": "{count, number} listings"
     },
     "sellerDashboard": "Seller Dashboard",
     "buyerProfile": "Buyer Profile",
@@ -542,7 +541,7 @@
   "footer": {
     "tagline": "Afghanistan's local marketplace — buy and sell near you.",
     "explore": "Explore",
-    "rights": "© {year} Hatiwal. All rights reserved.",
+    "rights": "© {year, number, ::group-off} Hatiwal. All rights reserved.",
     "legal": "Legal",
     "privacy": "Privacy Policy",
     "deleteAccount": "Delete account"
@@ -564,7 +563,7 @@
     "emptyTitle": "No categories yet",
     "emptyDescription": "Categories will appear here once added.",
     "noListings": "No listings",
-    "moreSubcategories": "+{count} more",
+    "moreSubcategories": "+{count, number} more",
     "subcategories": "Subcategories"
   },
   "seller": {
@@ -712,12 +711,12 @@
       "meetup": "Meetup proposal",
       "meetupAccepted": "Meetup accepted",
       "meetupDeclined": "Meetup declined",
-      "offer": "Offer: {amount} {currency}",
+      "offer": "Offer: {price}",
       "offerAccepted": "Offer accepted",
       "offerDeclined": "Offer declined",
       "photo": "Photo",
       "file": "File",
-      "counterOffer": "Counter-offer: {amount} {currency}"
+      "counterOffer": "Counter-offer: {price}"
     },
     "thread": {
       "closedNotice": "This conversation is closed.",
@@ -822,9 +821,14 @@
     },
     "search": {
       "placeholder": "Search messages...",
-      "matchCount": "{current} of {total}",
+      "matchCount": "{current, number} of {total, number}",
       "partialResults": "Showing results in loaded messages only",
-      "noResults": "No messages match your search"
+      "noResults": "No messages match your search",
+      "noMatchTitle": "No matches for \"{term}\"",
+      "noMatchDescription": "Try a different name, listing title, or message.",
+      "noMatchDescriptionPartial": "Try a different name, listing title, or message. Showing results in loaded conversations only.",
+      "partialResultsConversations": "Showing results in loaded conversations only",
+      "clearSearch": "Clear search"
     },
     "listingFilter": {
       "title": "Conversations for this listing",
@@ -869,7 +873,7 @@
   },
   "warnings": {
     "title": "Account warning",
-    "body": "You have {count} active warning(s). {threshold} warnings lead to a suspension.",
+    "body": "You have {count, number} active warning(s). {threshold, number} warnings lead to a suspension.",
     "acknowledge": "I understand"
   },
   "sidebar": {
@@ -892,7 +896,7 @@
     "asSeller": "As a seller",
     "asBuyer": "As a buyer",
     "tabsLabel": "Filter reviews by role",
-    "starsAria": "{rating} out of 5 stars",
+    "starsAria": "{rating, number} out of 5 stars",
     "promptSellerTitle": "How was {name} as a buyer?",
     "promptBuyerTitle": "How was {name} as a seller?",
     "ratingLabel": "Your rating",

@@ -1,4 +1,5 @@
-import { apiGet, type QueryParams } from "./client";
+import { apiGet, buildQuery, type QueryParams } from "./client";
+import { meRequest } from "./me";
 import type {
   Listing,
   ListingsResult,
@@ -99,6 +100,50 @@ export async function getListings(
     items: data.listings.map(normalizeListing),
     pagination: data.meta.pagination,
   };
+}
+
+/**
+ * The SAME feed, fetched AS THE SIGNED-IN VIEWER (browser only).
+ *
+ * `GET /listings` is personalised by Rails whenever a bearer is present
+ * (listings_controller#index): `not_hidden_for(current_user)` drops the buyer's
+ * "Not interested" listings, `viewed_ids:` fills `is_viewed` (the card's "Seen"
+ * pill + dim) and `is_saved` comes back true for what they've saved. None of
+ * that can arrive through `apiGet` — neither transport it picks attaches devise
+ * tokens (see client.ts), so every anonymous fetch of this endpoint claims the
+ * viewer has hidden nothing, seen nothing and saved nothing.
+ *
+ * So route it through the authed proxy instead, which attaches the tokens from
+ * the httpOnly cookies and persists rotation. Same `toParams` mapping, same
+ * `ListingsResult` shape, same `normalizeListing` — no caller learns a second
+ * envelope, and the choice of transport stays here in the fetch layer rather
+ * than being made again on every surface that renders a feed.
+ *
+ * NOT usable from a Server Component: devise rotates the access token on every
+ * request and an RSC cannot write the rotated cookie back, so an authed fetch
+ * there manufactures a 401 and signs a valid session out. SSR seeds stay
+ * anonymous by design; the client reconciles.
+ *
+ * A 401/403 (session expired mid-browse, cookies cleared, proxy allow-list
+ * miss) falls back to the anonymous feed: a personalisation gap is a far better
+ * outcome than an empty or errored Bazaar.
+ */
+export async function getListingsAsViewer(
+  query: ListingsQuery = {},
+): Promise<ListingsResult> {
+  try {
+    const data = await meRequest<ListingsEnvelope>(
+      `listings${buildQuery(toParams(query))}`,
+    );
+    return {
+      items: data.listings.map(normalizeListing),
+      pagination: data.meta.pagination,
+    };
+  } catch (err) {
+    const status = (err as { status?: number } | null)?.status;
+    if (status === 401 || status === 403) return getListings(query);
+    throw err;
+  }
 }
 
 /**

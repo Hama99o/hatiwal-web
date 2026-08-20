@@ -139,8 +139,19 @@ export function ConversationThread({ id }: { id: string }) {
   useEffect(() => {
     if (messages.length) qc.setQueryData(["messages", id], messages);
   }, [messages, id, qc]);
+  // Adopt the server's block state when the SERVER's answer changes, not on
+  // every response object. A response that merely repeats what it said last
+  // time must not overwrite a local flip: blocking (from the shield or from the
+  // report follow-up) refetches this conversation, and a payload that predates
+  // the block — or a background refetch that was already in flight — would
+  // otherwise snap the shield straight back to "Block" while the block stands.
+  const serverBlocked = useRef<boolean | null>(null);
   useEffect(() => {
-    if (convQ.data) setBlocked(Boolean(convQ.data.blockedWithParticipant));
+    if (!convQ.data) return;
+    const next = Boolean(convQ.data.blockedWithParticipant);
+    if (serverBlocked.current === next) return;
+    serverBlocked.current = next;
+    setBlocked(next);
   }, [convQ.data]);
   useEffect(() => {
     // Opening a thread marks it read. Refresh the auth user too so the header's
@@ -361,6 +372,11 @@ export function ConversationThread({ id }: { id: string }) {
         setBlocked(true);
         toast.success(t("chat.block.blockSuccess"));
       }
+      // The blocked-users list is the shared source of truth for "have I blocked
+      // this person" — the setting page renders it and ReportButton asks it
+      // whether to offer its block follow-up. Left stale for its 60s window it
+      // would offer to block someone this header just blocked.
+      qc.invalidateQueries({ queryKey: ["blocked-users"] });
     } catch {
       toast.error(t("common.error"));
     }
@@ -418,10 +434,13 @@ export function ConversationThread({ id }: { id: string }) {
             reportableType="User"
             reportableId={other.id}
             className="size-10 shrink-0 justify-center gap-0 rounded-md hover:bg-accent [&>span]:sr-only"
-            // The thread owns the block state for this participant, so the
-            // report→block follow-up can skip the prompt when they're already
-            // blocked and flip the header shield in place when it succeeds.
-            alreadyBlocked={blocked}
+            // Flip this header's own shield the moment the report→block
+            // follow-up succeeds, without waiting for the refetch it triggers.
+            // Whether the prompt is offered at all is NOT ours to answer:
+            // `blocked` here also means "they blocked me" (Rails ORs both
+            // directions), and reading that as "already blocked" would deny the
+            // person being harassed the block. ReportButton asks
+            // `["blocked-users"]` — the people *I* blocked — instead.
             onBlocked={() => setBlocked(true)}
           />
         )}

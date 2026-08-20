@@ -93,7 +93,15 @@ export function ManageListingView({ id }: { id: string }) {
             </h1>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          {/* Two counts on one line, so it is the row where a digit-set
+              disagreement is most visible (`e2e/i18n-digits.spec.ts` asserts the
+              whole row, hence the testid): `viewsCount` is a typed `{count,
+              number}` placeholder and `conversationsCount` a plural `#`, and both
+              have to land on the locale's own digits beside the PriceTag above. */}
+          <div
+            data-testid="manage-listing-stats"
+            className="flex flex-wrap gap-4 text-sm text-muted-foreground"
+          >
             <span className="inline-flex items-center gap-1.5">
               <Eye className="size-4" />
               {t("listing.viewsCount", { count: listing.viewsCount })}

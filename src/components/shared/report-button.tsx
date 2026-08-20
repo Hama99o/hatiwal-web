@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +14,8 @@ import {
   type ReportableType,
   type ReportReason,
 } from "@/lib/api/reports";
-import { blockUser } from "@/lib/api/chat";
+import { blockUser, getBlockedUsers } from "@/lib/api/chat";
+import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
@@ -31,6 +33,33 @@ const REASONS: ReportReason[] = [
 ];
 
 /**
+ * Name the report failure. Rails answers **422 for two very different things** —
+ * "you have already reported this" and "you cannot report your own content" — so
+ * the status alone can't pick a message, and the reporter used to be told only
+ * `common.error` ("Something went wrong") when in fact nothing had gone wrong:
+ * their earlier report was already on file. The reasons come out of the response
+ * body (`ApiError.errors` = Rails' `full_messages`), matched on the same
+ * substrings as mobile's ReportSheet so both clients name the same failure.
+ *
+ * `raw` is an unmatched 422 reason passed through verbatim (mobile does the
+ * same): a specific server sentence beats a generic apology, and inventing a
+ * translated key per validation Rails might add is not maintainable.
+ */
+function reportFailure(err: unknown): { key: string; raw?: string } {
+  if (!(err instanceof ApiError) || err.status !== 422) {
+    return { key: "report.errors.generic" };
+  }
+  const joined = err.errors.join(" ").toLowerCase();
+  if (joined.includes("own") || joined.includes("yourself")) {
+    return { key: "report.errors.selfReport" };
+  }
+  if (joined.includes("already") || joined.includes("duplicate")) {
+    return { key: "report.errors.duplicate" };
+  }
+  return { key: "report.errors.generic", raw: err.errors[0] };
+}
+
+/**
  * Report a listing or a user. Mirrors the mobile ReportSheet. Guests are sent
  * to sign in; hidden on your own listing/profile. Reuses the existing `report`
  * translation namespace (all 3 locales).
@@ -39,13 +68,21 @@ const REASONS: ReportReason[] = [
  * ReportSheet does (TASK-R612): the reporter is offered a follow-up confirm to
  * also block that person, so "this user is abusive" and "stop them contacting
  * me" are one flow. A **Listing** report never prompts.
+ *
+ * "Already blocked?" is answered HERE, from the shared `["blocked-users"]`
+ * query (`GET /blocks` = the people *I* have blocked), so the follow-up behaves
+ * identically on the listing page, the seller profile and the chat header. It
+ * used to be a prop the host filled in, and the only host that filled it passed
+ * the conversation's `blockedWithParticipant` — which Rails computes as
+ * `me.blocked?(them) || them.blocked?(me)`. Someone who had blocked *me* read as
+ * "already blocked", so reporting the person harassing you silently skipped the
+ * offer to block them back: the exact case this feature exists for.
  */
 export function ReportButton({
   reportableType,
   reportableId,
   ownerId,
   className,
-  alreadyBlocked,
   onBlocked,
 }: {
   reportableType: ReportableType;
@@ -54,19 +91,15 @@ export function ReportButton({
   ownerId?: number;
   className?: string;
   /**
-   * The reported user is already blocked by the current user — skip the
-   * follow-up block prompt entirely (never offer to block someone twice).
-   * Only meaningful for `reportableType === "User"`.
-   */
-  alreadyBlocked?: boolean;
-  /**
    * Called after a successful block from the follow-up prompt, so a host that
    * owns its own block state (the conversation thread header) can flip its
-   * shield icon without a refetch. Never called on cancel or on failure.
+   * shield icon without waiting for a refetch. Never called on cancel or on
+   * failure.
    */
   onBlocked?: () => void;
 }) {
   const t = useTranslations();
+  const qc = useQueryClient();
   const router = useRouter();
   const loginHref = useLoginHref();
   const { status } = useAuth();
@@ -79,11 +112,68 @@ export function ReportButton({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
   const [blockPromptOpen, setBlockPromptOpen] = useState(false);
-  const [blocking, setBlocking] = useState(false);
   const titleId = useId();
   const noteId = useId();
+
+  // Who the viewer has already blocked, from the one shared cache the blocked-
+  // users setting page also reads. Fetched only once the dialog is open — a
+  // control that most visitors never touch must not cost every page load an
+  // extra authed request — and never for a listing report, which has no
+  // follow-up. Not settled yet (or failed) means "not blocked": over-offering is
+  // recoverable and `POST /users/:id/block` is idempotent server-side, whereas
+  // wrongly staying silent loses the block the reporter came for.
+  const isUserReport = reportableType === "User";
+  const blockedQ = useQuery({
+    queryKey: ["blocked-users"],
+    queryFn: getBlockedUsers,
+    enabled: isUserReport && open && status === "authed",
+  });
+  const alreadyBlocked = (blockedQ.data ?? []).some(
+    (u) => u.id === reportableId,
+  );
+
+  // Both writes are React Query mutations, like every other write in the app —
+  // that is what gives the block a single place to invalidate from, so no other
+  // screen keeps serving a 60s-stale "not blocked" for someone the viewer just
+  // blocked.
+  const reportM = useMutation({
+    mutationFn: (input: { reason: ReportReason; description?: string }) =>
+      createReport({ reportableType, reportableId, ...input }),
+    onSuccess: () => {
+      toast.success(t("report.success"));
+      setOpen(false);
+      setReason(null);
+      setNote("");
+      // Reporting a person → offer to also block them. Reporting a listing
+      // keeps the original behaviour (success toast, no prompt), and someone
+      // already blocked is never offered a second time.
+      if (isUserReport && !alreadyBlocked) setBlockPromptOpen(true);
+    },
+    onError: (err) => {
+      const { key, raw } = reportFailure(err);
+      toast.error(raw ?? t(key));
+    },
+  });
+
+  const blockM = useMutation({
+    mutationFn: () => blockUser(reportableId),
+    onSuccess: () => {
+      toast.success(t("report.block.success"));
+      onBlocked?.();
+      setBlockPromptOpen(false);
+      // Everything that encodes "can this person reach me" is now wrong: the
+      // blocked-users setting list, the inbox rows and any cached thread.
+      qc.invalidateQueries({ queryKey: ["blocked-users"] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["conversation"] });
+    },
+    onError: () => {
+      // The report itself already succeeded and stands — a failed block never
+      // rolls it back. Keep the prompt open so they can retry.
+      toast.error(t("report.block.error"));
+    },
+  });
 
   // Third control on the listing page that must not GUESS who the viewer is —
   // same contract, same module, as the message CTA and the save heart
@@ -128,49 +218,15 @@ export function ReportButton({
   // same state for assistive tech.
   const state = unsettledProps({ unknown: unsettled, busy: queued });
 
-  async function submit() {
+  function submit() {
     if (!reason) {
       toast.error(t("report.reasonRequired"));
       return;
     }
-    setBusy(true);
-    try {
-      await createReport({
-        reportableType,
-        reportableId,
-        reason,
-        description: note.trim() || undefined,
-      });
-      toast.success(t("report.success"));
-      setOpen(false);
-      setReason(null);
-      setNote("");
-      // Reporting a person → offer to also block them. Reporting a listing
-      // keeps the original behaviour (success toast, no prompt), and someone
-      // already blocked is never offered a second time.
-      if (reportableType === "User" && !alreadyBlocked) setBlockPromptOpen(true);
-    } catch {
-      toast.error(t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    reportM.mutate({ reason, description: note.trim() || undefined });
   }
 
-  async function confirmBlock() {
-    setBlocking(true);
-    try {
-      await blockUser(reportableId);
-      toast.success(t("report.block.success"));
-      onBlocked?.();
-      setBlockPromptOpen(false);
-    } catch {
-      // The report itself already succeeded and stands — a failed block never
-      // rolls it back. Keep the prompt open so they can retry.
-      toast.error(t("report.block.error"));
-    } finally {
-      setBlocking(false);
-    }
-  }
+  const busy = reportM.isPending;
 
   return (
     <>
@@ -281,8 +337,8 @@ export function ReportButton({
         confirmLabel={t("report.block.confirmCta")}
         cancelLabel={t("report.block.cancel")}
         destructive
-        loading={blocking}
-        onConfirm={confirmBlock}
+        loading={blockM.isPending}
+        onConfirm={() => blockM.mutate()}
         onCancel={() => setBlockPromptOpen(false)}
       />
     </>

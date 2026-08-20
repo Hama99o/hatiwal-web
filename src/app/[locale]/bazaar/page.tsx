@@ -55,6 +55,15 @@ export default async function BrowsePage({
   // NOTE: no `revalidate` here — the payload contains short-lived signed Active
   // Storage image URLs. Caching them (even 60s) serves expired URLs → 404 broken
   // thumbnails. The page is force-dynamic, so fetch fresh every request.
+  //
+  // This seed is ANONYMOUS ON PURPOSE, even though the request carries the
+  // viewer's cookies and Rails personalises this endpoint. devise rotates the
+  // access token on every authed request and an RSC cannot write the rotated
+  // cookie back to the browser, so fetching as the viewer here would leave the
+  // browser holding a token Rails has already replaced — i.e. it manufactures
+  // the 401 that signs a valid session out. BrowseClient reconciles instead: it
+  // treats this payload as stale for an authed viewer and refetches through the
+  // /api/me proxy on mount (see `getListingsAsViewer`).
   let initialResult: ListingsResult | null = null;
   try {
     initialResult = await getListings(filtersToQuery(filters, categories, 1));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ export function HideListingButton({
   const t = useTranslations("hidden");
   const { status } = useAuth();
   const isOwner = useIsOwner(ownerId);
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
 
@@ -33,6 +35,13 @@ export function HideListingButton({
     try {
       await hideListing(listingId);
       setHidden(true);
+      // The buyer came here FROM the feed and will go straight back to it, well
+      // inside the 60s staleTime — so the cached page would still hold the
+      // listing they just dismissed and the promise would visibly not have been
+      // kept. Drop both the feed (it is now fetched as the viewer, so Rails
+      // filters this listing out) and the management list it just joined.
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["hidden-listings"] });
       toast.success(t("hiddenUndo"));
     } catch {
       toast.error(t("hideError"));

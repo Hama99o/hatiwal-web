@@ -4,20 +4,54 @@ import type {
   ConversationParticipant,
   Message,
   MessageKind,
+  Pagination,
 } from "../types";
 
+/** One page of the conversations index — same shape as `ListingsResult`. */
+export interface ConversationsResult {
+  items: Conversation[];
+  pagination: Pagination;
+}
+
+/**
+ * One page of the conversations index.
+ *
+ * `GET /conversations` renders through Rails' `paginate_blue`, i.e. 20 rows per
+ * page plus `meta.pagination` — this used to return `d.conversations` and drop
+ * the meta, so a user with more than 20 threads simply could not reach the rest
+ * on the web (mobile pages the same list). Callers that show the whole inbox
+ * page through `pagination.nextPage`; callers that only need the most recent
+ * threads for a listing (the buyer picker, the duplicate-conversation recovery)
+ * read page 1.
+ */
 export async function getConversations(
   listingId?: number,
   archived?: boolean,
-): Promise<Conversation[]> {
+  page?: number,
+): Promise<ConversationsResult> {
   const params = new URLSearchParams();
   if (listingId) params.set("listing_id", String(listingId));
   if (archived) params.set("archived", "true");
+  // Page 1 sends no page param, so the request the page-1 callers make is
+  // byte-identical to the one they made before this function paged at all.
+  if (page && page > 1) params.set("page[number]", String(page));
   const q = params.toString() ? `?${params}` : "";
-  const d = await meRequest<{ conversations: Conversation[] }>(
-    `conversations${q}`,
-  );
-  return d.conversations ?? [];
+  const d = await meRequest<{
+    conversations: Conversation[];
+    meta?: { pagination?: Pagination };
+  }>(`conversations${q}`);
+  const items = d.conversations ?? [];
+  return {
+    items,
+    pagination:
+      d.meta?.pagination ?? {
+        currentPage: page ?? 1,
+        nextPage: null,
+        prevPage: null,
+        totalCount: items.length,
+        totalPages: 1,
+      },
+  };
 }
 
 export async function getConversation(

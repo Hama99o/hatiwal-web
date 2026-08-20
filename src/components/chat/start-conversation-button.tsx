@@ -275,8 +275,10 @@ export function StartConversationButton({
       return c.id;
     } catch (e) {
       if ((e as { status?: number }).status === 422) {
+        // Newest first, so the one this buyer already has about this listing is
+        // on page 1 — no need to page through.
         const existing = await getConversations(listingId);
-        if (existing[0]) return existing[0].id;
+        if (existing.items[0]) return existing.items[0].id;
       }
       throw e;
     }

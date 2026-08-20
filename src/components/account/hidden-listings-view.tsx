@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { EyeOff, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import type { Listing } from "@/lib/types";
  */
 export function HiddenListingsView() {
   const t = useTranslations();
+  const queryClient = useQueryClient();
   const [restored, setRestored] = useState<Set<number>>(new Set());
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -62,6 +63,10 @@ export function HiddenListingsView() {
     setRestored((prev) => new Set(prev).add(id)); // optimistic remove
     try {
       await unhideListing(id);
+      // "Restore to your feed" has to be literally true: the Bazaar is now
+      // fetched as the viewer, so its cached pages are what would otherwise keep
+      // this listing out for the rest of the staleTime window.
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
       toast.success(t("hidden.restoreSuccess"));
     } catch {
       setRestored((prev) => {

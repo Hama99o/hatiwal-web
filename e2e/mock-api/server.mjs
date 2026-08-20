@@ -180,6 +180,17 @@ const SOLD_EMPTY_CATEGORY = {
   price_dropped_at: null, description: "Nothing else in this category.",
 };
 
+// ── Per-viewer state for the FULL persona ────────────────────────────────────
+// Rails personalises GET /listings whenever a bearer is present: hidden
+// listings are filtered out (`not_hidden_for`), `is_viewed` comes from the
+// caller's ListingView rows and `is_saved` from their SavedListings. These three
+// arrays are the single source for BOTH the index and the /my/* lists below, so
+// the feed can never disagree with the management screens (a hidden listing that
+// still shows in the feed is exactly the defect the authed feed fixes).
+const HIDDEN_IDS = [2]; // Samsung 4K TV — "Not interested"
+const VIEWED_IDS = [1]; // iPhone 13 Pro — already opened → "Seen" pill + dim
+const SAVED_IDS = [2, 4]; // Samsung 4K TV (also hidden) + Winter Jacket
+
 function findListing(id) {
   return [
     ...LISTINGS,
@@ -190,7 +201,13 @@ function findListing(id) {
   ].find((l) => String(l.id) === String(id));
 }
 
-function listView(l) {
+/**
+ * Rails' :list view. `viewer` is the persona the request authenticated as (null
+ * for a guest) — only an authed payload can carry is_viewed / is_saved, which is
+ * the whole point of fetching the feed through /api/me.
+ */
+function listView(l, viewer = null) {
+  const mine = viewer === "full";
   return {
     id: l.id, title: l.title, price: l.price, currency: l.currency, status: l.status,
     location: l.location, address: l.address, condition: l.condition, created_at: l.created_at,
@@ -199,7 +216,9 @@ function listView(l) {
     // listing with no chats can be asserted on.
     conversations_count: l.conversations_count ?? 2, thumbnail_url: null, image_urls: [],
     expired: l.expired ?? false, expires_at: l.expires_at ?? null,
-    is_viewed: false, is_saved: false, seller: SELLERS[l.seller_id], category: catRef(l.category_id),
+    is_viewed: mine && VIEWED_IDS.includes(l.id),
+    is_saved: mine && SAVED_IDS.includes(l.id),
+    seller: SELLERS[l.seller_id], category: catRef(l.category_id),
     price_drop_percent: l.price_drop_percent, price_dropped_at: l.price_dropped_at,
   };
 }
@@ -243,7 +262,7 @@ function userMe(persona) {
 // them to tell which side the viewer is on (the seller gets the counter-offer
 // action and the reserve/mark-sold header button). Both listings here belong to
 // seller 1, who is the signed-in persona, so the seller side is exercised.
-const CONVERSATIONS = [
+const HERO_CONVERSATIONS = [
   { id: 1, status: "open", last_message_at: "2026-06-21T15:00:00Z", created_at: "2026-06-20T10:00:00Z",
     listing: { id: 1, title: "iPhone 13 Pro", thumbnail_url: null, status: "active", price: 45000, currency: "AFN", location: "Kabul" },
     other_participant: { id: 2, name: "Sara Ahmadi", city: "Herat", verified: false, avatar_url: null },
@@ -256,7 +275,70 @@ const CONVERSATIONS = [
     buyer: { id: 3, name: "Najib Rahimi", city: "Kabul", avatar_url: null },
     seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
     unread_count: 0, last_message_body: "Thanks!", last_message_kind: "text", blocked_with_participant: false },
+  // An OFFER thread: its preview is not the raw body but a locale-formatted
+  // price ("Offer: AFN 75,000" / "؋ ۷۵٬۰۰۰"), which is what the inbox search has
+  // to match against in either numeral system.
+  { id: 3, status: "open", last_message_at: "2026-06-19T09:00:00Z", created_at: "2026-06-17T10:00:00Z",
+    listing: { id: 5, title: "MacBook Pro M2", thumbnail_url: null, status: "active", price: 90000, currency: "AFN", location: "Kabul" },
+    other_participant: { id: 4, name: "Zohra Amini", city: "Kabul", verified: false, avatar_url: null },
+    buyer: { id: 4, name: "Zohra Amini", city: "Kabul", avatar_url: null },
+    seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+    unread_count: 0, last_message_body: "75000|AFN|90000", last_message_kind: "offer", blocked_with_participant: false },
 ];
+
+// ── Long-tail threads (TASK-WEB-INBOX20) ────────────────────────────────────
+// Rails renders GET /conversations through paginate_blue — 20 rows per page —
+// so the fixture inbox is deliberately 25 threads: page 1 fills, page 2 holds
+// the rest, and the web list must page to reach them instead of silently
+// truncating. The archived partition (22) and listing 3's filtered view
+// (1 hero + 22 filler = 23) are over one page for the same reason.
+// Names/bodies are generated so the block stays readable and never collides
+// with the hero personas above.
+const FILLER_FIRST_NAMES = ["Waheed", "Farhad", "Zahra", "Omid", "Laila", "Karim", "Nasrin", "Jamal", "Hakim", "Roya", "Sohail"];
+const FILLER_LAST_NAMES = ["Sultani", "Barakzai"];
+const FILLER_COUNT = FILLER_FIRST_NAMES.length * FILLER_LAST_NAMES.length; // 22
+
+function fillerThread(i, { startId, listing, body, unreadLast = false }) {
+  const name = `${FILLER_FIRST_NAMES[i % FILLER_FIRST_NAMES.length]} ${
+    FILLER_LAST_NAMES[Math.floor(i / FILLER_FIRST_NAMES.length)]
+  }`;
+  const participant = { id: 500 + startId + i, name, city: "Kabul", verified: false, avatar_url: null };
+  // Strictly decreasing, like Rails' `ordered` (last_message_at DESC).
+  const at = new Date(Date.UTC(2026, 5, 18, 12, 0, 0) - i * 3_600_000).toISOString();
+  return {
+    id: startId + i, status: "open", last_message_at: at, created_at: at,
+    listing,
+    other_participant: participant,
+    buyer: participant,
+    seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+    // The LAST filler is unread so the read/unread flip can be asserted against
+    // a row that only exists after a Load-more.
+    unread_count: unreadLast && i === FILLER_COUNT - 1 ? 1 : 0,
+    last_message_body: body, last_message_kind: "text", blocked_with_participant: false,
+  };
+}
+
+const CONVERSATIONS = [
+  ...HERO_CONVERSATIONS,
+  ...Array.from({ length: FILLER_COUNT }, (_, i) =>
+    fillerThread(i, {
+      startId: 100,
+      listing: { id: 3, title: "Toyota Corolla 2015", thumbnail_url: null, status: "active", price: 600000, currency: "AFN", location: "Herat" },
+      body: "Can you deliver it to Kabul?",
+      unreadLast: true,
+    }),
+  ),
+];
+
+const ARCHIVED_CONVERSATIONS = Array.from({ length: FILLER_COUNT }, (_, i) =>
+  fillerThread(i, {
+    startId: 200,
+    listing: { id: 2, title: "Samsung 4K TV", thumbnail_url: null, status: "active", price: 30000, currency: "AFN", location: "Kabul" },
+    body: "Deal closed, thank you.",
+  }),
+);
+
+const ALL_CONVERSATIONS = [...CONVERSATIONS, ...ARCHIVED_CONVERSATIONS];
 
 const MESSAGES = {
   // Returned newest-first (Rails order); chat.ts reverses for display.
@@ -426,6 +508,11 @@ const server = createServer((req, res) => {
 });
 
 function route(req, res, method, path, q, body) {
+  // Which persona (if any) this request authenticated as. Resolved up front
+  // because /listings is a PUBLIC endpoint that Rails nonetheless personalises
+  // when a bearer happens to be attached — the same request, two payloads.
+  const who = persona(req);
+
   // ── Auth (unauthenticated) ──────────────────────────────────────────────
   if (method === "POST" && path === "/auth/sign_in") {
     const { email, password } = body;
@@ -463,10 +550,18 @@ function route(req, res, method, path, q, body) {
     });
   }
 
+  // The feed. Public, but PERSONALISED when devise headers are attached (i.e.
+  // when the browser fetched it through /api/me instead of /api/proxy): the
+  // caller's hidden listings drop out and the payload carries is_viewed /
+  // is_saved. A guest's response is byte-identical to what it always was.
   if (method === "GET" && path === "/listings") {
-    const items = filterListings(q);
+    let items = filterListings(q);
+    if (who === "full") items = items.filter((l) => !HIDDEN_IDS.includes(l.id));
     const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
-    return send(res, 200, { listings: slice.map(listView), meta: { pagination } });
+    return send(res, 200, {
+      listings: slice.map((l) => listView(l, who)),
+      meta: { pagination },
+    });
   }
 
   // The dedicated similarity endpoint (Listing.similar_to): browsable stock in
@@ -525,7 +620,6 @@ function route(req, res, method, path, q, body) {
   }
 
   // ── Authenticated ─────────────────────────────────────────────────────────
-  const who = persona(req);
   const requireAuth = () => {
     if (!who) { send(res, 401, { errors: ["You need to sign in or sign up before continuing."] }); return false; }
     return true;
@@ -549,7 +643,9 @@ function route(req, res, method, path, q, body) {
   // Saved listings
   if (path === "/my/saved_listings" && method === "GET") {
     if (!requireAuth()) return;
-    const listings = empty ? [] : [listView(findListing(2)), listView(findListing(4))];
+    // Derived from SAVED_IDS so this list and the feed's `is_saved` flag cannot
+    // drift apart (a filled heart on a listing missing from /saved, or vice versa).
+    const listings = empty ? [] : SAVED_IDS.map((id) => listView(findListing(id), who));
     return send(res, 200, { listings });
   }
   const saveMatch = path.match(/^\/listings\/(\d+)\/(save|unsave)$/);
@@ -561,7 +657,9 @@ function route(req, res, method, path, q, body) {
   // Hidden ("not interested") listings
   if (path === "/my/hidden_listings" && method === "GET") {
     if (!requireAuth()) return;
-    const listings = empty ? [] : [listView(findListing(2))];
+    // Derived from HIDDEN_IDS, the same array the feed filters on — so "hidden"
+    // means one thing across both surfaces.
+    const listings = empty ? [] : HIDDEN_IDS.map((id) => listView(findListing(id), who));
     return send(res, 200, {
       listings,
       meta: {
@@ -670,10 +768,14 @@ function route(req, res, method, path, q, body) {
   // Chat
   if (path === "/conversations" && method === "GET") {
     if (!requireAuth()) return;
-    let convs = empty ? [] : CONVERSATIONS;
+    const showArchived = q.get("archived") === "true";
+    let convs = empty ? [] : showArchived ? ARCHIVED_CONVERSATIONS : CONVERSATIONS;
     const lid = q.get("listing_id");
     if (lid) convs = convs.filter((c) => String(c.listing.id) === lid);
-    return send(res, 200, { conversations: convs });
+    // Rails paginates this index (paginate_blue, 20/page) and the web client
+    // pages through meta.pagination.next_page.
+    const { slice, pagination } = paginate(convs, q.get("page[number]"), q.get("page[size]"));
+    return send(res, 200, { conversations: slice, meta: { pagination } });
   }
   const startConvMatch = path.match(/^\/listings\/(\d+)\/conversations$/);
   if (startConvMatch && method === "POST") {
@@ -682,6 +784,17 @@ function route(req, res, method, path, q, body) {
   }
   const msgMarkRead = path.match(/^\/conversations\/(\d+)\/messages\/mark_read$/);
   if (msgMarkRead && method === "PUT") {
+    if (!requireAuth()) return;
+    return send(res, 200, { ok: true });
+  }
+  // List-level thread mutations (kebab menu on /conversations). The mock holds
+  // no state, so these only acknowledge: a spec that needs the SETTLED result
+  // (e.g. an archived row staying gone after the refetch) models persistence in
+  // the browser with page.route.
+  const convAction = path.match(
+    /^\/conversations\/(\d+)\/(archive|unarchive|mark_read|mark_unread)$/,
+  );
+  if (convAction && method === "PUT") {
     if (!requireAuth()) return;
     return send(res, 200, { ok: true });
   }
@@ -699,7 +812,8 @@ function route(req, res, method, path, q, body) {
   const convMatch = path.match(/^\/conversations\/(\d+)$/);
   if (convMatch) {
     if (!requireAuth()) return;
-    const conv = CONVERSATIONS.find((c) => String(c.id) === convMatch[1]);
+    // Archived threads are still openable, so resolve against both partitions.
+    const conv = ALL_CONVERSATIONS.find((c) => String(c.id) === convMatch[1]);
     if (method === "GET") return conv ? send(res, 200, { conversation: conv }) : send(res, 404, { error: "Conversation not found" });
     if (method === "DELETE") return send(res, 204);
   }

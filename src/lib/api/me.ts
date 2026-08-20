@@ -1,4 +1,5 @@
 import { convertKeysToCamel, convertKeysToSnake } from "./case";
+import { ApiError, readApiErrors } from "./client";
 import { normalizeListing, type RawListing } from "./listings";
 import type { Listing, Transaction, User } from "../types";
 
@@ -29,11 +30,16 @@ export async function meRequest<T>(
 
   const res = await fetch(`/api/me/${path}`, init);
   if (!res.ok) {
-    const err = new Error(`me/${path} ${res.status}`) as Error & {
-      status?: number;
-    };
-    err.status = res.status;
-    throw err;
+    // Carry Rails' own reasons, not just the status. Discarding the body left
+    // every authed write able to say no more than "something went wrong": the
+    // report dialog had three translated 422 messages ("you already reported
+    // this", "you can't report yourself", generic) that could never be reached
+    // because the only thing that survived the throw was the number 422.
+    throw new ApiError(
+      res.status,
+      `me/${path} ${res.status}`,
+      await readApiErrors(res),
+    );
   }
   // Tolerate empty bodies (e.g. 204 from DELETE).
   const text = await res.text();
