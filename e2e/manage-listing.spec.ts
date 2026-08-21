@@ -52,6 +52,35 @@ test.describe("Manage a listing", () => {
     await expect(page).toHaveURL(/\/my-listings\/?$/, { timeout: 20_000 });
   });
 
+  // ── Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md) ────────────────────────
+  //
+  // Listing 14 is the batch fixture (15 total, 4 sold). The OWNER phrasing is
+  // deliberately different from the buyer's: a seller's question is "how do I
+  // know when they're all gone?", so they get progress through the batch
+  // ("11 of 15 left"), not just the remainder.
+
+  test("the owner sees how many are left of the original count", async ({
+    page,
+  }) => {
+    await page.goto("/en/my-listings/14");
+    await expect(
+      page.getByRole("heading", { name: "Phone Cases Wholesale" }),
+    ).toBeVisible();
+    // "11 of 15 left" — both numbers, unlike the buyer's "11 in stock".
+    await expect(page.getByText("11 of 15 left")).toBeVisible();
+    // And the price says which number it is.
+    await expect(page.getByText("each")).toBeVisible();
+  });
+
+  test("a single-item listing shows no stock line at all", async ({ page }) => {
+    await page.goto("/en/my-listings/1");
+    await expect(
+      page.getByRole("heading", { name: "iPhone 13 Pro" }),
+    ).toBeVisible();
+    await expect(page.getByText(/left$/)).toHaveCount(0);
+    await expect(page.getByText("each")).toHaveCount(0);
+  });
+
   test("Edit navigates to the edit form", async ({ page }) => {
     await page.goto("/en/my-listings/1");
     await page.getByRole("link", { name: /Edit/i }).click();

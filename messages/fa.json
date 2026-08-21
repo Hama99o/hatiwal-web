@@ -258,12 +258,22 @@
       "searchPlacePlaceholder": "شهر یا منطقه را جستجو کنید…",
       "searchAttribution": "جستجو توسط OpenStreetMap",
       "negotiableLabel": "قیمت قابل مذاکره است",
-      "removePhoto": "حذف عکس"
+      "removePhoto": "حذف عکس",
+      "multipleUnitsLabel": "بیشتر از یک عدد دارم",
+      "howManyUnits": "چند عدد دارید؟",
+      "quantityInvalid": "عددی بین ۱ تا ۹۹۹ وارد کنید",
+      "howManySold": "چند عدد فروختید؟"
     },
     "analytics": {
       "title": "بازدیدها (۷ روز اخیر)",
       "totalViews": "{count, number} بازدید در ۷ روز اخیر",
       "noData": "هنوز بازدیدی نیست"
+    },
+    "stock": {
+      "each": "هرکدام",
+      "inStock": "{count, number} عدد موجود است",
+      "leftOfTotal": "{available, number} از {total, number} باقی مانده",
+      "unitsAvailable": "{count, number} موجود"
     }
   },
   "browse": {
@@ -926,7 +936,8 @@
     "finalPricePlaceholder": "قیمت اعلان‌شده",
     "confirmReserve": "تایید رزرو",
     "confirmSold": "تایید فروش",
-    "invalidPrice": "یک قیمت معتبر وارد کنید"
+    "invalidPrice": "یک قیمت معتبر وارد کنید",
+    "finalPricePerUnitHint": "قیمت یک عدد"
   },
   "safety": {
     "title": "نکات ایمنی ملاقات",

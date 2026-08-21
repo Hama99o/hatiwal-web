@@ -39,7 +39,8 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Antique Carpet")).toBeVisible(); // draft
     await expect(page.getByText("Gaming PC")).toBeVisible(); // reserved
     await expect(page.getByText("Old Bicycle")).toBeVisible(); // active + expired
-    await expect(page.locator('a[href*="/my-listings/"]')).toHaveCount(7);
+    await expect(page.getByText("Phone Cases Wholesale")).toBeVisible(); // multi-unit batch
+    await expect(page.locator('a[href*="/my-listings/"]')).toHaveCount(8);
   });
 
   // The status filter is the shared SegmentedControl, so its options are `tab`s
@@ -265,6 +266,58 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Listing unpublished")).toBeVisible();
   });
 
+  // ── Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md §0b) ────────────────────
+  //
+  // Listing 14 (Phone Cases Wholesale) is the batch fixture: 15 total, 4 sold, 11 left.
+  // Before this, the web dialog sent no quantity at all, so Rails defaulted to
+  // the WHOLE remaining stock — a web seller could only ever sell an entire
+  // batch at once while a mobile seller could sell 3 of 15, on the same listing.
+
+  test("selling a batch asks how many, pre-filled with the whole remainder", async ({
+    page,
+  }) => {
+    await openMyShop(page);
+    await card(page, 14).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
+
+    // The field appears only once a real buyer is chosen — a sale to "someone
+    // not on Hatiwal" records no transaction for a quantity to attach to.
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.locator("#soldUnits")).toHaveCount(0);
+    await dialog.getByRole("button", { name: /Bilal Nazari/ }).first().click();
+
+    // Pre-filled with all 11, so "I sold the lot" stays one click, and the
+    // remainder is stated so the number is never typed blind.
+    await expect(dialog.locator("#soldUnits")).toHaveValue("11");
+    await expect(dialog.getByText("11 available")).toBeVisible();
+    // And the final price says which number it is.
+    await expect(dialog.getByText("The price for one item")).toBeVisible();
+  });
+
+  test("a single-item listing never asks how many", async ({ page }) => {
+    // The governing rule: a seller with one item must not see this feature.
+    await openMyShop(page);
+    await card(page, 1).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: /Sara Ahmadi/ }).first().click();
+    await expect(dialog.locator("#soldUnits")).toHaveCount(0);
+    await expect(dialog.getByText("The price for one item")).toHaveCount(0);
+    // The final price itself is still offered — that part is unchanged.
+    await expect(dialog.locator("#finalPrice")).toBeVisible();
+  });
+
+  test("reserving a batch never asks how many", async ({ page }) => {
+    // A reservation is a hold on the whole listing, not a per-unit deduction the
+    // backend models (spike §5.2 B).
+    await openMyShop(page);
+    await card(page, 14).getByRole("button", { name: "Mark as Reserved" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: /Bilal Nazari/ }).first().click();
+    await expect(dialog.locator("#soldUnits")).toHaveCount(0);
+  });
+
   test("Mark as Sold from the kebab opens the buyer picker", async ({
     page,
   }) => {
@@ -421,7 +474,7 @@ test.describe("My Shop (seller dashboard)", () => {
   }) => {
     await openMyShop(page);
     const cards = page.locator('a[href*="/my-listings/"]');
-    await expect(cards).toHaveCount(7);
+    await expect(cards).toHaveCount(8);
     // The skeleton lives in the page body; the header's own avatar placeholder
     // is outside <main>, so this only sees the grid's.
     const skeletons = page.locator("main .animate-pulse");
@@ -434,11 +487,11 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(page.getByText("Listing published!")).toBeVisible();
 
     await expect(page).toHaveURL(/\/en\/my-listings$/);
-    await expect(cards).toHaveCount(7);
+    await expect(cards).toHaveCount(8);
     await expect(card(page, 8)).toBeVisible();
     await expect(skeletons).toHaveCount(0);
     // …and the per-status tab counts are still rendered off the same query.
-    await expect(page.getByRole("tab", { name: /^All \(7\)/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^All \(8\)/ })).toBeVisible();
   });
 
   test("a failed inline action toasts the error and leaves the card unchanged", async ({

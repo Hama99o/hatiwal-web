@@ -33,10 +33,11 @@ test.describe("Categories", () => {
     page,
   }) => {
     await page.goto("/en/categories");
-    // 3, not 1: counting only listings filed directly under Electronics would
-    // under-report the inventory sitting behind the card.
+    // 4, not 1: counting only listings filed directly under Electronics would
+    // under-report the inventory sitting behind the card. (2 under phones — one
+    // of them the multi-unit batch fixture — 1 under laptops, 1 direct.)
     await expect(
-      page.getByRole("link", { name: "Electronics — 3 listings" }),
+      page.getByRole("link", { name: "Electronics — 4 listings" }),
     ).toBeVisible();
     // A real ICU plural, never "1 listings".
     await expect(
@@ -66,7 +67,7 @@ test.describe("Categories", () => {
       .getByTestId("category-card")
       .filter({ hasText: "Electronics" });
     const phones = electronics.getByRole("link", {
-      name: "Phones & Tablets — 1 listing",
+      name: "Phones & Tablets — 2 listings",
     });
     await expect(phones).toBeVisible();
     await expect(

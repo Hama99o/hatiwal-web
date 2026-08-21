@@ -1267,3 +1267,52 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     ).toBeVisible();
   });
 });
+
+/**
+ * Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md) — its own block, because none
+ * of this is about the sold/reserved recovery CTAs above.
+ */
+test.describe("Listing detail — multi-quantity", () => {
+  // ── Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md) ───────────────────────
+  //
+  // Listing 14 (Phone Cases Wholesale) is the batch fixture: 15 total, 4 sold. What matters
+  // is that a buyer learns there are several BEFORE they message — that moment
+  // is the one the spike identifies as where the harm happens today — and that
+  // the price says which number it is.
+
+  test("a multi-unit listing shows the per-unit price and what is left", async ({
+    page,
+  }) => {
+    await page.goto("/en/listings/14");
+
+    // "each" beside the price, so 14,000 cannot be read as the price of all 15.
+    const priceBlock = page.locator("#listing-price");
+    await expect(priceBlock).toContainText(en.listing.stock.each);
+    // 11 LEFT, never the seller's original 15 — a stale count is the feature's
+    // top risk (spike §0).
+    await expect(priceBlock).toContainText("11");
+    await expect(priceBlock).not.toContainText("15");
+  });
+
+  test("a single-item listing shows no quantity UI at all", async ({ page }) => {
+    // The governing rule, asserted rather than assumed: the majority case must
+    // look exactly as it did before this feature existed.
+    await page.goto("/en/listings/1");
+    const priceBlock = page.locator("#listing-price");
+    await expect(priceBlock).toBeVisible();
+    await expect(priceBlock).not.toContainText(en.listing.stock.each);
+    await expect(priceBlock).not.toContainText("in stock");
+  });
+
+  test("the stock line is localized in ps and fa", async ({ page }) => {
+    for (const [locale, catalog] of [
+      ["ps", ps],
+      ["fa", fa],
+    ] as const) {
+      await page.goto(`/${locale}/listings/14`);
+      const priceBlock = page.locator("#listing-price");
+      await expect(priceBlock).toContainText(catalog.listing.stock.each);
+      await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    }
+  });
+});

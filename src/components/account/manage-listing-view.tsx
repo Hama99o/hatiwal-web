@@ -29,6 +29,8 @@ import { ConditionBadge } from "@/components/shared/condition-badge";
 import { ExpiryBadge } from "@/components/shared/expiry-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { availableUnitsOf, hasStockToShow } from "@/lib/stock";
+import { StockBadge } from "@/components/shared/stock-badge";
 
 export function ManageListingView({ id }: { id: string }) {
   const t = useTranslations();
@@ -45,6 +47,7 @@ export function ManageListingView({ id }: { id: string }) {
   // toasts, cache invalidation and the busy flag (see ./listing-actions).
   const lifecycle = useListingLifecycle(listing?.id ?? 0, {
     title: listing?.title,
+    remainingQuantity: availableUnitsOf(listing),
     onDeleted: () => router.push("/my-listings"),
     onSaleRecorded: setReviewTxn,
   });
@@ -87,7 +90,15 @@ export function ManageListingView({ id }: { id: string }) {
           </div>
 
           <div className="space-y-2">
-            <PriceTag price={listing.price} currency={listing.currency} size="lg" />
+            <PriceTag
+              price={listing.price}
+              currency={listing.currency}
+              size="lg"
+              perUnit={hasStockToShow(listing)}
+            />
+            {/* Owner phrasing ("12 of 15 left"): the seller's question is "how
+                do I know when they're all gone?", not "how many can I buy?". */}
+            <StockBadge listing={listing} owner />
             <h1 className="text-pretty text-xl font-bold sm:text-2xl">
               {listing.title}
             </h1>

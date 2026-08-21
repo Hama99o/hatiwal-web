@@ -221,6 +221,14 @@ export function useListingLifecycle(
      * listing?" gives the seller nothing to check the action against.
      */
     title?: string;
+    /**
+     * How many units are still available (docs/SPIKE_LISTING_QUANTITY.md).
+     * Passed straight to the sold dialog, which asks "how many did you sell?"
+     * only when it is > 1 — so a single-item listing is byte-identical to before.
+     * Without it a web seller can only ever sell a whole batch at once while a
+     * mobile seller can sell 3 of 15, on the same listing.
+     */
+    remainingQuantity?: number;
     /** Called after a successful delete (e.g. leave the detail route). */
     onDeleted?: () => void;
     /** Called when a sale recorded a buyer — offer to review them. */
@@ -262,7 +270,7 @@ export function useListingLifecycle(
   /** Returns the lifecycle payload, or null when the request failed. */
   async function runLifecycle(
     action: LifecycleAction,
-    saleOpts?: { buyerId?: number; finalPrice?: number },
+    saleOpts?: { buyerId?: number; finalPrice?: number; quantity?: number },
   ): Promise<LifecycleResult | null> {
     setBusy(true);
     try {
@@ -314,12 +322,17 @@ export function useListingLifecycle(
   }
 
   /** Buyer-picker path: reserve/sold with an optional buyer + final price. */
-  async function submitSale(buyerId: number | null, finalPrice: number | null) {
+  async function submitSale(
+    buyerId: number | null,
+    finalPrice: number | null,
+    quantity: number | null = null,
+  ) {
     if (pending?.kind !== "lifecycle") return;
     const action = pending.action;
     const result = await runLifecycle(action, {
       buyerId: buyerId ?? undefined,
       finalPrice: finalPrice ?? undefined,
+      quantity: quantity ?? undefined,
     });
     if (!result) return;
     setPending(null);
@@ -333,6 +346,7 @@ export function useListingLifecycle(
   return {
     listingId,
     title: opts.title,
+    remainingQuantity: opts.remainingQuantity,
     busy,
     pending,
     ask,
@@ -355,8 +369,16 @@ export function LifecycleDialogs({
   lifecycle: LifecycleController;
 }) {
   const t = useTranslations();
-  const { listingId, title, pending, busy, dismiss, confirmPending, submitSale } =
-    lifecycle;
+  const {
+    listingId,
+    title,
+    remainingQuantity,
+    pending,
+    busy,
+    dismiss,
+    confirmPending,
+    submitSale,
+  } = lifecycle;
   const buyerFlow = needsBuyerPicker(pending);
   const keys = dialogKeysFor(pending);
 
@@ -393,6 +415,7 @@ export function LifecycleDialogs({
           action={pending.action as "reserve" | "sold"}
           listingId={listingId}
           listingTitle={title}
+          remainingQuantity={remainingQuantity}
           busy={busy}
           onCancel={dismiss}
           onConfirm={submitSale}

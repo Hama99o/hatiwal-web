@@ -2,7 +2,8 @@
  * THE SNAPSHOT — the exact key set each `ListingSerializer` view puts on the
  * wire, transcribed by hand from
  * `hatiwal-api/app/serializers/listing_serializer.rb` (as of API commit
- * `30ac06f`, TASK-BE-SAVEDLIST).
+ * `c816b13`, the multi-quantity Tier 1 base fields; previously `30ac06f`,
+ * TASK-BE-SAVEDLIST).
  *
  * WHY IT EXISTS (TASK-WEB-MOCKSHAPE / FlowApp #256). `e2e/mock-api/server.mjs`
  * used ONE function to serve both `view :list` and `view :seller_list`, so every
@@ -45,6 +46,15 @@ const BASE_KEYS = [
   "address",
   "condition",
   "created_at",
+  // Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). Deliberately BASE, not
+  // view-scoped: the clients gate the per-unit price suffix on `multi_unit`, so
+  // a view that omitted it would render a bare price for a 15-unit listing and
+  // recreate the exact "40,000 — each or total?" ambiguity the feature exists to
+  // remove. Asserted in the API's own
+  // spec/serializers/listing_serializer_quantity_spec.rb across all four views.
+  "quantity",
+  "available_units",
+  "multi_unit",
 ] as const;
 
 /**

@@ -131,6 +131,19 @@ const LISTINGS = [
   // which is the column default. Also the only row with a non-zero `saves_count`,
   // so `:detailed`'s "N saves" line is reachable.
   { id: 4, title: "Winter Jacket", price: 1200, currency: "AFN", status: "active", location: "Mazar-i-Sharif", address: null, condition: "like_new", category_id: 3, seller_id: 2, views_count: 25, negotiable: false, saves_count: 3, created_at: "2026-06-21T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Warm winter jacket, size L." },
+  // The one MULTI-UNIT listing — a reseller with a batch of identical items, the
+  // case docs/SPIKE_LISTING_QUANTITY.md was written for. 15 total, 4
+  // already sold, so `available_units` is 11 (derived in baseFields, like the
+  // model). Drives the "each" price suffix and the "11 in stock" pill; it is
+  // owned by seller 1 (the signed-in persona) so the OWNER phrasing on
+  // /my-listings/:id is reachable too. Every other row is single-unit, which is
+  // the column default — keep it that way, so a spec asserting "a single-item
+  // listing shows no quantity UI at all" has something to assert against.
+  //
+  // Filed under 101 (phones), NOT 4 (home-garden): 4 is deliberately the
+  // all-empty parent that covers the real production drill-down shape, and the
+  // fixture header above says to keep it that way.
+  { id: 14, title: "Phone Cases Wholesale", price: 400, currency: "AFN", status: "active", location: "Kabul", address: "Mandawi Bazaar", condition: "brand_new", category_id: 101, seller_id: 1, views_count: 64, quantity: 15, sold_units: 4, created_at: "2026-06-22T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Identical silicone cases, bought a box of 15." },
   // The one listing NOBODY has messaged about (conversations_count 0, which Rails
   // always emits): drives the "count badge hides at zero" case that the majority
   // of owner views actually are.
@@ -254,10 +267,20 @@ function findListing(id) {
 /** `fields :id, :title, … :created_at` — declared OUTSIDE any view, so
  *  Blueprinter includes them in every named view below. */
 function baseFields(l) {
+  const quantity = l.quantity ?? 1;
+  const soldUnits = l.sold_units ?? 0;
   return {
     id: l.id, title: l.title, price: l.price, currency: l.currency, status: l.status,
     location: l.location, address: l.address, condition: l.condition,
     created_at: l.created_at,
+    // Multi-quantity — BASE on ListingSerializer, so all four views carry it.
+    // Derived from the fixture the same way the model does (`available_units` is
+    // `quantity - sold_units`, floored at 0; `multi_unit?` is `quantity > 1`) so
+    // a fixture can express a partially-sold batch by setting `sold_units`
+    // alone, exactly as the DB does.
+    quantity,
+    available_units: Math.max(0, quantity - soldUnits),
+    multi_unit: quantity > 1,
   };
 }
 
@@ -466,6 +489,19 @@ const HERO_CONVERSATIONS = [
     buyer: { id: 3, name: "Najib Rahimi", city: "Kabul", avatar_url: null },
     seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
     unread_count: 0, last_message_body: "Thanks!", last_message_kind: "text", blocked_with_participant: false },
+  // A thread on the MULTI-UNIT listing (14, Phone Cases Wholesale — 15 total, 4 sold), so the
+  // buyer picker has a real buyer to pick when the seller marks part of a batch
+  // as sold. Without it the quantity field is unreachable in E2E: the field only
+  // renders once a real buyer is selected (a sale to "someone not on Hatiwal"
+  // records no transaction for a quantity to attach to).
+  { id: 4, status: "open", last_message_at: "2026-06-22T11:00:00Z", created_at: "2026-06-22T09:00:00Z",
+    listing: { id: 14, title: "Phone Cases Wholesale", thumbnail_url: null, status: "active", price: 400, currency: "AFN", location: "Kabul", multi_unit: true, available_units: 11 },
+    // Its OWN participant, not one of the other threads' — the inbox specs
+    // locate rows by name, and a reused name makes `getByText` ambiguous.
+    other_participant: { id: 5, name: "Bilal Nazari", city: "Kabul", verified: true, avatar_url: null },
+    buyer: { id: 5, name: "Bilal Nazari", city: "Kabul", avatar_url: null },
+    seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+    unread_count: 0, last_message_body: "I need 3 of these.", last_message_kind: "text", blocked_with_participant: false },
   // An OFFER thread: its preview is not the raw body but a locale-formatted
   // price ("Offer: AFN 75,000" / "؋ ۷۵٬۰۰۰"), which is what the inbox search has
   // to match against in either numeral system.

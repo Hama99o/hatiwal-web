@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
 import { PriceDropBadge } from "@/components/shared/price-drop-badge";
 import { FirmPriceBadge } from "@/components/shared/firm-price-badge";
+import { StockBadge } from "@/components/shared/stock-badge";
 import { CategoryBadge } from "@/components/shared/category-badge";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { RatingDisplay } from "@/components/shared/rating-display";
@@ -40,6 +41,7 @@ import { LocationMap } from "@/components/map/location-map";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { readViewerIdFromCookies } from "@/lib/auth/cookies";
+import { hasStockToShow } from "@/lib/stock";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -186,9 +188,17 @@ export default async function ListingDetailPage({
                 currency={listing.currency}
                 size="lg"
                 tone={isSold ? "muted" : "default"}
+                perUnit={hasStockToShow(listing)}
               />
               {/* Firm-price badge — quiet trust signal when negotiable is false */}
               <FirmPriceBadge negotiable={listing.negotiable} />
+              {/* Stock — the buyer who assumed "1" learns otherwise BEFORE they
+                  message, which is the moment the spike identifies as where the
+                  harm currently happens. Nothing renders for a single-item
+                  listing. Detail only, never the feed card: same reasoning as
+                  mobile (a reserved chip slot would grow every card in the grid,
+                  including the single-item majority). */}
+              <StockBadge listing={listing} />
               <h1 className="text-pretty text-xl font-bold sm:text-2xl">
                 {listing.title}
               </h1>
@@ -330,6 +340,7 @@ export default async function ListingDetailPage({
                       listingId={listing.id}
                       sellerId={listing.seller?.id}
                       price={listing.price}
+                      perUnit={hasStockToShow(listing)}
                       currency={listing.currency}
                       negotiable={listing.negotiable}
                     />

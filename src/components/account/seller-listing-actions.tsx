@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { availableUnitsOf } from "@/lib/stock";
 
 /**
  * Inline lifecycle quick-actions for one card on /my-listings — the seller acts
@@ -50,6 +51,7 @@ export function SellerListingActions({
   // and hides the card that was clicked.
   const lifecycle = useListingLifecycle(listing.id, {
     title: listing.title,
+    remainingQuantity: availableUnitsOf(listing),
     onSaleRecorded,
   });
   const { busy, ask } = lifecycle;

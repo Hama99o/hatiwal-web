@@ -42,6 +42,7 @@ export function StartConversationButton({
   listingId,
   sellerId,
   price,
+  perUnit = false,
   currency,
   negotiable,
   layout = "stacked",
@@ -50,6 +51,13 @@ export function StartConversationButton({
   listingId: number;
   sellerId?: number;
   price?: number | null;
+  /**
+   * Multi-quantity: the reference price above the offer input is PER UNIT
+   * (docs/SPIKE_LISTING_QUANTITY.md). An offer carries no quantity of its own,
+   * so nothing downstream can tell whether "I offer 12,000" meant one of the 15
+   * or all of them — saying "each" on the anchor is the least this can do.
+   */
+  perUnit?: boolean;
   currency?: string | null;
   /** false = firm price: hide the make-offer affordance (mirrors mobile N071). */
   negotiable?: boolean;
@@ -386,6 +394,7 @@ export function StartConversationButton({
                 {t("listing.detail.listedPrice", {
                   price: formatPrice(price, currency, locale),
                 })}
+                {perUnit ? ` (${t("listing.stock.each")})` : ""}
               </p>
             )}
             <div className="space-y-3">

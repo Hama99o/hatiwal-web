@@ -105,6 +105,10 @@ export function ConversationThread({ id }: { id: string }) {
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
   const lifecycle = useListingLifecycle(convQ.data?.listing?.id ?? 0, {
     title: convQ.data?.listing?.title,
+    // ConversationSerializer's nested listing carries availableUnits (added for
+    // the "each" price suffix), so the thread's own reserve/sold flow can ask
+    // "how many did you sell?" too — the seller often closes the deal here.
+    remainingQuantity: convQ.data?.listing?.availableUnits,
     onSaleRecorded: setReviewTxn,
   });
   const [searchOpen, setSearchOpen] = useState(false);

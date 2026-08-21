@@ -9,12 +9,15 @@ import { formatPrice } from "../src/lib/format";
 import type { Conversation } from "../src/lib/types";
 
 /*
- * The mock inbox is 25 threads (Rails paginates this index at 20/page), so
- * page 1 fills and page 2 holds 5. "Sohail Barakzai" (id 121) is the LAST row,
+ * The mock inbox is 26 threads (Rails paginates this index at 20/page), so
+ * page 1 fills and page 2 holds 6. "Sohail Barakzai" (id 121) is the LAST row,
  * i.e. reachable only after a Load-more, and is the only unread row on page 2.
  */
 const PAGE_SIZE = 20;
-const INBOX_TOTAL = 25;
+// 4 hero threads + 22 filler. The 4th hero is the thread on the multi-unit
+// listing (14), which the buyer picker needs so the "how many did you sell?"
+// field is reachable at all — see e2e/my-listings.spec.ts.
+const INBOX_TOTAL = 26;
 const ARCHIVED_TOTAL = 22;
 /** Threads about listing 3 (Toyota Corolla 2015) — the ?listing= view. */
 const LISTING_3_TOTAL = 23;

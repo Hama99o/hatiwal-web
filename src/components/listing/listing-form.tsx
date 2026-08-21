@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
+import { Boxes, History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { createListing, updateListing, listingLifecycle } from "@/lib/api/me";
 import { categoryName } from "@/lib/api/categories";
@@ -42,6 +42,8 @@ interface DraftSnapshot {
     location?: string;
     address?: string;
     negotiable?: boolean;
+    /** A form string, like `price` — converted to a number only on submit. */
+    quantity?: string;
   };
   lat: number | null;
   lng: number | null;
@@ -113,6 +115,16 @@ export function ListingForm({
     categoryId: z.string().min(1, t("listing.form.categoryRequired")),
     condition: z.string().optional(),
     negotiable: z.boolean(),
+    // A string like every other field here (the form's own convention —
+    // numerics are converted on submit), and never required: an empty value is
+    // a single-item listing, which is what the toggle being off means.
+    quantity: z
+      .string()
+      .refine(
+        (v) => v === "" || (Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 999),
+        t("listing.form.quantityInvalid"),
+      )
+      .optional(),
     description: z.string().max(2000).optional().or(z.literal("")),
     location: z.string().min(1, t("listing.form.locationRequired")),
     address: z.string().optional().or(z.literal("")),
@@ -135,6 +147,7 @@ export function ListingForm({
       categoryId: listing?.categoryId != null ? String(listing.categoryId) : "",
       condition: listing?.condition ?? "",
       negotiable: listing?.negotiable ?? true,
+      quantity: listing?.quantity != null && listing.quantity > 1 ? String(listing.quantity) : "",
       description: listing?.description ?? "",
       location: listing?.location ?? "",
       address: listing?.address ?? "",
@@ -143,6 +156,14 @@ export function ListingForm({
 
   const condition = watch("condition");
   const negotiable = watch("negotiable");
+  // Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). Seeded from the listing
+  // being edited, so a 15-unit listing reopens with its number showing instead
+  // of a switch that reads "off" over a value of 15 the seller can neither see
+  // nor correct.
+  const [hasMultipleUnits, setHasMultipleUnits] = useState(
+    listing?.quantity != null && listing.quantity > 1,
+  );
+  const quantityField = register("quantity");
   const totalPhotos = existing.length + newPhotos.length;
 
   // ── Draft autosave (new listings only — mirrors mobile ListingForm) ────────
@@ -212,10 +233,12 @@ export function ListingForm({
       categoryId: v.categoryId ?? "",
       condition: v.condition ?? "",
       negotiable: v.negotiable ?? true,
+      quantity: v.quantity ?? "",
       description: v.description ?? "",
       location: v.location ?? "",
       address: v.address ?? "",
     });
+    setHasMultipleUnits(Number(v.quantity ?? "") > 1);
     setLat(restorableDraft.lat ?? null);
     setLng(restorableDraft.lng ?? null);
     setRestorableDraft(null);
@@ -260,6 +283,9 @@ export function ListingForm({
         currency: values.currency,
         condition: values.condition || undefined,
         negotiable: values.negotiable,
+        // Off, or cleared, is a single item — send 1 explicitly so switching a
+        // batch listing back to one unit actually persists.
+        quantity: hasMultipleUnits && values.quantity ? Number(values.quantity) : 1,
         categoryId: Number(values.categoryId),
         location: values.location || undefined,
         address: values.address || undefined,
@@ -461,6 +487,66 @@ export function ListingForm({
             onChange={(e) => setValue("negotiable", e.target.checked)}
           />
         </label>
+
+        {/* Multi-quantity — docs/SPIKE_LISTING_QUANTITY.md §12.1. A second row in
+            the SAME price block as Negotiable above, because quantity is
+            semantically an annex to price ("does this number mean one item or a
+            lot?"). Collapsed to a single toggle when off, so a seller with one
+            item sees no new field, no header, and no "1" to confirm. */}
+        <div className="space-y-3 rounded-lg border bg-card p-4">
+          <label className="flex cursor-pointer items-center justify-between gap-4">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Boxes className="size-4 text-muted-foreground" />
+              {t("listing.form.multipleUnitsLabel")}
+            </span>
+            <input
+              type="checkbox"
+              className="size-5 shrink-0 accent-primary"
+              checked={hasMultipleUnits}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setHasMultipleUnits(on);
+                // Pre-fill "2": flipping this on already means "more than one",
+                // so the next keystroke fixes the number instead of starting
+                // from an empty/invalid state. Off clears it back to a plain
+                // single-item listing.
+                setValue("quantity", on ? "2" : "");
+              }}
+              aria-label={t("listing.form.multipleUnitsLabel")}
+            />
+          </label>
+
+          {hasMultipleUnits && (
+            <Field
+              label={t("listing.form.howManyUnits")}
+              htmlFor="quantity"
+              error={errors.quantity?.message}
+            >
+              <Input
+                id="quantity"
+                type="number"
+                min={1}
+                max={999}
+                inputMode="numeric"
+                placeholder="2"
+                {...quantityField}
+                // A cleared field reads as 1, matching mobile's own coercion:
+                // without it the toggle says "more than one" while the form
+                // submits a single-unit listing, and the seller only finds out
+                // when the stock pill is missing afterwards. On blur, not on
+                // every keystroke, so backspacing to retype is not fought.
+                //
+                // Chains RHF's own onBlur rather than replacing it — spreading
+                // `register()` and then declaring onBlur AFTER it silently drops
+                // the handler RHF uses for touched/validate-on-blur state.
+                onBlur={(e) => {
+                  quantityField.onBlur(e);
+                  if (e.target.value.trim() === "") setValue("quantity", "1");
+                }}
+              />
+            </Field>
+          )}
+        </div>
 
         <Field
           label={t("common.description")}

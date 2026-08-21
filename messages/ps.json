@@ -258,12 +258,22 @@
       "searchPlacePlaceholder": "ښار يا سيمه ولټوئ…",
       "searchAttribution": "لټون د OpenStreetMap لخوا",
       "negotiableLabel": "قیمت د خبرو وړ دی",
-      "removePhoto": "انځور لرې کړئ"
+      "removePhoto": "انځور لرې کړئ",
+      "multipleUnitsLabel": "زه له یوې څخه ډېرې لرم",
+      "howManyUnits": "څو دانې لرې؟",
+      "quantityInvalid": "له ۱ څخه تر ۹۹۹ پورې شمېره ولیکه",
+      "howManySold": "څو دانې مو وپلورلې؟"
     },
     "analytics": {
       "title": "کتنې (تېرې ۷ ورځې)",
       "totalViews": "په تېرو ۷ ورځو کې {count, number} لیدنې",
       "noData": "تر اوسه کتنه نشته"
+    },
+    "stock": {
+      "each": "هره دانه",
+      "inStock": "{count, number} دانې موجودې دي",
+      "leftOfTotal": "{available, number} د {total, number} څخه پاتې",
+      "unitsAvailable": "{count, number} موجودې"
     }
   },
   "browse": {
@@ -926,7 +936,8 @@
     "finalPricePlaceholder": "لیست شوې بیه",
     "confirmReserve": "ریزرو تایید کړئ",
     "confirmSold": "خرڅلاو تایید کړئ",
-    "invalidPrice": "سمه بیه دننه کړئ"
+    "invalidPrice": "سمه بیه دننه کړئ",
+    "finalPricePerUnitHint": "د یوې دانې بیه"
   },
   "safety": {
     "title": "د ملاقات د خوندیتوب مشورې",

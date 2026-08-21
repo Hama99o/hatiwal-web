@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Loader2, UserX } from "lucide-react";
@@ -25,6 +25,7 @@ export function SellBuyerDialog({
   action,
   listingId,
   listingTitle,
+  remainingQuantity,
   busy,
   onCancel,
   onConfirm,
@@ -38,14 +39,34 @@ export function SellBuyerDialog({
    * that they are selling the right thing.
    */
   listingTitle?: string;
+  /**
+   * How many units are still available. > 1 turns on the "how many did you
+   * sell?" field — a partial sale must leave the listing active with the rest
+   * still browsable. Omit (or 1) for a single-item listing, which then looks
+   * exactly as it did before this feature existed.
+   */
+  remainingQuantity?: number;
   busy: boolean;
   onCancel: () => void;
-  onConfirm: (buyerId: number | null, finalPrice: number | null) => void;
+  onConfirm: (
+    buyerId: number | null,
+    finalPrice: number | null,
+    quantity: number | null,
+  ) => void;
 }) {
   const t = useTranslations("buyerPicker");
   const tc = useTranslations("common");
+  const tl = useTranslations("listing");
   const [selected, setSelected] = useState<Choice>(null);
   const [price, setPrice] = useState("");
+  // Only for a sale, and only when there is more than one left: reserving is a
+  // hold on the whole listing, not a per-unit deduction the backend models.
+  const asksQuantity = action === "sold" && (remainingQuantity ?? 1) > 1;
+  // Pre-filled with the whole remainder, so "I sold the lot" stays one click.
+  const [units, setUnits] = useState(String(remainingQuantity ?? 1));
+  useEffect(() => {
+    setUnits(String(remainingQuantity ?? 1));
+  }, [remainingQuantity]);
   const titleId = useId();
 
   // Page 1 of this listing's threads (20, newest-message-first) — the buyers a
@@ -62,7 +83,18 @@ export function SellBuyerDialog({
       toast.error(t("invalidPrice"));
       return;
     }
-    onConfirm(selected === "else" ? null : selected, finalPrice);
+    // Clamp to what is actually left. Rails clamps too, but a client that sends
+    // an impossible number is a client bug worth not having.
+    const parsedUnits = Number(units);
+    const quantity =
+      asksQuantity && Number.isFinite(parsedUnits) && parsedUnits > 0
+        ? Math.min(Math.trunc(parsedUnits), remainingQuantity ?? 1)
+        : null;
+    onConfirm(
+      selected === "else" ? null : selected,
+      finalPrice,
+      selected === "else" ? null : quantity,
+    );
   }
 
   return (
@@ -160,6 +192,27 @@ export function SellBuyerDialog({
         {typeof selected === "number" && (
           <>
             <p className="mb-3 text-xs text-muted-foreground">{t("nudge")}</p>
+            {/* Above the price, because "how many" is answered before "for how
+                much" — and it is what decides whether the listing stays live. */}
+            {asksQuantity && (
+              <div className="mb-3 space-y-1.5">
+                <label className="text-sm font-medium" htmlFor="soldUnits">
+                  {tl("form.howManySold")}
+                </label>
+                <Input
+                  id="soldUnits"
+                  type="number"
+                  min={1}
+                  max={remainingQuantity}
+                  inputMode="numeric"
+                  value={units}
+                  onChange={(e) => setUnits(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {tl("stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="finalPrice">
                 {t("finalPriceLabel")}
@@ -172,6 +225,14 @@ export function SellBuyerDialog({
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder={t("finalPricePlaceholder")}
               />
+              {/* Multi-unit only: say out loud that this figure is per item.
+                  "Final price" on a 3-unit deal reads just as easily as the
+                  total, and the number lands in the sale record and the review. */}
+              {asksQuantity && (
+                <p className="text-xs text-muted-foreground">
+                  {t("finalPricePerUnitHint")}
+                </p>
+              )}
             </div>
           </>
         )}

@@ -79,8 +79,18 @@ export interface Review {
 export interface Transaction {
   id: number;
   status: "reserved" | "sold";
+  /**
+   * PER UNIT on a multi-unit sale, not the deal total — the seller enters it in a
+   * field placeholder-seeded with the listing's own per-unit price and captioned
+   * "the price for one item". Multiply by `quantity` for a total.
+   */
   finalPrice: number;
   currency: string;
+  /**
+   * How many units this deal covered (docs/SPIKE_LISTING_QUANTITY.md §0b). 1 on
+   * a single-item listing — the column default.
+   */
+  quantity?: number;
   completedAt: string | null;
   createdAt: string;
   /** The caller's side of this sale — the counterparty is the other one. */
@@ -92,6 +102,9 @@ export interface Transaction {
     price: number;
     currency: string;
     status?: string;
+    /** So a sales row can render "14,000 each" instead of a bare figure. */
+    multiUnit?: boolean;
+    availableUnits?: number;
   };
   buyer: { id: number; name: string; avatarUrl: string | null };
   seller: { id: number; name: string; avatarUrl: string | null };
@@ -166,6 +179,19 @@ export interface Listing {
    * Undefined/true = negotiable (the default when the flag is absent).
    */
   negotiable?: boolean;
+  /**
+   * Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). All three arrive on EVERY
+   * listing view — they are base fields on ListingSerializer, not view-scoped —
+   * so a feed row and a detail page always agree.
+   *
+   * `quantity` is what the seller has in total; `availableUnits` is what is LEFT
+   * (never show `quantity` to a buyer as availability — a stale count is the
+   * feature's top risk); `multiUnit` is the flag every client gates its quantity
+   * UI on, so mobile and web can never disagree about the same listing.
+   */
+  quantity?: number;
+  availableUnits?: number;
+  multiUnit?: boolean;
   createdAt: string;
   updatedAt?: string;
   seller: SellerSummary | null;
@@ -239,6 +265,15 @@ export interface Conversation {
     status: string;
     price?: number;
     currency?: string;
+    /**
+     * Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). On BOTH the inbox
+     * (`:list`) and the thread (`:detailed`) — ConversationSerializer
+     * hand-rolls its own listing hash, so these had to be added to it
+     * explicitly. `multiUnit` gates the "each" price suffix; `availableUnits`
+     * lets the thread's own sold flow ask "how many did you sell?".
+     */
+    multiUnit?: boolean;
+    availableUnits?: number;
     location?: string | null;
   };
   otherParticipant?: ConversationParticipant;

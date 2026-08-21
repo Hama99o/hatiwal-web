@@ -258,12 +258,22 @@
       "searchPlacePlaceholder": "Search city or area…",
       "searchAttribution": "Search by OpenStreetMap",
       "negotiableLabel": "Price is negotiable",
-      "removePhoto": "Remove photo"
+      "removePhoto": "Remove photo",
+      "multipleUnitsLabel": "I have more than one",
+      "howManyUnits": "How many do you have?",
+      "quantityInvalid": "Enter a number between 1 and 999",
+      "howManySold": "How many did you sell?"
     },
     "analytics": {
       "title": "Views (last 7 days)",
       "totalViews": "{count, number} views in the last 7 days",
       "noData": "No views yet"
+    },
+    "stock": {
+      "each": "each",
+      "inStock": "{count, number} in stock",
+      "leftOfTotal": "{available, number} of {total, number} left",
+      "unitsAvailable": "{count, number} available"
     }
   },
   "browse": {
@@ -926,7 +936,8 @@
     "finalPricePlaceholder": "Listed price",
     "confirmReserve": "Confirm reserve",
     "confirmSold": "Confirm sold",
-    "invalidPrice": "Enter a valid price"
+    "invalidPrice": "Enter a valid price",
+    "finalPricePerUnitHint": "The price for one item"
   },
   "safety": {
     "title": "Meetup Safety Tips",

@@ -188,7 +188,7 @@ export interface LifecycleResult {
 export async function listingLifecycle(
   id: number,
   action: LifecycleAction,
-  opts: { buyerId?: number; finalPrice?: number } = {},
+  opts: { buyerId?: number; finalPrice?: number; quantity?: number } = {},
 ): Promise<LifecycleResult> {
   // reserve/sold optionally take a buyer (+ final price) so Rails records a
   // Transaction (the thing a review hangs off). buyer_id/final_price are flat
@@ -200,7 +200,18 @@ export async function listingLifecycle(
   }>(`my/listings/${id}/${action}`, {
     method: "PUT",
     ...(hasBuyer
-      ? { json: { buyerId: opts.buyerId, finalPrice: opts.finalPrice } }
+      ? {
+          json: {
+            buyerId: opts.buyerId,
+            finalPrice: opts.finalPrice,
+            // How many units this sale covers. Omitted for a single-item
+            // listing, where Rails defaults to the whole remaining stock — so
+            // WITHOUT this a web seller could only ever sell an entire batch at
+            // once while a mobile seller could sell 3 of 15, on the same listing
+            // (docs/SPIKE_LISTING_QUANTITY.md §0b).
+            ...(opts.quantity != null ? { quantity: opts.quantity } : {}),
+          },
+        }
       : {}),
   });
   return {
@@ -226,6 +237,12 @@ export interface ListingInput {
   longitude?: number;
   /** Whether the price is open to offers. Defaults to true on the backend. */
   negotiable?: boolean;
+  /**
+   * How many identical units the seller has (docs/SPIKE_LISTING_QUANTITY.md).
+   * Omit for a single item — the backend column defaults to 1, so a listing
+   * created without it behaves exactly as it did before the feature existed.
+   */
+  quantity?: number;
 }
 
 /** Build the multipart body Rails expects (listing[...] fields + images[]). */
@@ -242,6 +259,8 @@ function buildListingForm(
   if (input.condition) f.append("listing[condition]", input.condition);
   if (input.negotiable != null)
     f.append("listing[negotiable]", String(input.negotiable));
+  if (input.quantity != null)
+    f.append("listing[quantity]", String(input.quantity));
   f.append("listing[category_id]", String(input.categoryId));
   if (input.location) f.append("listing[location]", input.location);
   if (input.address) f.append("listing[address]", input.address);

@@ -11,6 +11,7 @@ import { FirmPriceBadge } from "./firm-price-badge";
 import { SaveButton } from "./save-button";
 import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { hasStockToShow } from "@/lib/stock";
 import type { Listing } from "@/lib/types";
 
 /** Grid = photo-first card; list = compact horizontal row. */
@@ -191,6 +192,7 @@ export function ListingCard({
                 price={listing.price}
                 currency={listing.currency}
                 size="md"
+                perUnit={hasStockToShow(listing)}
               />
               {listing.negotiable === false && (
                 <FirmPriceBadge negotiable={listing.negotiable} />
@@ -259,7 +261,12 @@ export function ListingCard({
           {saveHeart}
         </div>
         <div className="space-y-1 p-3">
-          <PriceTag price={listing.price} currency={listing.currency} size="md" />
+          <PriceTag
+            price={listing.price}
+            currency={listing.currency}
+            size="md"
+            perUnit={hasStockToShow(listing)}
+          />
           {listing.negotiable === false && (
             <FirmPriceBadge negotiable={listing.negotiable} />
           )}

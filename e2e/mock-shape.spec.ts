@@ -197,6 +197,36 @@ test.describe("Mock API payload shape (no browser)", () => {
     expect(detail.negotiable).toBe(false);
   });
 
+  test("the multi-quantity trio is on every row, and reports what is LEFT", async ({
+    request,
+  }) => {
+    // Three BASE fields, so no view can omit them — the clients gate the "each"
+    // price suffix and the stock pill on `multi_unit`, and a view that dropped it
+    // would render a bare price for a 15-unit listing (spike §0c). Listing 14
+    // (Phone Cases Wholesale) is the batch row: 15 total, 4 sold.
+    const feed = await rows(request, "/listings");
+    for (const row of feed) {
+      expect(typeof row.quantity, `listing ${row.id} quantity`).toBe("number");
+      expect(typeof row.multi_unit, `listing ${row.id} multi_unit`).toBe("boolean");
+      expect(typeof row.available_units, `listing ${row.id} available_units`).toBe("number");
+    }
+
+    const batch = feed.find((l) => l.id === 14);
+    expect(batch?.quantity).toBe(15);
+    // NEVER the original count — a stale number is the feature's top risk.
+    expect(batch?.available_units).toBe(11);
+    expect(batch?.multi_unit).toBe(true);
+
+    // Every other row is a plain single item, so the majority case stays covered.
+    expect(feed.find((l) => l.id === 1)?.multi_unit).toBe(false);
+    expect(feed.find((l) => l.id === 1)?.available_units).toBe(1);
+
+    // And the detail view agrees with the feed about the same listing.
+    const [detail] = await rows(request, "/listings/14");
+    expect(detail.multi_unit).toBe(true);
+    expect(detail.available_units).toBe(11);
+  });
+
   test("the per-viewer flags follow the options each controller actually passes", async ({
     request,
   }) => {

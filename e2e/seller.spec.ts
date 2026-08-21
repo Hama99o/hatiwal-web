@@ -4,13 +4,18 @@ test.describe("Seller profile", () => {
   test("shows the seller and their active listings", async ({ page }) => {
     await page.goto("/en/sellers/1");
     await expect(page.getByText("Ahmad Karimi").first()).toBeVisible();
-    // Count + label render as separate nodes ("3" / "Active listings").
-    await expect(page.getByText("3", { exact: true })).toBeVisible();
+    // Count + label render as separate nodes ("4" / "Active listings").
+    await expect(page.getByText("4", { exact: true })).toBeVisible();
     await expect(page.getByText("Active listings").first()).toBeVisible();
-    // Seller 1 owns iPhone, MacBook, Toyota (all active).
+    // Seller 1 owns iPhone, MacBook, Toyota and the multi-unit batch listing
+    // (all active).
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(page.getByText("MacBook Pro M2")).toBeVisible();
     await expect(page.getByText("Toyota Corolla 2015")).toBeVisible();
+    await expect(page.getByText("Phone Cases Wholesale")).toBeVisible();
+    // The batch listing states its per-unit price on a public grid card too, so
+    // a buyer scanning the seller's shop reads 400 as one case, not fifteen.
+    await expect(page.getByText("each").first()).toBeVisible();
     // Not seller 1's items.
     await expect(page.getByText("Samsung 4K TV")).toHaveCount(0);
   });
