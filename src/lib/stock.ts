@@ -47,6 +47,22 @@ export function hasStockToShow(
 }
 
 /**
+ * Whether any units have actually sold yet.
+ *
+ * Drives the seller's phrasing: "15 of 15 left" is literally true on a listing
+ * nobody has bought from, but the second number just repeats the first and there
+ * is no progress to show. Found on-device during mobile QA (UI-009) and mirrored
+ * here — this module and mobile's `src/utils/stock.ts` are a deliberate 1:1
+ * pair, so a rule added to one belongs in both.
+ */
+export function hasSoldSome(
+  listing: StockFields | null | undefined,
+): boolean {
+  if (!listing) return false;
+  return availableUnitsOf(listing) < totalUnitsOf(listing);
+}
+
+/**
  * Running out — the amber treatment.
  *
  * Two rules OR'd: "2 left" is urgent whether the batch was 3 or 300, and a fifth

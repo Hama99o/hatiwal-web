@@ -7,6 +7,7 @@ import {
   totalUnitsOf,
   isLowStock,
   hasStockToShow,
+  hasSoldSome,
 } from "@/lib/stock";
 import type { Listing } from "@/lib/types";
 
@@ -54,7 +55,12 @@ export function StockBadge({
       {/* Raw numbers, not pre-formatted strings: the catalog declares these as
           typed ICU `{x, number}` placeholders, so next-intl localizes the digits
           itself (ps included, via the fa-AF Intl alias). */}
-      {owner || low
+      {/* The owner gets the progress phrasing ("11 of 15 left") — but only once
+          there IS progress. On a batch nobody has bought from, "15 of 15 left"
+          just repeats itself, so they get the plain count like a buyer (UI-009).
+          A low-stock listing always shows both numbers: "2 left" means more when
+          you can see it was 15. */}
+      {(owner && hasSoldSome(listing)) || low
         ? t("leftOfTotal", { available, total })
         : t("inStock", { count: available })}
     </Badge>

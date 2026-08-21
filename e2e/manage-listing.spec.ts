@@ -66,7 +66,9 @@ test.describe("Manage a listing", () => {
     await expect(
       page.getByRole("heading", { name: "Phone Cases Wholesale" }),
     ).toBeVisible();
-    // "11 of 15 left" — both numbers, unlike the buyer's "11 in stock".
+    // "11 of 15 left" — both numbers, unlike the buyer's "11 in stock". The
+    // fixture has 4 already sold; on a batch nobody had bought from, the owner
+    // would get the plain count instead (UI-009 — "15 of 15 left" repeats itself).
     await expect(page.getByText("11 of 15 left")).toBeVisible();
     // And the price says which number it is.
     await expect(page.getByText("each")).toBeVisible();
