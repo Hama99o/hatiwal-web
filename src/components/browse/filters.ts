@@ -132,7 +132,8 @@ export function filtersToQuery(
   return {
     page,
     pageSize,
-    status: "active",
+    // No `status`: GET /listings is browsable-only by definition
+    // (active.not_expired.not_removed), so the server never read this.
     search: f.q || undefined,
     categoryId: category?.id,
     condition: f.condition || undefined,

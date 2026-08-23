@@ -64,7 +64,6 @@ export async function CrossSellRails({
       ? safe(
           getListings({
             userId: sellerId,
-            status: "active",
             pageSize: RAIL_SIZE + 1,
           }),
           EMPTY_LISTINGS,

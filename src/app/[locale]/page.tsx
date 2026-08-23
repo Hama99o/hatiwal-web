@@ -22,7 +22,7 @@ export default async function HomePage({
   const t = await getTranslations();
 
   const { items: listings } = await safe(
-    getListings({ pageSize: 15, sort: "newest", status: "active" }),
+    getListings({ pageSize: 15, sort: "newest" }),
     EMPTY_LISTINGS,
   );
   const categories = await safe(getCategories({ revalidate: 600 }), []);

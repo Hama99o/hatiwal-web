@@ -15,7 +15,6 @@ export interface ListingsQuery {
   categoryId?: number;
   condition?: string;
   userId?: number;
-  status?: string;
   priceMin?: number;
   priceMax?: number;
   sort?: ListingSort;
@@ -71,7 +70,11 @@ function toParams(q: ListingsQuery): QueryParams {
     category_id: q.categoryId,
     condition: q.condition,
     user_id: q.userId,
-    status: q.status,
+    // No `status`: GET /listings is the browsable feed
+    // (active.not_expired.not_removed) and the server drops this param. Sending
+    // it made the query look like it chose a status — the comment on
+    // getSimilarListings below even reasons about `status` leaking non-browsable
+    // stock, which it cannot do. Sold stock: GET /users/:id/sold_listings.
     price_min: q.priceMin,
     price_max: q.priceMax,
     sort: q.sort,
@@ -192,9 +195,10 @@ export async function getSoldListings(
  * Uses the dedicated `GET /listings/:id/similar` endpoint — the ONE definition
  * of "similar" both clients share (`Listing.similar_to`: browsable only, same
  * category incl. its children, source listing excluded, newest first, max 8).
- * Do not re-approximate it here with a `category_id` query: that leaks
- * non-browsable stock through `status`, needs the source filtered out
- * client-side, and would drift from what mobile shows for the same listing.
+ * Do not re-approximate it here with a `category_id` query: it would need the
+ * source listing filtered out client-side and would drift from what mobile shows
+ * for the same listing. (It could not "leak non-browsable stock" as this comment
+ * used to claim — GET /listings is browsable-only server-side.)
  *
  * Returns a bare array — this endpoint is a fixed-size rail, so it has no
  * pagination envelope.

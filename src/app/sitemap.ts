@@ -9,7 +9,7 @@ export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { items } = await safe(
-    getListings({ status: "active", pageSize: 200, sort: "newest" }),
+    getListings({ pageSize: 200, sort: "newest" }),
     EMPTY_LISTINGS,
   );
   const categories = await safe(getCategories(), []);

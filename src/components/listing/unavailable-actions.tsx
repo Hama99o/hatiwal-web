@@ -32,7 +32,10 @@ import type { CategoryRef, ListingStatus } from "@/lib/types";
  * The band is built with `filtersToSearchString` (the ONE browse filter ⇄ URL
  * mapping), so the Bazaar sidebar renders category + min + max as active
  * filters and the active-filter pill counts them — no new param vocabulary.
- * Bazaar always queries `status: "active"`, so the sold item can't come back.
+ * The Bazaar feed is GET /listings, which is browsable-only server-side
+ * (active.not_expired.not_removed), so the sold item cannot come back. That
+ * guarantee comes from the endpoint, NOT from a `status` param — the clients
+ * used to send one and the server always dropped it.
  *
  * NEVER promises stock that isn't there. `similarPrices` is the live stock the
  * category CTA would land on (the same `similar_to` set the rail below renders,

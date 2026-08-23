@@ -21,7 +21,7 @@ export async function getPublicSeller(
   opts: { revalidate?: number; pageSize?: number } = {},
 ): Promise<PublicSellerProfile> {
   const result = await getListings(
-    { userId: Number(userId), status: "active", pageSize: opts.pageSize ?? 24 },
+    { userId: Number(userId), pageSize: opts.pageSize ?? 24 },
     { revalidate: opts.revalidate },
   );
 
