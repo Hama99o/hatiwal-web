@@ -64,6 +64,11 @@ export function SellBuyerDialog({
   const asksQuantity = action === "sold" && (remainingQuantity ?? 1) > 1;
   // Pre-filled with the whole remainder, so "I sold the lot" stays one click.
   const [units, setUnits] = useState(String(remainingQuantity ?? 1));
+  // Typed more than exists. Still allowed to confirm (it clamps, and so does the
+  // API) — but the seller has to be able to SEE that the number they typed is
+  // not the number that will be recorded. Silently clamping is how a typo became
+  // a sold-out listing.
+  const exceedsStock = asksQuantity && Number(units) > (remainingQuantity ?? 1);
   useEffect(() => {
     setUnits(String(remainingQuantity ?? 1));
   }, [remainingQuantity]);
@@ -207,8 +212,23 @@ export function SellBuyerDialog({
                   inputMode="numeric"
                   value={units}
                   onChange={(e) => setUnits(e.target.value)}
+                  // The field is PRE-FILLED with the whole remainder, so a click
+                  // just places a caret and typing inserts: a seller meaning 3
+                  // produces "153", which the clamp then silently turns into
+                  // "sold all 15" — the listing retires and the rest of their
+                  // stock is gone. Reproduced on a real device on mobile (QA
+                  // run-018: typed 3, recorded 15); the web input has the exact
+                  // same shape, so it gets the same fix rather than waiting to
+                  // be reported.
+                  onFocus={(e) => e.currentTarget.select()}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p
+                  className={
+                    exceedsStock
+                      ? "text-xs text-destructive"
+                      : "text-xs text-muted-foreground"
+                  }
+                >
                   {tl("stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
                 </p>
               </div>
