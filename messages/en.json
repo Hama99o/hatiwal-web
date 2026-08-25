@@ -650,7 +650,14 @@
       "resend": "Resend email",
       "sending": "Sending…",
       "sent": "Confirmation email sent. Check your inbox and spam folder.",
-      "failed": "Could not send the email. Please try again."
+      "failed": "Could not send the email. Please try again.",
+      "successTitle": "Email confirmed",
+      "successBody": "Thanks — your email address is confirmed. You can carry on where you left off.",
+      "failTitle": "We could not confirm that link",
+      "failBody": "The link may have expired or already been used. Open your profile and send a new one.",
+      "goHome": "Go to Bazaar",
+      "goProfile": "Open my profile",
+      "pageTitle": "Email confirmation"
     }
   },
   "saved": {

@@ -57,6 +57,14 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["PUT", /^users\/saved_searches\/\d+\/mark_seen$/],
   // Restore a scheduled-for-deletion account:
   ["POST", /^users\/me\/restore$/],
+  // Resend the email-confirmation link. Reached from the "confirm your email"
+  // banner, which only renders for a signed-in unconfirmed user — so it belongs
+  // behind the authed proxy like everything else here, even though the Rails
+  // endpoint itself needs no session.
+  //
+  // This list is an ALLOW-LIST: without this entry the resend button 403s, which
+  // is exactly what it did before this line existed.
+  ["POST", /^auth\/confirmation$/],
   // Moderation warnings:
   ["GET", /^users\/warnings$/],
   ["PUT", /^users\/warnings\/mark_seen$/],

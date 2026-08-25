@@ -29,3 +29,39 @@ test.describe("Confirm-email banner", () => {
     await expect(page.locator("body")).not.toHaveText(/Application error/i);
   });
 });
+
+/**
+ * The page the confirmation email actually lands on.
+ *
+ * The API confirms the token and redirects to WEB_CONFIRM_URL
+ * (/email-confirmed). That route did not exist, so a user who had just
+ * successfully confirmed was shown a 404 — the account was fine and the page said
+ * otherwise. These tests exist to stop it disappearing again.
+ */
+test.describe("Email-confirmed landing page", () => {
+  test("shows a success state when the API reports success", async ({ page }) => {
+    await page.goto("/en/email-confirmed?account_confirmation_success=true");
+    await expect(page.getByRole("heading")).toContainText(/confirmed/i);
+  });
+
+  // A stale or already-used link is a normal thing to hit; it needs a way forward,
+  // not a dead end.
+  test("shows a recoverable failure state when the API reports failure", async ({ page }) => {
+    await page.goto("/en/email-confirmed?account_confirmation_success=false");
+    await expect(page.getByRole("heading")).toContainText(/could not confirm/i);
+    await expect(page.getByRole("link", { name: /profile/i })).toBeVisible();
+  });
+
+  // Devise omits the flag in some paths; absent must not read as failure.
+  test("treats an absent flag as success, not failure", async ({ page }) => {
+    await page.goto("/en/email-confirmed");
+    await expect(page.getByRole("heading")).toContainText(/confirmed/i);
+  });
+
+  test("is reachable in every locale", async ({ page }) => {
+    for (const locale of ["en", "ps", "fa"]) {
+      const res = await page.goto(`/${locale}/email-confirmed`);
+      expect(res?.status(), `${locale} should not 404`).toBeLessThan(400);
+    }
+  });
+});
