@@ -83,6 +83,23 @@ export interface ProfileUpdate {
   awayUntil?: string | null;
 }
 
+/**
+ * Ask the API to send the confirmation email again.
+ *
+ * DeviseTokenAuth's POST /auth/confirmation. Routed through the authed proxy like
+ * every other client call, even though the endpoint itself needs no session — it
+ * keeps one path for token rotation and error shape.
+ *
+ * Resend is the part that makes the prompt worth having: without it a confirmation
+ * mail that lands in spam leaves the account stranded with no way back.
+ */
+export async function resendConfirmation(email: string): Promise<void> {
+  await meRequest<unknown>("auth/confirmation", {
+    method: "POST",
+    json: { email },
+  });
+}
+
 export async function updateProfile(input: ProfileUpdate): Promise<User> {
   const data = await meRequest<{ user: User }>("users/me", {
     method: "PUT",

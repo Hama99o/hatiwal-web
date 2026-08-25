@@ -643,7 +643,15 @@
     "registerError": "Couldn't create your account. Please try again.",
     "emailInvalid": "Enter a valid email address",
     "passwordMin": "Password must be at least 8 characters",
-    "fieldRequired": "Required"
+    "fieldRequired": "Required",
+    "confirmEmail": {
+      "title": "Confirm your email",
+      "body": "We sent a link to {email}. Confirm it so you can recover your account and keep your listings safe.",
+      "resend": "Resend email",
+      "sending": "Sending…",
+      "sent": "Confirmation email sent. Check your inbox and spam folder.",
+      "failed": "Could not send the email. Please try again."
+    }
   },
   "saved": {
     "title": "Saved",

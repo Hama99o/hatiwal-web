@@ -5,6 +5,7 @@ import { Eye, LogOut, Pencil } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ConfirmEmailBanner } from "@/components/account/confirm-email-banner";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { RatingDisplay } from "@/components/shared/rating-display";
 import { ReviewsSection } from "@/components/seller/reviews-section";
@@ -53,6 +54,10 @@ export function ProfileView() {
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <WarningsBanner />
       <RestoreAccountBanner />
+      {/* Unconfirmed email — informs and offers a resend, never blocks, matching the
+          API where allow_unconfirmed_access_for is nil. Renders nothing once
+          confirmed, and nothing at all on an API build that does not report it. */}
+      <ConfirmEmailBanner email={user.email} confirmed={user.emailConfirmed} />
       <PendingReviewsNudge />
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">

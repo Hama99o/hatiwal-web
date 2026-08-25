@@ -304,6 +304,15 @@ export interface User {
   sellerMode: boolean;
   status: string;
   verified: boolean;
+  /**
+   * Whether this account's email address has been confirmed.
+   *
+   * A boolean from the API, not the timestamp — this only decides whether to show
+   * the "confirm your email" prompt. Optional because an older API build does not
+   * send it, and that case is treated as CONFIRMED so the prompt never appears for
+   * someone who cannot act on it.
+   */
+  emailConfirmed?: boolean;
   itemsActiveCount?: number;
   itemsSoldCount?: number;
   savedItemsCount?: number;
