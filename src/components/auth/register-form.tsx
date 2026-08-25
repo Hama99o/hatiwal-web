@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 
 export function RegisterForm() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const { register: registerUser, status } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
@@ -54,7 +55,11 @@ export function RegisterForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
-    const res = await registerUser(values);
+    // Sign up in the language you are actually reading the site in.
+    const res = await registerUser({
+      ...values,
+      preferredLanguage: locale as "en" | "ps" | "fa",
+    });
     // On success the redirect effect fires (status → "authed").
     if (!res.ok) {
       const full = res.errors?.full_messages;

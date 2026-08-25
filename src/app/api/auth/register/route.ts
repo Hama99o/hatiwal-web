@@ -10,8 +10,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "bad_origin" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
-  const { email, password, passwordConfirmation, firstname, lastname } =
-    body ?? {};
+  const {
+    email,
+    password,
+    passwordConfirmation,
+    firstname,
+    lastname,
+    preferredLanguage,
+  } = body ?? {};
 
   if (!email || !password || !firstname || !lastname) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
@@ -26,6 +32,12 @@ export async function POST(req: Request) {
       password_confirmation: passwordConfirmation,
       firstname,
       lastname,
+      // Only forward a locale we recognise — never pass request input straight
+      // through to the API. Omitted entirely when absent, so the server keeps
+      // its own default rather than receiving null.
+      ...(["en", "ps", "fa"].includes(preferredLanguage)
+        ? { preferred_language: preferredLanguage }
+        : {}),
     }),
     cache: "no-store",
   });

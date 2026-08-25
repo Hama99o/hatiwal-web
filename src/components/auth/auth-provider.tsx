@@ -18,6 +18,13 @@ interface RegisterInput {
   passwordConfirmation: string;
   firstname: string;
   lastname: string;
+  /**
+   * The locale the person is signing up IN. `preferred_language` defaults to
+   * "ps" in the database, so omitting this made every new account Pashto —
+   * someone who used the whole English site landed on a Pashto account. The API
+   * has always permitted it on sign-up; neither client sent it.
+   */
+  preferredLanguage?: "en" | "ps" | "fa";
 }
 
 interface AuthContextValue {
