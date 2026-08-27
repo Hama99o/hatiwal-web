@@ -22,6 +22,24 @@ mark-unread, away mode, counter-offer, etc.).
 > mobile inventory, not a fresh line-by-line read of every web route. A `web` task's **first step** is to
 > confirm the gap still exists in `hatiwal-web/` before building (some may have landed since the audit).
 
+> ⚠️ **NEW GAP, 2026-08-27 — the sell/reserve/sold lifecycle diverged, on purpose.** `hatiwal-mobile`
+> and `hatiwal-api` shipped the **Sell Flow Redesign** the same day
+> (`hatiwal-mobile/docs/SELL_FLOW_REDESIGN.md`): selling is now a one-tap primary action from any live
+> listing and never requires reserving first; a hold is placed/released **from the chat thread**, not
+> the listing; and a **reserved listing now stays fully in search/feed/chat** on mobile (it used to
+> leave search, matching what's below). **`hatiwal-web` was deliberately NOT touched** and still runs
+> the *pre-redesign* model described throughout this file — reserve-then-sold as a listing action,
+> `reserved` excluded from `browsable` client-side assumptions, etc. Every row below that mentions
+> "reserve"/"Reserved"/lifecycle actions (C1-QTY, C2-*, SOLDNEXT, OWN947, and the `listingLifecycle`
+> references) is an accurate description of **web's current (old) behaviour** — do not read it as
+> describing what mobile does today, and do not "fix" web to match this doc without first checking
+> `SELL_FLOW_REDESIGN.md`. Porting web to the new model is tracked as **SF-W1** (board card 285,
+> `hatiwal-mobile/docs/BACKLOG.md`) and is explicitly unscheduled — do not start it opportunistically
+> inside an unrelated `web` task. **Two small bug fixes landed on web the same day, independent of the
+> model port:** mark-sold now defaults to selling ONE unit rather than the whole remaining stock
+> (`a3c3c1e`, mirrors the mobile/API fix), and an off-platform sale ("sold to someone not on Hatiwal")
+> now sends its quantity instead of silently wiping the whole batch (`9853405`).
+
 ### Legend
 
 | Mark | Meaning |
