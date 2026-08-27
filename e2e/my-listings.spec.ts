@@ -295,6 +295,37 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(dialog.getByText("The price for one item")).toBeVisible();
   });
 
+  // Reported from a device with screenshots: a listing with 50 in stock, one sale to
+  // someone not on Hatiwal, and the listing came back "Sold — 0 of 50 left". Three
+  // things had to line up for that, and all three were deliberate: the dialog hid the
+  // count on this path, the dialog nulled it, and listingLifecycle only built a request
+  // body when a buyer was identified. Rails then reads a missing quantity as the whole
+  // remaining stock. So this test asserts what actually goes on the wire.
+  test("selling a batch to someone not on Hatiwal still sends the count", async ({
+    page,
+  }) => {
+    await openMyShop(page);
+    await card(page, 14).getByRole("button", { name: "More options" }).click();
+    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await dialog
+      .getByRole("button", { name: /Sold to someone not on Hatiwal/ })
+      .click();
+
+    // The count is asked for on this path too — only the BUYER is unknown.
+    await expect(dialog.locator("#soldUnits")).toBeVisible();
+    await dialog.locator("#soldUnits").fill("3");
+
+    const sold = page.waitForRequest(
+      (r) => /\/api\/me\/my\/listings\/14\/sold$/.test(r.url()) && r.method() === "PUT",
+    );
+    await dialog.getByRole("button", { name: "Confirm sold" }).click();
+
+    // 3 of 11, NOT the silent whole-stock default that retired the listing.
+    expect((await (await sold).postDataJSON()).quantity).toBe(3);
+  });
+
   test("a single-item listing never asks how many", async ({ page }) => {
     // The governing rule: a seller with one item must not see this feature.
     await openMyShop(page);

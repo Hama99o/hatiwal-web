@@ -98,7 +98,10 @@ export function SellBuyerDialog({
     onConfirm(
       selected === "else" ? null : selected,
       finalPrice,
-      selected === "else" ? null : quantity,
+      // NOT tied to the buyer: this is how many UNITS were sold, true whoever bought
+      // them. Rails reads a missing quantity as the whole remaining stock, so nulling it
+      // here retired the listing on every off-platform sale.
+      quantity,
     );
   }
 
@@ -191,70 +194,77 @@ export function SellBuyerDialog({
           )}
         </div>
 
-        {/* Nudge + final price only apply to a real buyer — a sale to "someone
-            not on Hatiwal" records no transaction, so the final price has
-            nowhere to attach (showing the field there would mislead). */}
-        {typeof selected === "number" && (
-          <>
-            <p className="mb-3 text-xs text-muted-foreground">{t("nudge")}</p>
-            {/* Above the price, because "how many" is answered before "for how
-                much" — and it is what decides whether the listing stays live. */}
+        {/* How many units left the shelf. Asked for a real buyer AND for a sale to
+            someone not on Hatiwal: on that path only the BUYER is unknown, the count
+            is not — and hiding the field left the seller no way to say it. Rails reads
+            a missing quantity as the WHOLE remaining stock, so the silence retired the
+            listing. Reported from a device: 50 in stock, one sale, "0 of 50 left".
+            Still hidden before anything is selected, which is what the e2e spec
+            asserts on open. Above the price, because "how many" is answered before
+            "for how much". */}
+        {selected !== null && asksQuantity && (
+          <div className="mb-3 space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="soldUnits">
+              {tl("form.howManySold")}
+            </label>
+            <Input
+              id="soldUnits"
+              type="number"
+              min={1}
+              max={remainingQuantity}
+              inputMode="numeric"
+              value={units}
+              onChange={(e) => setUnits(e.target.value)}
+              // The field is PRE-FILLED with the whole remainder, so a click
+              // just places a caret and typing inserts: a seller meaning 3
+              // produces "153", which the clamp then silently turns into
+              // "sold all 15" — the listing retires and the rest of their
+              // stock is gone. Reproduced on a real device on mobile (QA
+              // run-018: typed 3, recorded 15); the web input has the exact
+              // same shape, so it gets the same fix rather than waiting to
+              // be reported.
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <p
+              className={
+                exceedsStock
+                  ? "text-xs text-destructive"
+                  : "text-xs text-muted-foreground"
+              }
+            >
+              {tl("stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
+            </p>
+          </div>
+        )}
+
+      {/* Nudge + final price only apply to a real buyer — a sale to "someone
+          not on Hatiwal" records no transaction, so the final price has
+          nowhere to attach (showing the field there would mislead). */}
+      {typeof selected === "number" && (
+        <>
+          <p className="mb-3 text-xs text-muted-foreground">{t("nudge")}</p>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="finalPrice">
+              {t("finalPriceLabel")}
+            </label>
+            <Input
+              id="finalPrice"
+              type="number"
+              inputMode="numeric"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder={t("finalPricePlaceholder")}
+            />
+            {/* Multi-unit only: say out loud that this figure is per item.
+                "Final price" on a 3-unit deal reads just as easily as the
+                total, and the number lands in the sale record and the review. */}
             {asksQuantity && (
-              <div className="mb-3 space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="soldUnits">
-                  {tl("form.howManySold")}
-                </label>
-                <Input
-                  id="soldUnits"
-                  type="number"
-                  min={1}
-                  max={remainingQuantity}
-                  inputMode="numeric"
-                  value={units}
-                  onChange={(e) => setUnits(e.target.value)}
-                  // The field is PRE-FILLED with the whole remainder, so a click
-                  // just places a caret and typing inserts: a seller meaning 3
-                  // produces "153", which the clamp then silently turns into
-                  // "sold all 15" — the listing retires and the rest of their
-                  // stock is gone. Reproduced on a real device on mobile (QA
-                  // run-018: typed 3, recorded 15); the web input has the exact
-                  // same shape, so it gets the same fix rather than waiting to
-                  // be reported.
-                  onFocus={(e) => e.currentTarget.select()}
-                />
-                <p
-                  className={
-                    exceedsStock
-                      ? "text-xs text-destructive"
-                      : "text-xs text-muted-foreground"
-                  }
-                >
-                  {tl("stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {t("finalPricePerUnitHint")}
+              </p>
             )}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium" htmlFor="finalPrice">
-                {t("finalPriceLabel")}
-              </label>
-              <Input
-                id="finalPrice"
-                type="number"
-                inputMode="numeric"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder={t("finalPricePlaceholder")}
-              />
-              {/* Multi-unit only: say out loud that this figure is per item.
-                  "Final price" on a 3-unit deal reads just as easily as the
-                  total, and the number lands in the sale record and the review. */}
-              {asksQuantity && (
-                <p className="text-xs text-muted-foreground">
-                  {t("finalPricePerUnitHint")}
-                </p>
-              )}
-            </div>
-          </>
+          </div>
+        </>
         )}
 
         <div className="mt-4 flex justify-end gap-2">

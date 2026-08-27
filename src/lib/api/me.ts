@@ -211,22 +211,28 @@ export async function listingLifecycle(
   // Transaction (the thing a review hangs off). buyer_id/final_price are flat
   // params, not nested under listing[]. Other actions send a bare PUT.
   const hasBuyer = opts.buyerId != null;
+  // A quantity must travel even with NO buyer: the body used to be built only when a
+  // buyer was identified, so an off-platform sale sent a bare PUT and Rails read the
+  // missing quantity as "sold the lot".
+  const hasQuantity = opts.quantity != null;
   const data = await meRequest<{
     listing: RawListing;
     transaction?: Transaction | null;
   }>(`my/listings/${id}/${action}`, {
     method: "PUT",
-    ...(hasBuyer
+    ...(hasBuyer || hasQuantity
       ? {
           json: {
-            buyerId: opts.buyerId,
-            finalPrice: opts.finalPrice,
-            // How many units this sale covers. Omitted for a single-item
-            // listing, where Rails defaults to the whole remaining stock — so
-            // WITHOUT this a web seller could only ever sell an entire batch at
-            // once while a mobile seller could sell 3 of 15, on the same listing
+            ...(hasBuyer
+              ? { buyerId: opts.buyerId, finalPrice: opts.finalPrice }
+              : {}),
+            // How many units this sale covers, sent WITH OR WITHOUT a buyer. Rails
+            // reads a missing quantity as the whole remaining stock, so a bare PUT on
+            // an off-platform sale retired the listing — 50 in stock, one sale, "0 of
+            // 50 left", reported from a device. The buyer being unknown says nothing
+            // about how many units left the shelf
             // (docs/SPIKE_LISTING_QUANTITY.md §0b).
-            ...(opts.quantity != null ? { quantity: opts.quantity } : {}),
+            ...(hasQuantity ? { quantity: opts.quantity } : {}),
           },
         }
       : {}),
