@@ -63,14 +63,19 @@ export function SellBuyerDialog({
   // hold on the whole listing, not a per-unit deduction the backend models.
   const asksQuantity = action === "sold" && (remainingQuantity ?? 1) > 1;
   // Pre-filled with the whole remainder, so "I sold the lot" stays one click.
-  const [units, setUnits] = useState(String(remainingQuantity ?? 1));
+  // ONE, not the whole remainder — see the mobile BuyerPickerSheet for the report that
+  // changed this. Pre-filling the entire stock made "I sold all of them" the default
+  // outcome of confirming, in a product with no undo.
+  const [units, setUnits] = useState("1");
   // Typed more than exists. Still allowed to confirm (it clamps, and so does the
   // API) — but the seller has to be able to SEE that the number they typed is
   // not the number that will be recorded. Silently clamping is how a typo became
   // a sold-out listing.
   const exceedsStock = asksQuantity && Number(units) > (remainingQuantity ?? 1);
   useEffect(() => {
-    setUnits(String(remainingQuantity ?? 1));
+    // Re-sync to 1 as well: the point of the reset is that the field never carries a
+    // number the seller did not choose for THIS sale.
+    setUnits("1");
   }, [remainingQuantity]);
   const titleId = useId();
 
