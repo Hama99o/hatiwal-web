@@ -289,16 +289,26 @@ test.describe("Listing detail — cross-sell rails", () => {
     ).toHaveCount(0);
   });
 
-  test("same on a reserved listing", async ({ page }) => {
+  /**
+   * REPLACES "same on a reserved listing", which asserted a held listing behaves
+   * like a sold one here.
+   *
+   * It no longer does, and the inversion is the assertion worth having. The rails
+   * drop their "view all" only because <UnavailableActions> already owns those
+   * links — so on a listing that renders NO such card, the rails must keep them.
+   * A reserved listing is live and renders no card, so it owns its own links
+   * exactly like an unheld one. (Reading the raw status in <CrossSellRails> would
+   * have silently stripped both links off every held listing — which is why that
+   * prop is named for LIVE now, not "active".)
+   */
+  test("a reserved listing keeps its rails' own view-all links", async ({
+    page,
+  }) => {
     await page.goto("/en/listings/6");
-    await expect(
-      page
-        .getByTestId("unavailable-actions")
-        .getByRole("link", { name: /More from Sara Ahmadi/i }),
-    ).toBeVisible();
+    await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
     await expect(
       page.getByTestId("seller-rail").getByRole("link", { name: /View all/i }),
-    ).toHaveCount(0);
+    ).toHaveAttribute("href", "/en/sellers/2");
   });
 
   test("rails are localized and keep the locale prefix (ps)", async ({
@@ -431,19 +441,25 @@ test.describe("Listing detail — viewed by its own seller", () => {
   test("the panel offers the listing's next lifecycle action", async ({
     page,
   }) => {
-    // Active → hold it for the buyer you are meeting. NOT "Mark as Sold": that
-    // is terminal (web has no relist), and the loudest control on the seller's
-    // own public page must not be the one with no path back. Mobile agrees.
+    // BOTH live statuses lead with Mark as Sold. This used to assert the
+    // opposite for an `active` listing — "hold it for the buyer you are
+    // meeting", on the grounds that sold is terminal and the loudest control
+    // must not be the one with no path back. Both halves of that are retired
+    // deliberately: selling never requires reserving first, and a mistaken sale
+    // is now reversible (the toast's Undo, then the Sales ledger), so the sale
+    // IS the safe primary.
     await page.goto("/en/listings/1");
     const panel = page.getByTestId("owner-listing-bar");
     await expect(
-      panel.getByRole("button", { name: "Mark as Reserved" }),
-    ).toBeVisible();
-    await expect(
       panel.getByRole("button", { name: "Mark as Sold" }),
+    ).toBeVisible();
+    // Reserving is not offered from a listing at all — a hold belongs to a
+    // person, and is placed from the chat thread with that person.
+    await expect(
+      panel.getByRole("button", { name: /Mark as Reserved|Place a hold/ }),
     ).toHaveCount(0);
 
-    await page.goto("/en/listings/9"); // reserved → complete the sale
+    await page.goto("/en/listings/9"); // reserved → the SAME primary
     await expect(
       page
         .getByTestId("owner-listing-bar")
@@ -618,13 +634,13 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // so the pill used to state urgency whose fix was a navigation away, the same
     // "names a status it can't fix" gap that justified wiring Renew for the
     // already-expired case. Renew now joins the row while the clock is running
-    // out, WITHOUT displacing the status's own next step (Mark as Reserved).
+    // out, WITHOUT displacing the status's own next step (Mark as Sold).
     await page.goto("/en/listings/11");
     const panel = page.getByTestId("owner-listing-bar");
     await expect(panel).toBeVisible();
     await expect(panel.getByText(/Expires in/i)).toBeVisible();
     await expect(
-      panel.getByRole("button", { name: "Mark as Reserved" }),
+      panel.getByRole("button", { name: "Mark as Sold" }),
     ).toBeVisible();
 
     await panel.getByRole("button", { name: "Renew" }).click();
@@ -986,9 +1002,17 @@ test.describe("Listing detail — viewed by its own seller", () => {
   // from reintroducing it in a locale nobody reviewing this repo reads.
   test("no locale labels a lifecycle action with its own status word", () => {
     for (const [locale, m] of Object.entries(CATALOGS)) {
+      // The reserve ACTION is now hold language, reached from the chat thread —
+      // `placeHold` / `releaseHold` in place of the old "Mark as Reserved". The
+      // rule is unchanged and now covers both halves of it: neither may collapse
+      // into the reserved STATUS word.
       expect(
-        m.listing.markReserved,
-        `${locale}: the reserve ACTION must not be the reserved STATUS`,
+        m.listing.placeHold,
+        `${locale}: the place-hold ACTION must not be the reserved STATUS`,
+      ).not.toBe(m.listing.status.reserved);
+      expect(
+        m.listing.releaseHold,
+        `${locale}: the release-hold ACTION must not be the reserved STATUS`,
       ).not.toBe(m.listing.status.reserved);
       expect(
         m.listing.markSold,
@@ -1001,7 +1025,9 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // can't quietly turn the other two into no-ops.
     const SAVE_ROOT = "خوندي";
     expect(ps.common.save).toContain(SAVE_ROOT);
-    expect(ps.listing.markReserved).not.toContain(SAVE_ROOT);
+    expect(ps.listing.placeHold).not.toContain(SAVE_ROOT);
+    expect(ps.listing.releaseHold).not.toContain(SAVE_ROOT);
+    expect(ps.listing.markSold).not.toContain(SAVE_ROOT);
     expect(ps.listing.status.reserved).not.toContain(SAVE_ROOT);
   });
 
@@ -1020,13 +1046,13 @@ test.describe("Listing detail — viewed by its own seller", () => {
       panel.getByRole("link", { name: /چټونه وګورئ/ }),
     ).toHaveAttribute("href", "/ps/conversations?listing=1");
     // The lifecycle action is translated too — the panel is not English-only.
-    // "ریزرو کول" = Mark as Reserved, an active listing's next step. The ps
-    // wording was corrected from "خوندي ښودل" (literally "mark safe") to the
-    // loanword every other reserve string in messages/ps.json already uses —
-    // "ریزرو شوی", "اعلان ریزرو شو", "ریزرو تایید کړئ" — so one concept no
-    // longer has two unrelated roots in the same language.
+    // "خرڅ ښودل" = Mark as Sold, a live listing's one next step. This used to
+    // assert the ps reserve label ("ریزرو کول"), which was itself a correction of
+    // "خوندي ښودل" (literally "mark safe") — the save/favourite root. That
+    // vocabulary rule is still enforced, on the labels that exist now, by "no
+    // locale labels a lifecycle action with its own status word" below.
     await expect(
-      panel.getByRole("button", { name: "ریزرو کول" }),
+      panel.getByRole("button", { name: ps.listing.markSold }),
     ).toBeVisible();
     // RTL: the panel's own content flows right-to-left with the document.
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -1052,14 +1078,21 @@ test.describe("Listing detail — viewed by its own seller", () => {
     await expect(
       panel.getByRole("link", { name: fa.common.edit }),
     ).toHaveAttribute("href", "/fa/listings/1/edit");
-    // The primary reads as a MOVE ("ثبت رزرو" = record a reservation), not as the
-    // "رزرو شده" state it used to be a byte-for-byte copy of — which the "Active"
-    // pill one line up would have contradicted.
+    // The primary on a LIVE listing is now Mark sold — one tap, no reserving
+    // first. It still has to read as a MOVE ("ثبت فروش" = record a sale) rather
+    // than as the "فروخته شده" state, which the "Active" pill one line up would
+    // contradict. Same rule as before, applied to the button that is actually
+    // the primary now.
     await expect(
-      panel.getByRole("button", { name: fa.listing.markReserved }),
+      panel.getByRole("button", { name: fa.listing.markSold }),
     ).toBeVisible();
     await expect(
-      panel.getByText(fa.listing.status.reserved, { exact: true }),
+      panel.getByText(fa.listing.status.sold, { exact: true }),
+    ).toHaveCount(0);
+    // And reserving is no longer offered from the listing at all — a hold is
+    // placed from the chat thread, for the person it is for.
+    await expect(
+      panel.getByRole("button", { name: fa.listing.placeHold }),
     ).toHaveCount(0);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   });
@@ -1097,8 +1130,12 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     const card = page.getByTestId("unavailable-actions");
     await expect(card).toBeVisible();
     await expect(card.getByText(D.soldNotice)).toBeVisible();
-    // Sold is final — the "may free up" nudge belongs to reserved only.
-    await expect(card.getByText(D.reservedMayFreeUp)).toHaveCount(0);
+    // Sold is final. The "it may still come back" line belongs to a HELD
+    // listing, which is live and never reaches this card at all — so it must not
+    // appear here either.
+    await expect(
+      page.getByText(D.reservedStillAvailableNote),
+    ).toHaveCount(0);
 
     await expect(
       card.getByRole("link", { name: /See similar in Clothes & Fashion/i }),
@@ -1115,25 +1152,63 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     ).toBeVisible();
   });
 
-  test("a reserved listing adds the 'may free up' line", async ({ page }) => {
-    // Listing 6: reserved, AFN 5,000, Vehicles, Sara Ahmadi. Vehicles' only live
-    // stock is the AFN 600,000 Corolla — far outside the band — so category only.
+  /**
+   * REPLACES "a reserved listing adds the 'may free up' line".
+   *
+   * That test asserted a reserved listing renders the dead-end recovery card
+   * with a "this may free up" nudge. The premise is deliberately retired: a hold
+   * no longer takes a listing off the market, so routing a held item to "see
+   * similar instead" is showing a buyer a dead end for something they can still
+   * ask about. The assertion is not dropped — it is inverted, which is a
+   * stronger claim about the same fixture: the card must NOT be there, and the
+   * contact path must be.
+   */
+  test("a reserved listing is NOT a dead end — it keeps the contact path", async ({
+    page,
+  }) => {
+    // Listing 6: reserved, AFN 5,000, Vehicles, Sara Ahmadi (not the viewer).
     await page.goto("/en/listings/6");
-    const card = page.getByTestId("unavailable-actions");
-    await expect(card.getByText(D.reservedNotice)).toBeVisible();
-    await expect(card.getByText(D.reservedMayFreeUp)).toBeVisible();
+
+    // No recovery card, and neither of its CTAs anywhere on the page.
+    await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
+    await expect(page.getByText(/See similar in/i)).toHaveCount(0);
+
+    // The buyer can still reach the seller — the whole point.
+    //
+    // A LINK, not a button: this describe block carries no storageState, so it
+    // runs as a GUEST, and <StartConversationButton> gives a guest a real
+    // sign-in link (in the server HTML) rather than a button that needs React.
+    // That is the case worth pinning here anyway — search traffic landing on an
+    // indexed listing page is mostly guests, and it was exactly those visitors
+    // who used to hit the dead end.
     await expect(
-      card.getByRole("link", { name: /See similar in Vehicles/i }),
-    ).toHaveAttribute("href", "/en/bazaar?category=vehicles");
+      page.getByRole("link", { name: en.listing.detail.contactSeller }),
+    ).toBeVisible();
+
+    // The RIBBON stays: the listing says "Reserved" while remaining live.
+    await expect(page.getByText(en.listing.status.reserved).first()).toBeVisible();
+
+    // And it explains why a "Reserved" item still has a Message button.
     await expect(
-      card.getByRole("link", { name: /More from Sara Ahmadi/i }),
-    ).toHaveAttribute("href", "/en/sellers/2");
+      page.getByText(en.listing.detail.reservedStillAvailableNote),
+    ).toBeVisible();
+
+    // OFFERS, unlike messaging, stay paused while a hold is in place — the two
+    // signals are deliberately split (a second buyer must not bid against a
+    // hold that is already agreed in principle).
+    await expect(
+      page.getByRole("button", { name: en.listing.detail.makeOffer }),
+    ).toHaveCount(0);
   });
 
   test("the price band rides along when it holds stock", async ({ page }) => {
-    // Listing 9: reserved, AFN 70,000, Computers & Laptops -> band 49,000-91,000,
+    // Listing 15: SOLD, AFN 70,000, Computers & Laptops -> band 49,000-91,000,
     // which the active MacBook Pro M2 (90,000) falls inside, so the band stays.
-    await page.goto("/en/listings/9");
+    //
+    // Was listing 9 (reserved) until the sell-flow rework. A reserved listing is
+    // live now and renders no recovery card at all, so the band fixture has to be
+    // a real dead end — see the mock's own note beside listing 15.
+    await page.goto("/en/listings/15");
     await page
       .getByTestId("unavailable-actions")
       .getByRole("link", { name: /See similar in/i })
@@ -1146,9 +1221,9 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     await expect(page.getByText("3 filters active")).toBeVisible();
     await expect(page.getByPlaceholder("Min Price")).toHaveValue("49000");
     await expect(page.getByPlaceholder("Max Price")).toHaveValue("91000");
-    // Bazaar only ever queries active stock — the reserved item can't come back.
+    // Bazaar only ever queries live stock — the sold item can't come back.
     await expect(page.getByText("MacBook Pro M2")).toBeVisible();
-    await expect(page.getByText("Gaming PC")).toHaveCount(0);
+    await expect(page.getByText("Gaming Rig")).toHaveCount(0);
   });
 
   test("'See similar' never lands on an empty Bazaar", async ({ page }) => {
@@ -1258,13 +1333,27 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     }
   });
 
-  test("the reserved line is localized in fa too", async ({ page }) => {
+  /**
+   * REPLACES "the reserved line is localized in fa too", which asserted the fa
+   * copy inside the dead-end card. Same intent — the reserved wording is
+   * localized, not English — against the surface that now carries it.
+   */
+  test("a held listing's live-reserved copy is localized in fa", async ({
+    page,
+  }) => {
     await page.goto("/fa/listings/6");
-    const card = page.getByTestId("unavailable-actions");
-    await expect(card.getByText(fa.listing.detail.reservedNotice)).toBeVisible();
+    await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
     await expect(
-      card.getByText(fa.listing.detail.reservedMayFreeUp),
+      page.getByText(fa.listing.detail.reservedStillAvailableNote),
     ).toBeVisible();
+    await expect(
+      page.getByText(fa.listing.status.reserved).first(),
+    ).toBeVisible();
+    // The English must not leak into an RTL locale.
+    await expect(
+      page.getByText(en.listing.detail.reservedStillAvailableNote),
+    ).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   });
 });
 

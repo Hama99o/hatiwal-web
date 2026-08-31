@@ -73,6 +73,19 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^transactions\/\d+\/reviews$/],
   ["PATCH", /^reviews\/\d+$/],
   ["GET", /^my\/reviews\/pending$/],
+  // The SALES LEDGER and its corrections (SF-B3/B4/B5).
+  //
+  // GET reads one listing's sold rows (many buyers per batch, outside-buyer
+  // sales included). PATCH/DELETE are the SAME pair behind the mark-sold toast's
+  // "Undo" and the ledger row's edit/delete — there is no separate correction
+  // endpoint and no server-side undo window.
+  //
+  // Being an ALLOW-LIST, this is not optional plumbing: without these three
+  // lines the ledger page 403s on load and shows its error state, and the Undo
+  // silently does nothing — which is exactly what happened before they existed.
+  ["GET", /^my\/transactions$/],
+  ["PATCH", /^my\/transactions\/\d+$/],
+  ["DELETE", /^my\/transactions\/\d+$/],
   // Authed listing INDEX — the personalised feed. Rails filters the caller's
   // hidden ("Not interested") listings out of this exact endpoint and fills
   // is_viewed and is_saved from their own history (TASK-BE-SAVEDLIST); an

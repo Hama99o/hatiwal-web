@@ -1,8 +1,9 @@
 /**
  * THE SNAPSHOT — the exact key set each `ListingSerializer` view puts on the
  * wire, transcribed by hand from
- * `hatiwal-api/app/serializers/listing_serializer.rb` (as of API commit
- * `c816b13`, the multi-quantity Tier 1 base fields; previously `30ac06f`,
+ * `hatiwal-api/app/serializers/listing_serializer.rb` (as of the sell-flow
+ * rework's `held_units` + `sales_count` base fields, SF-B2/SF-B5; previously
+ * `c816b13`, the multi-quantity Tier 1 base fields, and `30ac06f`,
  * TASK-BE-SAVEDLIST).
  *
  * WHY IT EXISTS (TASK-WEB-MOCKSHAPE / FlowApp #256). `e2e/mock-api/server.mjs`
@@ -55,6 +56,23 @@ const BASE_KEYS = [
   "quantity",
   "available_units",
   "multi_unit",
+  // SF-B2 / SF-B5 — also BASE, for the same reason as the three above.
+  //
+  // `held_units` is the PUBLIC, identity-free count behind the stock pill's
+  // "· 2 held" clause. It has to be on the feed row AND the detail page or the
+  // two would disagree about the same listing, and it is the field a client must
+  // read instead of testing `status === "reserved"` — a multi-unit batch keeps
+  // `status: "active"` while it holds units for a buyer.
+  //
+  // The held buyer's NAME is deliberately NOT here: it stays on the owner-only
+  // `sale` block (`:seller_list` / `:owner_detailed`). A count is public; an
+  // identity is not.
+  //
+  // `sales_count` is how many SOLD rows the listing's ledger holds — it gates
+  // the "View sales" entry, so a seller learns there is more than one buyer
+  // without opening the ledger to find out.
+  "held_units",
+  "sales_count",
 ] as const;
 
 /**

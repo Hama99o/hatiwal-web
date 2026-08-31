@@ -1,7 +1,13 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { MoreHorizontal, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  MoreVertical,
+  Pencil,
+  Receipt,
+  Trash2,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { isRtl } from "@/i18n/routing";
 import type { Listing, Transaction } from "@/lib/types";
@@ -9,6 +15,7 @@ import {
   LIFECYCLE,
   LifecycleDialogs,
   actionsFor,
+  hasSalesToShow,
   useListingLifecycle,
 } from "./listing-actions";
 import { Button } from "@/components/ui/button";
@@ -41,9 +48,13 @@ import { availableUnitsOf } from "@/lib/stock";
 export function SellerListingActions({
   listing,
   onSaleRecorded,
+  onSaleUndone,
 }: {
   listing: Listing;
   onSaleRecorded?: (transaction: Transaction) => void;
+  /** Paired with `onSaleRecorded` — see the hook: an undone sale must take its
+   *  review prompt with it, and the prompt is owned by the LIST. */
+  onSaleUndone?: () => void;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -53,6 +64,7 @@ export function SellerListingActions({
     title: listing.title,
     remainingQuantity: availableUnitsOf(listing),
     onSaleRecorded,
+    onSaleUndone,
   });
   const { busy, ask } = lifecycle;
 
@@ -143,6 +155,18 @@ export function SellerListingActions({
               </DropdownMenuItem>
             );
           })}
+          {/* The ledger, the moment ANY unit has sold — single item or batch.
+              It is where a mistake gets fixed once the success toast's Undo is
+              gone, so it must be reachable from the card the seller is looking
+              at, not only from the detail page. */}
+          {hasSalesToShow(listing) && (
+            <DropdownMenuItem asChild>
+              <Link href={`/my-listings/${listing.id}/sales`}>
+                <Receipt className="size-4" />
+                {t("listing.viewSales")}
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <Link href={`/listings/${listing.id}/edit`}>
               <Pencil className="size-4" />

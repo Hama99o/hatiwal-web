@@ -151,12 +151,20 @@ export function OwnerListingBar({
   // behaviour, since Rails keeps `status: active` until a renew) reads as a bug
   // and hides the one thing the owner has to act on.
   const expiry = listingExpiryState({ status, expiresAt, expired });
-  const isLive = status === "active" && expiry.kind !== "expired";
-  // draft→Publish · active→Mark as Reserved · lapsed→Renew · reserved→Mark as
-  // Sold · sold→nothing (terminal). `actionsFor` derives "lapsed" from the SAME
-  // shared rule as the badge above (it takes the listing, not a flag), so the
-  // pill and the button always tell the same story — on every seller surface,
-  // not just here.
+  // NOT the shared `isLive()` from lib/stock — deliberately narrower, and named
+  // for what it actually gates: whether to print the "Active" pill. The shared
+  // predicate folds `reserved` into live (both are on the market); this one is
+  // "active AND its run has not lapsed", because a reserved listing gets the
+  // page's own "Reserved" badge and an expired one gets the ExpiryBadge, so
+  // printing "Active" for either would contradict the badge beside it.
+  const showsActivePill = status === "active" && expiry.kind !== "expired";
+  // draft→Publish · LIVE (active OR reserved)→Mark as Sold · lapsed→Renew ·
+  // sold→nothing (terminal). Both live statuses share one primary now: selling
+  // never requires reserving first, and reserve is not a listing action at all
+  // any more (a hold is placed from the chat thread, for a named buyer).
+  // `actionsFor` derives "lapsed" and "is it held?" from the SAME shared rules as
+  // the badges above (it takes the listing, not flags), so the pill and the
+  // button always tell the same story — on every seller surface, not just here.
   const { primary, secondary } = actionsFor({ status, expiresAt, expired });
   const PrimaryIcon = primary ? LIFECYCLE[primary].Icon : null;
   // The amber pill says "Expires tomorrow" / "Expires in 3 days", and the fix is
@@ -203,7 +211,7 @@ export function OwnerListingBar({
             the same column. Nothing above says a listing is *live*, though — and
             the owner is the one person who needs to know that — so the badge
             shows here for, and only for, a live active listing. */}
-          {isLive && <StatusBadge status={status} />}
+          {showsActivePill && <StatusBadge status={status} />}
           {/* Self-gates: only an ACTIVE listing that is expiring or expired. */}
           <ExpiryBadge
             status={status}

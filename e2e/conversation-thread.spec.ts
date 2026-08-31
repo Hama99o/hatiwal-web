@@ -43,18 +43,27 @@ test.describe("Conversation thread", () => {
   // ListingHeader parity). It runs on the SAME shared lifecycle brain as the
   // /my-listings cards and the owner detail screen — same buyer picker, same
   // copy, same toast — so this covers the third surface of that one hook.
-  test("the seller can mark the pinned listing reserved from the thread", async ({
+  /**
+   * REPLACES "the seller can mark the pinned listing reserved from the thread".
+   *
+   * The thread's own control used to be "Mark as Reserved" on an active listing,
+   * becoming "Mark as Sold" only once it was reserved — the reserve-then-sold
+   * ladder, inside chat. Chat is now the SHORTEST path to a sale (the buyer is
+   * already there), so the thread leads with the sale and needs no picker at all.
+   */
+  test("the seller can sell the pinned listing from the thread, in one step", async ({
     page,
   }) => {
     await page.goto("/en/conversations/1");
-    await page.getByRole("button", { name: "Mark as Reserved" }).click();
+    await page.getByRole("button", { name: "Mark Sold" }).click();
     const picker = page.getByRole("dialog");
-    await expect(picker.getByText("Who's buying this item?")).toBeVisible();
-    // Named, so a seller with several threads open knows what they're reserving.
+    // CONFIRM mode: the buyer is the person in this thread, so there is no list.
+    await expect(picker.getByText("Who bought this item?")).toBeVisible();
+    // Named, so a seller with several threads open knows what they are selling.
     await expect(picker.getByText("iPhone 13 Pro")).toBeVisible();
-    await picker.getByRole("button", { name: /Sara Ahmadi/ }).click();
-    await picker.getByRole("button", { name: "Confirm reserve" }).click();
-    await expect(page.getByText("Listing marked as reserved")).toBeVisible();
+    await expect(picker.getByText("Sara Ahmadi")).toBeVisible();
+    await picker.getByRole("button", { name: "Confirm sold" }).click();
+    await expect(page.getByText("Listing marked as sold")).toBeVisible();
   });
 
   test("an unknown conversation shows the load error", async ({ page }) => {

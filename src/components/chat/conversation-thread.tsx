@@ -10,6 +10,8 @@ import {
   CalendarPlus,
   Loader2,
   Paperclip,
+  Clock,
+  LockOpen,
   Search,
   Send,
   ShieldBan,
@@ -29,6 +31,10 @@ import {
   unblockUser,
 } from "@/lib/api/chat";
 import { useConversationCable } from "@/lib/cable";
+import { getMyListing } from "@/lib/api/me";
+import { hasOpenHold, isLive } from "@/lib/stock";
+import { agreedOfferTerms } from "@/lib/agreed-offer";
+import { apiErrorMessage } from "@/lib/api/error-codes";
 import type { Message, Transaction } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ReportButton } from "@/components/shared/report-button";
@@ -103,6 +109,12 @@ export function ConversationThread({ id }: { id: string }) {
   // (account/listing-actions) — the same one the /my-listings cards and the
   // owner detail screen use, so the three surfaces can never disagree.
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
+  /**
+   * What this thread has already agreed — the accepted offer's per-unit price
+   * and unit count. Prefills the sale so the seller confirms the deal they just
+   * struck instead of retyping it from memory into a field that defaults to one.
+   */
+  const agreed = useMemo(() => agreedOfferTerms(messages), [messages]);
   const lifecycle = useListingLifecycle(convQ.data?.listing?.id ?? 0, {
     title: convQ.data?.listing?.title,
     // ConversationSerializer's nested listing carries availableUnits (added for
@@ -110,7 +122,65 @@ export function ConversationThread({ id }: { id: string }) {
     // "how many did you sell?" too — the seller often closes the deal here.
     remainingQuantity: convQ.data?.listing?.availableUnits,
     onSaleRecorded: setReviewTxn,
+    // Undo takes the review prompt with it — the sale it points at is gone.
+    onSaleUndone: () => setReviewTxn(null),
+    // CONFIRM MODE, not a picker. Selling (or holding) from a thread is for the
+    // person in the thread, by definition — offering a list containing them
+    // would be asking the seller to identify someone they are mid-conversation
+    // with. This is the whole reason chat is the shortest real path to a sale.
+    preselectedBuyer: convQ.data?.otherParticipant
+      ? {
+          id: convQ.data.otherParticipant.id,
+          name: convQ.data.otherParticipant.name,
+          avatarUrl: convQ.data.otherParticipant.avatarUrl,
+          verified: convQ.data.otherParticipant.verified,
+        }
+      : null,
+    agreedQuantity: agreed?.quantity,
+    agreedPrice: agreed?.amount,
   });
+  // The seller (listing owner) is the one who can counter a buyer's offer, sell
+  // from the thread, and place or release a hold.
+  const isSeller =
+    convQ.data?.seller?.id != null && convQ.data.seller.id === me;
+  /**
+   * The seller's OWN view of the pinned listing — fetched only for the seller,
+   * only while the listing is live.
+   *
+   * Why a second request at all: the hold state lives on the owner-only `sale`
+   * block, and `ConversationSerializer` hand-rolls its nested listing hash
+   * without it (deliberately — the thread payload also goes to the buyer, and a
+   * hold's buyer identity is owner-scoped). So the thread cannot tell "held for
+   * this buyer" from "held for someone else" out of the conversation alone, and
+   * getting it wrong means offering to release another buyer's hold from the
+   * wrong thread.
+   *
+   * Keyed `["my-listing", id]` ON PURPOSE — the same key the owner detail screen
+   * uses and, more importantly, the same one the shared lifecycle brain already
+   * invalidates after every transition. So placing or releasing a hold repaints
+   * these rows with no extra wiring, and a seller arriving from their own
+   * listing page pays nothing for it (warm cache).
+   */
+  const pinnedListingId = convQ.data?.listing?.id ?? 0;
+  const ownerListingQ = useQuery({
+    queryKey: ["my-listing", String(pinnedListingId)],
+    queryFn: () => getMyListing(pinnedListingId),
+    enabled: isSeller && pinnedListingId > 0,
+  });
+  const ownerListing = ownerListingQ.data;
+  /**
+   * Is there a hold, and is it for THIS thread's buyer?
+   *
+   * `hasOpenHold` reads the sale, never `status === "reserved"` — a multi-unit
+   * batch holding units stays `active`, so a status test would find no hold at
+   * all on exactly the listings most likely to have one.
+   */
+  const holdBuyerId = hasOpenHold(ownerListing)
+    ? (ownerListing?.sale?.buyer?.id ?? null)
+    : null;
+  const heldForThisBuyer =
+    holdBuyerId != null && holdBuyerId === convQ.data?.otherParticipant?.id;
+  const heldForSomeoneElse = holdBuyerId != null && !heldForThisBuyer;
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -271,8 +341,6 @@ export function ConversationThread({ id }: { id: string }) {
   const conversation = convQ.data;
   const other = conversation?.otherParticipant;
   const closed = conversation?.status === "closed";
-  // The seller (listing owner) is the one who can counter a buyer's offer.
-  const isSeller = conversation?.seller?.id != null && conversation.seller.id === me;
 
   async function send(
     body: string,
@@ -351,14 +419,30 @@ export function ConversationThread({ id }: { id: string }) {
     const body = `${amount}|${currency}|${listedPart ?? "0"}`;
     setSendingCounter(true);
     try {
-      const m = await sendMessage(cid, body, "offer_counter", counterTarget.id);
+      const m = await sendMessage(
+        cid,
+        body,
+        "offer_counter",
+        counterTarget.id,
+        // Carry the buyer's unit count forward. A counter changes the PRICE, not
+        // how many they asked for — dropping it here would turn "3 at 12,000"
+        // into an unspecified quantity at 13,000, and the agreed-terms prefill
+        // would then have nothing to read.
+        counterTarget.offerQuantity ?? undefined,
+      );
       setMessages((prev) =>
         prev.some((x) => x.id === m.id) ? prev : [...prev, m],
       );
       closeCounter();
       toast.success(t("chat.offer.counterSentToast"));
-    } catch {
-      toast.error(t("chat.thread.sendFailed"));
+    } catch (error) {
+      // Localized from the server's `code` where there is one (e.g. the counter
+      // asks for more units than remain) — never its English prose.
+      toast.error(
+        apiErrorMessage(error, t, {
+          count: convQ.data?.listing?.availableUnits,
+        }) ?? t("chat.thread.sendFailed"),
+      );
     } finally {
       setSendingCounter(false);
     }
@@ -530,33 +614,65 @@ export function ConversationThread({ id }: { id: string }) {
         <StatusBadge status={conversation.listing.status as ListingStatus} />
       </Link>
 
-      {/* Seller lifecycle from the pinned header (owner only): reserve an active
-          listing or mark a reserved one sold — opens the buyer picker. */}
-      {isSeller &&
-        (conversation.listing.status === "active" ||
-          conversation.listing.status === "reserved") && (
-          <div className="border-b bg-card/50 px-3 pb-2">
+      {/* ── Seller actions on the pinned listing (owner only, live only) ─────
+          MARK SOLD IS THE PRIMARY, ALWAYS. Not "reserve an active listing, then
+          sell a reserved one" — that ladder is exactly what this rework removed.
+          A seller in a thread with a buyer who has agreed to buy needs one tap,
+          and the API has always allowed selling straight from live
+          (`ListingPolicy#sold? = owner? && live?`).
+
+          A HOLD is the optional extra, and it lives HERE rather than on the
+          listing because a hold is for a PERSON — the seller is already talking
+          to them, so there is no buyer to pick. It never gates selling.
+
+          "Release hold" shows only when the hold belongs to THIS thread's buyer.
+          Held for somebody else, the seller gets a read-only line saying so
+          rather than a button: releasing another buyer's hold from the wrong
+          conversation is how a seller cancels the wrong deal. That listing's own
+          More menu still carries Release hold for the deliberate case. */}
+      {isSeller && isLive(conversation.listing) && (
+        <div className="flex flex-wrap gap-2 border-b bg-card/50 px-3 pb-2">
+          <Button
+            size="sm"
+            className="min-w-32 flex-1"
+            disabled={lifecycle.busy}
+            onClick={() => lifecycle.ask("sold")}
+          >
+            {t("chat.listingActions.markSold")}
+          </Button>
+
+          {heldForThisBuyer ? (
             <Button
               size="sm"
               variant="outline"
-              className="w-full"
+              className="min-w-32 flex-1"
               disabled={lifecycle.busy}
-              onClick={() =>
-                lifecycle.ask(
-                  conversation.listing.status === "reserved"
-                    ? "sold"
-                    : "reserve",
-                )
-              }
+              onClick={() => lifecycle.ask("activate")}
             >
-              {t(
-                conversation.listing.status === "reserved"
-                  ? "listing.markSold"
-                  : "listing.markReserved",
-              )}
+              <LockOpen className="size-4" />
+              {t("chat.listingActions.releaseHold")}
             </Button>
-          </div>
-        )}
+          ) : heldForSomeoneElse ? (
+            <p className="flex flex-1 items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="size-3.5 shrink-0" />
+              {t("chat.listingActions.heldForSomeoneElse")}
+            </p>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="min-w-32 flex-1"
+              disabled={lifecycle.busy}
+              onClick={() => lifecycle.ask("reserve")}
+            >
+              <Clock className="size-4" />
+              {other
+                ? t("chat.listingActions.placeHold", { name: other.name })
+                : t("chat.listingActions.placeHoldGeneric")}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 space-y-2 overflow-y-auto p-4">

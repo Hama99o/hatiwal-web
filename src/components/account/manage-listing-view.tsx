@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageSquare,
   Pencil,
+  Receipt,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   LIFECYCLE,
   LifecycleDialogs,
   actionsFor,
+  hasSalesToShow,
   useListingLifecycle,
 } from "./listing-actions";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
@@ -50,6 +52,9 @@ export function ManageListingView({ id }: { id: string }) {
     remainingQuantity: availableUnitsOf(listing),
     onDeleted: () => router.push("/my-listings"),
     onSaleRecorded: setReviewTxn,
+    // An undone sale takes its review prompt with it — the transaction it points
+    // at is gone, so submitting the rating would 404.
+    onSaleUndone: () => setReviewTxn(null),
   });
   const { busy, ask } = lifecycle;
 
@@ -160,6 +165,18 @@ export function ManageListingView({ id }: { id: string }) {
               </div>
             )}
           </div>
+
+          {/* The sales ledger — many buyers per batch, each its own editable
+              row, and the durable way to fix a mistake once the mark-sold
+              toast's Undo has gone. Offered the moment any unit has sold. */}
+          {hasSalesToShow(listing) && (
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/my-listings/${listing.id}/sales`}>
+                <Receipt className="size-4" />
+                {t("listing.viewSales")}
+              </Link>
+            </Button>
+          )}
 
           <div className="flex gap-2 border-t pt-4">
             <Button asChild variant="secondary" className="flex-1">

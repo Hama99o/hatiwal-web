@@ -13,12 +13,27 @@ import {
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
 import { listingExpiryState } from "@/components/shared/expiry-badge";
+import { isLive } from "@/lib/stock";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SellerListingActions } from "./seller-listing-actions";
 import { Button } from "@/components/ui/button";
 
-const TABS = ["all", "active", "expired", "draft", "reserved", "sold"] as const;
+/**
+ * THREE presented states, plus the two slices a seller actually navigates by.
+ *
+ * "Reserved" is deliberately NOT a tab. A held listing is Live with a badge on
+ * it, not a fourth place to look — putting it in its own tab is what made a
+ * seller's own held stock vanish from Active, so they had to know a hold existed
+ * before they could find the listing it was on. It now sits under Active,
+ * carrying its hold badge, exactly as the server's own "active" status filter
+ * (`live.not_expired`) returns it.
+ *
+ * Note this list is filtered CLIENT-side over the seller's whole shop (see
+ * `getMyListings`), so unlike mobile there was no backend tab query to widen in
+ * lockstep — dropping the tab here is the entire change.
+ */
+const TABS = ["all", "active", "expired", "draft", "sold"] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<Tab, string> = {
@@ -26,7 +41,6 @@ const TAB_LABEL: Record<Tab, string> = {
   active: "listing.filter.active",
   expired: "listing.filter.expired",
   draft: "listing.filter.draft",
-  reserved: "listing.filter.reserved",
   sold: "listing.filter.sold",
 };
 
@@ -46,7 +60,10 @@ function matchesTab(
   if (tab === "all") return true;
   const lapsed = listingExpiryState(l).kind === "expired";
   if (tab === "expired") return lapsed;
-  if (tab === "active") return l.status === "active" && !lapsed;
+  // LIVE, not `status === "active"`: both `active` and `reserved` are on the
+  // market and belong in this tab. Testing the raw status left every held
+  // listing with no tab to appear under once Reserved was removed.
+  if (tab === "active") return isLive(l) && !lapsed;
   return l.status === tab;
 }
 
@@ -177,10 +194,19 @@ export function SellerListingsView() {
           nameMissingPhoto
           showSave={false}
           hrefFor={(l) => `/my-listings/${l.id}`}
-          // Inline lifecycle quick-actions: publish/reserve/sold/renew/delete
-          // without opening the listing (the card body still links to detail).
+          // Inline lifecycle quick-actions: publish / mark sold / release hold /
+          // renew / delete without opening the listing (the card body still links
+          // to detail). No "reserve" — a hold is placed from the chat thread, for
+          // the person it is for.
           footerFor={(l) => (
-            <SellerListingActions listing={l} onSaleRecorded={setReviewTxn} />
+            <SellerListingActions
+              listing={l}
+              onSaleRecorded={setReviewTxn}
+              // Undoing the sale from its toast must take the review prompt with
+              // it: the transaction it points at no longer exists, so leaving it
+              // open offers the seller a rating that would 404 on submit.
+              onSaleUndone={() => setReviewTxn(null)}
+            />
           )}
         />
       )}

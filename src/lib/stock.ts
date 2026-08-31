@@ -12,6 +12,73 @@ import type { Listing } from "@/lib/types";
 type StockFields = Pick<Listing, "quantity" | "availableUnits" | "multiUnit">;
 
 /**
+ * Units currently HELD for one buyer — the public, identity-free count behind
+ * the "13 available · 2 held" clause on the stock pill.
+ *
+ * Advisory, NOT reserved inventory: held units are deliberately not subtracted
+ * from `availableUnits`, so another buyer can still ask about them. A real
+ * per-unit hold would need expiry and leak machinery that a marketplace with no
+ * payment step cannot enforce anyway.
+ */
+export function heldUnitsOf(
+  listing: Pick<Listing, "heldUnits"> | null | undefined,
+): number {
+  return Math.max(0, listing?.heldUnits ?? 0);
+}
+
+/**
+ * Whether this listing has an open hold for a buyer — the ONE check that is
+ * correct for both item counts, and the gate for every release-hold affordance.
+ *
+ * Read the sale, NEVER `status === "reserved"`. A multi-unit batch holding units
+ * for a buyer deliberately stays `status: "active"`, so the status test misses
+ * it entirely; that single wrong assumption caused three separate bugs on mobile
+ * (a hidden 403, a phantom hold that survived its own sale, and a hold with no
+ * date). `sale.status === "reserved"` is true for a single-item hold (whose
+ * listing status DOES flip) and for a multi-unit hold (whose status does not).
+ *
+ * Owner-only: `sale` is absent from the public feed/detail payloads by design,
+ * so this answers `false` for a buyer — which is correct, since releasing a hold
+ * is a seller action. Buyers learn a hold exists from `heldUnitsOf` and the
+ * "Reserved" ribbon instead.
+ */
+export function hasOpenHold(
+  listing: Pick<Listing, "sale"> | null | undefined,
+): boolean {
+  return listing?.sale?.status === "reserved";
+}
+
+/**
+ * The buyer a hold is for, or null. Owner-only, and null for a hold placed
+ * through a path that recorded no buyer.
+ */
+export function heldForBuyer(listing: Pick<Listing, "sale"> | null | undefined) {
+  return hasOpenHold(listing) ? (listing?.sale?.buyer ?? null) : null;
+}
+
+/**
+ * Whether this listing is LIVE — on the market, browsable, and message-able.
+ *
+ * The whole presentation model turns on this one predicate. The database keeps
+ * four statuses; a seller is shown THREE states (Draft / Live / Sold), and both
+ * `active` and `reserved` fold into Live. A held listing is Live plus a badge —
+ * never a fourth tab, never a dead end. Only `sold` is terminal.
+ *
+ * Mirrors the server's own `Listing#live?` / `scope :live` exactly, so what the
+ * feed returns and what a client treats as contactable cannot drift apart.
+ */
+export function isLive(
+  // A loose `status` on purpose: this is asked of a full `Listing`, of the
+  // trimmed listing hash pinned to a conversation (typed `string` there, since
+  // ConversationSerializer hand-rolls it), and of a raw payload. One predicate
+  // for all three is the point — a second, narrower copy is how the feed and the
+  // chat header would come to disagree about the same listing.
+  listing: { status?: string | null } | null | undefined,
+): boolean {
+  return listing?.status === "active" || listing?.status === "reserved";
+}
+
+/**
  * What is LEFT — never the original count. Showing 15 when 13 are gone is the
  * stale-number failure that damages trust more than showing nothing at all:
  * there is no payment step or delivery to reverse a wasted trip across Kabul.
@@ -60,6 +127,20 @@ export function hasSoldSome(
 ): boolean {
   if (!listing) return false;
   return availableUnitsOf(listing) < totalUnitsOf(listing);
+}
+
+/**
+ * How many units have already left the shelf.
+ *
+ * Derived, because the API sends the two ends rather than the middle. It is the
+ * number a seller has to be told when they try to set the quantity BELOW what
+ * they have sold — the refusal is meaningless without it ("you have already sold
+ * 8 of these").
+ */
+export function soldUnitsOf(
+  listing: StockFields | null | undefined,
+): number {
+  return Math.max(0, totalUnitsOf(listing) - availableUnitsOf(listing));
 }
 
 /**

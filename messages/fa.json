@@ -52,17 +52,19 @@
     "comingSoon": "به زودی",
     "splash": {
       "validating": "در حال بررسی نشست شما…"
-    }
+    },
+    "undo": "بازگردانی",
+    "quantity": "تعداد",
+    "decreaseQuantity": "کاهش تعداد",
+    "increaseQuantity": "افزایش تعداد"
   },
   "listing": {
     "create": "ایجاد آگهی",
     "edit": "ویرایش آگهی",
     "delete": "حذف آگهی",
     "publish": "انتشار",
-    "markReserved": "ثبت رزرو",
     "markSold": "ثبت فروش",
     "unpublish": "لغو انتشار",
-    "activate": "فعال‌سازی مجدد",
     "renew": "تمدید",
     "renewSuccess": "آگهی برای ۳۰ روز دیگر تمدید شد",
     "confirmRenew": "این آگهی تمدید شود؟",
@@ -72,11 +74,8 @@
     "expiresTomorrow": "فردا منقضی می‌شود",
     "expiresToday": "امروز منقضی می‌شود",
     "unpublishSuccess": "آگهی از انتشار خارج شد",
-    "activateSuccess": "آگهی دوباره فعال شد",
     "confirmUnpublish": "این آگهی از انتشار خارج شود؟",
     "confirmUnpublishDescription": "از دید خریداران پنهان شده و به پیش‌نویس بازمی‌گردد.",
-    "confirmActivate": "دوباره فعال شود؟",
-    "confirmActivateDescription": "این کار رزرو را لغو کرده و آگهی را دوباره برای خریداران باز می‌کند.",
     "title": "عنوان",
     "titlePlaceholder": "چه چیزی می‌فروشید؟",
     "descriptionPlaceholder": "کالای خود را توضیح دهید...",
@@ -106,7 +105,6 @@
     "confirmDelete": "این آگهی حذف شود؟",
     "confirmDeleteDescription": "این عمل آگهی شما را برای همیشه حذف می‌کند.",
     "confirmMarkSold": "به عنوان فروخته شده علامت‌گذاری شود؟",
-    "confirmMarkReserved": "به عنوان رزرو شده علامت‌گذاری شود؟",
     "myListings": "آگهی‌های من",
     "new": "جدید",
     "noListings": "هنوز آگهی‌ای ندارید",
@@ -123,20 +121,16 @@
     "firmPrice": "قیمت ثابت",
     "conversationsCount": "{count, plural, one {# گفتگو} other {# گفتگو}}",
     "publishSuccess": "آگهی منتشر شد!",
-    "reserveSuccess": "آگهی به عنوان رزرو شده علامت‌گذاری شد",
     "markSoldSuccess": "آگهی به عنوان فروخته شده علامت‌گذاری شد",
     "deleteSuccess": "آگهی حذف شد",
     "confirmPublish": "این آگهی منتشر شود؟",
     "confirmPublishDescription": "آگهی شما برای همه خریداران قابل مشاهده خواهد بود.",
-    "confirmReserve": "به عنوان رزرو شده علامت‌گذاری شود؟",
-    "confirmReserveDescription": "این کالا را برای یک خریدار رزرو می‌کند.",
     "filter": {
       "label": "فیلتر بر اساس وضعیت",
       "all": "همه",
       "draft": "پیش‌نویس",
       "active": "فعال",
       "expired": "منقضی",
-      "reserved": "رزرو شده",
       "sold": "فروخته شده"
     },
     "emptyFiltered": {
@@ -181,9 +175,7 @@
       "moreOptionsFor": "گزینه‌های بیشتر برای {title}",
       "actionFor": "{action} — {title}",
       "soldNotice": "این کالا فروخته شده است",
-      "reservedNotice": "این کالا رزرو شده است",
       "unavailableNotice": "این کالا دیگر موجود نیست",
-      "reservedMayFreeUp": "گاهی رزرو لغو می‌شود و ممکن است این کالا دوباره موجود شود.",
       "seeSimilarIn": "دیدن موارد مشابه در {category}",
       "moreFromSellerNamed": "آگهی‌های بیشتر از {name}",
       "location": "موقعیت",
@@ -198,7 +190,9 @@
       "callSeller": "تماس با فروشنده",
       "mapTapToInteract": "مشاهده نقشه کامل",
       "mapDone": "بستن نقشه",
-      "chatComingSoon": "پیام‌رسانی در وب به‌زودی اضافه می‌شود — فعلاً برای ذخیره آگهی‌ها وارد شوید."
+      "chatComingSoon": "پیام‌رسانی در وب به‌زودی اضافه می‌شود — فعلاً برای ذخیره آگهی‌ها وارد شوید.",
+      "reservedStillAvailableNote": "اگر این رزرو انجام نشود، فروشنده ممکن است باز هم به پیام شما پاسخ دهد.",
+      "quantityAskingLabel": "درباره چند عدد سوال دارید؟"
     },
     "ownerDetail": {
       "notFound": "آگهی یافت نشد",
@@ -264,7 +258,9 @@
       "multipleUnitsLabel": "بیشتر از یک عدد دارم",
       "howManyUnits": "چند عدد دارید؟",
       "quantityInvalid": "عددی بین ۱ تا ۹۹۹ وارد کنید",
-      "howManySold": "چند عدد فروختید؟"
+      "howManySold": "چند عدد فروختید؟",
+      "quantityBelowSoldUnits": "شما قبلاً {count, number} عدد از این را فروخته‌اید. تعداد را به {count, number} یا بیشتر تنظیم کنید، یا ابتدا یک فروش را لغو کنید.",
+      "quantityBelowHeldUnits": "یک خریدار {count, number} عدد از این را رزرو کرده است. ابتدا رزرو را لغو کنید، یا تعداد را به {count, number} یا بیشتر تنظیم کنید."
     },
     "analytics": {
       "title": "بازدیدها (۷ روز اخیر)",
@@ -275,7 +271,34 @@
       "each": "هرکدام",
       "inStock": "{count, number} عدد موجود است",
       "leftOfTotal": "{available, number} از {total, number} باقی مانده",
-      "unitsAvailable": "{count, number} موجود"
+      "held": "{count, number} رزرو شده",
+      "heldForBuyer": "{count, number} برای {name} رزرو شده",
+      "unitsSoldCount": "{count, number} فروخته شد",
+      "offerAboveAvailable": "فقط {count, number} عدد باقی مانده — همان تعداد یا کمتر درخواست کنید."
+    },
+    "releaseHold": "لغو رزرو",
+    "confirmReleaseHold": "این رزرو لغو شود؟",
+    "confirmReleaseHoldDescription": "این کار رزرو را لغو می‌کند و هر خریداری می‌تواند آن را بردارد.",
+    "releaseHoldSuccess": "رزرو لغو شد — آگهی به طور کامل به بازار بازگشت.",
+    "placeHold": "رزرو کردن",
+    "confirmPlaceHold": "برای این خریدار رزرو شود؟",
+    "confirmPlaceHoldDescription": "آگهی در جست‌وجو باقی می‌ماند و هر زمان می‌توانید آن را فروخته‌شده ثبت کنید.",
+    "holdPlacedSuccess": "رزرو انجام شد — آگهی در بازار باقی می‌ماند.",
+    "viewSales": "مشاهده فروش‌ها",
+    "sale": {
+      "tally": "{sold, number} از {total, number} فروخته شد",
+      "outsideBuyer": "خارج از Hatiwal فروخته شده",
+      "editSale": "ویرایش این فروش",
+      "changeBuyer": "تغییر خریدار",
+      "voidConfirm": "این فروش حذف شود؟",
+      "voidConfirmDescription": "این کار واحدها را به موجودی بازمی‌گرداند و آن را از تاریخچه فروش شما حذف می‌کند.",
+      "voidedSuccess": "فروش حذف شد — موجودی بازگردانده شد.",
+      "voidBlockedReviewed": "این فروش قبلاً یک نظر دارد و نمی‌توان آن را حذف یا بازتخصیص داد. هنوز می‌توانید تعداد را اصلاح کنید."
+    },
+    "salesScreen": {
+      "title": "فروش‌ها",
+      "empty": "هنوز فروشی نیست",
+      "emptyHint": "فروش‌هایی که ثبت می‌کنید اینجا نمایش داده می‌شوند."
     }
   },
   "browse": {
@@ -819,7 +842,8 @@
       "sendCounter": "ارسال پیشنهاد متقابل",
       "counteredAt": "قیمت متقابل",
       "counterSentToast": "پیشنهاد متقابل ارسال شد!",
-      "quickChipsHint": "مبالغ سریع"
+      "quickChipsHint": "مبالغ سریع",
+      "quantityTotal": "{count, number} × {unitPrice} = {total}"
     },
     "block": {
       "blockUser": "مسدود کردن کاربر",
@@ -896,6 +920,13 @@
         "whenFree": "کِی برای ملاقات آزاد هستید؟",
         "sendMorePhotos": "می‌توانم عکس‌های بیشتری بفرستم"
       }
+    },
+    "listingActions": {
+      "markSold": "فروخته شد",
+      "releaseHold": "لغو رزرو",
+      "placeHold": "رزرو برای {name}",
+      "placeHoldGeneric": "رزرو کردن",
+      "heldForSomeoneElse": "برای خریدار دیگری رزرو شده"
     }
   },
   "warnings": {
@@ -954,7 +985,11 @@
     "confirmReserve": "تایید رزرو",
     "confirmSold": "تایید فروش",
     "invalidPrice": "یک قیمت معتبر وارد کنید",
-    "finalPricePerUnitHint": "قیمت یک عدد"
+    "finalPricePerUnitHint": "قیمت یک عدد",
+    "holdQuantityLabel": "چند عدد را نگه داشته‌اید؟",
+    "quantityAtCapReason": "فقط {count, number} عدد باقی مانده. اگر بیشتر دارید، آگهی را ویرایش کنید.",
+    "nudgeConfirm": "پس از این، هر دو می‌توانید به یکدیگر نظر دهید — فروشندگان دارای نظر، اعتماد بیشتری کسب می‌کنند ⭐",
+    "agreedPrice": "قیمت توافق‌شده"
   },
   "safety": {
     "title": "نکات ایمنی ملاقات",

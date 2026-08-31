@@ -41,7 +41,7 @@ import { LocationMap } from "@/components/map/location-map";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { readViewerIdFromCookies } from "@/lib/auth/cookies";
-import { hasStockToShow } from "@/lib/stock";
+import { availableUnitsOf, hasStockToShow, isLive } from "@/lib/stock";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -98,8 +98,31 @@ export default async function ListingDetailPage({
   if (!listing) notFound();
 
   const sellerId = listing.seller?.id;
-  const isActive = listing.status === "active";
+  /**
+   * LIVE, not "active" — the single most important line on this page.
+   *
+   * `active` and `reserved` are both on the market: browsable, searchable and
+   * message-able. Only `sold` is terminal. This page used to gate its whole buyer
+   * CTA block on `status === "active"`, so a reserved listing — which the feed and
+   * search still hand out — showed the "see similar" recovery card and NO way to
+   * contact the seller. A buyer found the item, opened it, and hit a wall.
+   *
+   * That is the thing no marketplace does: with no payment holding a deal
+   * together, reservations fall through constantly, and the second interested
+   * buyer is the seller's recovery path. So a held listing keeps its Message
+   * button and shows a "Reserved" ribbon (the <StatusBadge> below) instead of
+   * disappearing behind a dead end.
+   */
+  const isLiveListing = isLive(listing);
   const isSold = listing.status === "sold";
+  /**
+   * Offers, unlike messaging, DO pause while a hold is in place — a deliberate
+   * split of two signals that used to be one boolean. Anyone may still ask "is
+   * this still available?", but starting a fresh price negotiation against a
+   * hold the seller has already agreed in principle sets two buyers bidding over
+   * an item that is spoken for. Vinted behaves the same way.
+   */
+  const offersPaused = listing.status === "reserved";
 
   // Recovery-CTA gate. <UnavailableActions> must never promise stock that isn't
   // there — "See similar in Clothes & Fashion" landing on an empty Bazaar is the
@@ -109,7 +132,7 @@ export default async function ListingDetailPage({
   // fetch memoization makes this one request, not two. Only awaited for a
   // sold/reserved listing: an active one never renders the card, and the rail
   // keeps streaming behind its own <Suspense>.
-  const similarStock = isActive
+  const similarStock = isLiveListing
     ? []
     : await safe(getSimilarListings(listing.id), []);
 
@@ -161,7 +184,12 @@ export default async function ListingDetailPage({
 
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">
-              {!isActive && <StatusBadge status={listing.status} />}
+              {/* The RIBBON. Kept for `reserved` as well as `sold`/`draft` —
+                  under the three-state model this badge IS how a hold is shown:
+                  the listing stays live and simply says "Reserved". */}
+              {!isLiveListing || offersPaused ? (
+                <StatusBadge status={listing.status} />
+              ) : null}
               {listing.priceDropPercent ? (
                 <PriceDropBadge percent={listing.priceDropPercent} />
               ) : null}
@@ -334,7 +362,7 @@ export default async function ListingDetailPage({
                 gets a frame of buyer UI. */}
             <HideForOwner ownerId={listing.seller?.id}>
               <div id="listing-actions" className="space-y-5">
-                {isActive ? (
+                {isLiveListing ? (
                   <div className="space-y-2">
                     <StartConversationButton
                       listingId={listing.id}
@@ -343,17 +371,30 @@ export default async function ListingDetailPage({
                       perUnit={hasStockToShow(listing)}
                       currency={listing.currency}
                       negotiable={listing.negotiable}
+                      offersPaused={offersPaused}
+                      availableUnits={availableUnitsOf(listing)}
                     />
+                    {/* Why a listing marked "Reserved" still has a Message
+                        button. Without this the badge and the live CTA read as a
+                        contradiction; with it the buyer knows exactly what they
+                        are doing — getting in line in case the deal falls
+                        through, which is common enough to be worth their time. */}
+                    {offersPaused && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("listing.detail.reservedStillAvailableNote")}
+                      </p>
+                    )}
                     <SellerPhoneReveal
                       phone={listing.seller?.phone}
                       sellerId={listing.seller?.id}
                     />
                   </div>
                 ) : (
-                  /* Sold / reserved is not a dead end: keep the status sentence
-                     but offer the two recovery paths (same category + price band,
-                     and the seller's other stock). The SaveButton below stays
-                     visible — a reservation can still fall through.
+                  /* SOLD (or an unpublished draft) — the only real dead ends
+                     left. Keep the status sentence but offer the two recovery
+                     paths (same category + price band, and the seller's other
+                     stock). A RESERVED listing never reaches this branch any
+                     more: it is live, and takes the CTA row above.
 
                      Buyer recovery, which is one of the reasons the block is
                      owner-gated above: telling the seller of a sold item to "see
@@ -437,7 +478,7 @@ export default async function ListingDetailPage({
             listingId={listing.id}
             sellerId={sellerId}
             categorySlug={listing.category?.slug}
-            isActive={isActive}
+            isLive={isLiveListing}
           />
         </Suspense>
 

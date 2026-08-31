@@ -10,6 +10,12 @@ import { toast } from "sonner";
 import { Boxes, History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { createListing, updateListing, listingLifecycle } from "@/lib/api/me";
+import {
+  API_ERROR_CODES,
+  apiErrorCode,
+  apiErrorMessage,
+} from "@/lib/api/error-codes";
+import { heldUnitsOf, soldUnitsOf } from "@/lib/stock";
 import { categoryName } from "@/lib/api/categories";
 import {
   LISTING_CONDITIONS,
@@ -74,6 +80,19 @@ export function ListingForm({
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [newPhotos, setNewPhotos] = useState<NewPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  /**
+   * The one save failure a seller has to ACT on, in their own language: they
+   * lowered the quantity below what is already sold or held.
+   *
+   * Held HERE, beside the quantity field, rather than in a toast — the fix is to
+   * change that number, so the sentence belongs under it. This used to be
+   * swallowed by a blanket `catch` into "Couldn't save your listing", which is
+   * the exact "the user did not see this error, it said server error" report
+   * that put machine codes on the API in the first place.
+   */
+  const [quantityServerError, setQuantityServerError] = useState<string | null>(
+    null,
+  );
   const [lat, setLat] = useState<number | null>(listing?.latitude ?? null);
   const [lng, setLng] = useState<number | null>(listing?.longitude ?? null);
   const [restorableDraft, setRestorableDraft] = useState<DraftSnapshot | null>(
@@ -275,6 +294,8 @@ export function ListingForm({
 
   async function save(values: Values, publish: boolean) {
     setSubmitting(true);
+    // Last attempt's refusal is about last attempt's number.
+    setQuantityServerError(null);
     try {
       const input = {
         title: values.title,
@@ -317,10 +338,26 @@ export function ListingForm({
         qc.invalidateQueries({ queryKey: ["my-listings"] });
         router.push(`/my-listings/${created.id}`);
       }
-    } catch {
-      toast.error(
-        publish ? t("listing.form.publishError") : t("listing.form.saveError"),
-      );
+    } catch (error) {
+      // Which count the message needs depends on WHICH refusal it is: how many
+      // are sold, or how many are held. Both are already on the listing being
+      // edited — the 422 carries the code, never the number.
+      const code = apiErrorCode(error);
+      const count =
+        code === API_ERROR_CODES.quantityBelowHeldUnits
+          ? heldUnitsOf(listing)
+          : soldUnitsOf(listing);
+      const explained = apiErrorMessage(error, t, { count });
+      if (explained) {
+        // Inline, under the field the seller has to change. No toast: a toast
+        // over a long form does not say WHICH input is wrong, and this one is
+        // actionable rather than transient.
+        setQuantityServerError(explained);
+      } else {
+        toast.error(
+          publish ? t("listing.form.publishError") : t("listing.form.saveError"),
+        );
+      }
       setSubmitting(false);
     }
   }
@@ -520,7 +557,10 @@ export function ListingForm({
             <Field
               label={t("listing.form.howManyUnits")}
               htmlFor="quantity"
-              error={errors.quantity?.message}
+              // The server's refusal takes precedence over the client's format
+              // check: if Rails has said "you have already sold 8", that is the
+              // thing the seller needs to read, not "enter a number 1-999".
+              error={quantityServerError ?? errors.quantity?.message}
             >
               <Input
                 id="quantity"
@@ -530,6 +570,13 @@ export function ListingForm({
                 inputMode="numeric"
                 placeholder="2"
                 {...quantityField}
+                // Retyping the number clears the server's refusal about the OLD
+                // one — otherwise "you have already sold 8" sits under a field
+                // that now reads 9 and the seller cannot tell they have fixed it.
+                onChange={(e) => {
+                  quantityField.onChange(e);
+                  setQuantityServerError(null);
+                }}
                 // A cleared field reads as 1, matching mobile's own coercion:
                 // without it the toggle says "more than one" while the form
                 // submits a single-unit listing, and the seller only finds out

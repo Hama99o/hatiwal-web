@@ -13,21 +13,26 @@ import type { CategoryRef, ListingStatus } from "@/lib/types";
 
 /**
  * UnavailableActions — the recovery card shown in place of the contact CTAs when
- * a listing is no longer buyable (sold / reserved / draft).
+ * a listing is a genuine DEAD END: sold, or an unpublished draft.
  *
- * A sold or reserved listing used to be a dead end: a flat grey "This item has
- * been sold" box and nothing to do next. These pages are indexed and stock
- * turns over fast, so guests landing from search hit that constantly. This keeps
- * the same status sentence but adds the next steps that actually recover the
- * visit:
+ * NOT for a reserved listing any more. A hold no longer takes an item off the
+ * market — it stays in search, keeps its Message button and shows a "Reserved"
+ * ribbon — so routing it here would be showing a buyer "see similar instead" for
+ * an item they can still ask about, on a deal that falls through more often than
+ * not. Only `sold` is terminal.
+ *
+ * A sold listing used to be a flat grey "This item has been sold" box with
+ * nothing to do next. These pages are indexed and stock turns over fast, so
+ * guests landing from search hit that constantly. This keeps the same status
+ * sentence but adds the next steps that actually recover the visit:
  *
  *   1. PRIMARY — "See similar in {category}" → the Bazaar, pre-filtered to the
  *      same category (plus a ±30% price band when that band provably holds
  *      stock — see `recovery-band.ts`).
  *   2. SECONDARY — "More from {seller}" → that seller's public profile. While
  *      this card is on screen it is the page's ONLY link to that profile: the
- *      "More from this Seller" rail below drops its "view all" for a
- *      sold/reserved listing so the two don't compete for the same click.
+ *      "More from this Seller" rail below drops its "view all" whenever this
+ *      card renders, so the two don't compete for the same click.
  *
  * The band is built with `filtersToSearchString` (the ONE browse filter ⇄ URL
  * mapping), so the Bazaar sidebar renders category + min + max as active
@@ -79,17 +84,16 @@ export function UnavailableActions({
 }) {
   const t = useTranslations();
 
+  // Two outcomes only: sold, or otherwise unavailable. The `reserved` branch
+  // that used to sit here (with its own "this may free up" line) is gone along
+  // with the premise — a held listing never reaches this card now, so keeping
+  // dedicated copy for it would be an unreachable third case that reads as
+  // supported. Anything unexpected falls to the generic sentence, which is
+  // vague but never wrong.
   const notice =
     status === "sold"
       ? t("listing.detail.soldNotice")
-      : status === "reserved"
-        ? t("listing.detail.reservedNotice")
-        : t("listing.detail.unavailableNotice");
-
-  // A reservation can fall through, so the item may come back — worth saying,
-  // because the SaveButton just below this card is how a buyer catches that. A
-  // sold item is final, and the same line there would be a false promise.
-  const mayFreeUp = status === "reserved";
+      : t("listing.detail.unavailableNotice");
 
   // Only offer the category when it demonstrably has something to show.
   const hasSimilarStock = similarPrices.length > 0;
@@ -118,11 +122,6 @@ export function UnavailableActions({
         <Ban className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1 space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{notice}</p>
-          {mayFreeUp && (
-            <p className="text-xs text-muted-foreground">
-              {t("listing.detail.reservedMayFreeUp")}
-            </p>
-          )}
         </div>
       </div>
 

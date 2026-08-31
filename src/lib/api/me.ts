@@ -1,5 +1,5 @@
 import { convertKeysToCamel, convertKeysToSnake } from "./case";
-import { ApiError, readApiErrors } from "./client";
+import { ApiError, readApiError } from "./client";
 import { normalizeListing, type RawListing } from "./listings";
 import type { Listing, Transaction, User } from "../types";
 
@@ -35,11 +35,13 @@ export async function meRequest<T>(
     // report dialog had three translated 422 messages ("you already reported
     // this", "you can't report yourself", generic) that could never be reached
     // because the only thing that survived the throw was the number 422.
-    throw new ApiError(
-      res.status,
-      `me/${path} ${res.status}`,
-      await readApiErrors(res),
-    );
+    //
+    // The `code` matters more than the prose and is the reason this reads the
+    // whole body rather than just the array: `errors` is English ActiveModel
+    // text that must never reach a ps/fa user, while `code` is a stable token
+    // each surface maps to its own localized copy (see ./error-codes.ts).
+    const { errors, code } = await readApiError(res);
+    throw new ApiError(res.status, `me/${path} ${res.status}`, errors, code);
   }
   // Tolerate empty bodies (e.g. 204 from DELETE).
   const text = await res.text();
@@ -245,6 +247,110 @@ export async function listingLifecycle(
 
 export async function deleteMyListing(id: number): Promise<void> {
   await meRequest(`my/listings/${id}`, { method: "DELETE" });
+}
+
+/**
+ * ── The sales ledger, and correcting it (SF-B3/B4/B5) ──────────────────────
+ *
+ * ONE pair of endpoints serves BOTH the "Undo" on the mark-sold toast and the
+ * editable rows on the Sales screen. There is deliberately no "correct a sale"
+ * form and no separate reopen action: putting units back on the shelf is a side
+ * effect of fixing the row, and Rails re-opens a listing that had gone sold-out
+ * by mistake as part of the same write.
+ *
+ * There is no server-side undo WINDOW either — the toast's Undo and a
+ * correction made a week later call the identical endpoint. The only guard is
+ * that a sale carrying a review cannot be voided or reassigned
+ * (`sale_has_review`); that is the rail that matters, not a clock.
+ */
+
+/** What a correction changes. Every field optional — send only what moved. */
+export interface SaleCorrection {
+  /**
+   * The new unit count. `0` is how a client says "this sale did not happen" —
+   * the server treats a non-positive quantity as a void, same as DELETE.
+   */
+  quantity?: number;
+  /** Reassign the sale to a different buyer from this listing's threads. */
+  buyerId?: number;
+  /** Reassign to "someone not on Hatiwal" (stored as a null buyer). */
+  clearBuyer?: boolean;
+  /** Per-unit price, not the deal total. */
+  finalPrice?: number;
+}
+
+/**
+ * Both correction calls answer with the listing re-rendered `:owner_detailed`,
+ * so a caller repaints stock, status and the `sale` block from the response
+ * instead of refetching. `transaction` is absent when the sale was voided —
+ * there is nothing left to render.
+ */
+export interface SaleCorrectionResult {
+  listing: Listing;
+  transaction: Transaction | null;
+}
+
+/** PATCH /my/transactions/:id — fix a recorded sale's quantity, buyer or price. */
+export async function correctMySale(
+  transactionId: number,
+  correction: SaleCorrection,
+): Promise<SaleCorrectionResult> {
+  const data = await meRequest<{
+    listing: RawListing;
+    transaction?: Transaction | null;
+  }>(`my/transactions/${transactionId}`, {
+    method: "PATCH",
+    // Flat params (not nested under a resource key): a correction is a command
+    // about a sale, and it reuses the exact four names the reserve/sold
+    // lifecycle commands already established rather than inventing a second
+    // vocabulary for the same four facts.
+    json: correction,
+  });
+  return {
+    listing: normalizeListing(data.listing),
+    transaction: data.transaction ?? null,
+  };
+}
+
+/**
+ * DELETE /my/transactions/:id — the toast's "Undo" and the ledger row's Delete.
+ * Restores the units to stock, gives back the trust counters, and re-opens the
+ * listing if this sale was what retired it.
+ */
+export async function voidMySale(
+  transactionId: number,
+): Promise<SaleCorrectionResult> {
+  const data = await meRequest<{ listing: RawListing }>(
+    `my/transactions/${transactionId}`,
+    { method: "DELETE" },
+  );
+  return { listing: normalizeListing(data.listing), transaction: null };
+}
+
+/**
+ * GET /my/transactions?listing_id=…&as=seller&status=sold — one listing's sales,
+ * newest first. Many buyers per batch, each its own row, outside-buyer sales
+ * (`buyer: null`) included.
+ *
+ * Pages through to the end with the same 50-page safety cap as every other
+ * paginated `my/*` reader here: a ledger is read whole (the header tallies it),
+ * and a truncated one would under-report a seller's own sales.
+ */
+export async function getListingSales(
+  listingId: number | string,
+): Promise<Transaction[]> {
+  const out: Transaction[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const data = await meRequest<{
+      transactions?: Transaction[];
+      meta?: { pagination?: { nextPage?: number | null } };
+    }>(
+      `my/transactions?listing_id=${listingId}&as=seller&status=sold&page[number]=${page}`,
+    );
+    out.push(...(data.transactions ?? []));
+    if (!data.meta?.pagination?.nextPage) break;
+  }
+  return out;
 }
 
 export interface ListingInput {

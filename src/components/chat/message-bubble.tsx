@@ -120,13 +120,29 @@ export function MessageBubble({
   // Offer body: "amount|currency|listedPrice".  Meetup body: "place | time".
   // Prefer the server pre-parsed offerAmount/offerCurrency when present.
   const mutedMeta = mine ? "text-primary-foreground/70" : "text-muted-foreground";
-  let offer: { amount: number; currency: string; listed: number } | null = null;
+  let offer: {
+    amount: number;
+    currency: string;
+    listed: number;
+    /**
+     * Units the offer is for, or null for "unspecified".
+     *
+     * NULL IS NOT ONE. It is null for every single-item listing and every offer
+     * sent before the field existed, and the difference matters: treat it as one
+     * unit for arithmetic, but render no quantity line for it — otherwise every
+     * historic offer in every thread would sprout a "1 ×" it never stated.
+     */
+    quantity: number | null;
+  } | null = null;
   if (isOfferLike) {
     const [a, c, l] = m.body.split("|");
     offer = {
       amount: m.offerAmount ?? Number(a ?? 0),
       currency: m.offerCurrency || c || "AFN",
       listed: Number(l ?? 0),
+      // Only a real, meaningful count. > 1 because "1 ×" adds nothing to a
+      // figure that already means one.
+      quantity: m.offerQuantity != null && m.offerQuantity > 1 ? m.offerQuantity : null,
     };
   }
   let meetup: { place: string; time: string } | null = null;
@@ -198,6 +214,27 @@ export function MessageBubble({
             <p className="text-2xl font-extrabold leading-none">
               {formatPrice(offer.amount, offer.currency, locale)}
             </p>
+            {/* THE AGREED TOTAL, IN WRITING.
+                With no payment step and no cart, the only record of what a
+                multi-unit deal costs is the words in this thread — so "3 ×
+                AFN 12,000 = AFN 36,000" has to be stated before the meetup, not
+                discovered at it. The per-unit figure above is the offer; this is
+                what it comes to.
+                Rendered from structured data, never string arithmetic, so the
+                digits and grouping follow the reader's own locale. */}
+            {offer.quantity != null && (
+              <p className={cn("mt-0.5 text-xs font-medium", mutedMeta)}>
+                {t("chat.offer.quantityTotal", {
+                  count: offer.quantity,
+                  unitPrice: formatPrice(offer.amount, offer.currency, locale),
+                  total: formatPrice(
+                    offer.amount * offer.quantity,
+                    offer.currency,
+                    locale,
+                  ),
+                })}
+              </p>
+            )}
             {/* Counter cards omit the listed-price line to mirror mobile. */}
             {isOffer && offer.listed > 0 && (
               <p className={cn("mt-1 text-xs", mutedMeta)}>

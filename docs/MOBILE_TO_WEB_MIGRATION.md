@@ -22,23 +22,33 @@ mark-unread, away mode, counter-offer, etc.).
 > mobile inventory, not a fresh line-by-line read of every web route. A `web` task's **first step** is to
 > confirm the gap still exists in `hatiwal-web/` before building (some may have landed since the audit).
 
-> ⚠️ **NEW GAP, 2026-08-27 — the sell/reserve/sold lifecycle diverged, on purpose.** `hatiwal-mobile`
-> and `hatiwal-api` shipped the **Sell Flow Redesign** the same day
-> (`hatiwal-mobile/docs/SELL_FLOW_REDESIGN.md`): selling is now a one-tap primary action from any live
-> listing and never requires reserving first; a hold is placed/released **from the chat thread**, not
-> the listing; and a **reserved listing now stays fully in search/feed/chat** on mobile (it used to
-> leave search, matching what's below). **`hatiwal-web` was deliberately NOT touched** and still runs
-> the *pre-redesign* model described throughout this file — reserve-then-sold as a listing action,
-> `reserved` excluded from `browsable` client-side assumptions, etc. Every row below that mentions
-> "reserve"/"Reserved"/lifecycle actions (C1-QTY, C2-*, SOLDNEXT, OWN947, and the `listingLifecycle`
-> references) is an accurate description of **web's current (old) behaviour** — do not read it as
-> describing what mobile does today, and do not "fix" web to match this doc without first checking
-> `SELL_FLOW_REDESIGN.md`. Porting web to the new model is tracked as **SF-W1** (board card 285,
-> `hatiwal-mobile/docs/BACKLOG.md`) and is explicitly unscheduled — do not start it opportunistically
-> inside an unrelated `web` task. **Two small bug fixes landed on web the same day, independent of the
-> model port:** mark-sold now defaults to selling ONE unit rather than the whole remaining stock
-> (`a3c3c1e`, mirrors the mobile/API fix), and an off-platform sale ("sold to someone not on Hatiwal")
-> now sends its quantity instead of silently wiping the whole batch (`9853405`).
+> ✅ **CLOSED, 2026-08-31 — the sell/reserve/sold lifecycle no longer diverges (SF-W1, board card
+> 285).** For four days this file carried a warning that `hatiwal-web` still ran the *pre-redesign*
+> reserve-then-sold model while mobile and the API had moved on. **Web now runs the same model**
+> (`hatiwal-mobile/docs/SELL_FLOW_REDESIGN.md` is the spec; it was written mobile-first but the model
+> is client-agnostic):
+>
+> - **Selling is one tap from any live listing.** Reserve is never a prerequisite and is no longer a
+>   listing-level action at all — `actionsFor()` in `src/components/account/listing-actions.tsx`
+>   answers `primary: "sold"` for both `active` and `reserved`.
+> - **Three presented states — Draft / Live / Sold.** The seller's "Reserved" tab is gone; a held
+>   listing sits under **Active** with a hold badge. The DB still stores all four `status` values.
+> - **A reserved listing is not a dead end.** It keeps its Message button, its phone reveal and its
+>   sticky CTA, and shows a "Reserved" ribbon. Offers (only) stay paused while a hold is in place.
+> - **Holds are placed and released from the CHAT thread**, for the buyer in that thread.
+> - **Undo, not correction forms:** an Undo on the mark-sold toast plus an editable/voidable Sales
+>   ledger at `/my-listings/[id]/sales`, both on `PATCH`/`DELETE /my/transactions/:id`.
+>
+> **So the rows below that mention "reserve"/"Reserved"/lifecycle actions (C1-QTY, C2-*, SOLDNEXT,
+> OWN947) now describe web's HISTORY, not its behaviour.** They are left in place because they record
+> what was built and why; read the bullets above as the current contract and check the code before
+> acting on any lifecycle row here.
+>
+> One thing SF-W1 deliberately did NOT change: the E2E mock still filters its feed to
+> `status === "active"`, while Rails' `browsable` scope is now `live` (active OR reserved). Web needs
+> no code change for that — nothing in web filters the feed by status, the server does — but widening
+> the fixture shifts every feed/category/similar count in the Playwright suite, so it is a separate
+> change with its own full-suite run. Noted inline at `e2e/bazaar.spec.ts`.
 
 ### Legend
 

@@ -7,6 +7,7 @@ import { useIsOwner } from "@/components/auth/owner-gate";
 import { PriceTag } from "@/components/shared/price-tag";
 import { SaveButton } from "@/components/shared/save-button";
 import { cn } from "@/lib/utils";
+import { isLive } from "@/lib/stock";
 import type { ListingStatus } from "@/lib/types";
 
 /**
@@ -202,8 +203,12 @@ export function ListingActionBar({
     [sentinelId],
   );
 
-  // reserved / sold / draft show an inline notice — no buyer CTA to pin.
-  if (status !== "active") return null;
+  // A dead end (sold, or an unpublished draft) shows an inline recovery card
+  // instead — no buyer CTA to pin. A RESERVED listing is live and keeps its
+  // sticky CTA: it stays in search and stays message-able, so hiding the bar
+  // there would have left a held listing contactable on desktop and not on a
+  // phone, which is where most of this app's traffic is.
+  if (!isLive({ status })) return null;
   // Your own listing: the inline block hides its actions too.
   if (isOwner) return null;
   // Desktop — except while we host an open dialog, which unmounting would take

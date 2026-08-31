@@ -48,6 +48,19 @@ export function ReviewPromptDialog({
   const titleId = useId();
   const commentId = useId();
 
+  /**
+   * Nobody to review — a sale recorded to "someone not on Hatiwal" has
+   * `buyer: null`, and there is no account to attach a rating to.
+   *
+   * This is a REAL path, not defensive padding: since SF-B3 an outside-buyer sale
+   * writes a real ledger row, so the mark-sold lifecycle response now returns a
+   * transaction for it where it used to return none. The seller surfaces gate on
+   * `transaction.buyer` before opening this dialog for exactly that reason; this
+   * is the backstop, and it sits AFTER the hooks so the early return cannot
+   * change hook order between renders.
+   */
+  if (!counterparty) return null;
+
   async function submit() {
     if (rating < 1) return;
     setBusy(true);

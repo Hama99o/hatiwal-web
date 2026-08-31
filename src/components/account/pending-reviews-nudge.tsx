@@ -38,6 +38,12 @@ export function PendingReviewsNudge() {
         {data.map((txn) => {
           const counterparty =
             txn.role === "seller" ? txn.buyer : txn.seller;
+          // A sale to "someone not on Hatiwal" has no buyer to rate, so there is
+          // no review to nudge for. `GET /my/reviews/pending` already excludes
+          // those rows server-side (`with_counterparty`) precisely because the
+          // submit would fail; this skip means a change on that side can never
+          // turn into a row rendering "undefined" or throwing on `.name`.
+          if (!counterparty) return null;
           return (
             <li key={txn.id} className="flex items-center gap-3">
               <UserAvatar

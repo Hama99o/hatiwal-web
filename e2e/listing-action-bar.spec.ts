@@ -11,8 +11,13 @@ import fa from "../messages/fa.json";
  * viewport, and adds the price once the hero price has scrolled away.
  *
  * Listing 2 (Samsung 4K TV) is owned by seller 2, so the buyer persona (user 1)
- * sees the bar; listing 1 is the persona's OWN listing and listing 6 is
- * reserved — neither may show it.
+ * sees the bar; listing 1 is the persona's OWN listing, and listing 7 is SOLD —
+ * neither may show it.
+ *
+ * Listing 6 is RESERVED and DOES get the bar: a hold no longer takes an item off
+ * the market, so it stays message-able and its sticky CTA has to come with it.
+ * Withholding the bar there would have made a held listing contactable on
+ * desktop and not on a phone, which is where most of this app's traffic is.
  */
 const PHONE = { width: 390, height: 760 };
 
@@ -335,23 +340,44 @@ test.describe("Listing action bar (mobile)", () => {
     await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
   });
 
-  test("absent on your own listing and on a reserved one", async ({ page }) => {
+  test("absent on your own listing and on a SOLD one", async ({ page }) => {
     await page.goto("/en/listings/1"); // owned by the signed-in persona
     await expect(page.getByRole("heading", { name: "iPhone 13 Pro" })).toBeVisible();
     await expect(page.locator(`[aria-label="${BAR.en}"]`)).toHaveCount(0);
 
-    await page.goto("/en/listings/6"); // reserved → inline notice instead
+    // Sold is the only real dead end left — it gets the inline recovery card,
+    // and there is no buyer CTA to pin. This case used to be listing 6
+    // (reserved); see the test below for what that fixture proves now.
+    await page.goto("/en/listings/7");
+    await expect(
+      page.getByRole("heading", { name: "Leather Sofa (Sold)" }),
+    ).toBeVisible();
+    await expect(page.locator(`[aria-label="${BAR.en}"]`)).toHaveCount(0);
+  });
+
+  /**
+   * The inversion of the assertion above, on the fixture that used to carry it.
+   *
+   * A reserved listing is live: in search, message-able, and showing a
+   * "Reserved" ribbon. So the phone gets the same sticky CTA every other live
+   * listing gets — the bar's gate reads LIVE, not `status === "active"`.
+   */
+  test("PRESENT on a reserved listing — a hold is not a dead end", async ({
+    page,
+  }) => {
+    await page.goto("/en/listings/6");
     await expect(
       page.getByRole("heading", { name: "Mountain Bike (Reserved)" }),
     ).toBeVisible();
-    await expect(page.locator(`[aria-label="${BAR.en}"]`)).toHaveCount(0);
+    await expect(page.locator(`[aria-label="${BAR.en}"]`)).toHaveCount(1);
+    await expect(page.getByTestId("action-bar-spacer")).toHaveCount(1);
   });
 
   test("reserves its own space — and only when it renders", async ({ page }) => {
     // The bar is `fixed`; the spacer is what keeps it off the page's last rows.
     // It ships with the bar (it used to be page-level `pb-28`) so that the three
-    // cases which get no bar get no dead space either: own listing, non-active
-    // listing, desktop.
+    // cases which get no bar get no dead space either: own listing, a dead-end
+    // (sold/draft) listing, desktop.
     await page.goto("/en/listings/2");
     const spacer = page.getByTestId("action-bar-spacer");
     await expect(spacer).toHaveCount(1);
@@ -370,9 +396,9 @@ test.describe("Listing action bar (mobile)", () => {
     await expect(page.getByRole("heading", { name: "iPhone 13 Pro" })).toBeVisible();
     await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
 
-    await page.goto("/en/listings/6"); // reserved → no bar, no spacer
+    await page.goto("/en/listings/7"); // SOLD → no bar, no spacer
     await expect(
-      page.getByRole("heading", { name: "Mountain Bike (Reserved)" }),
+      page.getByRole("heading", { name: "Leather Sofa (Sold)" }),
     ).toBeVisible();
     await expect(page.getByTestId("action-bar-spacer")).toHaveCount(0);
   });

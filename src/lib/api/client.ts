@@ -29,6 +29,20 @@ export class ApiError extends Error {
      * the same failure the same way. Empty when the body carried no reason.
      */
     public errors: string[] = [],
+    /**
+     * Rails' MACHINE-READABLE reason for a 422, when it sent one
+     * (`render_unprocessable_entity(record, code: ...)` → `body.code`).
+     *
+     * This is the field a user-facing message must be chosen from. `errors`
+     * above is English prose built by ActiveModel and is NEVER safe to render:
+     * a Pashto or Dari seller would be shown an English sentence, which is how
+     * "the user did not see this error, it said server error" happened. Map the
+     * code to a localized string with `errorCodeMessageKey` and keep `errors`
+     * for logs and for the pre-code fallback only.
+     *
+     * Undefined for every failure Rails did not tag — including most 422s.
+     */
+    public code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -36,23 +50,32 @@ export class ApiError extends Error {
 }
 
 /**
- * Pull Rails' error reasons out of a failed response body, tolerating every
- * shape the API uses (`{ errors: [...] }`, `{ error: "..." }`) and an empty or
- * non-JSON body. Never throws — a failed parse just means "no reason given".
+ * Pull Rails' failure detail out of a response body: its human-readable reasons
+ * AND its machine-readable `code`, tolerating every shape the API uses
+ * (`{ errors: [...] }`, `{ error: "..." }`, either with an optional `code`) plus
+ * an empty or non-JSON body. Never throws — a failed parse just means "no
+ * reason given".
  */
-export async function readApiErrors(res: Response): Promise<string[]> {
+export async function readApiError(
+  res: Response,
+): Promise<{ errors: string[]; code?: string }> {
   try {
     const text = await res.text();
-    if (!text) return [];
+    if (!text) return { errors: [] };
     const body: unknown = JSON.parse(text);
-    if (!body || typeof body !== "object") return [];
-    const { errors, error } = body as { errors?: unknown; error?: unknown };
-    if (Array.isArray(errors)) return errors.map(String);
-    if (typeof errors === "string") return [errors];
-    if (typeof error === "string") return [error];
-    return [];
+    if (!body || typeof body !== "object") return { errors: [] };
+    const {
+      errors,
+      error,
+      code: rawCode,
+    } = body as { errors?: unknown; error?: unknown; code?: unknown };
+    const code = typeof rawCode === "string" && rawCode ? rawCode : undefined;
+    if (Array.isArray(errors)) return { errors: errors.map(String), code };
+    if (typeof errors === "string") return { errors: [errors], code };
+    if (typeof error === "string") return { errors: [error], code };
+    return { errors: [], code };
   } catch {
-    return [];
+    return { errors: [] };
   }
 }
 

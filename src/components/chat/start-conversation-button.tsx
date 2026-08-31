@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog } from "@/components/ui/dialog";
 import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
+import { QuantityStepper } from "@/components/shared/quantity-stepper";
+import { apiErrorMessage } from "@/lib/api/error-codes";
 import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
 
 /**
@@ -45,6 +47,8 @@ export function StartConversationButton({
   perUnit = false,
   currency,
   negotiable,
+  offersPaused = false,
+  availableUnits,
   layout = "stacked",
   onDialogOpenChange,
 }: {
@@ -61,6 +65,24 @@ export function StartConversationButton({
   currency?: string | null;
   /** false = firm price: hide the make-offer affordance (mirrors mobile N071). */
   negotiable?: boolean;
+  /**
+   * True while the listing is HELD for one buyer — hides the make-offer
+   * affordance while leaving Message alone.
+   *
+   * The two used to be one signal: nothing gated the offer button except
+   * `negotiable`, because the whole component was only ever mounted on an
+   * `active` listing. Now that a reserved listing keeps its buyer CTAs, they have
+   * to be split — otherwise widening the contact gate would silently un-hide
+   * "Make an Offer" on an item whose price is already agreed with somebody else,
+   * and set two buyers bidding over it.
+   */
+  offersPaused?: boolean;
+  /**
+   * Units still available — the cap on the offer quantity stepper. Only
+   * meaningful alongside `perUnit` (i.e. a multi-unit listing); omitted for a
+   * single item, which shows no stepper at all.
+   */
+  availableUnits?: number;
   /** `stacked` = full-width column buttons; `bar` = compact row (sticky bar). */
   layout?: "stacked" | "bar";
   /**
@@ -86,9 +108,21 @@ export function StartConversationButton({
   const [offerOpen, setOfferOpen] = useState(false);
   const [msg, setMsg] = useState("");
   const [amount, setAmount] = useState("");
+  /**
+   * Units this offer is for. Default 1 — the overwhelmingly common case, and the
+   * only safe default in a product where the number becomes a mark-sold prefill.
+   */
+  const [offerUnits, setOfferUnits] = useState(1);
+  /**
+   * Gate the stepper on the SERVER's multi-unit flag (relayed as `perUnit`) plus
+   * real remaining stock — never on a client-side `quantity > 1` guess. A seller
+   * with one item must never see that this feature exists.
+   */
+  const asksQuantity = perUnit && (availableUnits ?? 1) > 1;
   const [busy, setBusy] = useState(false);
   const msgTitleId = useId();
   const offerTitleId = useId();
+  const offerUnitsId = useId();
 
   // The two early returns below stop RENDERING the dialogs without touching
   // `open`/`offerOpen`, so the report has to be gated on the same condition:
@@ -317,11 +351,26 @@ export function StartConversationButton({
     try {
       const id = await resolveConversationId(t("listing.detail.defaultMessage"));
       // Body format "amount|currency|listedPrice" — parsed by MessageBubble.
-      await sendMessage(id, `${n}|${currency || "AFN"}|${price ?? 0}`, "offer");
+      // The QUANTITY travels as its own field, never a 4th body segment.
+      await sendMessage(
+        id,
+        `${n}|${currency || "AFN"}|${price ?? 0}`,
+        "offer",
+        undefined,
+        asksQuantity ? offerUnits : undefined,
+      );
       qc.invalidateQueries({ queryKey: ["conversations"] });
       router.push(`/conversations/${id}`);
-    } catch {
-      toast.error(t("chat.thread.startFailed"));
+    } catch (error) {
+      // The one offer failure the buyer can act on: they asked for more units
+      // than exist. Localized from the server's `code` — its English `errors`
+      // prose must never reach a ps/fa buyer.
+      // The count IS known here — it is the cap the stepper was using — so the
+      // "only N left" refusal renders in full rather than degrading.
+      toast.error(
+        apiErrorMessage(error, t, { count: availableUnits }) ??
+          t("chat.thread.startFailed"),
+      );
       setBusy(false);
     }
   }
@@ -339,7 +388,7 @@ export function StartConversationButton({
           ambiguous pair. The bar keeps price + Message + Save (its spec); the
           offer keeps its full-width labelled button in the inline block, which is
           never far — the bar hides itself whenever that block is on screen. */}
-      {isNegotiable && !compact && (
+      {isNegotiable && !offersPaused && !compact && (
         <Button
           variant="outline"
           className="w-full"
@@ -396,6 +445,27 @@ export function StartConversationButton({
                 })}
                 {perUnit ? ` (${t("listing.stock.each")})` : ""}
               </p>
+            )}
+            {/* HOW MANY, on a batch only.
+                An offer used to carry no quantity at all, so "I offer 12,000"
+                on a 15-unit listing was ambiguous between one unit and the lot —
+                and the seller had to remember the answer at mark-sold time,
+                where the count defaults to 1. Now the offer states it, the
+                bubble shows the total in writing, and accepting it prefills the
+                sale. A single-item listing renders nothing here. */}
+            {asksQuantity && (
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium" htmlFor={offerUnitsId}>
+                  {t("listing.detail.quantityAskingLabel")}
+                </label>
+                <QuantityStepper
+                  id={offerUnitsId}
+                  value={offerUnits}
+                  onChange={setOfferUnits}
+                  max={availableUnits ?? 1}
+                  disabled={busy}
+                />
+              </div>
             )}
             <div className="space-y-3">
               <label className="block text-sm font-medium">

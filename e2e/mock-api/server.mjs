@@ -143,7 +143,12 @@ const LISTINGS = [
   // Filed under 101 (phones), NOT 4 (home-garden): 4 is deliberately the
   // all-empty parent that covers the real production drill-down shape, and the
   // fixture header above says to keep it that way.
-  { id: 14, title: "Phone Cases Wholesale", price: 400, currency: "AFN", status: "active", location: "Kabul", address: "Mandawi Bazaar", condition: "brand_new", category_id: 101, seller_id: 1, views_count: 64, quantity: 15, sold_units: 4, created_at: "2026-06-22T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Identical silicone cases, bought a box of 15." },
+  // A batch HOLDING units for a buyer while staying `status: "active"` — the
+  // exact shape that makes `status === "reserved"` the wrong test for "has a
+  // hold". `held_units` + `sale` are how a client is supposed to find out.
+  { id: 14, title: "Phone Cases Wholesale", price: 400, currency: "AFN", status: "active", location: "Kabul", address: "Mandawi Bazaar", condition: "brand_new", category_id: 101, seller_id: 1, views_count: 64, quantity: 15, sold_units: 4, created_at: "2026-06-22T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Identical silicone cases, bought a box of 15.",
+    sales_count: 2,
+    sale: { id: 602, status: "reserved", final_price: 400, currency: "AFN", quantity: 2, completed_at: null, buyer: { id: 2, name: "Sara Ahmadi", avatar_url: null, verified: false }, conversation_id: 1 } },
   // The one listing NOBODY has messaged about (conversations_count 0, which Rails
   // always emits): drives the "count badge hides at zero" case that the majority
   // of owner views actually are.
@@ -159,6 +164,13 @@ const LISTINGS = [
   { id: 8, title: "Antique Carpet", price: 15000, currency: "AFN", status: "draft", location: "Kabul", address: null, condition: "good", category_id: 3, seller_id: 1, views_count: 0, created_at: "2026-06-22T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Hand-woven, not yet published." },
   { id: 9, title: "Gaming PC", price: 70000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "like_new", category_id: 102, seller_id: 1, views_count: 60, created_at: "2026-06-12T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "RTX 3070, reserved for a buyer.",
     sale: { id: 601, status: "reserved", final_price: 70000, currency: "AFN", completed_at: null, buyer: { id: 3, name: "Najib Rahimi", avatar_url: null, verified: true }, conversation_id: null } },
+  // SOLD, AFN 70,000, laptops -> band 49,000-91,000, which the active MacBook Pro
+  // M2 (90,000) falls inside. This is the price-band fixture; listing 9 used to
+  // be, but a RESERVED listing is live now and renders no recovery card at all,
+  // so the two roles can no longer be the same row. Seller 2 on purpose: seller
+  // 1's My Shop asserts an exact listing count, and the feed/category/similar
+  // queries all filter to `active`, so this row shifts nothing else.
+  { id: 15, title: "Gaming Rig (Sold)", price: 70000, currency: "AFN", status: "sold", location: "Kabul", address: null, condition: "like_new", category_id: 102, seller_id: 2, views_count: 12, created_at: "2026-06-12T08:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Sold already." },
 ];
 
 // Seller 1's ACTIVE-but-past-its-30-day-run listing. Kept OUT of LISTINGS on
@@ -281,6 +293,17 @@ function baseFields(l) {
     quantity,
     available_units: Math.max(0, quantity - soldUnits),
     multi_unit: quantity > 1,
+    // SF-B2/B5 — also BASE fields on ListingSerializer.
+    //
+    // `held_units` is the PUBLIC, identity-free count behind the stock pill's
+    // "· 2 held" clause; the buyer's name for that hold stays on the owner-only
+    // `sale` block below and must never appear here. Derived from the fixture's
+    // own open hold so the two can never disagree: a batch holding units keeps
+    // `status: "active"`, which is exactly why a client must read this (or
+    // `sale`) rather than testing `status === "reserved"`.
+    held_units: l.sale?.status === "reserved" ? (l.sale.quantity ?? 1) : 0,
+    // How many SOLD rows this listing's ledger holds — gates "View sales".
+    sales_count: l.sales_count ?? (l.status === "sold" || soldUnits > 0 ? 1 : 0),
   };
 }
 
@@ -785,11 +808,13 @@ const server = createServer((req, res) => {
   req.on("end", () => {
     let body = {};
     try { body = raw ? JSON.parse(raw) : {}; } catch { body = {}; }
-    route(req, res, method, path, q, body);
+    // `raw` travels too: an edit is multipart (`listing[quantity]=…`), which
+    // JSON.parse cannot read, and the quantity refusal below has to see it.
+    route(req, res, method, path, q, body, raw);
   });
 });
 
-function route(req, res, method, path, q, body) {
+function route(req, res, method, path, q, body, raw = "") {
   // Which persona (if any) this request authenticated as. Resolved up front
   // because /listings is a PUBLIC endpoint that Rails nonetheless personalises
   // when a bearer happens to be attached — the same request, two payloads.
@@ -966,6 +991,68 @@ function route(req, res, method, path, q, body) {
     return send(res, 200, { ok: true });
   }
 
+  // ── The sales ledger, and correcting it (SF-B3/B4/B5) ────────────────────
+  //
+  // GET  /my/transactions?listing_id=&as=seller&status=sold  — one listing's rows
+  // PATCH/DELETE /my/transactions/:id                        — correct / void
+  //
+  // Listing 14 (the 15-case batch, 4 sold) has TWO rows summing to its 4 sold
+  // units, and one of them has NO BUYER: "sold outside Hatiwal" is a real
+  // ledgered sale with `buyer: null`, which is precisely the shape that used to
+  // crash any client assuming a counterparty. Row 702 carries a review, so it is
+  // the fixture for the one deliberate refusal (`sale_has_review`).
+  const LEDGER = [
+    {
+      id: 701, status: "sold", final_price: 400, currency: "AFN", quantity: 3,
+      completed_at: "2026-06-24T10:00:00Z", created_at: "2026-06-24T10:00:00Z", role: "seller",
+      listing: { id: 14, title: "Phone Cases Wholesale", thumbnail_url: null, price: 400, currency: "AFN", status: "active", multi_unit: true, available_units: 11 },
+      buyer: { id: 2, name: "Sara Ahmadi", avatar_url: null },
+      seller: { id: 1, name: "Ahmad Karimi", avatar_url: null },
+    },
+    {
+      id: 702, status: "sold", final_price: 380, currency: "AFN", quantity: 1,
+      completed_at: "2026-06-23T10:00:00Z", created_at: "2026-06-23T10:00:00Z", role: "seller",
+      listing: { id: 14, title: "Phone Cases Wholesale", thumbnail_url: null, price: 400, currency: "AFN", status: "active", multi_unit: true, available_units: 11 },
+      // NULL — sold to someone not on Hatiwal.
+      buyer: null,
+      seller: { id: 1, name: "Ahmad Karimi", avatar_url: null },
+    },
+  ];
+  // Rows whose sale carries a review: PATCH/DELETE must refuse with a machine
+  // code, never English prose the client would be tempted to render.
+  const REVIEWED_SALE_IDS = [702];
+
+  if (path === "/my/transactions" && method === "GET") {
+    if (!requireAuth()) return;
+    let items = empty ? [] : LEDGER;
+    const listingId = q.get("listing_id");
+    if (listingId) items = items.filter((t) => String(t.listing.id) === listingId);
+    if (q.get("status")) items = items.filter((t) => t.status === q.get("status"));
+    const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
+    return send(res, 200, { transactions: slice, meta: { pagination } });
+  }
+
+  const correctionMatch = path.match(/^\/my\/transactions\/(\d+)$/);
+  if (correctionMatch && (method === "PATCH" || method === "DELETE")) {
+    if (!requireAuth()) return;
+    const txnId = Number(correctionMatch[1]);
+    if (REVIEWED_SALE_IDS.includes(txnId)) {
+      // The shape the client contract depends on: a stable `code`, plus English
+      // `errors` prose that exists only as a fallback for older clients. A ps/fa
+      // user must never be shown the prose, so the specs assert the LOCALIZED
+      // sentence appears and that the English does not.
+      return send(res, 422, {
+        errors: ["Sale has a review and cannot be voided or reassigned"],
+        code: "sale_has_review",
+      });
+    }
+    const row = LEDGER.find((t) => t.id === txnId) ?? LEDGER[0];
+    const listing = LISTINGS.find((l) => l.id === row.listing.id);
+    const payload = { listing: ownerDetailView(listing) };
+    if (method === "PATCH") payload.transaction = row;
+    return send(res, 200, payload);
+  }
+
   // Pending reviews — sold sales the caller still owes a review on (REV2).
   if (path === "/my/reviews/pending" && method === "GET") {
     if (!requireAuth()) return;
@@ -1025,10 +1112,18 @@ function route(req, res, method, path, q, body) {
     const action = lifecycleMatch[2];
     const v = myListingView(lifecycleMatch[1]);
     const payload = { listing: { ...v, status: statusByAction[action] } };
-    // Like Rails: the `transaction` key exists ONLY when a real buyer was
-    // identified (reserve/sold with buyer_id) — that is what a review hangs off.
-    // A sale to "someone not on Hatiwal" sends no buyer and gets no transaction.
-    if ((action === "sold" || action === "reserve") && body && body.buyer_id) {
+    // Like Rails: EVERY sale answers with a transaction — the outside-buyer sale
+    // included, where `buyer` is null.
+    //
+    // This used to return no transaction at all for a buyer-less sale, on the
+    // premise that "a sale to someone not on Hatiwal gets no transaction". SF-B3
+    // retired that: such a sale now writes a real ledger row (with `buyer_id:
+    // nil`) precisely so it can be listed and corrected like any other. Keeping
+    // the old shape here let a client that reads `transaction` as "there is a
+    // buyer to review" pass its specs and then crash on a real server.
+    //
+    // A reserve with no buyer still returns nothing: a hold IS its buyer.
+    if (action === "sold" || (action === "reserve" && body?.buyer_id)) {
       payload.transaction = {
         id: 601,
         status: action === "sold" ? "sold" : "reserved",
@@ -1038,7 +1133,9 @@ function route(req, res, method, path, q, body) {
         created_at: new Date().toISOString(),
         role: null, // serialized without a current_user, like Rails
         listing: { id: v.id, title: v.title, thumbnail_url: null, price: v.price, currency: v.currency, status: statusByAction[action] },
-        buyer: { id: Number(body.buyer_id), name: SELLERS[body.buyer_id]?.name ?? "Sara Ahmadi", avatar_url: null },
+        buyer: body?.buyer_id
+          ? { id: Number(body.buyer_id), name: SELLERS[body.buyer_id]?.name ?? "Sara Ahmadi", avatar_url: null }
+          : null,
         seller: { id: 1, name: "Ahmad Karimi", avatar_url: null },
       };
     }
@@ -1048,7 +1145,38 @@ function route(req, res, method, path, q, body) {
   if (myShowMatch) {
     if (!requireAuth()) return;
     if (method === "GET") return send(res, 200, { listing: myListingView(myShowMatch[1]) });
-    if (method === "PUT" || method === "PATCH") return send(res, 200, { listing: myListingView(myShowMatch[1]) });
+    if (method === "PUT" || method === "PATCH") {
+      // SF-B6 — the ONE edit failure a seller has to act on: they lowered the
+      // quantity under what is already sold, or under what is held for a buyer.
+      //
+      // Shape matters more than the numbers here: a stable `code` plus English
+      // `errors` prose that exists only as a fallback for clients predating the
+      // codes. A ps/fa seller must be shown their OWN sentence, so the specs
+      // assert the localized copy appears and the English does not.
+      const edited = LISTINGS.find((l) => String(l.id) === myShowMatch[1]);
+      const wanted = Number(
+        /listing\[quantity\][\s\S]*?\r?\n\r?\n(\d+)/.exec(raw)?.[1] ??
+          body?.listing?.quantity ??
+          NaN,
+      );
+      if (edited && Number.isFinite(wanted)) {
+        const sold = edited.sold_units ?? 0;
+        const held = edited.sale?.status === "reserved" ? (edited.sale.quantity ?? 1) : 0;
+        if (wanted < sold) {
+          return send(res, 422, {
+            errors: [`Quantity cannot be lower than the ${sold} units already sold`],
+            code: "quantity_below_sold_units",
+          });
+        }
+        if (wanted < held) {
+          return send(res, 422, {
+            errors: [`Quantity cannot be lower than the ${held} units held for a buyer`],
+            code: "quantity_below_held_units",
+          });
+        }
+      }
+      return send(res, 200, { listing: myListingView(myShowMatch[1]) });
+    }
     if (method === "DELETE") return send(res, 204);
   }
 

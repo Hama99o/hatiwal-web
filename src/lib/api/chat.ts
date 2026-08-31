@@ -90,10 +90,33 @@ export async function sendMessage(
   body: string,
   kind: MessageKind = "text",
   respondsToId?: number,
+  /**
+   * SF-B11 — how many units an offer is for. Honoured only on `offer` /
+   * `offer_counter` AND only on a multi-unit listing; the server discards it
+   * (stores null) otherwise, with no 422, so a single-item listing is
+   * byte-identical to before this existed.
+   *
+   * Rejects with `code: "offer_quantity_above_available_units"` when the offer
+   * asks for more units than remain.
+   *
+   * Sent as a real field rather than appended to the body's pipe encoding
+   * ("amount|currency|listedPrice"): every client already parses those three
+   * segments, and a fourth would change the meaning of a string mobile, web and
+   * the API all read.
+   */
+  offerQuantity?: number,
 ): Promise<Message> {
   const d = await meRequest<{ message: Message }>(
     `conversations/${conversationId}/messages`,
-    { method: "POST", json: { body, kind, respondsToId } },
+    {
+      method: "POST",
+      json: {
+        body,
+        kind,
+        respondsToId,
+        ...(offerQuantity != null ? { offerQuantity } : {}),
+      },
+    },
   );
   return d.message;
 }

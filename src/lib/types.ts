@@ -106,7 +106,18 @@ export interface Transaction {
     multiUnit?: boolean;
     availableUnits?: number;
   };
-  buyer: { id: number; name: string; avatarUrl: string | null };
+  /**
+   * NULL for a sale recorded to "someone not on Hatiwal" (SF-B3 —
+   * `clear_buyer: true`, stored as `buyer_id: nil`). That is a real, ledgered
+   * sale with no counterparty account: the row must still render its quantity,
+   * price and date, with a "buyer not on Hatiwal" label in place of an identity.
+   *
+   * Anything that reviews a counterparty must GUARD on this, not assume it —
+   * `GET /my/reviews/pending` filters buyer-less rows out server-side
+   * (`with_counterparty`), but the mark-sold lifecycle response does NOT: since
+   * SF-B3 it returns a transaction for the outside-buyer path too.
+   */
+  buyer: { id: number; name: string; avatarUrl: string | null } | null;
   seller: { id: number; name: string; avatarUrl: string | null };
 }
 
@@ -192,9 +203,62 @@ export interface Listing {
   quantity?: number;
   availableUnits?: number;
   multiUnit?: boolean;
+  /**
+   * SF-B2 — units currently HELD for one buyer, as a plain count. A base field
+   * on every serializer view (feed row, detail, seller list), so the stock pill
+   * reads the same number wherever it renders.
+   *
+   * PUBLIC-SAFE: a count, never an identity. The held buyer's NAME is
+   * owner-only and arrives on `sale` below — never read it from here.
+   *
+   * NOTE the trap this field exists to close: a multi-unit batch deliberately
+   * stays `status: "active"` while units are held, so `status === "reserved"`
+   * does NOT mean "has a hold". Ask `heldUnitsOf()` / `sale`, never the status.
+   */
+  heldUnits?: number;
+  /**
+   * SF-B5 — how many SOLD rows this listing's ledger holds. `sale` below is only
+   * the LATEST one; this is the number that says there are others, and it gates
+   * the "View sales" entry into the ledger.
+   */
+  salesCount?: number;
+  /**
+   * OWNER-ONLY (`:seller_list` / `:owner_detailed` views only — absent on the
+   * public feed and detail payloads, by design: the counterparty's identity is
+   * owner-scoped). The listing's current open hold, or its latest sale once
+   * sold. Null when there is neither.
+   */
+  sale?: ListingSale | null;
   createdAt: string;
   updatedAt?: string;
   seller: SellerSummary | null;
+}
+
+/**
+ * The owner-only `sale` block on a listing (Rails `ListingSerializer::SALE_FIELD`).
+ *
+ * `status: "reserved"` is THE test for "this listing has a hold" — correct for a
+ * single-item hold (whose listing status also flips to `reserved`) AND for a
+ * multi-unit hold (whose listing stays `active`). It is the one check that
+ * covers both item counts, which is exactly why the release-hold affordance is
+ * gated on it rather than on `listing.status`.
+ */
+export interface ListingSale {
+  id: number;
+  status: "reserved" | "sold";
+  /** PER UNIT on a multi-unit deal, not the deal total. */
+  finalPrice: number | null;
+  currency: string | null;
+  /** How many units this buyer took/holds. */
+  quantity?: number;
+  completedAt: string | null;
+  /**
+   * NULL for a sale to "someone not on Hatiwal" (SF-B3). The sale is real and
+   * must still render — only the counterparty is absent.
+   */
+  buyer: { id: number; name: string; avatarUrl: string | null; verified?: boolean } | null;
+  /** The thread with this buyer, when there is one. Null for an outside buyer. */
+  conversationId?: number | null;
 }
 
 export interface Pagination {
@@ -240,6 +304,18 @@ export interface Message {
    */
   offerAmount?: number | null;
   offerCurrency?: string | null;
+  /**
+   * SF-B11 — how many units the offer is for. A real column (not parsed out of
+   * the pipe-encoded body, which every client already reads and which must not
+   * grow a 4th segment), returned on every message.
+   *
+   * `null` means UNSPECIFIED, **not one**: it is null for every non-offer, every
+   * offer on a single-item listing, and every offer sent before this field
+   * existed. Treat null as one unit for arithmetic, but render no
+   * agreed-quantity UI for it — that is what keeps a single-item listing
+   * byte-identical to before the field existed.
+   */
+  offerQuantity?: number | null;
   /** Soft-delete tombstone: when true, body/attachment are suppressed server-side. */
   deleted?: boolean;
   deletedAt?: string | null;

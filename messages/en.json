@@ -52,17 +52,19 @@
     "comingSoon": "Coming soon",
     "splash": {
       "validating": "Checking your session…"
-    }
+    },
+    "undo": "Undo",
+    "quantity": "Quantity",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity"
   },
   "listing": {
     "create": "Create Listing",
     "edit": "Edit Listing",
     "delete": "Delete Listing",
     "publish": "Publish",
-    "markReserved": "Mark as Reserved",
     "markSold": "Mark as Sold",
     "unpublish": "Unpublish",
-    "activate": "Make active",
     "renew": "Renew",
     "renewSuccess": "Listing renewed for 30 more days",
     "confirmRenew": "Renew this listing?",
@@ -72,11 +74,8 @@
     "expiresTomorrow": "Expires tomorrow",
     "expiresToday": "Expires today",
     "unpublishSuccess": "Listing unpublished",
-    "activateSuccess": "Listing is active again",
     "confirmUnpublish": "Unpublish this listing?",
     "confirmUnpublishDescription": "It will be hidden from buyers and moved back to draft.",
-    "confirmActivate": "Make active again?",
-    "confirmActivateDescription": "This cancels the reservation and reopens the listing to buyers.",
     "title": "Title",
     "titlePlaceholder": "What are you selling?",
     "descriptionPlaceholder": "Describe your item...",
@@ -106,7 +105,6 @@
     "confirmDelete": "Delete this listing?",
     "confirmDeleteDescription": "This will permanently remove your listing.",
     "confirmMarkSold": "Mark as sold?",
-    "confirmMarkReserved": "Mark as reserved?",
     "myListings": "My Listings",
     "new": "New",
     "noListings": "No listings yet",
@@ -123,20 +121,16 @@
     "firmPrice": "Firm price",
     "conversationsCount": "{count, plural, one {# chat} other {# chats}}",
     "publishSuccess": "Listing published!",
-    "reserveSuccess": "Listing marked as reserved",
     "markSoldSuccess": "Listing marked as sold",
     "deleteSuccess": "Listing deleted",
     "confirmPublish": "Publish this listing?",
     "confirmPublishDescription": "Your listing will be visible to all buyers.",
-    "confirmReserve": "Mark as reserved?",
-    "confirmReserveDescription": "This marks the item as reserved for a buyer.",
     "filter": {
       "label": "Filter by status",
       "all": "All",
       "draft": "Draft",
       "active": "Active",
       "expired": "Expired",
-      "reserved": "Reserved",
       "sold": "Sold"
     },
     "emptyFiltered": {
@@ -181,9 +175,7 @@
       "moreOptionsFor": "More options for {title}",
       "actionFor": "{action} — {title}",
       "soldNotice": "This item has been sold",
-      "reservedNotice": "This item is reserved",
       "unavailableNotice": "This item is no longer available",
-      "reservedMayFreeUp": "A reservation can fall through, so this item may become available again.",
       "seeSimilarIn": "See similar in {category}",
       "moreFromSellerNamed": "More from {name}",
       "location": "Location",
@@ -198,7 +190,9 @@
       "callSeller": "Call seller",
       "mapTapToInteract": "View full map",
       "mapDone": "Close map",
-      "chatComingSoon": "Messaging on the web is coming soon — for now, sign in to save and follow listings."
+      "chatComingSoon": "Messaging on the web is coming soon — for now, sign in to save and follow listings.",
+      "reservedStillAvailableNote": "The seller may still reply if the reservation falls through.",
+      "quantityAskingLabel": "How many are you asking about?"
     },
     "ownerDetail": {
       "notFound": "Listing not found",
@@ -264,7 +258,9 @@
       "multipleUnitsLabel": "I have more than one",
       "howManyUnits": "How many do you have?",
       "quantityInvalid": "Enter a number between 1 and 999",
-      "howManySold": "How many did you sell?"
+      "howManySold": "How many did you sell?",
+      "quantityBelowSoldUnits": "You've already sold {count, number} of these. Set the quantity to {count, number} or more, or undo a sale first.",
+      "quantityBelowHeldUnits": "A buyer is holding {count, number} of these. Release the hold first, or set the quantity to {count, number} or more."
     },
     "analytics": {
       "title": "Views (last 7 days)",
@@ -275,7 +271,34 @@
       "each": "each",
       "inStock": "{count, number} in stock",
       "leftOfTotal": "{available, number} of {total, number} left",
-      "unitsAvailable": "{count, number} available"
+      "held": "{count, number} held",
+      "heldForBuyer": "{count, number} held for {name}",
+      "unitsSoldCount": "{count, number} sold",
+      "offerAboveAvailable": "Only {count, number} left — ask for that many or fewer."
+    },
+    "releaseHold": "Release hold",
+    "confirmReleaseHold": "Release this hold?",
+    "confirmReleaseHoldDescription": "This cancels the reservation and lets any buyer take it.",
+    "releaseHoldSuccess": "Hold released — listing is fully back on the market.",
+    "placeHold": "Place a hold",
+    "confirmPlaceHold": "Place a hold for this buyer?",
+    "confirmPlaceHoldDescription": "The listing stays in search and you can still mark it sold at any time.",
+    "holdPlacedSuccess": "Hold placed — the listing stays on the market.",
+    "viewSales": "View sales",
+    "sale": {
+      "tally": "{sold, number} of {total, number} sold",
+      "outsideBuyer": "Sold outside Hatiwal",
+      "editSale": "Edit this sale",
+      "changeBuyer": "Change buyer",
+      "voidConfirm": "Remove this sale?",
+      "voidConfirmDescription": "This puts the units back in stock and removes it from your sales history.",
+      "voidedSuccess": "Sale removed — stock restored.",
+      "voidBlockedReviewed": "This sale already has a review and can't be removed or reassigned. You can still fix the quantity."
+    },
+    "salesScreen": {
+      "title": "Sales",
+      "empty": "No sales yet",
+      "emptyHint": "Sales you record will show up here."
     }
   },
   "browse": {
@@ -819,7 +842,8 @@
       "sendCounter": "Send Counter",
       "counteredAt": "Counter Price",
       "counterSentToast": "Counter offer sent!",
-      "quickChipsHint": "Quick amounts"
+      "quickChipsHint": "Quick amounts",
+      "quantityTotal": "{count, number} × {unitPrice} = {total}"
     },
     "block": {
       "blockUser": "Block User",
@@ -896,6 +920,13 @@
         "whenFree": "When are you free to meet?",
         "sendMorePhotos": "I can send more photos"
       }
+    },
+    "listingActions": {
+      "markSold": "Mark Sold",
+      "releaseHold": "Release hold",
+      "placeHold": "Place a hold for {name}",
+      "placeHoldGeneric": "Place a hold",
+      "heldForSomeoneElse": "Held for another buyer"
     }
   },
   "warnings": {
@@ -954,7 +985,11 @@
     "confirmReserve": "Confirm reserve",
     "confirmSold": "Confirm sold",
     "invalidPrice": "Enter a valid price",
-    "finalPricePerUnitHint": "The price for one item"
+    "finalPricePerUnitHint": "The price for one item",
+    "holdQuantityLabel": "How many are you holding?",
+    "quantityAtCapReason": "Only {count, number} left. Edit the listing if you have more.",
+    "nudgeConfirm": "You'll both be able to review each other after this — reviewed sellers earn more trust ⭐",
+    "agreedPrice": "Agreed price"
   },
   "safety": {
     "title": "Meetup Safety Tips",

@@ -36,8 +36,14 @@ for the browser and adds SSR/SEO. Plan: `../docs/WEB_FRONTEND_PLAN.md`. Page che
 ## Architecture quick map
 - `src/app/[locale]/…` — locale-segmented routes. Root `app/layout.tsx` passes through; `[locale]/layout.tsx`
   renders `<html lang dir>`, providers, header/footer.
-- Public pages are ISR (`export const revalidate = 60`) for SEO; gated actions render `<OpenInAppCTA>`
-  (deep-links `hatiwal://…`) — v1 is read-only, buying/selling happens in the app.
+- Public pages are ISR (`export const revalidate = 60`) for SEO; `<OpenInAppCTA>` (deep-links
+  `hatiwal://…`) is a nudge on public pages, **not** a wall in front of the app's features.
+- **Web is a full read-write client, not a read-only shop window.** (It was read-only in v1; that
+  stopped being true a long time ago and the doc said otherwise until SF-W1.) Signed in, it can
+  create/edit/publish listings (`/listings/new`, `/listings/[id]/edit`), run the seller dashboard
+  (`/my-listings`), chat with offers/counters/meetups (`/conversations/[id]`), record and correct
+  sales (`/my-listings/[id]/sales`), and leave reviews. So: **any change to buying or selling has a
+  web half.** Assume parity work is owed unless you have checked otherwise.
 - `src/lib/api/client.ts` — isomorphic fetch (server→Rails, client→proxy) + snake/camel conversion.
 - `src/lib/format.ts` — the only place prices/dates are formatted.
 

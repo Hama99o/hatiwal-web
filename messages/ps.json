@@ -52,17 +52,19 @@
     "comingSoon": "ژر راځي",
     "splash": {
       "validating": "ستاسو ناستې ازمایل کیږي…"
-    }
+    },
+    "undo": "بیرته اخیستل",
+    "quantity": "شمېر",
+    "decreaseQuantity": "شمېر کمول",
+    "increaseQuantity": "شمېر زیاتول"
   },
   "listing": {
     "create": "اعلان جوړول",
     "edit": "اعلان سمول",
     "delete": "اعلان ړنګول",
     "publish": "خپرول",
-    "markReserved": "ریزرو کول",
     "markSold": "خرڅ ښودل",
     "unpublish": "له خپرولو ایستل",
-    "activate": "بیا فعالول",
     "renew": "نوي کول",
     "renewSuccess": "اعلان د نورو ۳۰ ورځو لپاره نوی شو",
     "confirmRenew": "دا اعلان نوی کړئ؟",
@@ -72,11 +74,8 @@
     "expiresTomorrow": "سبا پای ته رسیږي",
     "expiresToday": "نن پای ته رسیږي",
     "unpublishSuccess": "اعلان له خپرولو ووتل",
-    "activateSuccess": "اعلان بیا فعال شو",
     "confirmUnpublish": "دا اعلان له خپرولو وباسئ؟",
     "confirmUnpublishDescription": "دا به د پیرودونکو څخه پټ شي او بیرته مسودې ته راستون شي.",
-    "confirmActivate": "بیا فعال شي؟",
-    "confirmActivateDescription": "دا به ریزرو لغوه کړي او اعلان به بیا پیرودونکو ته خلاص شي.",
     "title": "سرلیک",
     "titlePlaceholder": "تاسو څه خرڅوئ؟",
     "descriptionPlaceholder": "خپل توکي وضاحت کړئ...",
@@ -106,7 +105,6 @@
     "confirmDelete": "دا اعلان ړنګ شي؟",
     "confirmDeleteDescription": "دا کار به ستاسو اعلان تل لره ړنګ کړي.",
     "confirmMarkSold": "خرڅ شوی ښودل؟",
-    "confirmMarkReserved": "ریزرو کول؟",
     "myListings": "زما اعلانونه",
     "new": "نوی",
     "noListings": "لاهم هیڅ اعلان نشته",
@@ -123,20 +121,16 @@
     "firmPrice": "ثابت قیمت",
     "conversationsCount": "{count, plural, one {# چټ} other {# چټونه}}",
     "publishSuccess": "اعلان خپور شو!",
-    "reserveSuccess": "اعلان ریزرو شو",
     "markSoldSuccess": "اعلان خرڅ شوی ښودل شو",
     "deleteSuccess": "اعلان ړنګ شو",
     "confirmPublish": "دا اعلان خپور شي؟",
     "confirmPublishDescription": "ستاسو اعلان به د ټولو پیرودونکو لپاره لیدل کیدی شي.",
-    "confirmReserve": "ریزرو کول؟",
-    "confirmReserveDescription": "دا توکی د پیرودونکي لپاره ریزرو کوي.",
     "filter": {
       "label": "د حالت له مخې چاڼول",
       "all": "ټول",
       "draft": "مسوده",
       "active": "فعال",
       "expired": "نیټه تېره",
-      "reserved": "ریزرو شوی",
       "sold": "خرڅ شوی"
     },
     "emptyFiltered": {
@@ -181,9 +175,7 @@
       "moreOptionsFor": "د {title} لپاره نور اختیارونه",
       "actionFor": "{action} — {title}",
       "soldNotice": "دا توکی خرڅ شوی دی",
-      "reservedNotice": "دا توکی ریزرو شوی دی",
       "unavailableNotice": "دا توکی نور شتون نلري",
-      "reservedMayFreeUp": "ریزرو ځینې وختونه ناکامه شي، نو دا توکی کیدای شي بیا شتون ولري.",
       "seeSimilarIn": "په {category} کې ورته توکي وګورئ",
       "moreFromSellerNamed": "د {name} نور توکي",
       "location": "موقعیت",
@@ -198,7 +190,9 @@
       "callSeller": "پلورونکي ته زنګ وهئ",
       "mapTapToInteract": "بشپړه نقشه وګورئ",
       "mapDone": "نقشه بنده کړئ",
-      "chatComingSoon": "په وېب کې پیغام لیږل ډېر ژر راځي — اوس مهال، د خوندي کولو لپاره ننوځئ."
+      "chatComingSoon": "په وېب کې پیغام لیږل ډېر ژر راځي — اوس مهال، د خوندي کولو لپاره ننوځئ.",
+      "reservedStillAvailableNote": "که دا ریزرویشن ونه ترسره شي، پلورونکی ممکن بیا هم ستاسو پیغام ته ځواب درکړي.",
+      "quantityAskingLabel": "تاسو د څو دانو په اړه پوښتنه کوئ؟"
     },
     "ownerDetail": {
       "notFound": "اعلان ونه موندل شو",
@@ -264,7 +258,9 @@
       "multipleUnitsLabel": "زه له یوې څخه ډېرې لرم",
       "howManyUnits": "څو دانې لرې؟",
       "quantityInvalid": "له ۱ څخه تر ۹۹۹ پورې شمېره ولیکه",
-      "howManySold": "څو دانې مو وپلورلې؟"
+      "howManySold": "څو دانې مو وپلورلې؟",
+      "quantityBelowSoldUnits": "تاسو دمخه د دې {count, number} دانې پلورلي دي. اندازه {count, number} یا تر هغه ډېره وټاکئ، یا لومړی یوه پلورنه لغوه کړئ.",
+      "quantityBelowHeldUnits": "یو پیرودونکي ستاسو د دې {count, number} دانې ریزرو کړي دي. لومړی دا ریزرو لغوه کړئ، یا اندازه {count, number} یا تر هغه ډېره وټاکئ."
     },
     "analytics": {
       "title": "کتنې (تېرې ۷ ورځې)",
@@ -275,7 +271,34 @@
       "each": "هره دانه",
       "inStock": "{count, number} دانې موجودې دي",
       "leftOfTotal": "{available, number} د {total, number} څخه پاتې",
-      "unitsAvailable": "{count, number} موجودې"
+      "held": "{count, number} ریزرو شوي",
+      "heldForBuyer": "{count, number} د {name} لپاره ریزرو شوي",
+      "unitsSoldCount": "{count, number} پلورل شوي",
+      "offerAboveAvailable": "یوازې {count, number} پاتې دي — هماغه شمېر یا لږ وغواړئ."
+    },
+    "releaseHold": "ریزرو لغوه کول",
+    "confirmReleaseHold": "دا ریزرو لغوه شي؟",
+    "confirmReleaseHoldDescription": "دا به ریزرو لغوه کړي؛ اوس به هر پیرودونکی وکولی شي دا واخلي.",
+    "releaseHoldSuccess": "ریزرو لغوه شو — اعلان بشپړ بازار ته بیرته راغی.",
+    "placeHold": "ریزرو کول",
+    "confirmPlaceHold": "د دې پیرودونکي لپاره ریزرو وشي؟",
+    "confirmPlaceHoldDescription": "اعلان به په پلټنه کې پاتې شي او تاسو کولی شئ هر وخت یې خرڅ ښودل کړئ.",
+    "holdPlacedSuccess": "ریزرو وشو — اعلان په بازار کې پاتې دی.",
+    "viewSales": "پلورنې کتل",
+    "sale": {
+      "tally": "{sold, number} د {total, number} څخه پلورل شوي",
+      "outsideBuyer": "له Hatiwal نه بهر خرڅ شوی",
+      "editSale": "دا پلورنه سمول",
+      "changeBuyer": "پیرودونکی بدلول",
+      "voidConfirm": "دا پلورنه لرې شي؟",
+      "voidConfirmDescription": "دا به دانې بیرته زیرمې ته راولي او ستاسو د پلورنو له تاریخچې څخه به یې لرې کړي.",
+      "voidedSuccess": "پلورنه لرې شوه — زیرمه بیرته وګرځېده.",
+      "voidBlockedReviewed": "دا پلورنې ته دمخه یو ارزونه شتون لري او نشي لرې کېدای یا بدلېدای. تاسو لا هم اندازه سمولی شئ."
+    },
+    "salesScreen": {
+      "title": "پلورنې",
+      "empty": "تر اوسه پلورنه نشته",
+      "emptyHint": "هغه پلورنې چې ثبتوئ به دلته ښکاره شي."
     }
   },
   "browse": {
@@ -819,7 +842,8 @@
       "sendCounter": "مقابل وړاندیز ولیږئ",
       "counteredAt": "مقابل قیمت",
       "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!",
-      "quickChipsHint": "ګړندي مبلغونه"
+      "quickChipsHint": "ګړندي مبلغونه",
+      "quantityTotal": "{count, number} × {unitPrice} = {total}"
     },
     "block": {
       "blockUser": "کارونکی بند کړئ",
@@ -896,6 +920,13 @@
         "whenFree": "کله فارغ یاست چې سره ووینو؟",
         "sendMorePhotos": "زه کولی شم نور انځورونه درولیږم"
       }
+    },
+    "listingActions": {
+      "markSold": "خرڅ شوی",
+      "releaseHold": "ریزرو لغوه کول",
+      "placeHold": "د {name} لپاره ریزرو کول",
+      "placeHoldGeneric": "ریزرو کول",
+      "heldForSomeoneElse": "د بل پیرودونکي لپاره ریزرو شوی"
     }
   },
   "warnings": {
@@ -954,7 +985,11 @@
     "confirmReserve": "ریزرو تایید کړئ",
     "confirmSold": "خرڅلاو تایید کړئ",
     "invalidPrice": "سمه بیه دننه کړئ",
-    "finalPricePerUnitHint": "د یوې دانې بیه"
+    "finalPricePerUnitHint": "د یوې دانې بیه",
+    "holdQuantityLabel": "تاسو څو دانې ساتئ؟",
+    "quantityAtCapReason": "یوازې {count, number} پاتې دي. که نور لرئ، اعلان سمول کړئ.",
+    "nudgeConfirm": "وروسته له دې به تاسو دواړه کولی شئ یو بل ته نظر ورکړئ — د نظرونو لرونکي پلورونکي ډېر باور ترلاسه کوي ⭐",
+    "agreedPrice": "موافقه شوې بیه"
   },
   "safety": {
     "title": "د ملاقات د خوندیتوب مشورې",

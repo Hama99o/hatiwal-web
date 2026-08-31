@@ -35,7 +35,7 @@ export async function CrossSellRails({
   listingId,
   sellerId,
   categorySlug,
-  isActive,
+  isLive,
   className,
 }: {
   listingId: number;
@@ -44,12 +44,17 @@ export async function CrossSellRails({
   /** Powers the similar rail's "view all"; omitted → bare rail. */
   categorySlug?: string;
   /**
-   * Active listings own both "view all" links. On a sold/reserved listing
-   * <UnavailableActions> already carries a prominent CTA to this seller AND one
-   * to the same category, so the rails drop their duplicates and stay pure
-   * browsing surfaces — one destination, one CTA.
+   * LIVE listings own both "view all" links. On a listing that is a dead end
+   * (sold, or an unpublished draft) <UnavailableActions> already carries a
+   * prominent CTA to this seller AND one to the same category, so the rails drop
+   * their duplicates and stay pure browsing surfaces — one destination, one CTA.
+   *
+   * Named for LIVE rather than "active" since the sell-flow rework: a RESERVED
+   * listing keeps its normal buyer CTAs and renders no <UnavailableActions> at
+   * all, so it owns its "view all" links exactly like an unheld one. Reading the
+   * raw status here would have stripped both links off every held listing.
    */
-  isActive: boolean;
+  isLive: boolean;
   className?: string;
 }) {
   const t = await getTranslations();
@@ -107,7 +112,7 @@ export async function CrossSellRails({
             title={t("listing.detail.moreFromSeller")}
             listings={sellerListings}
             viewAllHref={
-              isActive && sellerId ? `/sellers/${sellerId}` : undefined
+              isLive && sellerId ? `/sellers/${sellerId}` : undefined
             }
             viewAllLabel={t("home.viewAll")}
           />
@@ -124,7 +129,7 @@ export async function CrossSellRails({
         title={t("listing.detail.similarListings")}
         listings={similar}
         viewAllHref={
-          isActive && categorySlug ? `/categories/${categorySlug}` : undefined
+          isLive && categorySlug ? `/categories/${categorySlug}` : undefined
         }
         viewAllLabel={t("home.viewAll")}
       />

@@ -44,7 +44,7 @@ test.describe("My Shop (seller dashboard)", () => {
   });
 
   // The status filter is the shared SegmentedControl, so its options are `tab`s
-  // inside a `tablist` (a11y: six same-shaped pills need a selected state and a
+  // inside a `tablist` (a11y: five same-shaped pills need a selected state and a
   // group name), not bare buttons.
   test("status tabs filter the grid in place", async ({ page }) => {
     await openMyShop(page);
@@ -74,12 +74,15 @@ test.describe("My Shop (seller dashboard)", () => {
     const tablist = page.getByRole("tablist", { name: "Filter by status" });
     await expect(tablist).toBeVisible();
     const tabs = tablist.getByRole("tab");
-    await expect(tabs).toHaveCount(6);
+    // FIVE, not six: "Reserved" is gone. A held listing is Live with a badge, so
+    // it belongs under Active — its own tab is what made a seller's held stock
+    // disappear from the tab they were looking at.
+    await expect(tabs).toHaveCount(5);
     for (const option of await tabs.all()) {
       expect((await option.boundingBox())!.height).toBeGreaterThanOrEqual(40);
     }
-    // Six options with counts cannot fit one row on a phone — they wrap inside
-    // the control instead of overflowing the page.
+    // Five options with counts still cannot fit one row on a phone — they wrap
+    // inside the control instead of overflowing the page.
     const [listBox, viewport] = [
       (await tablist.boundingBox())!,
       page.viewportSize()!,
@@ -134,15 +137,16 @@ test.describe("My Shop (seller dashboard)", () => {
   test("each card shows the primary action for its status", async ({ page }) => {
     await openMyShop(page);
     await expect(card(page, 8).getByRole("button", { name: "Publish" })).toBeVisible(); // draft
-    // Active → Mark as Reserved, the same next step mobile's shared hook offers
-    // (useListingLifecycle.ts). Sold is terminal, so it is not the primary
-    // anywhere except on a listing that is already reserved.
+    // BOTH live statuses offer the same primary: Mark as Sold. `active` used to
+    // offer "Mark as Reserved" and only a `reserved` listing offered the sale —
+    // the reserve-then-sold ladder this rework removed. The seller sees three
+    // states, and Live has one next step.
     await expect(
-      card(page, 1).getByRole("button", { name: "Mark as Reserved" }),
+      card(page, 1).getByRole("button", { name: "Mark as Sold" }),
     ).toBeVisible(); // active
     await expect(
       card(page, 9).getByRole("button", { name: "Mark as Sold" }),
-    ).toBeVisible(); // reserved
+    ).toBeVisible(); // reserved — same primary, no separate ladder
     // Expired (active, past its run): Renew is the most useful next step.
     await expect(card(page, 10).getByRole("button", { name: "Renew" })).toBeVisible();
     // Sold is terminal: no lifecycle button, just the kebab (Edit / Delete).
@@ -157,17 +161,15 @@ test.describe("My Shop (seller dashboard)", () => {
   // The primary is the loudest control in the footer, so it must not be set at
   // the card's caption size — and it must announce WHICH listing it acts on,
   // because a shop of seven active items would otherwise read out seven
-  // identical "Mark as Reserved" buttons.
+  // identical "Mark as Sold" buttons.
   test("the primary action is emphasised and names its listing", async ({
     page,
   }) => {
     await openMyShop(page);
     const primary = card(page, 1).getByRole("button", {
-      name: "Mark as Reserved",
+      name: "Mark as Sold",
     });
-    await expect(primary).toHaveAccessibleName(
-      "Mark as Reserved — iPhone 13 Pro",
-    );
+    await expect(primary).toHaveAccessibleName("Mark as Sold — iPhone 13 Pro");
     const { size, weight } = await primary.evaluate((el) => {
       const s = getComputedStyle(el);
       return { size: parseFloat(s.fontSize), weight: Number(s.fontWeight) };
@@ -207,7 +209,11 @@ test.describe("My Shop (seller dashboard)", () => {
     await openMyShop(page);
     await card(page, 1).getByRole("button", { name: /^More options/ }).click();
     const items = page.getByRole("menu").getByRole("menuitem");
-    await expect(items).toHaveCount(5); // sold · unpublish · renew · edit · delete
+    // FOUR. `sold` left this menu by being PROMOTED: it is the card's primary
+    // button now, one tap from any live listing. `reserve` left altogether — a
+    // hold is placed from the chat thread. Nothing has sold on listing 1, so
+    // there is no "View sales" row either.
+    await expect(items).toHaveCount(4); // unpublish · renew · edit · delete
     for (const item of await items.all()) {
       expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(40);
     }
@@ -219,36 +225,56 @@ test.describe("My Shop (seller dashboard)", () => {
     await openMyShop(page);
     await card(page, 1).getByRole("button", { name: "More options" }).click();
     const menu = page.getByRole("menu");
-    for (const label of [
-      // Sold is here, not on the primary: it is terminal (no relist on web yet),
-      // so it takes the deliberate route through the overflow menu.
-      "Mark as Sold",
-      "Unpublish",
-      "Renew",
-      "Edit",
-      "Delete",
-    ]) {
+    for (const label of ["Unpublish", "Renew", "Edit", "Delete"]) {
       await expect(menu.getByRole("menuitem", { name: label })).toBeVisible();
     }
+    // Mark as Sold used to live HERE, on the reasoning that it was terminal and
+    // deserved the deliberate route. It is the card's PRIMARY now — one tap from
+    // any live listing, with an Undo on the toast — so it must not also be in the
+    // overflow: one action, one place.
+    await expect(
+      menu.getByRole("menuitem", { name: "Mark as Sold" }),
+    ).toHaveCount(0);
+    // And reserving is not a listing action at all any more.
+    await expect(
+      menu.getByRole("menuitem", { name: /hold/i }),
+    ).toHaveCount(0);
   });
 
-  // An expired listing is still a live `active` record — taking it down or
-  // holding it for a buyer must stay reachable, not just Renew.
-  test("an expired card can still be reserved or unpublished from the kebab", async ({
+  test("the primary on a live listing is Mark as Sold, with no reserve step", async ({
+    page,
+  }) => {
+    await openMyShop(page);
+    const footer = card(page, 1);
+    // THE headline of the sell-flow rework: selling never requires reserving
+    // first. The loudest control on a live listing is the sale itself.
+    await expect(
+      footer.getByRole("button", {
+        name: en.listing.detail.actionFor
+          .replace("{action}", en.listing.markSold)
+          .replace("{title}", "iPhone 13 Pro"),
+        exact: true,
+      }),
+    ).toBeVisible();
+  });
+
+  // An expired listing is still a live record — selling it or taking it down
+  // must stay reachable, not just Renew. (Renew is its primary, so Mark as Sold
+  // correctly stays in the overflow for this one state only.)
+  test("an expired card can still be sold or unpublished from the kebab", async ({
     page,
   }) => {
     await openMyShop(page);
     await card(page, 10).getByRole("button", { name: "More options" }).click();
     const menu = page.getByRole("menu");
-    for (const label of [
-      "Mark as Sold",
-      "Mark as Reserved",
-      "Unpublish",
-      "Edit",
-      "Delete",
-    ]) {
+    for (const label of ["Mark as Sold", "Unpublish", "Edit", "Delete"]) {
       await expect(menu.getByRole("menuitem", { name: label })).toBeVisible();
     }
+    // "Mark as Reserved" was here. Reserving is not a listing-level action any
+    // more — a hold is placed from the chat thread, for a named buyer.
+    await expect(
+      menu.getByRole("menuitem", { name: /Reserved|hold/i }),
+    ).toHaveCount(0);
   });
 
   test("a secondary action from the kebab opens its confirm and completes", async ({
@@ -277,14 +303,17 @@ test.describe("My Shop (seller dashboard)", () => {
     page,
   }) => {
     await openMyShop(page);
-    await card(page, 14).getByRole("button", { name: "More options" }).click();
-    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    // Mark as Sold is the card's PRIMARY now, not a kebab row — selling never
+    // requires a reserve step, so it is one click from here.
+    await card(page, 14)
+      .getByRole("button", { name: /^Mark as Sold/ })
+      .click();
     await expect(page.getByText("Who bought this item?")).toBeVisible();
 
-    // The field appears only once a real buyer is chosen — a sale to "someone
-    // not on Hatiwal" records no transaction for a quantity to attach to.
+    // The field appears only once a buyer (or "not on Hatiwal") is chosen: the
+    // dialog opens as a decision surface, and the count is the follow-up.
     const dialog = page.getByRole("dialog");
-    await expect(dialog.locator("#soldUnits")).toHaveCount(0);
+    await expect(dialog.getByTestId("quantity-input")).toHaveCount(0);
     await dialog.getByRole("button", { name: /Bilal Nazari/ }).first().click();
 
     // Defaults to ONE, not the remainder. This assertion used to expect "11" and
@@ -295,10 +324,19 @@ test.describe("My Shop (seller dashboard)", () => {
     // "I sold one" is what a seller means when they say nothing else; "I sold all
     // 11" is a deliberate act and should be stated.
     //
-    // The remainder is still shown beside the field, so the number is never typed
-    // blind — that half of the original intent is unchanged and still asserted.
-    await expect(dialog.locator("#soldUnits")).toHaveValue("1");
-    await expect(dialog.getByText("11 available")).toBeVisible();
+    // The remainder is still communicated, but as CAP + REASON now rather than a
+    // standing caption: the control cannot exceed 11, and the moment the seller
+    // reaches for more it says why and what to do about it. The free-text
+    // "11 available" caption it replaced explained the problem while still
+    // letting an impossible number sit in the field at confirm time.
+    const units = dialog.getByTestId("quantity-input");
+    await expect(units).toHaveValue("1");
+    await expect(dialog.getByTestId("quantity-cap-reason")).toHaveCount(0);
+    await units.fill("20");
+    await expect(units).toHaveValue("11");
+    await expect(
+      dialog.getByText("Only 11 left. Edit the listing if you have more."),
+    ).toBeVisible();
     // And the final price says which number it is.
     await expect(dialog.getByText("The price for one item")).toBeVisible();
   });
@@ -313,8 +351,11 @@ test.describe("My Shop (seller dashboard)", () => {
     page,
   }) => {
     await openMyShop(page);
-    await card(page, 14).getByRole("button", { name: "More options" }).click();
-    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    // The card's PRIMARY now — Mark as Sold left the kebab when selling stopped
+    // requiring a reserve step.
+    await card(page, 14)
+      .getByRole("button", { name: /^Mark as Sold/ })
+      .click();
 
     const dialog = page.getByRole("dialog");
     await dialog
@@ -322,8 +363,8 @@ test.describe("My Shop (seller dashboard)", () => {
       .click();
 
     // The count is asked for on this path too — only the BUYER is unknown.
-    await expect(dialog.locator("#soldUnits")).toBeVisible();
-    await dialog.locator("#soldUnits").fill("3");
+    await expect(dialog.getByTestId("quantity-input")).toBeVisible();
+    await dialog.getByTestId("quantity-input").fill("3");
 
     const sold = page.waitForRequest(
       (r) => /\/api\/me\/my\/listings\/14\/sold$/.test(r.url()) && r.method() === "PUT",
@@ -337,34 +378,22 @@ test.describe("My Shop (seller dashboard)", () => {
   test("a single-item listing never asks how many", async ({ page }) => {
     // The governing rule: a seller with one item must not see this feature.
     await openMyShop(page);
-    await card(page, 1).getByRole("button", { name: "More options" }).click();
-    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    await card(page, 1).getByRole("button", { name: /^Mark as Sold/ }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("button", { name: /Sara Ahmadi/ }).first().click();
-    await expect(dialog.locator("#soldUnits")).toHaveCount(0);
+    // No stepper at all — not a stepper pinned to 1.
+    await expect(dialog.getByTestId("quantity-input")).toHaveCount(0);
     await expect(dialog.getByText("The price for one item")).toHaveCount(0);
     // The final price itself is still offered — that part is unchanged.
     await expect(dialog.locator("#finalPrice")).toBeVisible();
   });
 
-  test("reserving a batch never asks how many", async ({ page }) => {
-    // A reservation is a hold on the whole listing, not a per-unit deduction the
-    // backend models (spike §5.2 B).
+  test("Mark as Sold opens the buyer picker", async ({ page }) => {
+    // Recording a sale always goes through the picker, so a Transaction — the
+    // thing a review hangs off — exists for it. It used to be reached from the
+    // kebab on an active card; it is the primary button now.
     await openMyShop(page);
-    await card(page, 14).getByRole("button", { name: "Mark as Reserved" }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /Bilal Nazari/ }).first().click();
-    await expect(dialog.locator("#soldUnits")).toHaveCount(0);
-  });
-
-  test("Mark as Sold from the kebab opens the buyer picker", async ({
-    page,
-  }) => {
-    // Both buyer-recording transitions go through the picker wherever they are
-    // offered — this is the one that lives in the menu on an active card.
-    await openMyShop(page);
-    await card(page, 1).getByRole("button", { name: "More options" }).click();
-    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    await card(page, 1).getByRole("button", { name: /^Mark as Sold/ }).click();
     await expect(page.getByText("Who bought this item?")).toBeVisible();
   });
 
@@ -455,27 +484,35 @@ test.describe("My Shop (seller dashboard)", () => {
     await confirm.getByRole("button", { name: "Cancel" }).click();
     // …including the buyer picker, which is the one that records a transaction.
     await card(page, 1)
-      .getByRole("button", { name: "Mark as Reserved" })
+      .getByRole("button", { name: "Mark as Sold" })
       .click();
     await expect(
       page.getByRole("dialog").getByText("iPhone 13 Pro"),
     ).toBeVisible();
   });
 
-  test("Mark as Reserved inline opens the buyer picker", async ({ page }) => {
+  /**
+   * REPLACES "Mark as Reserved inline opens the buyer picker".
+   *
+   * Reserving is not offered from a card any more, so that flow has no entry
+   * point to test. What replaces it covers the same ground the original did —
+   * the inline primary reaches the picker and the transition completes — through
+   * the action a card actually offers now.
+   */
+  test("Mark as Sold inline opens the buyer picker and completes", async ({
+    page,
+  }) => {
     await openMyShop(page);
-    await card(page, 1)
-      .getByRole("button", { name: "Mark as Reserved" })
-      .click();
-    await expect(page.getByText("Who's buying this item?")).toBeVisible();
+    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
+    await expect(page.getByText("Who bought this item?")).toBeVisible();
     await page
       .getByRole("button", { name: /Sold to someone not on Hatiwal/ })
       .click();
     await page
       .getByRole("dialog")
-      .getByRole("button", { name: "Confirm reserve" })
+      .getByRole("button", { name: "Confirm sold" })
       .click();
-    await expect(page.getByText("Listing marked as reserved")).toBeVisible();
+    await expect(page.getByText("Listing marked as sold")).toBeVisible();
   });
 
   // A sale that identifies a real buyer records a Transaction, so the seller is
@@ -487,11 +524,10 @@ test.describe("My Shop (seller dashboard)", () => {
     page,
   }) => {
     await openMyShop(page);
-    // Via the kebab: on an active card Mark as Sold is a secondary transition
-    // (the primary is Mark as Reserved). The review prompt is what a *sale*
-    // earns, so this is the path that has to reach it.
-    await card(page, 1).getByRole("button", { name: "More options" }).click();
-    await page.getByRole("menuitem", { name: "Mark as Sold" }).click();
+    // Straight off the primary now — Mark as Sold left the kebab when it became
+    // the card's one-tap action. The review prompt is what a *sale* earns, so
+    // this is the path that has to reach it.
+    await card(page, 1).getByRole("button", { name: "Mark as Sold" }).click();
     await expect(page.getByText("Who bought this item?")).toBeVisible();
     await page.getByRole("button", { name: /Sara Ahmadi/ }).click();
     await page
@@ -552,7 +588,7 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(confirm).toBeVisible();
     await confirm.getByRole("button", { name: "Cancel" }).click();
     await expect(
-      card(page, 1).getByRole("button", { name: "Mark as Reserved" }),
+      card(page, 1).getByRole("button", { name: "Mark as Sold" }),
     ).toBeVisible();
   });
 
@@ -624,13 +660,13 @@ test.describe("My Shop (seller dashboard)", () => {
   // keeps its 40px floor and stays inside the card instead of clipping.
   //
   // All three locales run, at both widths, but they do NOT pull equal weight.
-  // English is the binding one: the primary label is now "Mark as Reserved"
-  // (active listings offer reserve, not the terminal sold — mobile parity), which
-  // is LONGER than the "Mark as Sold" this spec was first written against, so it
-  // wraps at both widths in en. ps ("ریزرو کول") and fa ("ثبت رزرو") are the
-  // roomier two, and are here for RTL: the box checks confirm a mirrored row
-  // still starts and ends inside the card. Do not drop the `en` cases as "covered
-  // by RTL"; they are the only ones that guard the primary's type scale.
+  // English is the binding one: the primary label is "Mark as Sold" — back to
+  // the label this spec was first written against, now that selling is the
+  // one-tap action on every live listing rather than a step after reserving. ps
+  // ("خرڅ ښودل") and fa ("ثبت فروش") are the roomier two, and are here for RTL:
+  // the box checks confirm a mirrored row still starts and ends inside the card.
+  // Do not drop the `en` cases as "covered by RTL"; they are the only ones that
+  // guard the primary's type scale.
   for (const width of [375, 360]) {
     for (const [locale, m] of [
       ["en", en],
@@ -652,7 +688,9 @@ test.describe("My Shop (seller dashboard)", () => {
             exact: true,
           });
         for (const control of [
-          named(m.listing.detail.actionFor.replace("{action}", m.listing.markReserved), "iPhone 13 Pro"),
+          // The primary on a live listing is Mark as Sold — this used to be
+          // markReserved, back when selling meant reserving first.
+          named(m.listing.detail.actionFor.replace("{action}", m.listing.markSold), "iPhone 13 Pro"),
           named(m.listing.detail.moreOptionsFor, "iPhone 13 Pro"),
         ]) {
           const box = (await control.boundingBox())!;

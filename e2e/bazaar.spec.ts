@@ -18,6 +18,16 @@ test.describe("Bazaar feed", () => {
       await expect(page.getByText(title)).toBeVisible();
     }
     // Reserved/sold listings are excluded from the public feed.
+    // NOTE (SF-W1): this reflects the FIXTURE, not the live API any more.
+    // Rails' `browsable` scope was widened to `live` (active OR reserved), so a
+    // reserved listing DOES come back from `GET /listings` in production — it
+    // stays in search with a "Reserved" ribbon rather than vanishing. The mock
+    // still filters to `status === "active"` (server.mjs), and widening it shifts
+    // every feed/category/similar count in this suite, so it is deliberately a
+    // separate change with its own full-suite run. Web needs no code change for
+    // it either way: nothing here filters the feed by status — the server does.
+    // Until then, do not read this line as "a held listing is hidden from
+    // buyers"; it is not.
     await expect(page.getByText("Mountain Bike (Reserved)")).toHaveCount(0);
     await expect(page.getByText("Leather Sofa (Sold)")).toHaveCount(0);
   });
