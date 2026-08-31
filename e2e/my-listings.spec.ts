@@ -273,7 +273,7 @@ test.describe("My Shop (seller dashboard)", () => {
   // the WHOLE remaining stock — a web seller could only ever sell an entire
   // batch at once while a mobile seller could sell 3 of 15, on the same listing.
 
-  test("selling a batch asks how many, pre-filled with the whole remainder", async ({
+  test("selling a batch asks how many, defaulting to ONE not the whole remainder", async ({
     page,
   }) => {
     await openMyShop(page);
@@ -287,9 +287,17 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(dialog.locator("#soldUnits")).toHaveCount(0);
     await dialog.getByRole("button", { name: /Bilal Nazari/ }).first().click();
 
-    // Pre-filled with all 11, so "I sold the lot" stays one click, and the
-    // remainder is stated so the number is never typed blind.
-    await expect(dialog.locator("#soldUnits")).toHaveValue("11");
+    // Defaults to ONE, not the remainder. This assertion used to expect "11" and
+    // was changed with the behaviour (commit a3c3c1e), not to make a red test
+    // green: pre-filling the whole stock made "I sold all of them" the outcome of
+    // simply confirming the dialog, so a seller clearing one item off a batch of
+    // 50 could retire the entire listing in one click, on a client with no undo.
+    // "I sold one" is what a seller means when they say nothing else; "I sold all
+    // 11" is a deliberate act and should be stated.
+    //
+    // The remainder is still shown beside the field, so the number is never typed
+    // blind — that half of the original intent is unchanged and still asserted.
+    await expect(dialog.locator("#soldUnits")).toHaveValue("1");
     await expect(dialog.getByText("11 available")).toBeVisible();
     // And the final price says which number it is.
     await expect(dialog.getByText("The price for one item")).toBeVisible();
