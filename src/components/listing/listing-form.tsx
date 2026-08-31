@@ -585,10 +585,11 @@ export function ListingForm({
           <div className="space-y-2 pt-2">
             <LocationMap
               editable
+              expandable
               lat={lat}
               lng={lng}
               onChange={(la, ln) => void setPoint(la, ln)}
-              className="h-64"
+              className="h-72"
             />
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs text-muted-foreground">

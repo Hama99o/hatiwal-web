@@ -257,6 +257,8 @@
       "useMyLocation": "Use my location",
       "searchPlacePlaceholder": "Search city or area…",
       "searchAttribution": "Search by OpenStreetMap",
+      "mapAfghanistanOnly": "Map is available for locations inside Afghanistan",
+      "expandMap": "Expand map",
       "negotiableLabel": "Price is negotiable",
       "removePhoto": "Remove photo",
       "multipleUnitsLabel": "I have more than one",

@@ -165,3 +165,17 @@
     animation: none;
   }
 }
+
+/* Leaflet map credit: keep the licence-required OpenMapTiles/OSM attribution
+   but make it small and subtle (Leaflet's default is a bright white pill).
+   Uses theme tokens so it adapts to light/dark. */
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--card) 78%, transparent) !important;
+  color: var(--muted-foreground) !important;
+  font-size: 0.625rem !important;
+  line-height: 1.5 !important;
+  padding: 0 5px !important;
+}
+.leaflet-control-attribution a {
+  color: var(--muted-foreground) !important;
+}

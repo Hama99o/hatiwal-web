@@ -257,6 +257,8 @@
       "useMyLocation": "از موقعیت فعلی من استفاده کن",
       "searchPlacePlaceholder": "شهر یا منطقه را جستجو کنید…",
       "searchAttribution": "جستجو توسط OpenStreetMap",
+      "mapAfghanistanOnly": "نقشه فقط برای مکان‌های داخل افغانستان در دسترس است",
+      "expandMap": "بزرگ‌نمایی نقشه",
       "negotiableLabel": "قیمت قابل مذاکره است",
       "removePhoto": "حذف عکس",
       "multipleUnitsLabel": "بیشتر از یک عدد دارم",

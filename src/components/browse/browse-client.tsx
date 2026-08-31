@@ -571,6 +571,8 @@ export function BrowseClient({
 
         <LocationMap
           editable
+          searchable
+          expandable
           lat={filters.lat ? Number(filters.lat) : null}
           lng={filters.lng ? Number(filters.lng) : null}
           radiusKm={
@@ -583,7 +585,7 @@ export function BrowseClient({
               radius: filters.radius || String(DEFAULT_RADIUS_KM),
             })
           }
-          className="h-40"
+          className="h-64"
         />
 
         {filters.lat ? (

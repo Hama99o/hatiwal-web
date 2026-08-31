@@ -257,6 +257,8 @@
       "useMyLocation": "زما اوسنی موقعیت وکاروئ",
       "searchPlacePlaceholder": "ښار يا سيمه ولټوئ…",
       "searchAttribution": "لټون د OpenStreetMap لخوا",
+      "mapAfghanistanOnly": "نقشه یوازې د افغانستان د ځایونو لپاره شته ده",
+      "expandMap": "نقشه لویه کړئ",
       "negotiableLabel": "قیمت د خبرو وړ دی",
       "removePhoto": "انځور لرې کړئ",
       "multipleUnitsLabel": "زه له یوې څخه ډېرې لرم",

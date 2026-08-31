@@ -737,6 +737,47 @@ const server = createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const path = url.pathname.replace(/^\/api\/v1/, "");
   const q = url.searchParams;
+
+  // ── Basemap (hermetic) ────────────────────────────────────────────────────
+  // The app fetches its map style and vector tiles from map.hatiwal.com in
+  // production. Letting 300+ specs reach a live external host made this suite
+  // slower (17 -> 33 min) and flakier (1 -> 11 flaky) the moment the map landed
+  // on listing detail, and it means an unrelated VPS hiccup fails CI. So the
+  // suite serves its own minimal style instead, and NEXT_PUBLIC_MAP_URL points
+  // here (see playwright.config.ts).
+  //
+  // The style is valid and deliberately EMPTY of sources: MapLibre still creates
+  // its canvas, so `canvas.maplibregl-canvas` — the assertion that the GL layer
+  // took over from Leaflet's raster tiles — still holds, with no tile traffic at
+  // all. The real service is proven separately by hatiwal-map's own render test,
+  // which drives a browser against the live host.
+  if (path.startsWith("/styles/")) {
+    const dark = path.includes("-dark-");
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    });
+    res.end(JSON.stringify({
+      version: 8,
+      name: `mock-${dark ? "dark" : "light"}`,
+      sources: {},
+      glyphs: `http://localhost:${PORT}/fonts/{fontstack}/{range}.pbf`,
+      layers: [{
+        id: "background",
+        type: "background",
+        paint: { "background-color": dark ? "#020817" : "#FAFAFA" },
+      }],
+      metadata: { "hatiwal:mock": "e2e stub — the live basemap is tested in hatiwal-map" },
+    }));
+    return;
+  }
+  // No sources means no glyphs are ever requested, but answer anyway so a future
+  // style change cannot turn into a mystery 404 in an unrelated spec.
+  if (path.startsWith("/fonts/")) {
+    res.writeHead(204, { "Access-Control-Allow-Origin": "*" });
+    res.end();
+    return;
+  }
   const method = req.method;
 
   let raw = "";
