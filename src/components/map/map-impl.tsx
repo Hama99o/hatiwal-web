@@ -12,6 +12,15 @@ import maplibregl from "maplibre-gl";
 // type-check and a build both pass while every map is blank.
 if (typeof window !== "undefined") {
   (window as unknown as { maplibregl: typeof maplibregl }).maplibregl = maplibregl;
+  // Pashto/Dari (fa) map labels are Arabic-script and MUST be RTL-shaped. WebGL
+  // does not join Arabic letters on its own, so without this plugin every label
+  // renders as isolated glyphs in the wrong order. The plugin is self-hosted at
+  // /public (same-origin worker, no external CDN). It throws if registered twice
+  // (HMR re-runs this module), so guard on the plugin status; `true` defers the
+  // load until the map actually meets RTL text.
+  if (maplibregl.getRTLTextPluginStatus() === "unavailable") {
+    maplibregl.setRTLTextPlugin("/mapbox-gl-rtl-text.js", true).catch(() => {});
+  }
 }
 import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
@@ -84,7 +93,32 @@ function HatiwalBasemap() {
     // @ts-expect-error - maplibreGL is attached to L by the plugin, which ships no types.
     const layer = L.maplibreGL({ style: styleUrl, attribution: MAP_ATTRIBUTION });
     layer.addTo(map);
+
+    // The GL canvas measures itself independently of Leaflet. InvalidateOnResize
+    // below calls Leaflet's invalidateSize(), which re-measures the LEAFLET
+    // container and nothing else — so when this same component is re-mounted big
+    // inside the expand dialog (h-[70vh]), the canvas stayed sized for the little
+    // sidebar map and painted a cropped map into a large box. Raster tiles never
+    // showed this because Leaflet positioned each <img> itself; a single GL canvas
+    // has to be told.
+    let raf = 0;
+    const resizeGl = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        try {
+          layer.getMaplibreMap?.()?.resize();
+        } catch {
+          // A resize after the layer is torn down is not worth surfacing.
+        }
+      });
+    };
+    resizeGl();
+    const ro = new ResizeObserver(resizeGl);
+    ro.observe(map.getContainer());
+
     return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
       map.removeLayer(layer);
     };
     // Re-created on theme or language change: the style file IS the design and
@@ -156,6 +190,37 @@ function Recenter({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+/**
+ * Keep the map painting edge-to-edge when its container size changes.
+ *
+ * Leaflet measures its container ONCE at init and caches the pixel size. If the
+ * box then grows — the sidebar map went h-40 → h-64, and the expand dialog
+ * mounts a map at h-[70vh] — Leaflet keeps painting tiles for the old, smaller
+ * size and leaves the rest of the box grey. `invalidateSize()` re-reads the
+ * container and repaints. We call it once on mount (covers the dialog case,
+ * where the container is already full-size the moment the map mounts) and on
+ * every later resize via a ResizeObserver, rAF-batched so a burst of layout
+ * changes triggers a single repaint.
+ */
+function InvalidateOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    let raf = 0;
+    const invalidate = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => map.invalidateSize());
+    };
+    invalidate();
+    const ro = new ResizeObserver(invalidate);
+    ro.observe(map.getContainer());
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [map]);
+  return null;
+}
+
 export interface MapImplProps {
   lat: number | null;
   lng: number | null;
@@ -195,6 +260,7 @@ export default function MapImpl({
           basemap layer and stays. Bottom-left avoids the bottom-right zoom;
           styled small + muted in globals.css. */}
       <AttributionControl position="bottomleft" prefix={false} />
+      <InvalidateOnResize />
       <HatiwalBasemap />
       {editable && onChange && <ClickToSet onChange={onChange} />}
       {hasPoint && (

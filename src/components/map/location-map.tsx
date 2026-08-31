@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Maximize2, MapPinOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { isInAfghanistan } from "@/lib/geo";
@@ -110,6 +111,23 @@ export function LocationMap({
               same lat/lng/onChange, so picking a point applies live to the
               caller and the small map behind the dialog. */}
           <LocationMap searchable className="h-[70vh]" {...props} />
+
+          {/* The dialog used to have no way out but the X. Picking a point does
+              apply live, so this confirms nothing technically — but a
+              full-screen map with no primary action reads as unfinished, and a
+              user reasonably waits for an Apply that never arrives. Mobile has
+              had "Confirm location" here all along (LocationRangePicker's
+              `location-confirm`), so this is web catching up, reusing the SAME
+              i18n key rather than inventing a second label for one idea. */}
+          <div className="mt-3 flex justify-end">
+            <Button
+              type="button"
+              onClick={() => setExpanded(false)}
+              data-testid="location-confirm"
+            >
+              {t("browse.confirmLocation")}
+            </Button>
+          </div>
         </Dialog>
       )}
     </>

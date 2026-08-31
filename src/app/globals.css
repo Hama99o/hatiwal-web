@@ -166,15 +166,19 @@
   }
 }
 
-/* Leaflet map credit: keep the licence-required OpenMapTiles/OSM attribution
-   but make it small and subtle (Leaflet's default is a bright white pill).
-   Uses theme tokens so it adapts to light/dark. */
+/* Leaflet map credit: keep the licence-required OpenMapTiles/OSM attribution,
+   but as a MINIMAL, TRANSPARENT overlay sitting directly on the tiles — no
+   filled pill/white-space block. Tiny + faded, with a soft `--background` halo
+   (text-shadow) so it stays legible over any tile. Theme tokens → adapts. */
 .leaflet-control-attribution {
-  background: color-mix(in srgb, var(--card) 78%, transparent) !important;
+  background: transparent !important;
   color: var(--muted-foreground) !important;
   font-size: 0.625rem !important;
-  line-height: 1.5 !important;
-  padding: 0 5px !important;
+  line-height: 1.4 !important;
+  padding: 0 4px !important;
+  text-shadow:
+    0 0 2px var(--background),
+    0 0 2px var(--background);
 }
 .leaflet-control-attribution a {
   color: var(--muted-foreground) !important;
