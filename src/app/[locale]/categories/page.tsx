@@ -94,7 +94,19 @@ export default async function CategoriesIndexPage({
     <HubShell title={t("categoriesPage.title")}>
       {/* items-start: cards size to their own content, so a card without
           subcategories isn't stretched to match a tall sibling. */}
-      <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {/* NO `items-start` here — that was the bug.
+          Cards carry 0 to 4 subcategory chips, each on its own line at a quarter
+          of a 5xl container, so their heights vary a lot. With `items-start` a
+          short card sits at the TOP of a row whose height is set by the tallest
+          card in it, and the difference shows as a HOLE in the page:
+          "Property / Services / Other" beside a four-chip "Sports & Outdoors"
+          left most of a row blank, which reads as broken rather than designed.
+          Stretching instead (the grid default) plus `h-full` on the card makes
+          each card fill its row, so leftover space sits INSIDE a card as padding.
+          This also keeps source order: the hub is sorted by listing count, and a
+          masonry / `columns-*` layout would reorder it column-major and destroy
+          that left-to-right reading. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {sorted.map((category) => {
           const name = categoryName(category, locale);
           // Rolls up its subcategories — see the controller's hub_listing_counts.
@@ -125,7 +137,7 @@ export default async function CategoriesIndexPage({
               key={category.id}
               data-testid="category-card"
               className={cn(
-                "flex flex-col rounded-lg border bg-card p-4 transition-shadow hover:shadow-md",
+                "flex h-full flex-col rounded-lg border bg-card p-4 transition-shadow hover:shadow-md",
                 // Empty categories are de-emphasised (dashed, muted) so buyers
                 // stop tapping into a category with nothing to buy. No opacity:
                 // it would drop the count line below the contrast minimum.

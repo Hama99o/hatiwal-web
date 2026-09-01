@@ -75,6 +75,26 @@ export async function generateMetadata({
       title: "Hatiwal",
       description: t("hero.subtitle"),
     },
+    // Google Search Console ownership, for a URL-PREFIX property.
+    //
+    // Read from the environment with NO fallback, per the workspace rule that no
+    // real host, domain or account-specific value is committed: the token lives
+    // in the gitignored `.env.production`. Omitted entirely when unset, so a dev
+    // or E2E build emits no tag rather than a misleading empty one.
+    //
+    // NOTE — this does NOT satisfy the DOMAIN property Search Console offers by
+    // default. That one is verified only by a DNS TXT record on hatiwal.com, and
+    // it is the better property to own because it covers every subdomain
+    // (api., map., www.) and every protocol at once. This tag verifies the
+    // https://hatiwal.com URL prefix, which is what can be done from inside the
+    // app; the TXT record has to be added at the DNS host.
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? {
+          verification: {
+            google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+          },
+        }
+      : {}),
   };
 }
 

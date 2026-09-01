@@ -67,6 +67,16 @@ builder:
     # Google Identity Services web client id (a public identifier, not a secret)
     # — gates the "Continue with Google" button; when absent the button is null.
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: <%= ENV.fetch("NEXT_PUBLIC_GOOGLE_CLIENT_ID") %>
+    # Google Search Console ownership for the https://hatiwal.com URL-PREFIX
+    # property (public by design, not a secret). `ENV[...]` rather than
+    # `ENV.fetch` on purpose: unset is a VALID state — the tag is simply not
+    # emitted — so a deploy must never fail for want of it.
+    #
+    # This does NOT satisfy the DOMAIN property, which is verified only by a DNS
+    # TXT record on hatiwal.com and is the better one to own (it covers api.,
+    # map., www. and both protocols at once). That record must be added at the
+    # DNS host; nothing in this repo can do it.
+    NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: <%= ENV['NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION'] %>
     NEXT_PUBLIC_APP_NAME: Hatiwal
     NEXT_PUBLIC_DEFAULT_LOCALE: en
     NEXT_PUBLIC_DEFAULT_THEME: system
