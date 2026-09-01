@@ -287,12 +287,32 @@ export default async function ListingDetailPage({
                   </div>
                 </div>
                 {listing.latitude != null && listing.longitude != null && (
+                <>
                   <LocationMap
                     lat={listing.latitude}
                     lng={listing.longitude}
                     zoom={14}
                     className="h-48"
+                    // SAFETY-1: an AREA, not a pin. A MISSING precision is read as
+                    // approximate (the safe default), so an older payload can never
+                    // re-expose an exact point — only an explicit "exact", which the API
+                    // sends on the owner's own view alone, keeps the precise marker.
+                    // Metres on the wire, kilometres in the map component.
+                    radiusKm={
+                      listing.locationPrecision === "exact"
+                        ? undefined
+                        : (listing.locationRadiusM ?? 500) / 1000
+                    }
                   />
+                  {listing.locationPrecision !== "exact" && (
+                    <p
+                      className="mt-2 text-xs text-muted-foreground"
+                      data-testid="listing-location-approximate"
+                    >
+                      {t("listing.detail.approximateLocation")}
+                    </p>
+                  )}
+                </>
                 )}
               </Card>
             )}

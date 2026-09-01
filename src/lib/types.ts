@@ -159,6 +159,20 @@ export interface Listing {
   address: string | null;
   latitude: number | null;
   longitude: number | null;
+  /**
+   * SAFETY-1 — how precise the coordinates above are. `"approximate"` on every
+   * PUBLIC view (the server snaps the point to a ~500m grid, because publishing
+   * a private seller's exact home coordinate unauthenticated is a real safety
+   * exposure); `"exact"` only on the owner's own view, so the edit form
+   * round-trips the true point.
+   *
+   * A client seeing `"approximate"` must draw an AREA, never a pin. Absent on
+   * older payloads — treat a missing value as approximate, the safe reading.
+   * Mirrors mobile's `locationPrecision`/`locationRadiusM`.
+   */
+  locationPrecision?: "approximate" | "exact" | null;
+  /** Radius in METRES to draw for an approximate point. */
+  locationRadiusM?: number | null;
   thumbnailUrl: string | null;
   /** Unified, non-empty-when-possible list of full-size image urls. */
   images: string[];

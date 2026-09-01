@@ -54,3 +54,6 @@ next-env.d.ts
 /.next-e2e-*
 playwright/.cache
 e2e/.auth
+
+# Visual-sweep screenshots (evidence, reviewed by eye — not committed).
+qa/visual/

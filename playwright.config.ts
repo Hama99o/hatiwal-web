@@ -78,7 +78,12 @@ export default defineConfig({
         // external host in 300+ specs cost 16 minutes and 10 extra flakes, and
         // would fail CI whenever the VPS blinked. The live service has its own
         // browser-driven test in hatiwal-map.
-        NEXT_PUBLIC_MAP_URL: API_BASE.replace(/\/api\/v1$/, ""),
+        // `E2E_REAL_MAP` opts a single run into the LIVE tile server — used by
+        // e2e/visual-sweep.spec.ts, which cannot judge the basemap's dark/light
+        // styling against a source-less mock style. Unset (the default, and
+        // always in CI) keeps every spec hermetic.
+        NEXT_PUBLIC_MAP_URL:
+          process.env.E2E_REAL_MAP || API_BASE.replace(/\/api\/v1$/, ""),
         NEXT_PUBLIC_API_URL: API_BASE,
         NEXT_PUBLIC_RAILS_ORIGIN: `http://localhost:${MOCK_API_PORT}`,
         NEXT_PUBLIC_SITE_URL: `http://localhost:${WEB_PORT}`,

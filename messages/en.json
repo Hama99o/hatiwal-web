@@ -192,7 +192,8 @@
       "mapDone": "Close map",
       "chatComingSoon": "Messaging on the web is coming soon — for now, sign in to save and follow listings.",
       "reservedStillAvailableNote": "The seller may still reply if the reservation falls through.",
-      "quantityAskingLabel": "How many are you asking about?"
+      "quantityAskingLabel": "How many are you asking about?",
+      "approximateLocation": "Approximate area — the exact address is shared in chat."
     },
     "ownerDetail": {
       "notFound": "Listing not found",
