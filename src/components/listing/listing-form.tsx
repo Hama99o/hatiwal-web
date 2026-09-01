@@ -107,7 +107,15 @@ export function ListingForm({
   async function setPoint(la: number, ln: number) {
     setLat(la);
     setLng(ln);
-    const label = await reverseGeocode(la, ln, locale);
+    // "en", NOT the UI locale: this label is SAVED on the listing and then
+    // read by buyers in all three locales. Asking in the creator's language
+    // is why a real production listing shows
+    // "لسمه ناحیه، کابل، کابل شاروالي." on the ENGLISH page, and another shows
+    // its city as "پاريس" — unreadable to two thirds of the audience. The
+    // SEARCH box keeps the user's locale (that is their own query, read once);
+    // only the persisted address is canonical. Mirrors mobile's
+    // `reverseGeocode(..., { canonical: true })`.
+    const label = await reverseGeocode(la, ln, "en");
     if (label) setValue("location", label, { shouldValidate: true });
   }
 

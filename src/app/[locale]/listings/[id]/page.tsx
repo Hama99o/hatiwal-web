@@ -291,7 +291,13 @@ export default async function ListingDetailPage({
                   <LocationMap
                     lat={listing.latitude}
                     lng={listing.longitude}
-                    zoom={14}
+                    // Zoom 13, not 14, BECAUSE of the approximate-area circle: a 500m radius
+                    // at z14 in an h-48 frame fills nearly the whole map, so the circle reads
+                    // as a solid blob and the streets around it — the context a buyer
+                    // actually needs to judge "which part of town" — are pushed out of view.
+                    // One step out keeps the area obvious while leaving surrounding
+                    // neighbourhoods visible. An exact point (owner view) keeps z14.
+                    zoom={listing.locationPrecision === "exact" ? 14 : 13}
                     className="h-48"
                     // SAFETY-1: an AREA, not a pin. A MISSING precision is read as
                     // approximate (the safe default), so an older payload can never
