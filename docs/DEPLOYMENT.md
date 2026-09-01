@@ -1,16 +1,27 @@
 # hatiwal-web — Deployment
 
-Deployed with **Kamal 2** to the shared OVH VPS (`51.254.130.18`), in its own
+> **Domains, corrected 2026-09-01.** This file still described the `nip.io`
+> hostnames the first deploy used, and hardcoded the VPS IP — which also breaks
+> the workspace rule that hosts and domains live only in the gitignored
+> `.env.production`. Production is `hatiwal.com` / `api.hatiwal.com`.
+>
+> Also worth knowing: `hatiwal.multimagics.com` and `hatiwal-api.multimagics.com`
+> are still listed in `KAMAL_PROXY_HOST` but have **no DNS records** (verified
+> against 1.1.1.1). Either restore the records or drop them from the list —
+> otherwise Let's Encrypt keeps trying to validate a name that cannot resolve.
+
+
+Deployed with **Kamal 2** to the shared OVH VPS (`$KAMAL_HOST`, from the gitignored `.env.production`), in its own
 isolated Docker network `hatiwal_web-net`, behind the shared `kamal-proxy`.
 See the workspace overview: [../../DEPLOYMENT.md](../../DEPLOYMENT.md).
 
 | | value |
 |---|---|
-| Hostname | `hatiwal.51.254.130.18.nip.io` (auto-TLS) |
+| Hostname | `hatiwal.com`, `www.hatiwal.com` (auto-TLS) — see `KAMAL_PROXY_HOST` |
 | Image | `hama99o/hatiwal_web` |
 | Container port | `3000` (Next standalone server) |
 | Healthcheck | `GET /api/health` → `200 OK` |
-| Backend | Rails API at `https://api.hatiwal.51.254.130.18.nip.io/api/v1` |
+| Backend | Rails API at `https://api.hatiwal.com/api/v1` |
 
 ## How it's built
 
@@ -46,7 +57,7 @@ talks to the API over its **public HTTPS URL** (same as the mobile app):
 
 ```bash
 cp .env.production.example .env.production   # fill KAMAL_REGISTRY_PASSWORD (Docker Hub token)
-ssh kamal@51.254.130.18 "docker network create hatiwal_web-net"   # one-time
+ssh "$SSH_USER@$KAMAL_HOST" "docker network create hatiwal_web-net"   # one-time
 kamal setup
 ```
 
@@ -66,8 +77,8 @@ bin/kms help          # full list
 ## Verify
 
 ```bash
-curl -sS https://hatiwal.51.254.130.18.nip.io/api/health   # → OK
-open https://hatiwal.51.254.130.18.nip.io/en               # home (en/ps/fa)
+curl -sS https://hatiwal.com/api/health   # → OK
+open https://hatiwal.com/en               # home (en/ps/fa)
 ```
 
 ## Local sanity check (optional)
@@ -76,9 +87,9 @@ Build & run the production image exactly as the server will:
 
 ```bash
 docker build \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.hatiwal.51.254.130.18.nip.io/api/v1 \
-  --build-arg NEXT_PUBLIC_RAILS_ORIGIN=https://api.hatiwal.51.254.130.18.nip.io \
-  --build-arg NEXT_PUBLIC_SITE_URL=https://hatiwal.51.254.130.18.nip.io \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.hatiwal.com/api/v1 \
+  --build-arg NEXT_PUBLIC_RAILS_ORIGIN=https://api.hatiwal.com \
+  --build-arg NEXT_PUBLIC_SITE_URL=https://hatiwal.com \
   -t hatiwal_web:localtest .
 docker run --rm -p 8599:3000 hatiwal_web:localtest
 curl -s http://localhost:8599/api/health   # → OK
