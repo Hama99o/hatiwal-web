@@ -5,10 +5,11 @@
 > the workspace rule that hosts and domains live only in the gitignored
 > `.env.production`. Production is `hatiwal.com` / `api.hatiwal.com`.
 >
-> Also worth knowing: `hatiwal.multimagics.com` and `hatiwal-api.multimagics.com`
-> are still listed in `KAMAL_PROXY_HOST` but have **no DNS records** (verified
-> against 1.1.1.1). Either restore the records or drop them from the list —
-> otherwise Let's Encrypt keeps trying to validate a name that cannot resolve.
+> The `*.multimagics.com` hostnames this app once answered on are GONE — not
+> merely unresolvable, but not ours. They have been removed from
+> `KAMAL_PROXY_HOST`. hatiwal.com's DNS (Squarespace) holds exactly four A
+> records — `@`, `api`, `map`, `www` — all pointing at the VPS, and those are the
+> only names this deployment serves.
 
 
 Deployed with **Kamal 2** to the shared OVH VPS (`$KAMAL_HOST`, from the gitignored `.env.production`), in its own
