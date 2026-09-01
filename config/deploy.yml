@@ -15,7 +15,7 @@ servers:
     options:
       network: hatiwal_web-net
 
-# Shared kamal-proxy terminates TLS and routes hatiwal.<host>.nip.io to the Next
+# Shared kamal-proxy terminates TLS and routes hatiwal.com / www.hatiwal.com to the Next
 # standalone server (listens on :3000 inside the container).
 proxy:
   ssl: true
