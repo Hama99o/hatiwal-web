@@ -161,6 +161,7 @@ export function ListingForm({
   const {
     register,
     handleSubmit,
+    setError,
     watch,
     setValue,
     reset,
@@ -301,6 +302,26 @@ export function ListingForm({
   }
 
   async function save(values: Values, publish: boolean) {
+    // PUBLISHING requires a real point, not just text.
+    //
+    // `LocationSearch`'s `onTextChange` sets the location STRING on every
+    // keystroke and never touches lat/lng — only picking a suggestion or tapping
+    // the map does. So typing "Kandahar" and pressing Publish produced a listing
+    // with a location label and NO coordinates, which is exactly the shape of
+    // production listing 39: it renders no map at all, and it can never appear
+    // in a radius or distance search — the whole point of the map surface.
+    //
+    // Mobile has always blocked this (`publishReadiness.ts` lists "location"
+    // among its publish blockers); web did not, and the divergence leaked
+    // pin-less listings into shared data both clients read. Drafts stay exempt,
+    // matching mobile and the API's own draft rules.
+    if (publish && (lat == null || lng == null)) {
+      setError("location", { message: t("listing.form.pinRequired") });
+      document
+        .getElementById("location")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setSubmitting(true);
     // Last attempt's refusal is about last attempt's number.
     setQuantityServerError(null);

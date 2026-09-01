@@ -261,7 +261,8 @@
       "quantityInvalid": "Enter a number between 1 and 999",
       "howManySold": "How many did you sell?",
       "quantityBelowSoldUnits": "You've already sold {count, number} of these. Set the quantity to {count, number} or more, or undo a sale first.",
-      "quantityBelowHeldUnits": "A buyer is holding {count, number} of these. Release the hold first, or set the quantity to {count, number} or more."
+      "quantityBelowHeldUnits": "A buyer is holding {count, number} of these. Release the hold first, or set the quantity to {count, number} or more.",
+      "pinRequired": "Pick the spot on the map — buyers search by area, so a listing with no pin cannot be found."
     },
     "analytics": {
       "title": "Views (last 7 days)",
