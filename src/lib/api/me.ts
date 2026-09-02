@@ -77,6 +77,12 @@ export interface ProfileUpdate {
   city?: string | null;
   province?: string | null;
   preferredLanguage?: "en" | "ps" | "fa";
+  /** A SEPARATE WhatsApp number — often a different SIM from `phone`. */
+  whatsappNumber?: string | null;
+  /** Gates BOTH phone and whatsapp in a listing's seller hash. Server default: true. */
+  showPhonePublicly?: boolean;
+  /** Gates the user's OWN city/province — never a listing's location. Server default: true. */
+  showAddressPublicly?: boolean;
   /**
    * Away mode (mobile W713). ISO datetime to set the away period, or explicit
    * `null` to clear it. Omit the key entirely to leave the current value

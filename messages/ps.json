@@ -480,13 +480,19 @@
         "city": "ښار",
         "province": "ولایت",
         "setLocation": "خپل ځای په نقشه کې وټاکئ",
-        "locationSet": "ځای وټاکل شو"
+        "locationSet": "ځای وټاکل شو",
+        "whatsapp": "د واټس اپ شمېره",
+        "whatsappSameAsPhone": "زما د تلیفون شمېره ورته ده",
+        "showPhonePublicly": "اخیستونکو ته زما تلیفون او واټس اپ ښکاره کړه",
+        "showAddressPublicly": "زما ښار او ولایت په پروفایل ښکاره کړه",
+        "visibilityNote": "دا ستاسو خپل د اړیکې معلومات دي. د اعلان ځای په جلا توګه، په نقشه کې ټاکل کیږي."
       },
       "validation": {
         "firstnameRequired": "نوم اړین دی",
         "lastnameRequired": "تخلص اړین دی",
         "phoneTooLong": "د تیلفون شمیره ډیره اوږده ده",
-        "bioTooLong": "پیژندنه باید ۵۰۰ توري یا لږ وي"
+        "bioTooLong": "پیژندنه باید ۵۰۰ توري یا لږ وي",
+        "whatsappTooLong": "د واټس اپ شمېره ډېره اوږده ده"
       },
       "language": {
         "en": "انګلیسي",

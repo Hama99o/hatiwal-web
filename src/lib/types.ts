@@ -385,6 +385,12 @@ export interface User {
   city: string | null;
   province: string | null;
   phone: string | null;
+  /** A SEPARATE WhatsApp number — often a different SIM from `phone`. */
+  whatsappNumber?: string | null;
+  /** Gates BOTH phone and whatsapp in a listing's seller hash. Server default: true. */
+  showPhonePublicly?: boolean;
+  /** Gates the user's OWN city/province — never a listing's location. Default: true. */
+  showAddressPublicly?: boolean;
   bio: string | null;
   latitude: number | null;
   longitude: number | null;

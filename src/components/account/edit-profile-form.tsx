@@ -68,6 +68,14 @@ export function EditProfileForm() {
     province: z.string().optional().or(z.literal("")),
     preferredLanguage: z.enum(["en", "ps", "fa"]),
     // Away mode (W713): toggle + a YYYY-MM-DD end date from the native picker.
+    // A SEPARATE WhatsApp number — often a different SIM from `phone`.
+    whatsappNumber: z
+      .string()
+      .max(30, t("profile.edit.validation.whatsappTooLong"))
+      .optional()
+      .or(z.literal("")),
+    showPhonePublicly: z.boolean(),
+    showAddressPublicly: z.boolean(),
     isAway: z.boolean(),
     awayUntilDate: z.string().optional().or(z.literal("")),
   });
@@ -77,6 +85,7 @@ export function EditProfileForm() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -84,6 +93,12 @@ export function EditProfileForm() {
       firstname: user?.firstname ?? "",
       lastname: user?.lastname ?? "",
       phone: user?.phone ?? "",
+      whatsappNumber: user?.whatsappNumber ?? "",
+      // `?? true` matches the column defaults: an undefined from an older
+      // response must never read as "hidden", which would silently withdraw the
+      // seller's phone from their own listings.
+      showPhonePublicly: user?.showPhonePublicly ?? true,
+      showAddressPublicly: user?.showAddressPublicly ?? true,
       bio: user?.bio ?? "",
       city: user?.city ?? "",
       province: user?.province ?? "",
@@ -184,6 +199,56 @@ export function EditProfileForm() {
         >
           <Input id="phone" inputMode="tel" {...register("phone")} />
         </Field>
+
+        {/* WhatsApp — a separate number, plus a one-tap copy of the phone.
+            Owner request, 2026-09-02: "give posibilites to add same number as
+            whatapp option also". */}
+        <Field
+          label={t("profile.edit.fields.whatsapp")}
+          htmlFor="whatsappNumber"
+          error={errors.whatsappNumber?.message}
+        >
+          <Input id="whatsappNumber" inputMode="tel" {...register("whatsappNumber")} />
+          {watch("phone") && watch("whatsappNumber") !== watch("phone") ? (
+            <button
+              type="button"
+              onClick={() =>
+                setValue("whatsappNumber", watch("phone") ?? "", { shouldDirty: true })
+              }
+              className="mt-1.5 text-sm text-primary underline-offset-2 hover:underline"
+            >
+              {t("profile.edit.fields.whatsappSameAsPhone")}
+            </button>
+          ) : null}
+        </Field>
+
+        {/* Who can see my contact details.
+            Owner request, 2026-09-02: "show option to show number and address to
+            people or not — I mean user address not list address its important".
+            The note below states that distinction, since it is what a seller
+            would otherwise get wrong: hiding your own address must not hide
+            where an item can be collected. */}
+        <div className="space-y-2 rounded-lg border border-border p-3">
+          <label className="flex cursor-pointer items-center justify-between gap-4">
+            <span className="text-sm">{t("profile.edit.fields.showPhonePublicly")}</span>
+            <input
+              type="checkbox"
+              className="size-5 shrink-0 accent-primary"
+              {...register("showPhonePublicly")}
+            />
+          </label>
+          <label className="flex cursor-pointer items-center justify-between gap-4">
+            <span className="text-sm">{t("profile.edit.fields.showAddressPublicly")}</span>
+            <input
+              type="checkbox"
+              className="size-5 shrink-0 accent-primary"
+              {...register("showAddressPublicly")}
+            />
+          </label>
+          <p className="text-xs text-muted-foreground">
+            {t("profile.edit.fields.visibilityNote")}
+          </p>
+        </div>
 
         <Field
           label={t("profile.edit.fields.bio")}
