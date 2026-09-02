@@ -438,48 +438,44 @@ test.describe("Conversations inbox", () => {
     await expect(threadLinks(page)).toHaveCount(1);
     await expect(page.getByText("۷۵٬۰۰۰")).toBeVisible();
   });
-
-  test("no match shows the search empty state, honest about unloaded pages", async ({
+  test("no match shows an ABSOLUTE empty state — the search covers the whole inbox", async ({
     page,
   }) => {
+    // Rewritten 2026-09-02. This used to assert the OPPOSITE: that the empty
+    // state hedged with "showing results in loaded conversations only", because
+    // the search filtered pages already in memory and a match really could sit
+    // on an unloaded page.
+    //
+    // The owner reported that as a bug ("it's not connected with backend, it's
+    // not search in db") and he was right. The server now searches the whole
+    // inbox, so "no matches" IS absolute — and keeping the hedge would send
+    // people paging through an inbox for something that is not there.
     await page.goto("/en/conversations");
     await searchField(page).fill("zzzz");
-    await expect(
-      page.getByText('No matches for "zzzz"'),
-    ).toBeVisible();
-    // A page is still unloaded, so "no matches" must not read as absolute.
-    await expect(
-      page.getByText(
-        "Try a different name, listing title, or message. Showing results in loaded conversations only.",
-      ),
-    ).toBeVisible();
-
-    // Clear search → the list is back.
-    await page.getByRole("button", { name: "Clear search", exact: true }).click();
-    await expect(threadLinks(page)).toHaveCount(PAGE_SIZE);
-
-    // With everything loaded the description drops the caveat.
-    await loadMore(page).click();
-    await searchField(page).fill("zzzz");
+    await expect(page.getByText('No matches for "zzzz"')).toBeVisible();
     await expect(
       page.getByText("Try a different name, listing title, or message.", {
         exact: true,
       }),
     ).toBeVisible();
+    // The caveat must be GONE, whether or not pages remain unloaded.
+    await expect(
+      page.getByText("Showing results in loaded conversations only"),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Clear search", exact: true }).click();
+    await expect(threadLinks(page)).toHaveCount(PAGE_SIZE);
   });
 
-  test("the partial-results notice shows only while pages remain", async ({
+  test("a match beyond the first page is found without Load-more", async ({
     page,
   }) => {
+    // The case the old client-side search could not satisfy: the term matches a
+    // thread that is not on page 1, and nothing has been loaded past it.
     await page.goto("/en/conversations");
+    await expect(threadLinks(page)).toHaveCount(PAGE_SIZE);
     await searchField(page).fill("deliver");
-    const notice = page.getByText(
-      "Showing results in loaded conversations only",
-      { exact: true },
-    );
-    await expect(notice).toBeVisible();
-    await loadMore(page).click();
-    await expect(notice).toHaveCount(0);
+    await expect(page.getByText('No matches for "deliver"')).toHaveCount(0);
   });
 
   test("search is render-only: the unread badges keep their counts", async ({

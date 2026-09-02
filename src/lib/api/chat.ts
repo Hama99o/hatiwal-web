@@ -28,10 +28,23 @@ export async function getConversations(
   listingId?: number,
   archived?: boolean,
   page?: number,
+  /**
+   * Server-side search across the WHOLE inbox.
+   *
+   * Owner report, 2026-09-02: the search "is not connected with backend, it's
+   * not search in db". It was filtering already-loaded pages in memory, so a
+   * match past page 1 could not be found. Matches the other party's name, the
+   * listing title, and any message body — see Conversation.matching in the API.
+   */
+  search?: string,
 ): Promise<ConversationsResult> {
   const params = new URLSearchParams();
   if (listingId) params.set("listing_id", String(listingId));
   if (archived) params.set("archived", "true");
+  // Trimmed, and omitted when empty: a bare `search=` would make the server run
+  // a blank match instead of returning the plain inbox.
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) params.set("search", trimmedSearch);
   // Page 1 sends no page param, so the request the page-1 callers make is
   // byte-identical to the one they made before this function paged at all.
   if (page && page > 1) params.set("page[number]", String(page));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -80,15 +80,35 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
   const { refresh } = useAuth();
   const [tab, setTab] = useState<TabMode>("inbox");
   const [term, setTerm] = useState("");
+  // ...and a settled copy for the SERVER query.
+  //
+  // Two-speed, matching mobile. `term` still narrows the loaded rows instantly,
+  // so typing feels immediate; `debouncedTerm` goes to the API 400ms after you
+  // stop, which is what makes a match past page 1 findable at all. Owner report,
+  // 2026-09-02: the search "is not connected with backend, it's not search in
+  // db" — it was filtering memory only.
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
   // The Inbox/Archived partition only applies to the full inbox, not the
   // per-listing filtered view (which mirrors mobile's listing-scoped list).
   const archived = !listingId && tab === "archived";
+
+  // 400ms, same as mobile and as the browse search — the trimmed value is what
+  // travels, so trailing spaces cannot produce a different cache key or a wasted
+  // round trip.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedTerm(term.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [term]);
+
   const queryKey = [
     "conversations",
     listingId ?? "all",
     archived ? "archived" : "inbox",
+    // The SETTLED term is part of the key, so a search is its own cached result
+    // set rather than a filtered view of the inbox.
+    debouncedTerm,
   ];
 
   // Rails paginates this index at 20/page. Paging is the ONLY way to reach
@@ -96,7 +116,8 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
   // useQuery silently truncated the inbox to its first page.
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam }) => getConversations(listingId, archived, pageParam),
+    queryFn: ({ pageParam }) =>
+      getConversations(listingId, archived, pageParam, debouncedTerm),
     initialPageParam: 1,
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
   });
@@ -115,8 +136,12 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
     [locale],
   );
 
-  // Client-side search over the LOADED rows (there is no search endpoint):
-  // counterpart name, listing title, or the rendered last-message preview.
+  // Client-side narrowing ON TOP of the server search, not instead of it.
+  //
+  // The server (?search=) decides WHICH conversations come back; this keeps the
+  // visible rows in step with the characters typed since the last settle, so the
+  // list never looks stale for 400ms. It matches on the same three things the
+  // server does: counterpart name, listing title, and the message preview.
   const trimmedTerm = term.trim();
   const hasTerm = trimmedTerm.length > 0;
   const rows = useMemo(
@@ -266,14 +291,14 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
             <EmptyState
               icon={SearchX}
               title={t("chat.search.noMatchTitle", { term: trimmedTerm })}
-              /* While more pages exist, "no matches" would be misleadingly
-                 absolute — the thread may sit on a page nobody has loaded yet,
-                 which is also why Load-more stays below this state. */
-              description={
-                query.hasNextPage
-                  ? t("chat.search.noMatchDescriptionPartial")
-                  : t("chat.search.noMatchDescription")
-              }
+              /* No caveat any more. That text ("showing results in loaded
+                 conversations only") described the OLD client-side search, which
+                 filtered the pages already in memory. The server now searches
+                 the whole inbox (?search= -> Conversation.matching), so "no
+                 matches" is genuinely absolute and telling the user otherwise
+                 would send them paging through an inbox for something that is
+                 not there. */
+              description={t("chat.search.noMatchDescription")}
               action={{
                 label: t("chat.search.clearSearch"),
                 onClick: clearSearch,
@@ -415,13 +440,10 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
             </ul>
           )}
 
-          {/* Search only sees what's loaded — say so while pages remain, so a
-              short result list doesn't read as "that's everything". */}
-          {hasTerm && rows.length > 0 && query.hasNextPage && (
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              {t("chat.search.partialResultsConversations")}
-            </p>
-          )}
+          {/* The "results in loaded conversations only" note is gone with the
+              client-only search it described: the server searches the whole
+              inbox now, so a short result list IS everything, and saying
+              otherwise would undermine a correct answer. */}
 
           {query.hasNextPage && (
             <Button
