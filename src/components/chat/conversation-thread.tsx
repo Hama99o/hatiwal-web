@@ -186,6 +186,11 @@ export function ConversationThread({ id }: { id: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollBoxRef = useRef<HTMLDivElement>(null);
+  // Is the reader parked at the newest messages? Same 120px threshold the mobile
+  // thread uses, so "following the conversation" means the same thing on both
+  // clients.
+  const nearBottomRef = useRef(true);
 
   // Seed/re-seed from the fetched list. The fetch is authoritative for every
   // message it contains (it carries the freshest readAt — that's how a sent tick
@@ -239,6 +244,31 @@ export function ConversationThread({ id }: { id: string }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  // ...and re-land the bottom when the message AREA changes size rather than its
+  // content — which `[messages.length]` above cannot see.
+  //
+  // The mobile thread had a version of this bug that the owner hit on device
+  // (2026-09-02): the newest message ended up unreachable without a manual drag.
+  // The occluding half does not apply here, because this composer is a flex
+  // SIBLING of the scroll box rather than an overlay on top of it. What does
+  // apply is the resize: when the QuickReplies chips mount (or the composer wraps
+  // to a second line) the scroll box gets shorter, the newest message is pushed
+  // out of view, and no message was added — so nothing scrolled.
+  //
+  // Guarded on near-bottom so it never yanks someone reading history, and
+  // unsmoothed because this is a correction, not a journey.
+  useEffect(() => {
+    const box = scrollBoxRef.current;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (nearBottomRef.current) {
+        bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      }
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
 
   // Live updates over the WebSocket. Upsert by id so a re-broadcast of an
   // existing message (e.g. a soft-delete tombstone flip) replaces it in place
@@ -675,7 +705,15 @@ export function ConversationThread({ id }: { id: string }) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+      <div
+        ref={scrollBoxRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          nearBottomRef.current =
+            el.scrollHeight - el.clientHeight - el.scrollTop < 120;
+        }}
+        className="flex-1 space-y-2 overflow-y-auto p-4"
+      >
         {messages.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
             {t("chat.thread.emptyDescription")}
