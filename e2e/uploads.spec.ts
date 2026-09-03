@@ -39,15 +39,16 @@ test.describe("avatar upload", () => {
     await expect(input, "the profile form has no file input at all").toHaveCount(1);
     await input.setInputFiles(PHOTO_A);
 
-    // The one assertion that distinguishes "the browser accepted the file" from
-    // "the app did something with it": a preview the user can see. Without this
-    // the test would pass on an upload that silently went nowhere.
-    const preview = page.locator('img[src^="blob:"], img[src^="data:"]').first();
+    // THE ACK HERE IS A TOAST, not a local preview — I asserted the wrong thing
+    // first and it failed on a working feature. `onPickAvatar` does not build a
+    // blob URL: it uploads straight away (`await updateAvatar(file)`), stores the
+    // returned user and calls `toast.success(t("profile.edit.photoUpdated"))`, so
+    // the avatar ends up on a SERVER url and no blob:/data: image ever exists.
     await expect(
-      preview,
-      "no local preview appeared after picking an image — the change handler " +
-        "either did not fire or dropped the file",
-    ).toBeVisible({ timeout: 10_000 });
+      page.getByText("Photo updated"),
+      "no 'Photo updated' toast after picking an image — the upload did not " +
+        "complete, so the change handler either did not fire or the request failed",
+    ).toBeVisible({ timeout: 15_000 });
 
     // And the form must remain submittable: a half-applied upload that disables
     // Save is its own bug.
@@ -105,19 +106,23 @@ test.describe("chat attachment", () => {
 
     const input = page.locator('input[type="file"]').first();
     await expect(input, "the composer has no file input").toHaveCount(1);
+
+    // THE ACK IS A NEW MESSAGE, not a preview or a chip — my first version
+    // looked for both and failed on a working feature. The handler is
+    // `if (f) sendAttachment(f)`: the file is SENT immediately, so it arrives in
+    // the thread rather than sitting in the composer.
+    //
+    // Counted before and after, because "a message exists" is true before the
+    // attachment too — only the INCREASE proves this upload did anything.
+    const bubbles = page.locator("[data-message-id], li, article").filter({ hasText: /./ });
+    const before = await bubbles.count();
+
     await input.setInputFiles(PHOTO_A);
 
-    // This input accepts documents as well as images
-    // (accept="image/*,.pdf,.doc,.docx,.txt"), so the acknowledgement may be a
-    // preview OR a named chip. Either proves the app took the file; neither
-    // being present means it went nowhere.
-    const ack = page
-      .locator('img[src^="blob:"], img[src^="data:"]')
-      .or(page.getByText(/photo-a/i))
-      .first();
     await expect(
-      ack,
-      "no preview and no filename chip after attaching — the file was dropped",
-    ).toBeVisible({ timeout: 15_000 });
+      async () => expect(await bubbles.count()).toBeGreaterThan(before),
+      `the thread still has ${before} items after attaching a file — ` +
+        `sendAttachment dropped it or the request failed`,
+    ).toPass({ timeout: 20_000 });
   });
 });
