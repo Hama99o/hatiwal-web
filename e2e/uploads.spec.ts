@@ -114,8 +114,20 @@ test.describe("chat attachment", () => {
     //
     // Counted before and after, because "a message exists" is true before the
     // attachment too — only the INCREASE proves this upload did anything.
-    const bubbles = page.locator("[data-message-id], li, article").filter({ hasText: /./ });
+    // `p`, because that is how this app's messages are addressable: MessageBubble
+    // renders plain divs with no data attribute and no li/article, and
+    // conversation-thread.spec.ts already targets message text with
+    // `locator("p", { hasText: ... })`. My first two locators
+    // (`[data-message-id], li, article`) matched ZERO elements, so the count
+    // never moved and the failure said "the thread still has 0 items" — a
+    // selector problem wearing the costume of a dropped upload.
+    const bubbles = page.locator("p").filter({ hasText: /./ });
     const before = await bubbles.count();
+    expect(
+      before,
+      "the thread has no message paragraphs at all — the conversation did not " +
+        "render, so an attachment cannot be observed arriving in it",
+    ).toBeGreaterThan(0);
 
     await input.setInputFiles(PHOTO_A);
 
