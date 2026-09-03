@@ -29,14 +29,10 @@ test.describe("avatar upload", () => {
   test.use({ storageState: BUYER_STATE });
 
   test("picking an image shows it, and the form can still be saved", async ({ page }) => {
-    await page.goto("/en/profile");
-    await page.waitForLoadState("networkidle");
-
-    // Reach the edit form by the user's own route rather than a deep link, so a
-    // broken entry point fails here instead of masquerading as an upload bug.
-    const edit = page.getByRole("link", { name: /edit/i }).first();
-    if ((await edit.count()) === 0) test.skip();
-    await edit.click();
+    // The real route (profile-view.tsx links to /profile/edit). Hunting a link
+    // by the name /edit/i found nothing and the test SKIPPED — green in the
+    // summary, asserting nothing.
+    await page.goto("/en/profile/edit");
     await page.waitForLoadState("networkidle");
 
     const input = page.locator('input[type="file"]').first();
@@ -96,8 +92,19 @@ test.describe("chat attachment", () => {
     await page.goto("/en/conversations/1");
     await page.waitForLoadState("networkidle");
 
+    // ASSERT the precondition instead of skipping on it. This app renders the
+    // composer — and the file input inside it — only when the conversation is
+    // neither closed nor blocked (`{closed || blocked ? notice : form}`), so a
+    // leftover block from another spec makes the input vanish. Skipping there
+    // hides the reason; failing names it.
+    await expect(
+      page.getByPlaceholder("Type a message..."),
+      "this conversation has no composer — it is closed or blocked, so the " +
+        "attachment path cannot be reached",
+    ).toBeVisible();
+
     const input = page.locator('input[type="file"]').first();
-    if ((await input.count()) === 0) test.skip();
+    await expect(input, "the composer has no file input").toHaveCount(1);
     await input.setInputFiles(PHOTO_A);
 
     // This input accepts documents as well as images

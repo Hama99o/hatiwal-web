@@ -88,8 +88,14 @@ for (const vp of VIEWPORTS) {
       await page.goto("/en/bazaar");
       await page.waitForLoadState("networkidle");
 
-      const heading = page.locator("h1, h2").first();
-      if ((await heading.count()) === 0) test.skip();
+      // getByRole covers h1..h6 AND aria headings. `locator("h1, h2")` found
+      // nothing on /en/bazaar and the test SKIPPED at all three viewports —
+      // reading as green in the summary while asserting nothing.
+      const heading = page.getByRole("heading").first();
+      expect(
+        await heading.count(),
+        "no heading of any level on /en/bazaar — the selector, or the page, is wrong",
+      ).toBeGreaterThan(0);
 
       const box = await heading.boundingBox();
       expect(box, "the first heading has no layout box at all").not.toBeNull();
@@ -108,8 +114,15 @@ for (const vp of VIEWPORTS) {
 
       // By role, not a testid: this is the user's path through the page, and it
       // works the same at every width.
-      const card = page.locator("a[href*='/listing/']").first();
-      if ((await card.count()) === 0) test.skip();
+      // `/listings/`, PLURAL. The route is /[locale]/listings/[id], so
+      // `a[href*='/listing/']` — with the trailing slash — could never match
+      // /listings/123, and this test skipped at all three viewports while
+      // looking like a pass.
+      const card = page.locator("a[href*='/listings/']").first();
+      expect(
+        await card.count(),
+        "no listing links on /en/bazaar — a marketplace feed with no listings to open",
+      ).toBeGreaterThan(0);
       await card.click();
       await page.waitForLoadState("networkidle");
 
