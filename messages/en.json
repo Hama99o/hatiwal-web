@@ -862,7 +862,8 @@
       "blockSuccess": "User blocked.",
       "unblockSuccess": "User unblocked.",
       "blockFailed": "Could not block user. Try again.",
-      "unblockFailed": "Could not unblock user. Try again."
+      "unblockFailed": "Could not unblock user. Try again.",
+      "messagingUnavailable": "You can't message this user."
     },
     "message": {
       "deleted": "This message was deleted",

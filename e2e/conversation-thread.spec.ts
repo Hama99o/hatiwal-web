@@ -70,4 +70,55 @@ test.describe("Conversation thread", () => {
     await page.goto("/en/conversations/99999");
     await expect(page.getByText("Could not load messages.")).toBeVisible();
   });
+
+  // Regression: blocking used to leave the composer fully enabled.
+  //
+  // `blocked` reached only the shield's colour and the confirm dialog's wording,
+  // while the composer was gated on `closed` alone — so you could type into it
+  // and press send, and the API (which refuses on either condition) just failed
+  // the send. Mobile has disabled it and shown a banner all along, so this was a
+  // cross-client divergence on one backend rule.
+  //
+  // SELF-CLEANING: it blocks and then unblocks, because this suite runs against
+  // the real dev API, and a block left behind would strand every later
+  // conversation test on the notice this test is asserting.
+  test("blocking replaces the composer with a reason, and unblocking restores it", async ({
+    page,
+  }) => {
+    await page.goto("/en/conversations/1");
+    await expect(page.getByPlaceholder("Type a message...")).toBeVisible();
+
+    // ── Block ───────────────────────────────────────────────────────────────
+    await page.getByRole("button", { name: "Block User", exact: true }).click();
+    await expect(page.getByText("Block this user?")).toBeVisible();
+    // The dialog's confirm shares its label with the shield's aria-label, so
+    // scope to the dialog rather than matching two "Block User" controls.
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Block User", exact: true })
+      .click();
+
+    // The notice names the BLOCK, never "Conversation closed" — that copy is for
+    // a genuinely closed conversation and would report the wrong cause.
+    await expect(page.getByText("You can't message this user.")).toBeVisible();
+    await expect(page.getByText("Conversation closed", { exact: false })).toHaveCount(0);
+    await expect(page.getByPlaceholder("Type a message...")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toHaveCount(0);
+
+    // ── Unblock, and prove the composer comes back ──────────────────────────
+    await page
+      .getByRole("button", { name: "Unblock User", exact: true })
+      .first()
+      .click();
+    // Unblocking confirms too on web (the dialog reuses the same title slot).
+    const confirm = page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Unblock User", exact: true });
+    if (await confirm.count()) await confirm.click();
+
+    await expect(page.getByPlaceholder("Type a message...")).toBeVisible();
+    await expect(page.getByText("You can't message this user.")).toHaveCount(0);
+  });
 });

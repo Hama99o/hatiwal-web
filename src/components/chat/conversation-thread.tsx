@@ -777,17 +777,35 @@ export function ConversationThread({ id }: { id: string }) {
       </div>
 
       {/* Quick-reply preset chips (hidden on a closed conversation) */}
-      {!closed && (
+      {/* Also hidden while blocked — a quick reply inserts text into a composer
+        * that can no longer send, so offering one is an invitation to a failure. */}
+      {!closed && !blocked && (
         <QuickReplies
           role={isSeller ? "seller" : "buyer"}
           onSelect={handleQuickReply}
         />
       )}
 
-      {/* Composer */}
-      {closed ? (
+      {/* Composer.
+        *
+        * GATED ON `blocked` AS WELL AS `closed`. It used to check only `closed`
+        * (`conversation?.status === "closed"`), while `blocked` reached nothing
+        * but the shield icon's colour and the confirm dialog's wording — so
+        * after blocking someone the composer stayed fully enabled here, with no
+        * notice, and you could type a message and press send. The API refuses
+        * to deliver it (it refuses on either condition), so the send just
+        * failed. Mobile has disabled the composer and shown a banner all along
+        * (Conversation.tsx: `canSend = !isClosed && !isBlocked && ...`), which
+        * makes this a cross-client divergence on the same backend rule.
+        *
+        * The notice names the actual reason. Mobile made the opposite mistake
+        * for the same shape — it announced "Conversation closed" for both — and
+        * that was fixed in 502fc36; this copy is that fix's counterpart, with
+        * the en/ps/fa strings taken verbatim from mobile so both clients say
+        * the same sentence. */}
+      {closed || blocked ? (
         <div className="border-t p-4 text-center text-sm text-muted-foreground">
-          {t("chat.thread.closedInput")}
+          {closed ? t("chat.thread.closedInput") : t("chat.block.messagingUnavailable")}
         </div>
       ) : (
         <form
