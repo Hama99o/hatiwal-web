@@ -75,6 +75,31 @@ for (const vp of VIEWPORTS) {
         // failing on that would be measuring the loading state, not the layout.
         await page.waitForLoadState("networkidle");
 
+        // THE PAGE MUST HAVE CONTENT BEFORE ITS LAYOUT MEANS ANYTHING.
+        //
+        // An EMPTY page cannot overflow, so without this the whole sweep passes
+        // vacuously — and it did: the first run reported 21 green overflow
+        // checks on pages that had rendered nothing. Every route here wraps its
+        // fetches in `safe(..., [])` (see bazaar/page.tsx), so when the API
+        // response fails to parse the page degrades silently to a shell instead
+        // of erroring. In the e2e harness the mock API was returning something
+        // unparseable (`SyntaxError: Unexpected number in JSON at position
+        // 1286` in the server log), so every SSR route rendered empty. Against
+        // the real API the same page has 4 headings, 24 listing links and 50
+        // price strings.
+        //
+        // A body-text floor is the cheapest honest gate: a shell is a few
+        // hundred characters of chrome, a rendered page is thousands.
+        const bodyChars = await page.evaluate(
+          () => (document.body.innerText || "").trim().length,
+        );
+        expect(
+          bodyChars,
+          `${p.label} rendered only ${bodyChars} characters — the page is an ` +
+            `empty shell, so measuring its layout proves nothing. Check the ` +
+            `API the harness points at, not the CSS.`,
+        ).toBeGreaterThan(400);
+
         const overflow = await horizontalOverflow(page);
         expect(
           overflow,
