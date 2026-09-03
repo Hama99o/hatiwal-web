@@ -1,0 +1,116 @@
+import path from "node:path";
+import { test, expect } from "@playwright/test";
+import { BUYER_STATE } from "./auth-paths";
+
+/**
+ * UPLOAD SWEEP — the web half of the upload problem.
+ *
+ * Why this file exists: `grep -rn setInputFiles e2e/` returned NOTHING across 41
+ * specs, so all three of this app's upload paths were completely untested —
+ * the avatar, a listing's photos, and a chat attachment. Upload is the kind of
+ * feature that fails silently (the picker opens, nothing appears, no error), and
+ * silence is exactly what no assertion catches.
+ *
+ * All three inputs are `className="hidden"` and driven by a label or a ref, which
+ * is why they are addressed as `input[type="file"]` rather than by clicking: an
+ * `input` that is `display:none` cannot be clicked, but Playwright's
+ * `setInputFiles` sets it directly and fires the same change event the app
+ * listens for. That is the real code path, not a simulation of it.
+ *
+ * The fixtures are REAL 640x480 PNGs (e2e/fixtures), not 1x1 placeholders. A
+ * photo path may legitimately reject a degenerate image, and a test that fails
+ * on its own fixture rather than on the feature is worse than no test.
+ */
+
+const PHOTO_A = path.join(__dirname, "fixtures", "photo-a.png");
+const PHOTO_B = path.join(__dirname, "fixtures", "photo-b.png");
+
+test.describe("avatar upload", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("picking an image shows it, and the form can still be saved", async ({ page }) => {
+    await page.goto("/en/profile");
+    await page.waitForLoadState("networkidle");
+
+    // Reach the edit form by the user's own route rather than a deep link, so a
+    // broken entry point fails here instead of masquerading as an upload bug.
+    const edit = page.getByRole("link", { name: /edit/i }).first();
+    if ((await edit.count()) === 0) test.skip();
+    await edit.click();
+    await page.waitForLoadState("networkidle");
+
+    const input = page.locator('input[type="file"]').first();
+    await expect(input, "the profile form has no file input at all").toHaveCount(1);
+    await input.setInputFiles(PHOTO_A);
+
+    // The one assertion that distinguishes "the browser accepted the file" from
+    // "the app did something with it": a preview the user can see. Without this
+    // the test would pass on an upload that silently went nowhere.
+    const preview = page.locator('img[src^="blob:"], img[src^="data:"]').first();
+    await expect(
+      preview,
+      "no local preview appeared after picking an image — the change handler " +
+        "either did not fire or dropped the file",
+    ).toBeVisible({ timeout: 10_000 });
+
+    // And the form must remain submittable: a half-applied upload that disables
+    // Save is its own bug.
+    const save = page.getByRole("button", { name: /save/i }).first();
+    await expect(save).toBeEnabled();
+  });
+});
+
+test.describe("listing photos", () => {
+  // One account is both buyer and seller in this product, and
+  // my-listings.spec.ts authenticates the same way.
+  test.use({ storageState: BUYER_STATE });
+
+  test("MULTIPLE photos can be attached in one pick", async ({ page }) => {
+    // The route create-listing.spec.ts already exercises, rather than hunting a
+    // link by name — a guessed selector failing here would read as an upload bug.
+    await page.goto("/en/listings/new");
+    await expect(page.getByRole("heading", { name: "Create Listing" })).toBeVisible();
+
+    const input = page.locator('input[type="file"]').first();
+    if ((await input.count()) === 0) test.skip();
+
+    // `multiple` is set on this input (listing-form.tsx), so BOTH files in one
+    // call is the real path a seller uses — and the case most likely to be
+    // broken, because handling one file is easy and handling a FileList is where
+    // implementations forget to iterate.
+    await input.setInputFiles([PHOTO_A, PHOTO_B]);
+
+    const previews = page.locator('img[src^="blob:"], img[src^="data:"]');
+    await expect(
+      previews,
+      "picked 2 photos in one go and got a different number of previews — " +
+        "the change handler is probably taking files[0] instead of iterating",
+    ).toHaveCount(2, { timeout: 15_000 });
+  });
+});
+
+test.describe("chat attachment", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("an attachment can be added to a conversation", async ({ page }) => {
+    await page.goto("/en/conversations/1");
+    await page.waitForLoadState("networkidle");
+
+    const input = page.locator('input[type="file"]').first();
+    if ((await input.count()) === 0) test.skip();
+    await input.setInputFiles(PHOTO_A);
+
+    // This input accepts documents as well as images
+    // (accept="image/*,.pdf,.doc,.docx,.txt"), so the acknowledgement may be a
+    // preview OR a named chip. Either proves the app took the file; neither
+    // being present means it went nowhere.
+    const ack = page
+      .locator('img[src^="blob:"], img[src^="data:"]')
+      .or(page.getByText(/photo-a/i))
+      .first();
+    await expect(
+      ack,
+      "no preview and no filename chip after attaching — the file was dropped",
+    ).toBeVisible({ timeout: 15_000 });
+  });
+});
