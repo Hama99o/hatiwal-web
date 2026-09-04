@@ -18,6 +18,13 @@ const API_BASE = `http://localhost:${MOCK_API_PORT}/api/v1`;
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.spec.ts",
+  // REPAIRS corrupt build artifacts before the run, leaving the webpack cache
+  // intact so the first request is not a cold compile. A half-written
+  // prerender-manifest.json — left by an interrupted or overlapping run — makes
+  // EVERY page render as a blank shell, with a misleading "SyntaxError:
+  // Unexpected number in JSON" in the server log and nothing pointing at the
+  // cause. Full diagnosis in e2e/global-setup.ts.
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

@@ -1,5 +1,5 @@
 import { convertKeysToCamel, convertKeysToSnake } from "./case";
-import { ApiError, readApiError } from "./client";
+import { ApiError, parseOrExplain, readApiError } from "./client";
 import { normalizeListing, type RawListing } from "./listings";
 import type { Listing, Transaction, User } from "../types";
 
@@ -45,7 +45,12 @@ export async function meRequest<T>(
   }
   // Tolerate empty bodies (e.g. 204 from DELETE).
   const text = await res.text();
-  return (text ? convertKeysToCamel<T>(JSON.parse(text)) : undefined) as T;
+  // parseOrExplain, not a bare JSON.parse: this is the AUTHENTICATED path, and a
+  // bare parse here throws an anonymous "Unexpected token …" that names neither
+  // the endpoint nor the body. See its docstring in ./client.ts.
+  return (
+    text ? convertKeysToCamel<T>(parseOrExplain(text, `me/${path}`, res)) : undefined
+  ) as T;
 }
 
 /**

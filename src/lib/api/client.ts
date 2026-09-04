@@ -126,6 +126,41 @@ export async function apiGet<T>(
     throw new ApiError(res.status, `GET ${path} failed (${res.status})`);
   }
   const text = await res.text();
-  const json: unknown = text ? JSON.parse(rewriteRailsHost(text)) : null;
+  const json: unknown = text ? parseOrExplain(text, path, res) : null;
   return convertKeysToCamel<T>(json);
+}
+
+/**
+ * JSON.parse, but the failure says WHICH endpoint and WHAT arrived.
+ *
+ * A bare `JSON.parse` here throws "SyntaxError: Unexpected token a in JSON at
+ * position 1280" and nothing else — no path, no status, no content type, no hint
+ * whether the body was HTML, truncated or empty. Because every page wraps its
+ * fetches in `safe(..., [])`, that error is then swallowed and the page renders
+ * as an empty shell, so the visible symptom is a blank page and the log line is
+ * unattributable. That combination cost this project a day: the same anonymous
+ * SyntaxError was blamed in turn on the mock API, on a spec, on a deleted
+ * scratch directory and on a host rewrite, and all four were wrong.
+ *
+ * The snippet is deliberately WINDOWED around the offset rather than dumped
+ * whole: a truncated body's interesting part is the seam, and a full listings
+ * payload in a log is unreadable.
+ */
+export function parseOrExplain(text: string, path: string, res: Response): unknown {
+  const source = rewriteRailsHost(text);
+  try {
+    return JSON.parse(source);
+  } catch (err) {
+    const at = Number(/position (\d+)/.exec(String(err))?.[1] ?? NaN);
+    const window = Number.isFinite(at)
+      ? `…${source.slice(Math.max(0, at - 60), at + 60)}…`
+      : source.slice(0, 120);
+    throw new SyntaxError(
+      `GET ${path} returned unparseable JSON: ${String(err)}. ` +
+        `status=${res.status} content-type=${res.headers.get("content-type")} ` +
+        `content-length=${res.headers.get("content-length")} actual-length=${source.length}` +
+        (Number.isFinite(at) ? ` failed-at=${at}` : "") +
+        ` body-around-failure=${JSON.stringify(window)}`,
+    );
+  }
 }

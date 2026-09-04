@@ -27,28 +27,98 @@ import { BUYER_STATE } from "./auth-paths";
  *      and it is the web cousin of the keyboard-occlusion class that produced
  *      four separate mobile bugs this session.
  *
- * The three widths are chosen to be meaningfully different rather than
- * arbitrary: 375 is an iPhone SE / small Android, 768 is the tablet breakpoint
- * where most Tailwind `md:` rules switch on, and 1280 is the desktop the rest of
- * the suite already covers and must not regress.
+ * The four widths are chosen to be meaningfully different rather than
+ * arbitrary: 320 is the device floor and the width that actually caught a bug,
+ * 375 is an iPhone SE / small Android, 768 is the tablet breakpoint where most
+ * Tailwind `md:` rules switch on, and 1280 is the desktop the rest of the suite
+ * already covers and must not regress.
  */
 
 const VIEWPORTS = [
+  // 320 is not padding out the list: it is the width that CAUGHT something.
+  // /en/bazaar's sort + view-toggle row pushed 6px past the viewport here while
+  // 360 and 375 were both clean, so a sweep starting at 375 would have called
+  // that page responsive. It is also a real device floor (iPhone SE 1st gen,
+  // Galaxy Fold closed) and the narrowest width Tailwind's `sm:` rules leave
+  // entirely unstyled.
+  { name: "phone-320", width: 320, height: 640 },
   { name: "phone-375", width: 375, height: 667 },
   { name: "tablet-768", width: 768, height: 1024 },
   { name: "desktop-1280", width: 1280, height: 720 },
 ] as const;
 
-/** Pages every visitor passes through, with something that must stay reachable. */
+/**
+ * Pages every visitor passes through, with something that must stay reachable.
+ *
+ * `clientRendered` marks the PRIVATE pages, and it is not a detail — it is the
+ * whole reason the first version of this file reported nonsense.
+ *
+ * These four render as a SHELL on the server no matter who asks: their content
+ * comes from TanStack Query after hydration. I proved it rather than assumed it
+ * — requesting /en/my-listings with a valid session cookie returns 216
+ * characters of header and footer, while the public /en/bazaar returns 900 with
+ * 6 listing links and 14 prices in the HTML itself. That is correct behaviour
+ * for a page with no SEO value, not a bug.
+ *
+ * `waitForLoadState("networkidle")` therefore resolves on the EMPTY SHELL of
+ * these routes, and every measurement taken at that moment describes a page
+ * with nothing in it — which is why this file waits for CONTENT instead.
+ *
+ * TWO SEPARATE THINGS produced board card 314's "every SSR page renders a
+ * 21-character shell", and conflating them cost a day:
+ *
+ *   1. This spec measured private pages before hydration (fixed above), which
+ *      is why the very first run reported 21 GREEN overflow checks — an empty
+ *      page cannot overflow, so the sweep passed by measuring nothing.
+ *   2. A CORRUPTED `.next-e2e` WEBPACK CACHE. That is the real cause of the run
+ *      where all 36 checks failed with a storm of `SyntaxError: Unexpected
+ *      token a in JSON at position 1280` in the server log. The dist dir is
+ *      shared across runs and had accumulated `.old` pack files from
+ *      interrupted writes (211MB of it). `rm -rf .next-e2e` alone took the same
+ *      suite from 36 failed to 31 passed, with zero parse errors.
+ *
+ * So: if pages come back empty here, delete `.next-e2e` FIRST. Four theories —
+ * the mock API, this spec, a deleted scratch dir, the Rails host rewrite — were
+ * each investigated and disproven before the build cache was suspected. The
+ * mock's payloads parse; `rewriteRailsHost` returns early in this harness
+ * because INTERNAL === PUBLIC; and 48 concurrent requests against a fresh dist
+ * dir produce no corruption at all.
+ */
 const PAGES = [
-  { path: "/en/bazaar", label: "bazaar" },
-  { path: "/en/browse", label: "browse" },
-  { path: "/en/categories", label: "categories" },
-  { path: "/en/saved", label: "saved" },
-  { path: "/en/conversations", label: "conversations" },
-  { path: "/en/profile", label: "profile" },
-  { path: "/en/my-listings", label: "my listings" },
+  { path: "/en/bazaar", label: "bazaar", clientRendered: false },
+  { path: "/en/browse", label: "browse", clientRendered: false },
+  { path: "/en/categories", label: "categories", clientRendered: false },
+  { path: "/en/saved", label: "saved", clientRendered: true },
+  { path: "/en/conversations", label: "conversations", clientRendered: true },
+  { path: "/en/profile", label: "profile", clientRendered: true },
+  { path: "/en/my-listings", label: "my listings", clientRendered: true },
 ] as const;
+
+/**
+ * Waits for hydration to deliver something, then reports the body-text length.
+ *
+ * Not `networkidle`, which idles on the shell of a client-rendered page (see
+ * PAGES above).
+ *
+ * A LENGTH IS A HINT HERE, NOT A VERDICT. "A shell is a few hundred characters
+ * and a real page is thousands" is intuitive and false: /en/saved renders
+ * completely — two saved listings, header, footer — in 287 characters, barely
+ * above the 216-character shell. So this only waits, generously, for the page to
+ * stop being empty; the CALLER decides whether it rendered, using structure.
+ * The count is carried back purely to make a failure message concrete.
+ */
+async function waitForContent(page: Page, minChars = 400): Promise<number> {
+  await page
+    .waitForFunction(
+      (min) => (document.body.innerText || "").trim().length > min,
+      minChars,
+      { timeout: 25_000 },
+    )
+    // Swallowed on purpose: the CALLER asserts the character count and reports
+    // the real number. Throwing here would hide it behind a timeout message.
+    .catch(() => {});
+  return page.evaluate(() => (document.body.innerText || "").trim().length);
+}
 
 /**
  * Horizontal overflow of the PAGE, in CSS pixels.
@@ -70,35 +140,46 @@ for (const vp of VIEWPORTS) {
     for (const p of PAGES) {
       test(`${p.label} does not scroll sideways`, async ({ page }) => {
         await page.goto(p.path);
-        // Wait for the network to settle before measuring: a page mid-hydration
-        // can report a transient overflow that is gone a frame later, and
-        // failing on that would be measuring the loading state, not the layout.
+        // Settle the network first: a page mid-hydration can report a transient
+        // overflow that is gone a frame later, and failing on that would be
+        // measuring the loading state rather than the layout.
         await page.waitForLoadState("networkidle");
 
-        // THE PAGE MUST HAVE CONTENT BEFORE ITS LAYOUT MEANS ANYTHING.
+        // THE PAGE MUST HAVE RENDERED BEFORE ITS LAYOUT MEANS ANYTHING — an
+        // empty page cannot overflow, so without this gate the sweep passes
+        // vacuously. It did exactly that on its first run: 21 GREEN overflow
+        // checks on pages that had rendered nothing.
         //
-        // An EMPTY page cannot overflow, so without this the whole sweep passes
-        // vacuously — and it did: the first run reported 21 green overflow
-        // checks on pages that had rendered nothing. Every route here wraps its
-        // fetches in `safe(..., [])` (see bazaar/page.tsx), so when the API
-        // response fails to parse the page degrades silently to a shell instead
-        // of erroring. In the e2e harness the mock API was returning something
-        // unparseable (`SyntaxError: Unexpected number in JSON at position
-        // 1286` in the server log), so every SSR route rendered empty. Against
-        // the real API the same page has 4 headings, 24 listing links and 50
-        // price strings.
+        // GATED ON STRUCTURE, NOT ON LENGTH. A character floor cannot tell a
+        // SHORT page from a BLANK one, and I got that wrong twice: a floor of
+        // 400 failed /en/saved at all four widths on 287 characters, which is
+        // the complete, correct page — two saved listings, a header and a
+        // footer. Counting its text ("… AFN 30,000 Samsung 4K TV Like new Kabul
+        // AFN 1,200 Firm price Winter Jacket …") lands at ~287, so the page was
+        // never broken; the threshold was. Raising or lowering a magic number
+        // just moves which page it lies about.
         //
-        // A body-text floor is the cheapest honest gate: a shell is a few
-        // hundred characters of chrome, a rendered page is thousands.
-        const bodyChars = await page.evaluate(
-          () => (document.body.innerText || "").trim().length,
-        );
+        // A rendered page instead shows at least ONE of three things, and the
+        // 216-character shell shows none of them: a listing link, a deliberate
+        // empty state, or the page's own heading (the shell is header + footer
+        // only, and every heading here lives inside the client component).
+        const bodyChars = await waitForContent(page, 200);
+        const [listingLinks, emptyStates, headings] = await Promise.all([
+          page.locator("a[href*='/listings/']").count(),
+          page.getByTestId("empty-state").count(),
+          page.locator("main h1, main h2, h1, h2").count(),
+        ]);
         expect(
-          bodyChars,
-          `${p.label} rendered only ${bodyChars} characters — the page is an ` +
-            `empty shell, so measuring its layout proves nothing. Check the ` +
-            `API the harness points at, not the CSS.`,
-        ).toBeGreaterThan(400);
+          listingLinks + emptyStates + headings,
+          `${p.label} shows no listing link, no empty state and no heading ` +
+            `(${bodyChars} characters of body text) — so it is a blank shell, ` +
+            `and measuring its layout proves nothing. For a private page that ` +
+            `means hydration never delivered content (check the session and ` +
+            `the client fetch); for a public one, check the API the harness ` +
+            `points at, not the CSS. A corrupted .next-e2e webpack cache also ` +
+            `does this — it is what board card 314 turned out to be, and ` +
+            `\`rm -rf .next-e2e\` is the first thing to try.`,
+        ).toBeGreaterThan(0);
 
         const overflow = await horizontalOverflow(page);
         expect(
@@ -112,6 +193,7 @@ for (const vp of VIEWPORTS) {
     test("the header does not cover the page's first heading", async ({ page }) => {
       await page.goto("/en/bazaar");
       await page.waitForLoadState("networkidle");
+      await waitForContent(page);
 
       // getByRole covers h1..h6 AND aria headings. `locator("h1, h2")` found
       // nothing on /en/bazaar and the test SKIPPED at all three viewports —
@@ -136,6 +218,7 @@ for (const vp of VIEWPORTS) {
     test("a listing can be opened and its price stays on screen", async ({ page }) => {
       await page.goto("/en/bazaar");
       await page.waitForLoadState("networkidle");
+      await waitForContent(page);
 
       // By role, not a testid: this is the user's path through the page, and it
       // works the same at every width.

@@ -659,6 +659,20 @@ export function BrowseClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
+      {/* THE PAGE'S OWN H1, and it was missing entirely.
+          /bazaar is the marketplace's main browse page, it is public and it is
+          ISR'd for SEO — and it had no page-level heading at any width. The only
+          headings in its DOM were the filter sidebar's four section labels
+          ("Categories", "Condition", "Price", "Location"), which measure 0x0
+          below `lg` because the sidebar is collapsed there. So a phone or tablet
+          visitor, and every crawler and screen reader, got a page with no
+          heading at all — while /categories and the home page both have one.
+
+          `sr-only` deliberately: it closes the SEO and accessibility gap without
+          changing a pixel of a design that intentionally spends its narrow
+          vertical budget on listings rather than on a title. Making it VISIBLE
+          is a design decision, not a bug fix, so it is left to the designer. */}
+      <h1 className="sr-only">{t("browse.title")}</h1>
       <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-8">
         {/* Sidebar (desktop) / collapsible (mobile).
             On `lg` the whole column — not just the filter card — is what gets
@@ -744,7 +758,16 @@ export function BrowseClient({
                 ? t("listing.shopCount", { count: totalCount })
                 : " "}
             </p>
-            <div className="flex items-center gap-2">
+            {/* WRAPS and SHRINKS, because this row does not fit a 320px phone.
+                It carries the sort <select> (whose intrinsic width comes from
+                its longest option, "Price: high to low") plus the grid/list
+                toggle, and at 320px it pushed 6px past the viewport — giving
+                the whole page a horizontal scrollbar, measured on /en/bazaar at
+                320 while 360 and 375 were clean. `min-w-0` is the half that
+                actually matters: a flex child defaults to min-width:auto and so
+                refuses to shrink below its content, which is why `flex-wrap`
+                alone would not have fixed it. */}
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               {nearestLoading && (
                 <span
                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"

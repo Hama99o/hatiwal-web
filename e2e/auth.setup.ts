@@ -10,6 +10,19 @@ import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
 
 async function login(page: import("@playwright/test").Page, email: string) {
   await page.goto("/en/login");
+  // THE FIRST NAVIGATION OF A RUN MUST BE ALLOWED TO COMPILE.
+  //
+  // This is the very first request any suite makes, against a dist dir that
+  // e2e/global-setup.ts has just emptied, so Next compiles /[locale]/login from
+  // nothing while it serves. That reliably exceeds the 20s `actionTimeout` on a
+  // loaded machine, and the failure reads
+  // "locator.fill: Timeout 20000ms exceeded, waiting for getByLabel(/Email/i)"
+  // — which looks like a missing form field rather than a slow compile, and
+  // fails BOTH personas and therefore every authed spec after them.
+  //
+  // Waiting explicitly, with the same 60s budget the redirect below already
+  // gets, keeps the tight default action timeout everywhere else.
+  await expect(page.getByLabel(/Email/i)).toBeVisible({ timeout: 60_000 });
   await page.getByLabel(/Email/i).fill(email);
   await page.getByLabel(/Password/i).fill("Password123!");
   await page.getByRole("button", { name: /Sign In/i }).click();
