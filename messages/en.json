@@ -562,7 +562,7 @@
   },
   "home": {
     "hero": {
-      "title": "Buy and sell locally in Afghanistan",
+      "title": "Buy and sell locally in Afghanistan and Pakistan",
       "subtitle": "Discover thousands of items near you. Find a deal, message the seller, and meet in person.",
       "browseCta": "Explore the Bazaar"
     },
@@ -584,7 +584,7 @@
     "language": "Language"
   },
   "footer": {
-    "tagline": "Afghanistan's local marketplace — buy and sell near you.",
+    "tagline": "Afghanistan and Pakistan's local marketplace — buy and sell near you.",
     "explore": "Explore",
     "rights": "© {year, number, ::group-off} Hatiwal. All rights reserved.",
     "legal": "Legal",
@@ -660,7 +660,7 @@
     "googleSignInFailed": "Google sign-in failed. Please try again.",
     "orDivider": "or",
     "welcome": "Welcome to Hatiwal",
-    "subtitle": "Buy and sell locally in Afghanistan",
+    "subtitle": "Buy and sell locally in Afghanistan and Pakistan",
     "createAccount": "Create Account",
     "haveAccount": "Already have an account?",
     "firstName": "First Name",
@@ -732,7 +732,7 @@
   "privacy": {
     "title": "Privacy Policy",
     "lastUpdated": "Last updated: June 2026",
-    "intro": "Hatiwal is a local marketplace for Afghanistan where people buy and sell in person — no online payment, no delivery. This policy explains what we collect, how we use it, and your rights. We do not sell your personal data or use it for advertising.",
+    "intro": "Hatiwal is a local marketplace for Afghanistan and Pakistan where people buy and sell in person — no online payment, no delivery. This policy explains what we collect, how we use it, and your rights. We do not sell your personal data or use it for advertising.",
     "collectTitle": "Information we collect",
     "collectBody": "Account details you provide: name, email address, phone number, and profile photo. Listings you create: title, description, price, category, photos you upload, and the approximate neighbourhood-level location you set — we do not track your GPS continuously. Chat content: messages, photo messages, and offer amounts exchanged between you and other users. Saved items: listings you bookmark and search filters you save. Recently viewed listings. A device push token stored to support future notifications (not yet active). Activity signal: the last time you used the app is stored and shown to others only as a coarse label such as active this week — never an exact timestamp. Safety data: reports you submit against listings or users, blocks you place, and blocks placed against you.",
     "useTitle": "How we use it",

@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Hatiwal",
     short_name: "Hatiwal",
-    description: "Buy and sell locally in Afghanistan.",
+    description: "Buy and sell locally in Afghanistan and Pakistan.",
     start_url: "/",
     display: "standalone",
     background_color: "#12224F",
