@@ -31,7 +31,11 @@ import { LocationMap } from "@/components/map/location-map";
 import { LocationSearch, reverseGeocode } from "@/components/map/location-search";
 import { cn } from "@/lib/utils";
 
-const CURRENCIES = ["AFN", "USD", "EUR"] as const;
+// AFN + PKR first — Hatiwal serves Afghanistan AND Pakistan, so a seller in
+// either country finds their own currency at the top. Must stay in step with
+// Listing::CURRENCIES in the API and the mobile ListingForm schema; the API is
+// the authority and will reject anything not in its list.
+const CURRENCIES = ["AFN", "PKR", "USD", "EUR"] as const;
 const MAX_PHOTOS = 8;
 // Autosaved NEW-listing draft (mirrors mobile ListingForm's AsyncStorage draft).
 // Text fields + selected category + location label only — never photos.
@@ -494,6 +498,7 @@ export function ListingForm({
           <Field label={t("listing.form.selectCurrency")} htmlFor="currency">
             <select id="currency" className={SELECT_CLASS} {...register("currency")}>
               <option value="AFN">{t("listing.form.currencyAFN")}</option>
+              <option value="PKR">{t("listing.form.currencyPKR")}</option>
               <option value="USD">{t("listing.form.currencyUSD")}</option>
               <option value="EUR">{t("listing.form.currencyEUR")}</option>
             </select>
