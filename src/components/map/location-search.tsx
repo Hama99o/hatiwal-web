@@ -98,9 +98,13 @@ export function LocationSearch({
       abortRef.current = ctrl;
       try {
         const res = await fetch(
-          // Scoped to Afghanistan (countrycodes=af) — the basemap only has AF
+          // Scoped to Afghanistan AND Pakistan (countrycodes=af,pk) — the two
+          // countries Hatiwal serves. `af` alone made Peshawar and Islamabad
+          // literally unsearchable here. Mirrors hatiwal-mobile
+          // src/utils/geocoding.ts; the reverse lookup above stays UNSCOPED,
+          // because a coordinate needs no country hint.
           // tiles, so an out-of-country result would recenter onto a blank map.
-          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=af&limit=5&accept-language=${locale}&q=${encodeURIComponent(q)}`,
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=af,pk&limit=5&accept-language=${locale}&q=${encodeURIComponent(q)}`,
           { signal: ctrl.signal },
         );
         const data: Suggestion[] = res.ok ? await res.json() : [];
