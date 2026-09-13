@@ -498,7 +498,8 @@
       "language": {
         "en": "English",
         "ps": "Pashto (پښتو)",
-        "fa": "Dari (دری)"
+        "fa": "Dari (دری)",
+        "ur": "Urdu (اردو)"
       },
       "saveButton": "Save Changes",
       "saving": "Saving…",

@@ -457,5 +457,152 @@
     "deleteSavedSearch": "محفوظ شدہ تلاش حذف کریں",
     "savedSearchAll": "تمام اشتہارات",
     "newMatches": "{count, plural, one {# نیا} other {# نئے}}"
+  },
+  "profile": {
+    "title": "پروفائل",
+    "editProfile": "پروفائل میں ترمیم",
+    "viewPublicProfile": "میرا عوامی پروفائل دیکھیں",
+    "myListings": "میرے اشتہارات",
+    "savedListings": "محفوظ شدہ اشتہارات",
+    "switchToBuyer": "خریدار موڈ پر جائیں",
+    "switchToSeller": "بیچنے والے موڈ پر جائیں",
+    "buyerMode": "خریدار موڈ",
+    "sellerMode": "بیچنے والا موڈ",
+    "language": "زبان",
+    "theme": "ظاہری شکل",
+    "themeLight": "روشن",
+    "themeDark": "تاریک",
+    "themeSystem": "سسٹم",
+    "logout": "سائن آؤٹ",
+    "memberSince": "{date} سے رکن",
+    "logoutConfirm": "کیا آپ واقعی سائن آؤٹ کرنا چاہتے ہیں؟",
+    "privacy": "رازداری",
+    "blockedUsers": "بلاک شدہ صارفین",
+    "blocked": {
+      "unblocked": "صارف کو ان بلاک کر دیا گیا",
+      "unblockTitle": "صارف کو ان بلاک کریں؟",
+      "unblockMessage": "{name} دوبارہ آپ کو پیغام بھیج سکیں گے اور آپ کے اشتہارات کے بارے میں رابطہ کر سکیں گے۔",
+      "unblockAction": "ان بلاک کریں",
+      "emptyTitle": "کوئی بلاک شدہ صارف نہیں",
+      "emptyDescription": "جن لوگوں کو آپ بلاک کرتے ہیں وہ آپ کو پیغام نہیں بھیج سکتے اور نہ آپ کے اشتہارات کے بارے میں رابطہ کر سکتے ہیں۔ آپ نے ابھی تک کسی کو بلاک نہیں کیا۔"
+    },
+    "bio": "تعارف",
+    "city": "شہر",
+    "setLocation": "نقشے پر اپنا مقام مقرر کریں",
+    "locationSet": "مقام مقرر ہو گیا",
+    "info": "ذاتی معلومات",
+    "noInfo": "ابھی کوئی معلومات شامل نہیں",
+    "sellerProfile": {
+      "title": "بیچنے والے کا پروفائل",
+      "soldCount": "{count, number} فروخت شدہ",
+      "soldCountZero": "ابھی کوئی فروخت نہیں",
+      "activeListings": "{count, number} فعال اشتہارات",
+      "memberSince": "{date} سے رکن",
+      "trustScore": "بیچنے والے کی ساکھ",
+      "viewListings": "اشتہارات دیکھیں",
+      "noListings": "کوئی فعال اشتہار نہیں",
+      "loadFailed": "پروفائل لوڈ نہیں ہو سکا۔",
+      "responseTime": {
+        "within_one_hour": "عموماً 1 گھنٹے کے اندر جواب دیتے ہیں",
+        "within_a_day": "عموماً ایک دن کے اندر جواب دیتے ہیں",
+        "within_a_few_days": "عموماً چند دنوں میں جواب دیتے ہیں"
+      },
+      "responseRate": "{percent, number}% جوابی شرح"
+    },
+    "userProfile": {
+      "title": "بیچنے والے کا پروفائل",
+      "activeListings": "فعال اشتہارات",
+      "soldItems": "فروخت شدہ اشیاء",
+      "joined": "شامل ہوئے",
+      "noListings": "کوئی فعال اشتہار نہیں",
+      "noListingsDescription": "اس بیچنے والے کے پاس اس وقت کوئی فعال اشتہار نہیں ہے۔",
+      "loadFailed": "پروفائل لوڈ نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔",
+      "reportUser": "صارف کی رپورٹ کریں",
+      "blockUser": "صارف کو بلاک کریں",
+      "unblockUser": "صارف کو ان بلاک کریں",
+      "blockConfirmTitle": "اس صارف کو بلاک کریں؟",
+      "blockConfirmMessage": "بلاک شدہ صارفین آپ سے رابطہ نہیں کر سکتے اور ان کے اشتہارات چھپا دیے جائیں گے۔",
+      "blockSuccess": "صارف بلاک ہو گیا",
+      "blockFailed": "صارف کو بلاک نہیں کیا جا سکا",
+      "unblockSuccess": "صارف ان بلاک ہو گیا",
+      "unblockFailed": "صارف کو ان بلاک نہیں کیا جا سکا",
+      "searchListings": "اشتہارات تلاش کریں...",
+      "listingsCount": "{count, number} اشتہارات"
+    },
+    "sellerDashboard": "بیچنے والے کا ڈیش بورڈ",
+    "buyerProfile": "خریدار کا پروفائل",
+    "stats": {
+      "sold": "فروخت شدہ",
+      "active": "فعال",
+      "sales": "کل فروخت"
+    },
+    "quickActions": {
+      "postNew": "نئی چیز شائع کریں",
+      "myListings": "میرے اشتہارات",
+      "messages": "پیغامات",
+      "reviews": "درجہ بندی اور جائزے",
+      "browse": "بازار",
+      "saved": "محفوظ شدہ اشیاء"
+    },
+    "recentActivity": "حالیہ سرگرمی",
+    "recentListings": "آپ کے فعال اشتہارات",
+    "viewAll": "سب دیکھیں",
+    "itemsBought": "خریدی گئی اشیاء",
+    "itemsSaved": "محفوظ شدہ اشیاء",
+    "purchaseActivity": "خریداری کی سرگرمی",
+    "edit": {
+      "title": "پروفائل میں ترمیم",
+      "saved": "پروفائل محفوظ ہو گیا",
+      "saveError": "پروفائل محفوظ نہیں ہو سکا",
+      "sections": {
+        "identity": "شناخت",
+        "contact": "رابطہ",
+        "location": "مقام",
+        "language": "ترجیحی زبان"
+      },
+      "fields": {
+        "firstname": "پہلا نام",
+        "lastname": "آخری نام",
+        "phone": "فون نمبر",
+        "bio": "تعارف",
+        "bioPlaceholder": "خریداروں کو اپنے بارے میں کچھ بتائیں…",
+        "city": "شہر",
+        "province": "صوبہ",
+        "setLocation": "نقشے پر اپنا مقام مقرر کریں",
+        "locationSet": "مقام مقرر ہو گیا",
+        "whatsapp": "واٹس ایپ نمبر",
+        "whatsappSameAsPhone": "میرے فون نمبر جیسا",
+        "showPhonePublicly": "خریداروں کو میرا فون اور واٹس ایپ دیکھنے دیں",
+        "showAddressPublicly": "میرے پروفائل پر میرا شہر اور صوبہ دکھائیں",
+        "visibilityNote": "یہ آپ کی اپنی رابطہ معلومات ہیں۔ کسی اشتہار کا مقام الگ سے، اس کے نقشے پر مقرر ہوتا ہے۔"
+      },
+      "validation": {
+        "firstnameRequired": "پہلا نام درکار ہے",
+        "lastnameRequired": "آخری نام درکار ہے",
+        "phoneTooLong": "فون نمبر بہت لمبا ہے",
+        "bioTooLong": "تعارف 500 حروف یا اس سے کم ہونا چاہیے",
+        "whatsappTooLong": "واٹس ایپ نمبر بہت لمبا ہے"
+      },
+      "language": {
+        "en": "انگریزی",
+        "ps": "پشتو (پښتو)",
+        "fa": "دری (دری)",
+        "ur": "اردو"
+      },
+      "saveButton": "تبدیلیاں محفوظ کریں",
+      "saving": "محفوظ ہو رہا ہے…",
+      "province": "صوبہ",
+      "changePhoto": "تصویر تبدیل کریں",
+      "photoUpdated": "تصویر تبدیل ہو گئی",
+      "photoError": "تصویر تبدیل نہیں ہو سکی",
+      "photoTooLarge": "تصویر 5 MB سے کم ہونی چاہیے"
+    },
+    "away": {
+      "sectionTitle": "دستیاب نہیں موڈ",
+      "toggle": "میں دستیاب نہیں ہوں (عارضی طور پر)",
+      "untilLabel": "کب تک دستیاب نہیں",
+      "youAreAway": "آپ {date} تک دستیاب نہیں کے طور پر نشان زد ہیں — خریداروں کو اطلاع نظر آتی ہے"
+    },
+    "modeToggleLabel": "خریدار یا بیچنے والا موڈ"
   }
 }
