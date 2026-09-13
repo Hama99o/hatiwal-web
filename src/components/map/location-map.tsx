@@ -7,7 +7,7 @@ import { Maximize2, MapPinOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { isInAfghanistan } from "@/lib/geo";
+import { isInServiceArea } from "@/lib/geo";
 import { LocationSearch } from "./location-search";
 import type { MapImplProps } from "./map-impl";
 
@@ -23,8 +23,10 @@ const MapImpl = dynamic(() => import("./map-impl"), {
  * `searchable` to float a place-search box over the map, and `expandable` to
  * add a maximize button that opens the SAME map big in a dialog.
  *
- * The basemap only has Afghanistan tiles, so a point OUTSIDE the country would
- * render blank — we show a fallback message instead of a dead grey box.
+ * The basemap has tiles for the whole service area, so a point OUTSIDE it would
+ * render blank — we show a fallback message instead of a dead grey box. It was
+ * Afghanistan-only until the tileset was rebuilt on 2026-09-13; the guard is
+ * still needed, the area it guards is simply much larger now.
  */
 export function LocationMap({
   className,
@@ -43,7 +45,7 @@ export function LocationMap({
 
   const hasPoint = props.lat != null && props.lng != null;
   const outsideAfghanistan =
-    hasPoint && !isInAfghanistan(props.lat as number, props.lng as number);
+    hasPoint && !isInServiceArea(props.lat as number, props.lng as number);
   const showSearch = searchable && props.editable && !!props.onChange;
 
   return (
