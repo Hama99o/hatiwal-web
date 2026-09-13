@@ -604,5 +604,185 @@
       "youAreAway": "آپ {date} تک دستیاب نہیں کے طور پر نشان زد ہیں — خریداروں کو اطلاع نظر آتی ہے"
     },
     "modeToggleLabel": "خریدار یا بیچنے والا موڈ"
+  },
+  "chat": {
+    "title": "پیغامات",
+    "searchPlaceholder": "گفتگوئیں تلاش کریں...",
+    "messagePlaceholder": "پیغام لکھیں...",
+    "send": "بھیجیں",
+    "empty": {
+      "title": "کوئی گفتگو نہیں",
+      "description": "سودا طے کرنے اور ملاقات کا انتظام کرنے کے لیے بیچنے والوں سے بات شروع کریں۔",
+      "browseAction": "بازار دیکھیں"
+    },
+    "about": "بارے میں: {title}",
+    "proposeMeetup": "ملاقات تجویز کریں",
+    "meetupProposal": "ملاقات تجویز کی گئی",
+    "openListing": "اشتہار دیکھیں",
+    "noConversations": "ابھی کوئی گفتگو نہیں",
+    "noConversationsDescription": "سودا طے کرنے اور ملاقات کا انتظام کرنے کے لیے بیچنے والوں سے بات شروع کریں۔",
+    "deleteConversation": "گفتگو حذف کریں",
+    "deleteConversationDescription": "اس سے گفتگو اور تمام پیغامات مستقل طور پر ہٹ جائیں گے۔",
+    "unknownUser": "نامعلوم صارف",
+    "unreadCount": "{count, plural, one {# غیر پڑھا پیغام} other {# غیر پڑھے پیغامات}}",
+    "noMessages": "ابھی کوئی پیغام نہیں",
+    "preview": {
+      "meetup": "ملاقات کی تجویز",
+      "meetupAccepted": "ملاقات قبول",
+      "meetupDeclined": "ملاقات مسترد",
+      "offer": "پیشکش: {price}",
+      "offerAccepted": "پیشکش قبول",
+      "offerDeclined": "پیشکش مسترد",
+      "photo": "تصویر",
+      "file": "فائل",
+      "counterOffer": "جوابی پیشکش: {price}"
+    },
+    "thread": {
+      "closedNotice": "یہ گفتگو بند ہو چکی ہے۔",
+      "closedInput": "گفتگو بند — جوابات غیر فعال ہیں۔",
+      "sendFailed": "پیغام نہیں بھیجا جا سکا۔ براہ کرم دوبارہ کوشش کریں۔",
+      "loadFailed": "پیغامات لوڈ نہیں ہو سکے۔",
+      "meetupSent": "ملاقات کی تجویز بھیج دی گئی!",
+      "meetupFailed": "ملاقات کی تجویز نہیں بھیجی جا سکی۔",
+      "startFailed": "گفتگو شروع نہیں ہو سکی۔",
+      "duplicateConversation": "اس اشتہار کے بارے میں آپ کی پہلے سے گفتگو موجود ہے۔",
+      "inactiveListing": "یہ اشتہار اب فعال نہیں ہے۔",
+      "selfConversation": "آپ اپنے ہی اشتہار پر پیغام نہیں بھیج سکتے۔",
+      "sending": "بھیجا جا رہا ہے...",
+      "you": "آپ",
+      "read": "پڑھا گیا",
+      "delivered": "پہنچ گیا",
+      "emptyTitle": "ابھی کوئی پیغام نہیں",
+      "emptyDescription": "گفتگو شروع کرنے کے لیے پیغام بھیجیں۔",
+      "filePickerNotAvailable": "فائل پکر دستیاب نہیں۔ چلائیں: npm install expo-document-picker"
+    },
+    "meetup": {
+      "title": "ملاقات تجویز کریں",
+      "placePlaceholder": "کہاں؟ (مثلاً شہرِ نو مارکیٹ)",
+      "timePlaceholder": "کب؟ (مثلاً کل 3 بجے)",
+      "place": "جگہ",
+      "time": "وقت",
+      "propose": "ملاقات تجویز کریں",
+      "proposed": "ملاقات کی تجویز",
+      "placeRequired": "براہ کرم ملاقات کی جگہ درج کریں۔",
+      "timeRequired": "براہ کرم ملاقات کا وقت درج کریں۔",
+      "accept": "قبول",
+      "decline": "مسترد",
+      "accepted": "ملاقات قبول",
+      "declined": "ملاقات مسترد",
+      "acceptedToast": "آپ نے ملاقات قبول کی",
+      "declinedToast": "آپ نے ملاقات مسترد کی"
+    },
+    "startConversation": {
+      "title": "بیچنے والے کو پیغام",
+      "placeholder": "اس چیز کے بارے میں پوچھیں...",
+      "send": "پیغام بھیجیں",
+      "sending": "بھیجا جا رہا ہے..."
+    },
+    "attachFile": "فائل منسلک کریں",
+    "document": {
+      "tap": "کھولنے کے لیے دبائیں",
+      "notAvailable": "فائل دستیاب نہیں"
+    },
+    "filter": {
+      "all": "سب",
+      "unread": "غیر پڑھے",
+      "read": "پڑھے ہوئے",
+      "noUnread": "سب پڑھ لیا!",
+      "noUnreadDescription": "اس وقت کوئی غیر پڑھا پیغام نہیں۔"
+    },
+    "offer": {
+      "label": "قیمت کی پیشکش",
+      "yourOffer": "آپ کی پیشکش",
+      "listedAt": "درج قیمت {price}",
+      "noPayment": "کوئی ادائیگی نہیں — یہ صرف بیچنے والے کو ایک پیغام ہے۔",
+      "accept": "پیشکش قبول کریں",
+      "decline": "مسترد",
+      "accepted": "پیشکش قبول",
+      "declined": "پیشکش مسترد",
+      "acceptedToast": "آپ نے پیشکش قبول کی",
+      "declinedToast": "آپ نے پیشکش مسترد کی",
+      "counter": "جوابی پیشکش",
+      "counterTitle": "جوابی پیشکش",
+      "counterLabel": "جوابی پیشکش",
+      "buyerOfferedAt": "خریدار نے {price} کی پیشکش کی",
+      "yourCounterOffer": "آپ کی جوابی قیمت",
+      "counterNote": "کوئی ادائیگی نہیں — یہ جوابی پیشکش ایک قیمت کی تجویز ہے۔ حتمی طے کرنے کے لیے روبرو ملیں۔",
+      "sendCounter": "جوابی پیشکش بھیجیں",
+      "counteredAt": "جوابی قیمت",
+      "counterSentToast": "جوابی پیشکش بھیج دی گئی!",
+      "quickChipsHint": "فوری رقوم",
+      "quantityTotal": "{count, number} × {unitPrice} = {total}"
+    },
+    "block": {
+      "blockUser": "صارف کو بلاک کریں",
+      "unblockUser": "صارف کو ان بلاک کریں",
+      "blockConfirmTitle": "اس صارف کو بلاک کریں؟",
+      "blockConfirmDescription": "وہ آپ کو پیغام نہیں بھیج سکیں گے اور آپ ان کے اشتہارات نہیں دیکھ سکیں گے۔",
+      "blocked": "آپ نے اس صارف کو بلاک کر دیا ہے۔",
+      "blockSuccess": "صارف بلاک ہو گیا۔",
+      "unblockSuccess": "صارف ان بلاک ہو گیا۔",
+      "blockFailed": "صارف کو بلاک نہیں کیا جا سکا۔ دوبارہ کوشش کریں۔",
+      "unblockFailed": "صارف کو ان بلاک نہیں کیا جا سکا۔ دوبارہ کوشش کریں۔",
+      "messagingUnavailable": "آپ اس صارف کو پیغام نہیں بھیج سکتے۔"
+    },
+    "search": {
+      "placeholder": "پیغامات تلاش کریں...",
+      "matchCount": "{total, number} میں سے {current, number}",
+      "partialResults": "صرف لوڈ شدہ پیغامات میں نتائج دکھائے جا رہے ہیں",
+      "noResults": "آپ کی تلاش سے کوئی پیغام نہیں ملا",
+      "noMatchTitle": "\"{term}\" کے لیے کوئی نتیجہ نہیں",
+      "noMatchDescription": "کوئی دوسرا نام، اشتہار کا عنوان، یا پیغام آزمائیں۔",
+      "noMatchDescriptionPartial": "کوئی دوسرا نام، اشتہار کا عنوان، یا پیغام آزمائیں۔ صرف لوڈ شدہ گفتگوؤں میں نتائج دکھائے جا رہے ہیں۔",
+      "partialResultsConversations": "صرف لوڈ شدہ گفتگوؤں میں نتائج دکھائے جا رہے ہیں",
+      "clearSearch": "تلاش صاف کریں"
+    },
+    "listingFilter": {
+      "title": "اس اشتہار کی گفتگوئیں",
+      "viewAll": "تمام گفتگوئیں دیکھیں",
+      "viewConversations": "گفتگوئیں دیکھیں"
+    },
+    "tabs": {
+      "inbox": "ان باکس",
+      "archived": "آرکائیو",
+      "label": "گفتگو کے فولڈرز"
+    },
+    "archive": {
+      "archive": "آرکائیو",
+      "unarchive": "آرکائیو سے نکالیں",
+      "empty": "کوئی آرکائیو شدہ گفتگو نہیں",
+      "emptyDescription": "جو گفتگوئیں آپ آرکائیو کریں گے وہ یہاں نظر آئیں گی۔",
+      "error": "آرکائیو کی حالت تبدیل نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔"
+    },
+    "actions": {
+      "options": "گفتگو کے اختیارات",
+      "markRead": "پڑھا ہوا نشان زد کریں",
+      "markUnread": "غیر پڑھا نشان زد کریں",
+      "markReadError": "پڑھنے کی حالت تبدیل نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔"
+    },
+    "quickReplies": {
+      "toolbarLabel": "فوری جوابات",
+      "buyer": {
+        "stillAvailable": "کیا یہ ابھی دستیاب ہے؟",
+        "lowestPrice": "آپ کی کم سے کم قیمت کیا ہے؟",
+        "whereMeet": "ہم کہاں مل سکتے ہیں؟",
+        "morePhotos": "کیا میں مزید تصاویر دیکھ سکتا ہوں؟",
+        "negotiable": "کیا قیمت میں گنجائش ہے؟"
+      },
+      "seller": {
+        "yesAvailable": "جی ہاں، دستیاب ہے",
+        "meetAtPlace": "آئیے [جگہ] پر ملتے ہیں",
+        "priceFirm": "قیمت طے شدہ ہے",
+        "whenFree": "آپ ملنے کے لیے کب فارغ ہیں؟",
+        "sendMorePhotos": "میں مزید تصاویر بھیج سکتا ہوں"
+      }
+    },
+    "listingActions": {
+      "markSold": "فروخت شدہ نشان زد کریں",
+      "releaseHold": "ہولڈ ختم کریں",
+      "placeHold": "{name} کے لیے ہولڈ لگائیں",
+      "placeHoldGeneric": "ہولڈ لگائیں",
+      "heldForSomeoneElse": "کسی اور خریدار کے لیے روکا گیا"
+    }
   }
 }
