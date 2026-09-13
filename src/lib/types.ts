@@ -126,6 +126,10 @@ export interface CategoryRef {
   nameEn: string;
   namePs: string;
   nameFa: string;
+  /** Urdu. CategorySerializer renders it through `name_for("ur")`, so it falls
+   *  back to English rather than null. It was on the wire long before either
+   *  client declared it. */
+  nameUr: string;
   slug: string;
 }
 

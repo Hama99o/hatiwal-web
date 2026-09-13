@@ -510,15 +510,42 @@ export function ListingForm({
           htmlFor="categoryId"
           error={errors.categoryId?.message}
         >
+          {/* GROUPED BY PARENT, not a flat list.
+
+              This used to receive `flattenCategories(...)` and render every row
+              identically, so "Ruby" sat as an apparent sibling of "Electronics"
+              with nothing to say it belongs under Gemstones. That is ~66
+              indistinguishable options today and grows with every subcategory —
+              the gemstones work alone added 18.
+
+              Parents stay SELECTABLE, deliberately, which diverges from mobile
+              (where tapping a parent drills in and only a leaf can be chosen).
+              Making them unselectable here would strand any listing already
+              filed under a parent: the select would render blank while
+              react-hook-form still held the old id, and the seller could not see
+              what their listing was set to. Organising the list is the win;
+              changing what is savable is a separate decision with a data
+              migration attached. */}
           <select id="categoryId" className={SELECT_CLASS} {...register("categoryId")}>
             <option value="">
               {t("listing.form.selectCategoryPlaceholder")}
             </option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {categoryName(c, locale)}
-              </option>
-            ))}
+            {categories.map((parent) =>
+              parent.subcategories?.length ? (
+                <optgroup key={parent.id} label={categoryName(parent, locale)}>
+                  <option value={parent.id}>{categoryName(parent, locale)}</option>
+                  {parent.subcategories.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {categoryName(child, locale)}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : (
+                <option key={parent.id} value={parent.id}>
+                  {categoryName(parent, locale)}
+                </option>
+              ),
+            )}
           </select>
         </Field>
 

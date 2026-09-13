@@ -42,6 +42,7 @@ export function findCategoryBySlug(
 export function categoryName(category: CategoryNameFields, locale: string): string {
   if (locale === "ps") return category.namePs || category.nameEn;
   if (locale === "fa") return category.nameFa || category.nameEn;
+  if (locale === "ur") return category.nameUr || category.nameEn;
   return category.nameEn;
 }
 
@@ -49,4 +50,5 @@ interface CategoryNameFields {
   nameEn: string;
   namePs: string;
   nameFa: string;
+  nameUr?: string | null;
 }
