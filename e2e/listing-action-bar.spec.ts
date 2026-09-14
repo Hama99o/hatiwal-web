@@ -84,9 +84,26 @@ test.describe("Listing action bar (mobile)", () => {
     await expect(bar.getByRole("button", { name: /save/i })).toBeVisible();
 
     // Sits on the bottom edge of the viewport, never off it.
+    //
+    // POLLED, not measured once. The bar animates its `bottom`
+    // (`transition-[bottom,opacity] duration-200`) up from `-bottom-40`, and
+    // `toHaveClass(/opacity-100/)` above resolves the moment the class flips —
+    // which is the START of that slide, not the end. Measuring there caught the
+    // bar still 2.4px below the fold (762.45 against a 760 viewport) and failed
+    // a bound that is correct for the settled state.
+    //
+    // The fix is to wait for it to land rather than widen the tolerance: the
+    // assertion means "the bar comes to rest flush with the bottom edge", and a
+    // looser bound would keep passing if it genuinely overhung.
+    await expect
+      .poll(async () => {
+        const b = await bar.boundingBox();
+        return b!.y + b!.height;
+      }, { message: `the pinned bar never settled flush with the ${PHONE.height}px viewport bottom` })
+      .toBeLessThanOrEqual(PHONE.height + 1);
+
     const box = await bar.boundingBox();
     expect(box!.y + box!.height).toBeGreaterThan(PHONE.height - 10);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(PHONE.height + 1);
 
     // The inline CTA on screen → the bar gets out of the way; back up → returns.
     await page.locator("#listing-actions").scrollIntoViewIfNeeded();

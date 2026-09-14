@@ -222,15 +222,31 @@ for (const vp of VIEWPORTS) {
 
       // By role, not a testid: this is the user's path through the page, and it
       // works the same at every width.
+      //
       // `/listings/`, PLURAL. The route is /[locale]/listings/[id], so
-      // `a[href*='/listing/']` — with the trailing slash — could never match
-      // /listings/123, and this test skipped at all three viewports while
-      // looking like a pass.
-      const card = page.locator("a[href*='/listings/']").first();
+      // `a[href*='/listing/']` — singular — could never match /listings/123,
+      // and this test skipped at all three viewports while looking like a pass.
+      //
+      // But plural alone is still too loose, and widening it is what broke this
+      // at phone widths: `/listings/` ALSO matches the header's "Post a listing"
+      // CTA at /listings/new, which is `hidden sm:inline-flex` — present in the
+      // DOM but invisible below 640px. It precedes the feed in document order,
+      // so `.first()` picked the one link on the page that can never be clicked
+      // at phone-320/375, and the click timed out after 20s.
+      //
+      // The count assertion did not catch it because the CTA counts as a link:
+      // the check passed for the wrong reason and the failure landed one line
+      // later. So exclude the non-id routes explicitly, and count the SET
+      // rather than `.first()`, which can only ever be 0 or 1.
+      const cards = page
+        .locator("a[href*='/listings/']")
+        .and(page.locator("a:not([href$='/listings/new'])"));
       expect(
-        await card.count(),
+        await cards.count(),
         "no listing links on /en/bazaar — a marketplace feed with no listings to open",
       ).toBeGreaterThan(0);
+      const card = cards.first();
+      await expect(card, "the first listing link is not clickable").toBeVisible();
       await card.click();
       await page.waitForLoadState("networkidle");
 
