@@ -29,4 +29,17 @@ export const INTL_TAG: Record<string, string> = {
   en: "en-US",
   ps: "fa-AF",
   fa: "fa-AF",
+  // `ur` was MISSING, so every Urdu reader fell through this table's `?? "en-US"`
+  // and got English month names — on a locale that is otherwise fully
+  // translated. Measured in both runtimes, the same way `ps` was:
+  //
+  //   Node 18 (full ICU)  ur-PK -> ur-PK, latn, "14 ستمبر، 2026"
+  //   Chromium            ur-PK -> ur-PK, latn, "14 ستمبر، 2026"
+  //
+  // Identical, so `ur-PK` carries none of the server/browser split that forced
+  // `ps` onto `fa-AF`. Note the digits are LATIN and that is correct: Pakistani
+  // Urdu uses Western digits, unlike Dari/Pashto. It also means a runtime with
+  // no Urdu data degrades to English month names with the SAME digits, rather
+  // than a visible mismatch mid-page.
+  ur: "ur-PK",
 };

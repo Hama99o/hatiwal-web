@@ -16,6 +16,17 @@ import { INTL_TAG } from "./intl-tag";
 
 // date-fns has no Pashto locale; faIR (Persian) shares the script, so it's the
 // closest fit for ps and fa. en uses enUS.
+//
+// `ur` is DELIBERATELY absent and therefore resolves to enUS below. date-fns
+// ships no Urdu locale either (it has ug/uk/uz, not ur), and the tempting move —
+// pointing it at faIR the way ps does — would render PERSIAN at an Urdu reader:
+// "۳ روز پیش" where Urdu says "3 دن پہلے". Same script, different language.
+// This repo's own translation audit takes the position that a confidently wrong
+// string is worse than an obviously untranslated one, so relative times read as
+// English until there is a real Urdu source for them.
+//
+// Everything else on this locale IS localized — `INTL_TAG` maps ur to ur-PK, so
+// absolute dates, numbers and prices are correct. This is the one narrow gap.
 const DF_LOCALE: Record<string, typeof enUS> = {
   en: enUS,
   ps: faIR,
