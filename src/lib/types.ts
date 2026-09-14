@@ -38,6 +38,16 @@ export interface SellerSummary {
   verified?: boolean;
   avatarUrl?: string | null;
   phone?: string | null;
+  /**
+   * The seller's SEPARATE WhatsApp number — often a different SIM from `phone`.
+   *
+   * Rails has been emitting `seller.whatsapp_number` on the listing `:detailed`
+   * view all along and mobile has read it since 2026-09-02; web simply never
+   * declared it, which is why web had no WhatsApp action at all. Gated by the
+   * same `showPhonePublicly` switch as `phone`, so it is absent when the seller
+   * has hidden their contact details.
+   */
+  whatsappNumber?: string | null;
   responseRatePercent?: number | null;
   responseTimeLabel?: string | null;
   lastActiveLabel?: "today" | "this_week" | "this_month" | null;

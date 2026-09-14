@@ -343,7 +343,10 @@ function detailedSeller(l) {
   const u = SELLERS[l.seller_id];
   const trust = SELLER_TRUST[l.seller_id];
   return {
-    id: u.id, name: u.name, city: u.city, phone: null, verified: u.verified,
+    // Both contact fields ride the same `show_phone_publicly` + may_contact gate
+    // in Rails, and the detail payload is fetched by an RSC (a guest), so both
+    // are always null here.
+    id: u.id, name: u.name, city: u.city, phone: null, whatsapp_number: null, verified: u.verified,
     avatar_url: u.avatar_url,
     avg_rating: trust.avg_rating, review_count: trust.review_count,
     response_rate_percent: u.response_rate_percent,

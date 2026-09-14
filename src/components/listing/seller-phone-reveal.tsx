@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Phone } from "lucide-react";
+import { Phone, MessageCircle } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useLoginHref } from "@/components/auth/login-href";
 import { useIsOwner } from "@/components/auth/owner-gate";
 import { Button } from "@/components/ui/button";
+import { whatsappUrl, dialCodeForLocation } from "@/lib/whatsapp";
 
 /**
  * Gated phone reveal in the seller card (mirrors mobile SellerPhoneReveal):
@@ -16,9 +17,17 @@ import { Button } from "@/components/ui/button";
  */
 export function SellerPhoneReveal({
   phone,
+  whatsappNumber,
+  location,
   sellerId,
 }: {
   phone?: string | null;
+  /** The seller's separate WhatsApp number. The WhatsApp row prefers it and
+   *  falls back to `phone`, exactly as mobile does. */
+  whatsappNumber?: string | null;
+  /** The listing's location, used ONLY to pick the dial code for a number
+   *  written in national form ("0300…"). Not rendered. */
+  location?: string | null;
   sellerId?: number;
 }) {
   const t = useTranslations();
@@ -54,12 +63,31 @@ export function SellerPhoneReveal({
     );
   }
 
+  // Built from the SEPARATE whatsapp number when the seller set one, and
+  // normalised rather than trusted: wa.me takes digits only and a wrong number
+  // opens a chat with a stranger. Null when it cannot be made dialable, which
+  // is the signal to render no button at all.
+  const waUrl = whatsappUrl(
+    whatsappNumber?.trim() || phone,
+    dialCodeForLocation(location),
+  );
+
   return (
-    <Button asChild variant="outline" className="w-full">
-      <a href={`tel:${phone}`} dir="ltr">
-        <Phone className="size-4" />
-        {t("listing.detail.callSeller")} · {phone}
-      </a>
-    </Button>
+    <div className="flex flex-col gap-2">
+      <Button asChild variant="outline" className="w-full">
+        <a href={`tel:${phone}`} dir="ltr">
+          <Phone className="size-4" />
+          {t("listing.detail.callSeller")} · {phone}
+        </a>
+      </Button>
+      {waUrl && (
+        <Button asChild variant="outline" className="w-full">
+          <a href={waUrl} target="_blank" rel="noopener noreferrer">
+            <MessageCircle className="size-4" />
+            {t("listing.detail.whatsappSeller")}
+          </a>
+        </Button>
+      )}
+    </div>
   );
 }

@@ -412,6 +412,8 @@ export default async function ListingDetailPage({
                     )}
                     <SellerPhoneReveal
                       phone={listing.seller?.phone}
+                      whatsappNumber={listing.seller?.whatsappNumber}
+                      location={listing.location}
                       sellerId={listing.seller?.id}
                     />
                   </div>

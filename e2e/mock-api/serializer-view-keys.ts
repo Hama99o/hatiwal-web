@@ -172,12 +172,21 @@ export const LIST_SELLER_KEYS = [
 ] as const;
 
 /** `field(:seller)` inside `view :detailed` — identity plus the trust block
- *  (rating, response rate, recency, away mode) and the owner-gated phone. */
+ *  (rating, response rate, recency, away mode) and the contact-gated numbers.
+ *
+ *  `whatsapp_number` was MISSING from this transcription even though
+ *  `ListingSerializer` has emitted it since 2026-09-02. Nothing caught it,
+ *  because the drift ran the safe way round — the mock omitted a real field
+ *  rather than inventing one — and the cost was quiet: web could not see a
+ *  field it was already being sent, so the WhatsApp action shipped on mobile
+ *  and never on web at all. Worth noting that "no extras" is only half the
+ *  contract; "nothing missing" is the half that hid a whole feature. */
 export const DETAILED_SELLER_KEYS = [
   "id",
   "name",
   "city",
   "phone",
+  "whatsapp_number",
   "verified",
   "avatar_url",
   "avg_rating",
