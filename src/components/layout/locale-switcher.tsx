@@ -13,10 +13,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const LOCALE_LABEL: Record<string, string> = {
+/**
+ * TYPED TO THE ROUTING LOCALES ON PURPOSE — `Record<string, string>` is what let
+ * this break. Urdu was added to `routing.locales` and never added here, so the
+ * menu mapped over four locales while this returned `undefined` for one of them:
+ * the Urdu row rendered with no label at all, blank and unclickable. Nothing
+ * complained, because a string index signature accepts every key and misses
+ * every absence.
+ *
+ * Keyed to `routing.locales` instead, adding a locale without a label is a
+ * COMPILE error rather than a blank row someone has to notice.
+ */
+const LOCALE_LABEL: Record<(typeof routing.locales)[number], string> = {
   en: "English",
   ps: "پښتو",
   fa: "دری",
+  ur: "اردو",
 };
 
 export function LocaleSwitcher() {

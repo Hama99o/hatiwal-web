@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { BUYER_STATE } from "./auth-paths";
 
 /**
  * The Pakistan-expansion work, on web.
@@ -26,7 +27,12 @@ test.describe("Urdu locale (Pakistan expansion)", () => {
     // so the very next commit would have failed a brand-new test. Anchoring on
     // the opening word keeps it testing what it is FOR (Urdu renders, not an
     // English fallback) rather than which countries the copy currently names.
-    await expect(page.getByText(/^افغانستان/)).toBeVisible();
+    // Scoped to the HEADING. A bare getByText(/^افغانستان/) matched two elements
+    // — the hero and the footer tagline both open with that word — and Playwright
+    // fails strict mode rather than guessing.
+    await expect(
+      page.getByRole("heading", { name: /^افغانستان/ }),
+    ).toBeVisible();
     // And prove no raw key path leaked into the page.
     await expect(page.getByText(/home\.hero\./)).toHaveCount(0);
   });
@@ -41,6 +47,11 @@ test.describe("Urdu locale (Pakistan expansion)", () => {
 });
 
 test.describe("Category select is grouped by parent", () => {
+  // /listings/new is behind auth. Without this the page redirects to login and
+  // the select does not exist — which read as "the optgroup is missing" and
+  // briefly looked like the grouping itself was broken.
+  test.use({ storageState: BUYER_STATE });
+
   test("children are nested under their parent, not siblings of it", async ({ page }) => {
     await page.goto("/en/listings/new");
 
