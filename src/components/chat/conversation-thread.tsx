@@ -26,6 +26,7 @@ import {
   deleteMessage,
   getConversation,
   getMessages,
+  isSupportThread,
   markRead,
   sendFile,
   sendMessage,
@@ -372,6 +373,13 @@ export function ConversationThread({ id }: { id: string }) {
   const conversation = convQ.data;
   // Null once the listing is deleted or taken down (`listingDeleted`).
   const pinnedListing = conversation?.listing ?? null;
+  // A thread with Hatiwal Support rather than another user about a listing —
+  // mobile's `isSupport` (Conversation.tsx), gating the same things off: the
+  // listing header/removed notice, block and report (both 403 on Support), the
+  // profile link, the buyer quick replies and the meetup button (a 422 there).
+  // Decided from `kind`, never from `listing == null`, which also means
+  // "listing removed" — and a support thread reports `listingDeleted: true`.
+  const isSupport = isSupportThread(conversation);
   const other = conversation?.otherParticipant;
   const closed = conversation?.status === "closed";
 
@@ -530,7 +538,18 @@ export function ConversationThread({ id }: { id: string }) {
             <ArrowLeft className="size-5 rtl:-scale-x-100" />
           </Link>
         </Button>
-        {other && (
+        {isSupport ? (
+          // Not a link: there is no public profile behind Support. Always the
+          // localized label, never the account's stored (English) name.
+          <UserIdentity
+            name={t("chat.support.name")}
+            subtitle={t("chat.support.headerNote")}
+            verified
+            variant="support"
+            size={40}
+            className="min-w-0 flex-1"
+          />
+        ) : other && (
           <UserIdentity
             name={other.name}
             avatarUrl={other.avatarUrl}
@@ -550,7 +569,7 @@ export function ConversationThread({ id }: { id: string }) {
         >
           <Search className="size-5" />
         </Button>
-        {other && (
+        {other && !isSupport && (
           <ReportButton
             reportableType="User"
             reportableId={other.id}
@@ -565,19 +584,21 @@ export function ConversationThread({ id }: { id: string }) {
             onBlocked={() => setBlocked(true)}
           />
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={blocked ? "text-destructive" : ""}
-          aria-label={t(blocked ? "chat.block.unblockUser" : "chat.block.blockUser")}
-          onClick={() => setConfirmBlock(true)}
-        >
-          {blocked ? (
-            <ShieldCheck className="size-5" />
-          ) : (
-            <ShieldBan className="size-5" />
-          )}
-        </Button>
+        {!isSupport && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={blocked ? "text-destructive" : ""}
+            aria-label={t(blocked ? "chat.block.unblockUser" : "chat.block.blockUser")}
+            onClick={() => setConfirmBlock(true)}
+          >
+            {blocked ? (
+              <ShieldCheck className="size-5" />
+            ) : (
+              <ShieldBan className="size-5" />
+            )}
+          </Button>
+        )}
       </div>
 
       {/* In-thread search (client-side only) */}
@@ -625,8 +646,12 @@ export function ConversationThread({ id }: { id: string }) {
         * `conversation.listing.id` unguarded, so such a thread threw and showed
         * "Something went wrong" instead of the conversation. The notice is
         * mobile's (Conversation.tsx, `chat.listingDeleted`), same sentence in
-        * every locale, so the buyer understands why the item is missing. */}
-      {pinnedListing ? (
+        * every locale, so the buyer understands why the item is missing.
+        *
+        * Kind FIRST: a support thread has no listing either, and also reports
+        * `listingDeleted: true` — it must get neither the header nor the
+        * notice. */}
+      {isSupport ? null : pinnedListing ? (
         <Link
           href={`/listings/${pinnedListing.id}`}
           className="flex items-center gap-3 border-b bg-card/50 px-3 py-2 transition-colors hover:bg-accent"
@@ -796,7 +821,9 @@ export function ConversationThread({ id }: { id: string }) {
       {/* Quick-reply preset chips (hidden on a closed conversation) */}
       {/* Also hidden while blocked — a quick reply inserts text into a composer
         * that can no longer send, so offering one is an invitation to a failure. */}
-      {!closed && !blocked && (
+      {/* Buyer/seller phrase sets ("Is it still available?") mean nothing to
+        * Support. */}
+      {!closed && !blocked && !isSupport && (
         <QuickReplies
           role={isSeller ? "seller" : "buyer"}
           onSelect={handleQuickReply}
@@ -858,16 +885,19 @@ export function ConversationThread({ id }: { id: string }) {
               <Paperclip className="size-5" />
             )}
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            aria-label={t("chat.proposeMeetup")}
-            onClick={() => setMeetupOpen(true)}
-          >
-            <CalendarPlus className="size-5" />
-          </Button>
+          {/* No meetup with Support: the API refuses deal kinds there (422). */}
+          {!isSupport && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              aria-label={t("chat.proposeMeetup")}
+              onClick={() => setMeetupOpen(true)}
+            >
+              <CalendarPlus className="size-5" />
+            </Button>
+          )}
           <Input
             ref={inputRef}
             value={input}

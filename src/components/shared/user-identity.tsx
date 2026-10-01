@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
+import { Logomark } from "@/components/layout/logo";
 import { UserAvatar } from "./user-avatar";
 import { VerifiedBadge } from "./verified-badge";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,11 @@ interface UserIdentityProps {
   nameAs?: "span" | "h1" | "h2" | "h3";
   /** Locale-aware href; when set the whole identity becomes a link. */
   href?: string;
+  /**
+   * "support" shows the Hatiwal brand mark instead of a person's avatar, for
+   * Hatiwal Support in chat (mobile's UserIdentity `variant="support"`).
+   */
+  variant?: "default" | "support";
   className?: string;
 }
 
@@ -48,6 +54,7 @@ export function UserIdentity({
   meta,
   nameAs: NameTag = "span",
   href,
+  variant = "default",
   className,
 }: UserIdentityProps) {
   const body = (
@@ -58,7 +65,13 @@ export function UserIdentity({
         className,
       )}
     >
-      <UserAvatar name={name} avatarUrl={avatarUrl} size={size} />
+      {variant === "support" ? (
+        <span className="shrink-0" style={{ width: size, height: size }}>
+          <Logomark className="size-full" />
+        </span>
+      ) : (
+        <UserAvatar name={name} avatarUrl={avatarUrl} size={size} />
+      )}
       <div
         className={cn(
           "min-w-0",

@@ -360,6 +360,15 @@ export interface ConversationParticipant {
 export interface Conversation {
   id: number;
   status: "open" | "closed";
+  /**
+   * "support" for a thread with Hatiwal Support (no listing), "listing" for
+   * every other. Optional: an API build before support messaging omits it.
+   * Never read it directly — use `isSupportThread` (lib/api/chat.ts).
+   * See hatiwal-api/docs/SUPPORT_MESSAGING.md.
+   */
+  kind?: "listing" | "support";
+  /** Null on a support thread. */
+  viewerRole?: "buyer" | "seller" | null;
   lastMessageAt: string | null;
   createdAt: string;
   /**

@@ -8,6 +8,20 @@ import type {
 } from "../types";
 
 /** One page of the conversations index — same shape as `ListingsResult`. */
+/**
+ * The ONE place that decides whether a conversation is a support thread — the
+ * web twin of mobile's `isSupportThread` (src/api/conversations.ts), so the
+ * two clients cannot drift. Every support-specific branch reads this, never
+ * `kind` directly and never `listing == null`: a null listing also means the
+ * listing was deleted (`listingDeleted`, which a support thread ALSO reports
+ * as true), so it cannot tell the two apart. Branch on this FIRST.
+ */
+export function isSupportThread(
+  conversation: Pick<Conversation, "kind"> | null | undefined,
+): boolean {
+  return conversation?.kind === "support";
+}
+
 export interface ConversationsResult {
   items: Conversation[];
   pagination: Pagination;

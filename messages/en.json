@@ -767,6 +767,10 @@
     "deleteConversationDescription": "This will permanently remove the conversation and all messages.",
     "unknownUser": "Unknown User",
     "listingDeleted": "This listing has been removed",
+    "support": {
+      "name": "Hatiwal Support",
+      "headerNote": "Official messages from the Hatiwal team"
+    },
     "unreadCount": "{count, plural, one {# unread message} other {# unread messages}}",
     "noMessages": "No messages yet",
     "preview": {

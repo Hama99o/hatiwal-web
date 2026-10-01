@@ -625,6 +625,10 @@
     "deleteConversationDescription": "اس سے گفتگو اور تمام پیغامات مستقل طور پر ہٹ جائیں گے۔",
     "unknownUser": "نامعلوم صارف",
     "listingDeleted": "یہ اشتہار ہٹا دیا گیا ہے",
+    "support": {
+      "name": "ہتیوال سپورٹ",
+      "headerNote": "ہتیوال ٹیم کے سرکاری پیغامات"
+    },
     "unreadCount": "{count, plural, one {# غیر پڑھا پیغام} other {# غیر پڑھے پیغامات}}",
     "noMessages": "ابھی کوئی پیغام نہیں",
     "preview": {

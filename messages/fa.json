@@ -767,6 +767,10 @@
     "deleteConversationDescription": "این گفتگو و تمام پیام‌ها برای همیشه حذف می‌شوند.",
     "unknownUser": "کاربر ناشناس",
     "listingDeleted": "این آگهی حذف شده است",
+    "support": {
+      "name": "پشتیبانی هتیوال",
+      "headerNote": "پیام‌های رسمی تیم هتیوال"
+    },
     "unreadCount": "{count, plural, one {# پیام خوانده‌نشده} other {# پیام خوانده‌نشده}}",
     "noMessages": "هنوز پیامی وجود ندارد",
     "preview": {

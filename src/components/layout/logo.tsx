@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 // Black letterform as the app icon). Brand colors are intentionally fixed: a
 // logo renders its own colors, independent of the UI theme. Gradient ids are
 // constant — duplicate instances on a page are identical, so they resolve fine.
-function HMark({ className }: { className?: string }) {
+export function Logomark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
       <defs>
@@ -32,7 +32,7 @@ function HMark({ className }: { className?: string }) {
 export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
-      <HMark className="size-8" />
+      <Logomark className="size-8" />
       <span className="text-lg font-bold tracking-tight text-foreground">
         Hatiwal
       </span>

@@ -25,6 +25,7 @@ import { Link } from "@/i18n/navigation";
 import {
   archiveConversation,
   getConversations,
+  isSupportThread,
   markConversationRead,
   markConversationUnread,
   unarchiveConversation,
@@ -33,6 +34,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import type { Conversation } from "@/lib/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { Logomark } from "@/components/layout/logo";
 import { CountBadge } from "@/components/shared/count-badge";
 import { HighlightedText } from "@/components/shared/highlighted-text";
 import { RemoteImage } from "@/components/shared/remote-image";
@@ -309,7 +311,14 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
             <ul className="divide-y overflow-hidden rounded-lg border bg-card">
               {rows.map((c) => {
                 const who = c.otherParticipant;
-                const name = who?.name ?? t("chat.unknownUser");
+                // Kind FIRST: a support thread also reports `listing: null` +
+                // `listingDeleted: true`, and must not read as a removed
+                // listing. Its name is always the localized label — the
+                // account's stored name is English.
+                const support = isSupportThread(c);
+                const name = support
+                  ? t("chat.support.name")
+                  : (who?.name ?? t("chat.unknownUser"));
                 const unread = (c.unreadCount ?? 0) > 0;
                 return (
                   <li key={c.id} className="relative flex items-center">
@@ -317,11 +326,15 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                       href={`/conversations/${c.id}`}
                       className="flex min-w-0 flex-1 items-center gap-3 p-3 transition-colors hover:bg-accent"
                     >
-                      <UserAvatar
-                        name={name}
-                        avatarUrl={who?.avatarUrl}
-                        size={48}
-                      />
+                      {support ? (
+                        <Logomark className="size-12 shrink-0" />
+                      ) : (
+                        <UserAvatar
+                          name={name}
+                          avatarUrl={who?.avatarUrl}
+                          size={48}
+                        />
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate font-semibold">
@@ -362,7 +375,9 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                             it ("Something went wrong"); now the row says what
                             happened, in mobile's words. */}
                         <p className="truncate text-xs text-muted-foreground">
-                          {c.listing ? (
+                          {support ? (
+                            t("chat.support.headerNote")
+                          ) : c.listing ? (
                             <HighlightedText
                               text={c.listing.title}
                               query={trimmedTerm}
@@ -373,22 +388,28 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                         </p>
                       </div>
                       <div className="relative shrink-0">
-                        <div className="flex size-12 items-center justify-center overflow-hidden rounded-md bg-muted">
-                          {c.listing ? (
-                            <RemoteImage
-                              src={c.listing.thumbnailUrl}
-                              alt={c.listing.title}
-                              width={48}
-                              height={48}
-                              className="size-12 object-cover"
-                            />
-                          ) : (
-                            <CircleSlash
-                              aria-hidden
-                              className="size-5 text-muted-foreground"
-                            />
-                          )}
-                        </div>
+                        {/* No listing photo slot on a support thread — the
+                            brand mark already sits in the avatar slot. The
+                            badge then stands on its own instead of pinned to
+                            a thumbnail. */}
+                        {!support && (
+                          <div className="flex size-12 items-center justify-center overflow-hidden rounded-md bg-muted">
+                            {c.listing ? (
+                              <RemoteImage
+                                src={c.listing.thumbnailUrl}
+                                alt={c.listing.title}
+                                width={48}
+                                height={48}
+                                className="size-12 object-cover"
+                              />
+                            ) : (
+                              <CircleSlash
+                                aria-hidden
+                                className="size-5 text-muted-foreground"
+                              />
+                            )}
+                          </div>
+                        )}
                         {/* The shared count pill (see the header's and the owner
                             panel's): this used to be a third hand-rolled span with
                             its own 11px type and its own raw `> 9 ? "9+"`, which
@@ -399,7 +420,11 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                           label={t("chat.unreadCount", {
                             count: c.unreadCount ?? 0,
                           })}
-                          className="absolute -end-1.5 -top-1.5 h-5 min-w-5 border-2 border-card px-1 leading-none"
+                          className={cn(
+                            "h-5 min-w-5 px-1 leading-none",
+                            !support &&
+                              "absolute -end-1.5 -top-1.5 border-2 border-card",
+                          )}
                         />
                       </div>
                     </Link>
