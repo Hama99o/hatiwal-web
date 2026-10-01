@@ -1045,5 +1045,30 @@
         "description": "Chat first, then arrange a safe place to meet — no online payments needed."
       }
     }
+  },
+  "download": {
+    "metaTitle": "Download Hatiwal — the local marketplace app",
+    "metaDescription": "Get the free Hatiwal app for iPhone or Android. Find items near you in Afghanistan and Pakistan, message the seller in the app, and meet in person.",
+    "title": "Get Hatiwal",
+    "subtitle": "Buy and sell with people near you. Free on iPhone and Android.",
+    "forIphone": "For iPhone",
+    "forAndroid": "For Android",
+    "web": "Continue on the web",
+    "webSub": "No download needed",
+    "recommended": "Best for your device",
+    "steps": {
+      "find": {
+        "title": "Find it nearby",
+        "body": "Browse items for sale in your city."
+      },
+      "chat": {
+        "title": "Message in the app",
+        "body": "Ask questions and agree on a price with the seller."
+      },
+      "meet": {
+        "title": "Meet in person",
+        "body": "See the item for yourself, face to face."
+      }
+    }
   }
 }

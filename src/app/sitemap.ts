@@ -27,6 +27,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.6,
     });
+    entries.push({
+      url: `${SITE}/${locale}/download`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    });
     for (const c of categories) {
       entries.push({
         url: `${SITE}/${locale}/categories/${c.slug}`,
