@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { localizedAlternates } from "@/lib/seo";
+import { SUPPORT_EMAIL } from "@/lib/app-links";
 
 // Public, SEO-indexable privacy policy — required by the App Store and Google
 // Play (a reachable policy URL must be declared in both consoles).
@@ -8,8 +9,6 @@ import { localizedAlternates } from "@/lib/seo";
 // accurate starting policy for the data the app actually collects.
 export const revalidate = 60;
 
-// TODO(ops): point at the real support inbox before launch.
-const SUPPORT_EMAIL = "support@hatiwal.app";
 
 export async function generateMetadata({
   params,

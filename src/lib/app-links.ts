@@ -17,3 +17,15 @@
 export const APP_STORE_URL = "https://apps.apple.com/app/hatiwal/id6789510903";
 export const GOOGLE_PLAY_URL =
   "https://play.google.com/store/apps/details?id=com.hatiwal.app";
+
+/**
+ * The one inbox Hatiwal reads, shown wherever a page tells people how to reach
+ * us (privacy policy, account deletion). It is also the account the API sends
+ * every email from, so a reply to any Hatiwal email lands in the same place.
+ *
+ * Replaced "support@hatiwal.app", which could never receive mail: hatiwal.app
+ * has no DNS at all, and hatiwal.com has no MX. Both pages are the ones the
+ * App Store and Google Play require a WORKING contact on. When a real
+ * support@ address exists, change it here and nowhere else.
+ */
+export const SUPPORT_EMAIL = "infohama99o@gmail.com";

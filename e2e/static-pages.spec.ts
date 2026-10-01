@@ -1,22 +1,26 @@
 import { test, expect } from "@playwright/test";
+import { SUPPORT_EMAIL } from "../src/lib/app-links";
 
 // Privacy + account-deletion pages are App Store / Google Play requirements and
-// must render in all three locales.
+// must render in every locale the site serves, with a contact address that can
+// actually receive mail (see SUPPORT_EMAIL).
 test.describe("Legal / static pages", () => {
-  for (const locale of ["en", "ps", "fa"] as const) {
+  for (const locale of ["en", "ps", "fa", "ur"] as const) {
     test(`privacy policy renders (${locale})`, async ({ page }) => {
       const resp = await page.goto(`/${locale}/privacy`);
       expect(resp?.status()).toBe(200);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       // Contact email is shown for out-of-app deletion requests.
-      await expect(page.getByText("support@hatiwal.app").first()).toBeVisible();
+      await expect(page.getByText(SUPPORT_EMAIL).first()).toBeVisible();
+      await expect(page.locator(`a[href="mailto:${SUPPORT_EMAIL}"]`).first()).toBeVisible();
     });
 
     test(`delete-account page renders (${locale})`, async ({ page }) => {
       const resp = await page.goto(`/${locale}/delete-account`);
       expect(resp?.status()).toBe(200);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.getByText("support@hatiwal.app").first()).toBeVisible();
+      await expect(page.getByText(SUPPORT_EMAIL).first()).toBeVisible();
+      await expect(page.locator(`a[href="mailto:${SUPPORT_EMAIL}"]`).first()).toBeVisible();
     });
   }
 

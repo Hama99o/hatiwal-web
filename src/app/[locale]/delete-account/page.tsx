@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { localizedAlternates } from "@/lib/seo";
+import { SUPPORT_EMAIL } from "@/lib/app-links";
 
 // Public, SEO-indexable page describing how to delete a Hatiwal account and
 // personal data — satisfies Google Play's requirement for a web-accessible
 // account-deletion resource (reachable without installing the app).
 export const revalidate = 60;
 
-// TODO(ops): point this at the real support inbox before launch.
-const SUPPORT_EMAIL = "support@hatiwal.app";
 
 export async function generateMetadata({
   params,
