@@ -12,6 +12,7 @@ import {
   Archive,
   ArchiveRestore,
   CheckCheck,
+  CircleSlash,
   Inbox,
   Loader2,
   MailOpen,
@@ -355,22 +356,38 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                             query={trimmedTerm}
                           />
                         </p>
+                        {/* `listing` is null once it was deleted or taken
+                            down. Reading `c.listing.title` unguarded here threw
+                            for that one row and took the WHOLE inbox down with
+                            it ("Something went wrong"); now the row says what
+                            happened, in mobile's words. */}
                         <p className="truncate text-xs text-muted-foreground">
-                          <HighlightedText
-                            text={c.listing.title}
-                            query={trimmedTerm}
-                          />
+                          {c.listing ? (
+                            <HighlightedText
+                              text={c.listing.title}
+                              query={trimmedTerm}
+                            />
+                          ) : (
+                            t("chat.listingDeleted")
+                          )}
                         </p>
                       </div>
                       <div className="relative shrink-0">
-                        <div className="size-12 overflow-hidden rounded-md bg-muted">
-                          <RemoteImage
-                            src={c.listing.thumbnailUrl}
-                            alt={c.listing.title}
-                            width={48}
-                            height={48}
-                            className="size-12 object-cover"
-                          />
+                        <div className="flex size-12 items-center justify-center overflow-hidden rounded-md bg-muted">
+                          {c.listing ? (
+                            <RemoteImage
+                              src={c.listing.thumbnailUrl}
+                              alt={c.listing.title}
+                              width={48}
+                              height={48}
+                              className="size-12 object-cover"
+                            />
+                          ) : (
+                            <CircleSlash
+                              aria-hidden
+                              className="size-5 text-muted-foreground"
+                            />
+                          )}
                         </div>
                         {/* The shared count pill (see the header's and the owner
                             panel's): this used to be a third hand-rolled span with

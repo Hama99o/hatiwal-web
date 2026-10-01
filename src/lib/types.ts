@@ -362,6 +362,17 @@ export interface Conversation {
   status: "open" | "closed";
   lastMessageAt: string | null;
   createdAt: string;
+  /**
+   * True when the listing is gone — deleted by its seller (a soft remove) or
+   * taken down by an admin. The API then sends `listing: null` (it has since
+   * June 2026), so this is the field that explains a null `listing`.
+   */
+  listingDeleted?: boolean;
+  /**
+   * NULL whenever `listingDeleted` is true. Typed nullable so the compiler
+   * finds every read: an unguarded `listing.title` here took down the whole
+   * inbox for anyone with one such thread, not just that row.
+   */
   listing: {
     id: number;
     title: string;
@@ -379,7 +390,7 @@ export interface Conversation {
     multiUnit?: boolean;
     availableUnits?: number;
     location?: string | null;
-  };
+  } | null;
   otherParticipant?: ConversationParticipant;
   buyer?: ConversationParticipant;
   seller?: ConversationParticipant;

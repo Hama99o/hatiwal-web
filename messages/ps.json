@@ -766,6 +766,7 @@
     "deleteConversation": "خبرې حذف کړئ",
     "deleteConversationDescription": "دا به خبرې او ټول پیغامونه تل لپاره لرې کړي.",
     "unknownUser": "نامعلوم کارونکی",
+    "listingDeleted": "دا خپرونه لرې شوې ده",
     "unreadCount": "{count, plural, one {# نالوستل شوی پیغام} other {# نالوستل شوي پیغامونه}}",
     "noMessages": "لاهم هیڅ پیغام نشته",
     "preview": {

@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   CalendarPlus,
+  CircleSlash,
   Loader2,
   Paperclip,
   Clock,
@@ -369,6 +370,8 @@ export function ConversationThread({ id }: { id: string }) {
   }
 
   const conversation = convQ.data;
+  // Null once the listing is deleted or taken down (`listingDeleted`).
+  const pinnedListing = conversation?.listing ?? null;
   const other = conversation?.otherParticipant;
   const closed = conversation?.status === "closed";
 
@@ -615,34 +618,48 @@ export function ConversationThread({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Pinned listing */}
-      <Link
-        href={`/listings/${conversation.listing.id}`}
-        className="flex items-center gap-3 border-b bg-card/50 px-3 py-2 transition-colors hover:bg-accent"
-      >
-        <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-          <RemoteImage
-            src={conversation.listing.thumbnailUrl}
-            alt={conversation.listing.title}
-            width={40}
-            height={40}
-            className="size-10 object-cover"
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {conversation.listing.title}
-          </p>
-          {conversation.listing.price != null && (
-            <PriceTag
-              price={conversation.listing.price}
-              currency={conversation.listing.currency}
-              size="sm"
+      {/* Pinned listing — or, when it is gone, say so.
+        *
+        * The API sends `listing: null` once the seller deletes the listing or an
+        * admin takes it down (`listingDeleted`). This header used to read
+        * `conversation.listing.id` unguarded, so such a thread threw and showed
+        * "Something went wrong" instead of the conversation. The notice is
+        * mobile's (Conversation.tsx, `chat.listingDeleted`), same sentence in
+        * every locale, so the buyer understands why the item is missing. */}
+      {pinnedListing ? (
+        <Link
+          href={`/listings/${pinnedListing.id}`}
+          className="flex items-center gap-3 border-b bg-card/50 px-3 py-2 transition-colors hover:bg-accent"
+        >
+          <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+            <RemoteImage
+              src={pinnedListing.thumbnailUrl}
+              alt={pinnedListing.title}
+              width={40}
+              height={40}
+              className="size-10 object-cover"
             />
-          )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {pinnedListing.title}
+            </p>
+            {pinnedListing.price != null && (
+              <PriceTag
+                price={pinnedListing.price}
+                currency={pinnedListing.currency}
+                size="sm"
+              />
+            )}
+          </div>
+          <StatusBadge status={pinnedListing.status as ListingStatus} />
+        </Link>
+      ) : (
+        <div className="flex items-center justify-center gap-2 border-b bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
+          <CircleSlash className="size-3.5 shrink-0" />
+          {t("chat.listingDeleted")}
         </div>
-        <StatusBadge status={conversation.listing.status as ListingStatus} />
-      </Link>
+      )}
 
       {/* ── Seller actions on the pinned listing (owner only, live only) ─────
           MARK SOLD IS THE PRIMARY, ALWAYS. Not "reserve an active listing, then
