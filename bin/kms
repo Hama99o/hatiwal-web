@@ -15,25 +15,28 @@ need_kamal() { command -v kamal >/dev/null 2>&1 || { echo -e "${RED}kamal not in
 help() {
 cat <<EOF
 $(echo -e "${CYAN}hatiwal-web · Kamal Management Script${NC}")
-$(echo -e "${YELLOW}Usage:${NC}) bin/kms <command> [args]
+$(echo -e "${YELLOW}Usage:${NC}") bin/kms <command> [args]
 
-$(echo -e "${GREEN}Deploy${NC})
+$(echo -e "${GREEN}Deploy${NC}")
   deploy, d        Build, push and deploy (zero-downtime)
   redeploy         Force rebuild + deploy
   rollback         Roll back to the previous version
   status, s        Show deployment details
   version          Show the running version
   lock <args>      Manage deploy locks (e.g. lock release)
+  deploy:retry     Finish a deploy whose SSH dropped: reuse the pushed image (no rebuild)
+  health           Check hatiwal.com and its health endpoint (HTTP code + time)
 
-$(echo -e "${GREEN}Logs / shell${NC})
+$(echo -e "${GREEN}Logs / shell${NC}")
   logs, l          Follow app logs
   logs:N           Last N lines (e.g. logs:200)
-  logs:proxy       Follow kamal-proxy logs
+  logs:proxy [N]   kamal-proxy: last N lines (default: last 100, then follow)
+  logs:errors      Only errors / 5xx (last 3000 lines)
   logs:grep <pat>  Grep the last 1000 app log lines
   sh, bash         Open a shell in the container
   exec '<cmd>'     Run a command in the container
 
-$(echo -e "${GREEN}App${NC})
+$(echo -e "${GREEN}App${NC}")
   ps               List app containers
   restart, boot    Reboot the app
   stop / start     Stop / start the app
@@ -49,10 +52,14 @@ case "${1:-help}" in
   s|status)     need_kamal; kamal details ;;
   version)      need_kamal; kamal app version ;;
   lock)         need_kamal; shift; kamal lock "$@" ;;
+  deploy:retry) need_kamal; kamal deploy --skip-push ;;
+  health)       for u in https://hatiwal.com/api/health https://hatiwal.com/en; do
+                  r=$(curl -s -o /dev/null -m 20 -w "%{http_code} %{time_total}s" "$u"); echo "$r  $u"; done ;;
 
   l|logs)       need_kamal; kamal app logs -f ;;
   logs:[0-9]*)  need_kamal; kamal app logs -n "${1#logs:}" ;;
-  logs:proxy)   need_kamal; kamal proxy logs -f ;;
+  logs:proxy)   need_kamal; if [[ "${2:-}" =~ ^[0-9]+$ ]]; then kamal proxy logs -n "$2"; else kamal proxy logs -n 100 -f; fi ;;
+  logs:errors)  need_kamal; kamal app logs -n 3000 | grep -iE "error|exception| 5[0-9][0-9] " || echo "No errors in the last 3000 lines" ;;
   logs:grep)    need_kamal; shift; kamal app logs -n 1000 | grep -i "$*" ;;
   sh|bash)      need_kamal; kamal app exec -i --reuse "sh" ;;
   exec)         need_kamal; shift; kamal app exec "$*" ;;
