@@ -129,6 +129,27 @@
   --font-mono: ui-monospace, SFMono-Regular, "Roboto Mono", monospace;
 }
 
+/* RTL locales lead with an ARABIC face, as mobile does (src/lib/fonts.ts:
+   fa → Zain, ps/ur → Noto Sans Arabic). With Rubik first, the browser drew
+   most of a Pashto/Urdu word in Rubik — it covers basic Arabic — and only the
+   letters Rubik lacks (ړ ټ ښ, ہ ٹ ے…) in a second face, so one word mixed two
+   typefaces. Noto Sans Arabic carries every letter all three locales use;
+   Zain lacks the Pashto set (only ښ in fa strings), which Noto then covers.
+   Rubik stays in the stack for Latin text in these locales. `html:lang()`
+   outranks Tailwind's `:root` definition of the variable. */
+html:lang(ps),
+html:lang(ur) {
+  --font-sans:
+    var(--font-noto-arabic), var(--font-rubik), ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+html:lang(fa) {
+  --font-sans:
+    var(--font-zain), var(--font-noto-arabic), var(--font-rubik),
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    sans-serif;
+}
+
 @layer base {
   * {
     border-color: var(--border);

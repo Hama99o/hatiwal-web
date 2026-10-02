@@ -32,6 +32,16 @@ const zain = localFont({
     { path: "../fonts/Zain_700Bold.ttf", weight: "700", style: "normal" },
   ],
   variable: "--font-zain",
+  // Arabic-script code points only (plus ZWNJ/ZWJ and the bidi marks, which
+  // Dari uses mid-word), so this face can lead the RTL stack without taking
+  // over Latin text — that stays Rubik on every locale. Inline literal: next/font
+  // rejects a shared constant here.
+  declarations: [
+    { prop: "unicode-range", value: "U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF" },
+  ],
+  // No generated "<font> Fallback" face: it is plain local Arial WITHOUT the
+  // range, so it would catch every Latin letter before Rubik is reached.
+  adjustFontFallback: false,
   display: "swap",
 });
 const notoArabic = localFont({
@@ -40,6 +50,16 @@ const notoArabic = localFont({
     { path: "../fonts/NotoSansArabic_700Bold.ttf", weight: "700", style: "normal" },
   ],
   variable: "--font-noto-arabic",
+  // Arabic-script code points only (plus ZWNJ/ZWJ and the bidi marks, which
+  // Dari uses mid-word), so this face can lead the RTL stack without taking
+  // over Latin text — that stays Rubik on every locale. Inline literal: next/font
+  // rejects a shared constant here.
+  declarations: [
+    { prop: "unicode-range", value: "U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF" },
+  ],
+  // No generated "<font> Fallback" face: it is plain local Arial WITHOUT the
+  // range, so it would catch every Latin letter before Rubik is reached.
+  adjustFontFallback: false,
   display: "swap",
 });
 

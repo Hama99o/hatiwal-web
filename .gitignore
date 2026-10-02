@@ -57,3 +57,4 @@ e2e/.auth
 
 # Visual-sweep screenshots (evidence, reviewed by eye — not committed).
 qa/visual/
+qa/reports/
