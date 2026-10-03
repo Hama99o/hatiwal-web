@@ -68,6 +68,21 @@ const ROUTES: Record<AppRoute["kind"], { web: string; app: string }> = {
   seller: { web: "sellers", app: "seller" },
 };
 
+/**
+ * The app route for a website path, or null when the page has no app twin.
+ * Accepts the locale-prefixed path the browser shows: "/ps/listings/70".
+ */
+export function appRouteFromPath(pathname: string): AppRoute | null {
+  const parts = pathname.split("/").filter(Boolean);
+  for (let i = 0; i < parts.length - 1; i++) {
+    const kind = (Object.keys(ROUTES) as AppRoute["kind"][]).find(
+      (k) => ROUTES[k].web === parts[i],
+    );
+    if (kind && /^\d+$/.test(parts[i + 1])) return { kind, id: parts[i + 1] };
+  }
+  return null;
+}
+
 /** The app's own path for a route: "listing/70". */
 export function appPath(route: AppRoute): string {
   return `${ROUTES[route.kind].app}/${route.id}`;
@@ -93,10 +108,18 @@ export function appDeepLink(route: AppRoute): string {
  * fallback — it hands those to the Play Store app — while an ordinary web
  * fallback loaded every time.
  */
-export function androidIntentUrl(route: AppRoute): string {
+export function androidIntentUrl(route: AppRoute | null): string {
+  const fallback = `S.browser_fallback_url=${encodeURIComponent(`${SITE_URL}/download`)};end`;
+  // No app twin for this page (home, Bazaar, …): just launch the app.
+  if (!route) {
+    return (
+      `intent:#Intent;action=android.intent.action.MAIN;` +
+      `category=android.intent.category.LAUNCHER;package=${ANDROID_PACKAGE};${fallback}`
+    );
+  }
   return (
     `intent://${appPath(route)}#Intent;scheme=${APP_SCHEME};package=${ANDROID_PACKAGE};` +
-    `S.browser_fallback_url=${encodeURIComponent(`${SITE_URL}/download`)};end`
+    fallback
   );
 }
 
@@ -122,4 +145,34 @@ export function detectPlatform(): DevicePlatform {
   if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return "ios";
   if (/Android/i.test(ua)) return "android";
   return "other";
+}
+
+// ── The install suggestion (components/shared/app-prompt.tsx) ───────────────
+//
+// The owner's rule (2026-10-03): on a PHONE, suggest the app once; if they
+// close it, never push again — just keep a small "Get the app" icon. Never on
+// desktop. The "closed it" choice lives in a cookie (a year), so it survives
+// reloads and is the same answer on every page.
+
+export const APP_PROMPT_COOKIE = "hatiwal_app_prompt";
+/** Fired by the header icon; the sheet listens and opens. */
+export const OPEN_APP_PROMPT_EVENT = "hatiwal:open-app-prompt";
+/** Fired when the choice changes, so the header icon can appear at once. */
+export const APP_PROMPT_CHANGED_EVENT = "hatiwal:app-prompt-changed";
+
+export function appPromptDismissed(): boolean {
+  try {
+    return document.cookie.split("; ").some((c) => c === `${APP_PROMPT_COOKIE}=dismissed`);
+  } catch {
+    return false;
+  }
+}
+
+export function dismissAppPrompt(): void {
+  try {
+    document.cookie = `${APP_PROMPT_COOKIE}=dismissed; path=/; max-age=31536000; samesite=lax`;
+  } catch {
+    /* cookies off: it will simply be offered again next visit */
+  }
+  window.dispatchEvent(new Event(APP_PROMPT_CHANGED_EVENT));
 }

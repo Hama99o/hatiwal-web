@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { IOS_APP_ID } from "@/lib/app-links";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { notFound } from "next/navigation";
@@ -89,6 +90,10 @@ export async function generateMetadata({
     // Canonical + hreflang for the home page. Pages with their own
     // generateMetadata set their own alternates (they'd otherwise inherit these).
     alternates: localizedAlternates(locale, "/"),
+    // iPhone: Apple's Smart App Banner on every page ("Open" when installed,
+    // "Get" when not). Listing and seller pages override it with an
+    // app-argument that lands on the same page in the app.
+    itunes: { appId: IOS_APP_ID },
     openGraph: {
       siteName: "Hatiwal",
       type: "website",

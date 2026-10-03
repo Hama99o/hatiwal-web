@@ -6,6 +6,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { LocaleSwitcher } from "./locale-switcher";
 import { HeaderSearch } from "./header-search";
 import { AuthNav } from "./auth-nav";
+import { AppPromptHeaderButton } from "@/components/shared/app-prompt";
 
 export function SiteHeader() {
   const t = useTranslations("nav");
@@ -26,6 +27,8 @@ export function SiteHeader() {
           <Button asChild variant="ghost" className="hidden lg:inline-flex">
             <Link href="/categories">{t("categories")}</Link>
           </Button>
+          {/* Phones only, once the install suggestion was closed. */}
+          <AppPromptHeaderButton />
           <ThemeToggle />
           <LocaleSwitcher />
           <AuthNav />

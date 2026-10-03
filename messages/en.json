@@ -600,7 +600,9 @@
     "offer": "Make an offer in the app",
     "report": "Report in the app",
     "getApp": "Get the app",
-    "open": "Open"
+    "title": "Get the Hatiwal app",
+    "haveIt": "I have the app — open it",
+    "notNow": "Not now"
   },
   "categoriesPage": {
     "title": "Categories",

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { OpenInAppBar } from "@/components/shared/open-in-app-bar";
 import { smartAppBanner } from "@/lib/app-links";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -76,8 +75,6 @@ export default async function SellerPage({ params }: { params: Params }) {
 
   return (
     <ViewerIdProvider viewerId={viewerId}>
-      {/* Android: "Open in the Hatiwal app" (app if installed, else Play Store). */}
-      <OpenInAppBar route={{ kind: "seller", id }} />
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center">
           <UserIdentity

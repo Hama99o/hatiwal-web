@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { OnboardingModal } from "@/components/account/onboarding-modal";
+import { AppPromptSheet } from "@/components/shared/app-prompt";
 import { installIntlNumberLocaleAlias } from "@/i18n/intl-locale-alias";
 
 // Browser half of the digit fix (server half: `src/i18n/request.ts`). V8 ships no
@@ -41,6 +42,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <AuthProvider>
           {children}
           <OnboardingModal />
+          {/* Phones only: suggest the app once, never on top of the welcome. */}
+          <AppPromptSheet />
           <Toaster richColors position="top-center" />
         </AuthProvider>
       </QueryClientProvider>
