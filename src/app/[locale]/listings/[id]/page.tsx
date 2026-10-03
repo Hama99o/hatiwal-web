@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { OpenInAppBar } from "@/components/shared/open-in-app-bar";
+import { smartAppBanner } from "@/lib/app-links";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
@@ -64,6 +66,9 @@ export async function generateMetadata({
     title: listing.title,
     description,
     alternates,
+    // iPhone: Safari's Smart App Banner — "Open" when Hatiwal is installed
+    // (lands on this listing), "Get" when it is not. See lib/app-links.ts.
+    itunes: smartAppBanner({ kind: "listing", id }),
     openGraph: {
       title: listing.title,
       description,
@@ -161,6 +166,8 @@ export default async function ListingDetailPage({
   // gave all three a strip of dead space above the footer.
   return (
     <ViewerIdProvider viewerId={viewerId}>
+      {/* Android: "Open in the Hatiwal app" (app if installed, else Play Store). */}
+      <OpenInAppBar route={{ kind: "listing", id: listing.id }} />
       <div className="mx-auto max-w-6xl px-4 py-6">
         <script
           type="application/ld+json"

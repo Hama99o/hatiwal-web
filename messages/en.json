@@ -599,7 +599,8 @@
     "save": "Save to favorites in the app",
     "offer": "Make an offer in the app",
     "report": "Report in the app",
-    "getApp": "Get the app"
+    "getApp": "Get the app",
+    "open": "Open"
   },
   "categoriesPage": {
     "title": "Categories",

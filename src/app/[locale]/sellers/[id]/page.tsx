@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { OpenInAppBar } from "@/components/shared/open-in-app-bar";
+import { smartAppBanner } from "@/lib/app-links";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
@@ -40,6 +42,8 @@ export async function generateMetadata({
   return {
     title: seller?.name ?? t("title"),
     alternates: localizedAlternates(locale, `/sellers/${id}`),
+    // iPhone: Smart App Banner — "Open" lands on this profile in the app.
+    itunes: smartAppBanner({ kind: "seller", id }),
     // WhatsApp & co. build the link card from og:*, not <title>: without this a
     // shared profile showed only the generic Hatiwal card (QA 2026-10-03).
     ...(seller && {
@@ -72,6 +76,8 @@ export default async function SellerPage({ params }: { params: Params }) {
 
   return (
     <ViewerIdProvider viewerId={viewerId}>
+      {/* Android: "Open in the Hatiwal app" (app if installed, else Play Store). */}
+      <OpenInAppBar route={{ kind: "seller", id }} />
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center">
           <UserIdentity

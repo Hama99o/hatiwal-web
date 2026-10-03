@@ -5,22 +5,15 @@ import { Globe, Play, Smartphone, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
+import {
+  APP_STORE_URL,
+  GOOGLE_PLAY_URL,
+  detectPlatform,
+  type DevicePlatform,
+} from "@/lib/app-links";
 
-type Platform = "ios" | "android" | "other";
+type Platform = DevicePlatform;
 type OptionId = "ios" | "android" | "web";
-
-function detectPlatform(): Platform {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
-  // Since iPadOS 13, Safari on iPad sends a DESKTOP Macintosh user agent, so
-  // the check above misses it. A real Mac has no touch screen
-  // (maxTouchPoints 0), an iPad has several. Do not drop this check: without it
-  // every iPad gets the desktop layout.
-  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return "ios";
-  if (/Android/i.test(ua)) return "android";
-  return "other";
-}
 
 // The owner's rule for what each device sees by default.
 const VISIBLE: Record<Platform, OptionId[]> = {
