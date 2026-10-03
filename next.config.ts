@@ -21,6 +21,15 @@ const nextConfig: NextConfig = {
       process.env.NEXT_TSCONFIG_PATH ||
       (process.env.NEXT_DIST_DIR ? "tsconfig.scratch.json" : "tsconfig.json"),
   },
+  // Short share links the API hands out (PUBLIC_SHARE_BASE_URL + /l/<id>, /u/<id>)
+  // and the mobile app puts into WhatsApp etc. They must land on real pages;
+  // the locale middleware then adds /en, /ps or /fa.
+  async redirects() {
+    return [
+      { source: "/l/:id(\\d+)", destination: "/listings/:id", permanent: false },
+      { source: "/u/:id(\\d+)", destination: "/sellers/:id", permanent: false },
+    ];
+  },
   images: {
     // Rails Active Storage serves short-lived SIGNED urls that expire, so optimizing
     // /caching them is pointless and error-prone. Serve as-is in dev. For production,
