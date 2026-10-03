@@ -40,6 +40,16 @@ export async function generateMetadata({
   return {
     title: seller?.name ?? t("title"),
     alternates: localizedAlternates(locale, `/sellers/${id}`),
+    // WhatsApp & co. build the link card from og:*, not <title>: without this a
+    // shared profile showed only the generic Hatiwal card (QA 2026-10-03).
+    ...(seller && {
+      openGraph: {
+        title: seller.name,
+        description: seller.city ?? t("memberOnHatiwal"),
+        images: seller.avatarUrl ? [seller.avatarUrl] : undefined,
+        type: "profile",
+      },
+    }),
   };
 }
 
