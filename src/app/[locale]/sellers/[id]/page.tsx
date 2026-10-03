@@ -46,7 +46,8 @@ export async function generateMetadata({
       openGraph: {
         title: seller.name,
         description: seller.city ?? t("memberOnHatiwal"),
-        images: seller.avatarUrl ? [seller.avatarUrl] : undefined,
+        // No avatar: the site card, rather than no image at all.
+        images: [seller.avatarUrl ?? "/opengraph-image.png"],
         type: "profile",
       },
     }),
