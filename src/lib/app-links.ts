@@ -52,6 +52,9 @@ export const SUPPORT_EMAIL = "infohama99o@gmail.com";
 // ID, plus a new app build — that is the next step, and it will reuse this map.
 
 export const IOS_APP_ID = "6789510903";
+// Universal Links (/.well-known/apple-app-site-association): Apple team + bundle.
+export const APPLE_TEAM_ID = "57DRRU3SP7";
+export const IOS_BUNDLE_ID = "com.hatiwal.app";
 export const ANDROID_PACKAGE = "com.hatiwal.app";
 export const APP_SCHEME = "hatiwal";
 
