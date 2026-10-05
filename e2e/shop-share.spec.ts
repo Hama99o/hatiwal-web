@@ -2,9 +2,8 @@ import { test, expect, devices } from "@playwright/test";
 
 /*
  * SHOP-1 "Share my shop" (hatiwal-mobile docs/SHOPS.md, owner 2026-10-05).
-^ * Enabled on release-1.1.6 (2026-10-05): the shop page and the mock API.s
- * /shops/:id land (apps-6a, shop-1-web). Then flip `test.describe.fixme` to
- * `test.describe` and point SHOP_ID at the mock fixture.
+ * Enabled on release-1.1.6 (2026-10-05): the shop page and the mock's shop 42
+ * ("Safi Cosmetics") are merged.
  *
  *   - /s/<id> lands on the shop page (next.config redirect → /[locale]/shops/<id>);
  *   - og:title = shop name, og:image = logo (or cover / site card);
