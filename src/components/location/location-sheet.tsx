@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { Check, Loader2, LocateFixed, Map as MapIcon } from "lucide-react";
@@ -113,6 +113,14 @@ export function LocationSheet({
 
   const selected = pending?.province ?? currentProvince;
 
+  // Open on the selected province, not at the top (Zabul, Pakistan's provinces).
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (!open || !currentProvince) return;
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-testid="location-province-${CSS.escape(currentProvince)}"]`);
+    row?.scrollIntoView({ block: "center" });
+  }, [open, currentProvince]);
+
   return (
     <Dialog
       open={open}
@@ -172,7 +180,7 @@ export function LocationSheet({
           className="h-9"
         />
 
-        <ul className="min-h-0 flex-1 overflow-y-auto rounded-md border [scrollbar-width:thin]" role="listbox" aria-labelledby={titleId}>
+        <ul ref={listRef} className="min-h-0 flex-1 overflow-y-auto rounded-md border [scrollbar-width:thin]" role="listbox" aria-labelledby={titleId}>
           {provinces.length === 0 ? (
             <li className="px-3 py-6 text-center text-sm text-muted-foreground">{t("common.noResults")}</li>
           ) : (
