@@ -23,7 +23,8 @@ function UnreadDot({ count }: { count: number | null }) {
 
 /**
  * SHOP-1 "Selling as" pill + sheet in the seller header (/my-listings, chats),
- * same as mobile's SellingAsPill: renders NOTHING without a shop, opens the
+ * same as mobile's SellingAsPill: renders NOTHING without a shop or in Buyer
+ * mode (Buyer mode is always personal, owner 2026-10-05), opens the
  * "Sell as" dialog once by itself, shows unread for the identities you are not
  * in. testids mirror mobile (selling-as-pill, sell-as-sheet, sell-as-option-*).
  */
@@ -36,7 +37,7 @@ export function SellingAsPill() {
   const titleId = useId();
 
   useEffect(() => {
-    if (!hasShop || !user) return;
+    if (!hasShop || !user?.sellerMode) return;
     // One owner for the ask-once dialog, however many pills are mounted.
     if (sellAsAsk.claimed) return;
     sellAsAsk.claimed = true;
@@ -51,7 +52,7 @@ export function SellingAsPill() {
     }
   }, [hasShop, user, sellingAs?.id]);
 
-  if (!hasShop || !user) return null;
+  if (!hasShop || !user?.sellerMode) return null;
 
   const meName = user.fullName || `${user.firstname} ${user.lastname}`.trim();
   const current = sellingAs?.id ?? null;

@@ -63,8 +63,9 @@ export function ProfileView() {
       <PendingReviewsNudge />
       {/* VER-1: Get verified / under review / verified / rejected / revoked. */}
       <VerificationCard />
-      {/* SHOP-1: "Open your shop" / "My shop · name · Open now". */}
-      <ShopEntryCard />
+      {/* SHOP-1: "Open your shop" / "My shop · name · Open now". Buyer mode is
+          personal (owner, 2026-10-05): shop tools only in Seller mode. */}
+      {user.sellerMode && <ShopEntryCard />}
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
         <UserIdentity

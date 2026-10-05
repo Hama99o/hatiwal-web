@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BUYER_STATE } from "./auth-paths";
+import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
 
 /**
  * SHOP-1 on the web (hatiwal-mobile docs/SHOPS.md phase 1). Mock fixture: shop
@@ -86,5 +86,17 @@ test.describe("A signed-in user with no shop", () => {
     await expect(page.getByTestId("shop-form-preview")).toContainText("Safi Mobile");
     await page.getByTestId("shop-form-next").click();
     await expect(page.getByTestId("shop-form-progress-label")).toHaveText("Step 3 of 8");
+  });
+});
+
+test.describe("Buyer mode is personal (owner, 2026-10-05)", () => {
+  test.use({ storageState: EMPTY_STATE });
+
+  test("your own Profile in Buyer mode shows no shop tools, but keeps Get verified", async ({ page }) => {
+    await page.goto("/en/profile");
+    await expect(page.getByTestId("verify-missing-avatar")).toBeVisible();
+    await expect(page.getByTestId("profile-open-shop")).toHaveCount(0);
+    await expect(page.getByTestId("profile-my-shop")).toHaveCount(0);
+    await expect(page.getByTestId("selling-as-pill")).toHaveCount(0);
   });
 });
