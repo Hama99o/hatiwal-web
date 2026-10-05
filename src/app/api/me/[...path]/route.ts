@@ -99,6 +99,10 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^listings\/\d+\/hide$/],
   ["DELETE", /^listings\/\d+\/unhide$/],
   ["GET", /^my\/hidden_listings$/],
+  // VER-1: apply for the Verified badge (multipart), the status card, cancel.
+  ["POST", /^verification_requests$/],
+  ["GET", /^verification_requests\/current$/],
+  ["DELETE", /^verification_requests\/\d+$/],
 ];
 
 async function handle(

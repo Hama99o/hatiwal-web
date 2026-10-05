@@ -1056,6 +1056,46 @@ function route(req, res, method, path, q, body, raw = "") {
     return send(res, 200, payload);
   }
 
+  // VER-1: apply for the Verified badge. Stateless on purpose (specs run in
+  // parallel against this one server): the FULL persona may apply ("none"),
+  // the EMPTY persona has no profile photo yet. A POST that carries every
+  // required part answers "requested"; shapes = hatiwal-api
+  // VerificationStatusSerializer (never a document).
+  if (path === "/verification_requests/current" && method === "GET") {
+    if (!requireAuth()) return;
+    return send(res, 200, {
+      verification_status: { status: "none", verified_since: null, missing: empty ? ["avatar"] : [], reason: null, request: null },
+    });
+  }
+  if (path === "/verification_requests" && method === "POST") {
+    if (!requireAuth()) return;
+    const field = (name) => new RegExp(`name="verification_request\\[${name}\\]"`).test(raw);
+    const last4 = /name="verification_request\[document_last4\]"\r?\n\r?\n(\d*)/.exec(raw)?.[1] ?? "";
+    const docType = /name="verification_request\[document_type\]"\r?\n\r?\n(\w+)/.exec(raw)?.[1] ?? "";
+    const needsBack = ["e_tazkira", "cnic", "kart_melli"].includes(docType);
+    if (!field("front") || !field("selfie") || (needsBack && !field("back")) || !/^\d{4}$/.test(last4)) {
+      return send(res, 422, { errors: ["Verification request is invalid"] });
+    }
+    return send(res, 201, {
+      verification_status: {
+        status: "requested",
+        verified_since: null,
+        missing: [],
+        reason: null,
+        request: {
+          id: 901, status: "requested", document_type: docType, name_on_document: "Ahmad Karimi",
+          document_last4: last4, files_count: needsBack ? 3 : 2, reason_code: null,
+          created_at: "2026-10-05T10:00:00Z", decided_at: null,
+        },
+      },
+    });
+  }
+  const cancelVerification = /^\/verification_requests\/(\d+)$/.exec(path);
+  if (cancelVerification && method === "DELETE") {
+    if (!requireAuth()) return;
+    return send(res, 200, { verification_status: { status: "none", verified_since: null, missing: [], reason: null, request: null } });
+  }
+
   // Pending reviews — sold sales the caller still owes a review on (REV2).
   if (path === "/my/reviews/pending" && method === "GET") {
     if (!requireAuth()) return;

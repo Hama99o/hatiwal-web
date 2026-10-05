@@ -18,6 +18,7 @@ import {
 } from "./delete-account-section";
 import { WarningsBanner } from "./warnings-banner";
 import { PendingReviewsNudge } from "./pending-reviews-nudge";
+import { VerificationCard } from "@/components/verify/verification-card";
 import { ModeToggle } from "./mode-toggle";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -59,6 +60,8 @@ export function ProfileView() {
           confirmed, and nothing at all on an API build that does not report it. */}
       <ConfirmEmailBanner email={user.email} confirmed={user.emailConfirmed} />
       <PendingReviewsNudge />
+      {/* VER-1: Get verified / under review / verified / rejected / revoked. */}
+      <VerificationCard />
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
         <UserIdentity
