@@ -140,6 +140,9 @@ export function filtersToQuery(
   page = 1,
   pageSize = 24,
   home: { latitude: number; longitude: number } = DEFAULT_HOME_POINT,
+  // LOC-1 "All Afghanistan": the default order is the whole country, newest
+  // first — no point and no sort sent.
+  allCountry = false,
 ): ListingsQuery {
   const category = f.categorySlug
     ? findCategoryBySlug(categories, f.categorySlug)
@@ -149,7 +152,8 @@ export function filtersToQuery(
   const hasLocation = Boolean(f.lat && f.lng);
   // "home" with no zone filter = nearest around home. With a zone filter the
   // zone wins and the server's default order applies inside it.
-  const isHome = f.sort === "home" && !hasLocation;
+  const isDefault = f.sort === "home" && !hasLocation;
+  const isHome = isDefault && !allCountry;
   return {
     page,
     pageSize,

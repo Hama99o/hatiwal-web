@@ -12,7 +12,8 @@
     "saveError": "Could not save your location. Please try again.",
     "yourArea": "your area",
     "outsideServiceArea": "Hatiwal is for Afghanistan, Pakistan and Iran. We'll show items near Kabul.",
-    "nearYou": "Near you"
+    "nearYou": "Near you",
+    "allAfghanistan": "All Afghanistan"
   },
   "common": {
     "appName": "Hatiwal",

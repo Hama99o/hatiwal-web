@@ -20,15 +20,19 @@ export function usePlaceName(province: string | null): string {
 export function LocationBar({
   province,
   onChange,
+  allCountry = false,
 }: {
   province: string | null;
   onChange: () => void;
+  /** LOC-1 "All Afghanistan": the bar names the country, not a place. */
+  allCountry?: boolean;
 }) {
   const t = useTranslations("location");
-  const place = usePlaceName(province);
+  const nearPlace = usePlaceName(province);
+  const place = allCountry ? t("allAfghanistan") : nearPlace;
   // Split around the place so it can carry its own weight and test id without
   // a second key; the sentence order stays the locale's.
-  const sentence = t("showingNear", { place });
+  const sentence = allCountry ? place : t("showingNear", { place });
   const at = sentence.indexOf(place);
   const before = at >= 0 ? sentence.slice(0, at) : sentence;
   const after = at >= 0 ? sentence.slice(at + place.length) : "";

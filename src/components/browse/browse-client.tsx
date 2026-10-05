@@ -49,6 +49,7 @@ import { LocationMap } from "@/components/map/location-map";
 import { LocationBar } from "@/components/location/location-bar";
 import { LocationSheet } from "@/components/location/location-sheet";
 import { useHomeLocation } from "@/components/location/use-home-location";
+import { useBazaarScope } from "@/components/location/use-bazaar-scope";
 import { useLoginHref } from "@/components/auth/login-href";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -227,10 +228,16 @@ export function BrowseClient({
   //
   // The SSR seed is ordered around Kabul (it is anonymous), so it is only the
   // right answer for the "home" order while home IS Kabul.
-  const isHomeOrder = filters.sort === "home" && !(filters.lat && filters.lng);
+  // The default order (no sort chosen, no zone): the location bar shows. It is
+  // "near home" unless the viewer chose "All Afghanistan" (LOC-1).
+  const [bazaarScope] = useBazaarScope();
+  const allCountry = bazaarScope === "country";
+  const isDefaultOrder = filters.sort === "home" && !(filters.lat && filters.lng);
+  const isHomeOrder = isDefaultOrder && !allCountry;
   const sameAsInitial =
     filtersToSearchString(filters) === filtersToSearchString(initialFilters) &&
-    (!isHomeOrder || home.source === "default");
+    (!isHomeOrder || home.source === "default") &&
+    !(isDefaultOrder && allCountry); // the SSR seed is ordered near Kabul
   const query = useInfiniteQuery({
     // VIEWER-SCOPED. A guest's feed and a buyer's personalised feed are two
     // different result sets for the same filters (which rows are hidden, which
@@ -247,7 +254,7 @@ export function BrowseClient({
       filters,
       // Where "home" is, for the default order — a saved own address or a new
       // guess must refetch the feed, not reuse the old order.
-      isHomeOrder ? [home.latitude, home.longitude] : null,
+      isHomeOrder ? [home.latitude, home.longitude] : allCountry && isDefaultOrder ? "country" : null,
     ],
     initialPageParam: 1,
     // Authed → through the /api/me proxy, which attaches the devise tokens so
@@ -256,7 +263,7 @@ export function BrowseClient({
     // infinite scroll stays personalised all the way down.
     queryFn: ({ pageParam }) =>
       (authed ? getListingsAsViewer : getListings)(
-        filtersToQuery(filters, categories, pageParam, undefined, home),
+        filtersToQuery(filters, categories, pageParam, undefined, home, allCountry),
       ),
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
     initialData:
@@ -874,9 +881,10 @@ export function BrowseClient({
 
           {/* LOC-1 — only while the feed is actually in "near you" order: with
               a zone filter or another sort it would name the wrong place. */}
-          {isHomeOrder && (
+          {isDefaultOrder && (
             <LocationBar
               province={home.province}
+              allCountry={allCountry}
               onChange={() => setWantLocationSheet(true)}
             />
           )}

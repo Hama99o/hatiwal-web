@@ -59,6 +59,29 @@ test.describe("Bazaar location bar — signed in", () => {
     expect(clues).toEqual([]);
   });
 
+  test("All Afghanistan: the bar names the country and the feed sends no point (LOC-1)", async ({ page }) => {
+    await page.goto("/en/bazaar");
+    await expect(page.getByTestId("location-bar-place")).toHaveText("Kabul");
+    await page.getByTestId("location-change").click();
+    const next = page.waitForRequest((r) => r.url().includes("/listings?") && r.method() === "GET");
+    await page.getByTestId("location-all-afghanistan").click();
+    const url = new URL((await next).url());
+    expect(url.searchParams.has("latitude")).toBe(false);
+    expect(url.searchParams.has("longitude")).toBe(false);
+    expect(url.searchParams.get("sort")).toBeNull();
+    await expect(page.getByTestId("location-bar-place")).toHaveText("All Afghanistan");
+
+    // Remembered in this browser across a reload.
+    await page.reload();
+    await expect(page.getByTestId("location-bar-place")).toHaveText("All Afghanistan");
+
+    // Choosing a province goes back to near it.
+    await page.getByTestId("location-change").click();
+    await page.getByTestId("location-province-Herat").click();
+    await page.getByTestId("location-save").click();
+    await expect(page.getByTestId("location-bar-place")).toHaveText("Herat");
+  });
+
   test("never asks for location permission on its own", async ({ page, context }) => {
     await context.clearPermissions();
     let asked = false;

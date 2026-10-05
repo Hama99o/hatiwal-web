@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { Check, Loader2, LocateFixed, Map as MapIcon } from "lucide-react";
+import { Check, Globe, Loader2, LocateFixed, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { updateProfile } from "@/lib/api/me";
 import { AFGHAN_PROVINCES, getProvinceName, nearestProvince } from "@/lib/provinces";
 import { isInServiceArea } from "@/lib/service-area";
 import { cn } from "@/lib/utils";
+import { useBazaarScope } from "@/components/location/use-bazaar-scope";
 
 type Pending = { province: string; latitude: number | null; longitude: number | null };
 
@@ -40,6 +41,7 @@ export function LocationSheet({
   const locale = useLocale();
   const titleId = useId();
   const { setUser } = useAuth();
+  const [scope, setScope] = useBazaarScope();
   const [pending, setPending] = useState<Pending | null>(null);
   const [search, setSearch] = useState("");
   const [locating, setLocating] = useState(false);
@@ -49,6 +51,8 @@ export function LocationSheet({
   const saveM = useMutation({
     mutationFn: (p: Pending) => updateProfile(p),
     onSuccess: (user) => {
+      // A chosen place means "near it" again, not the whole country.
+      setScope("near");
       setUser(user);
       toast.success(t("location.saved"));
       close();
@@ -135,6 +139,21 @@ export function LocationSheet({
         </h2>
 
         <div className="flex flex-col gap-1">
+          {/* "All Afghanistan" applies on click: a Bazaar preference, nothing to save. */}
+          <button
+            type="button"
+            data-testid="location-all-afghanistan"
+            onClick={() => {
+              setScope("country");
+              close();
+            }}
+            aria-pressed={scope === "country"}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-start text-sm font-semibold text-foreground hover:bg-accent"
+          >
+            <Globe className="size-4 text-primary" aria-hidden />
+            <span className="flex-1">{t("location.allAfghanistan")}</span>
+            {scope === "country" && <Check className="size-4 text-primary" aria-hidden />}
+          </button>
           <button
             type="button"
             data-testid="location-use-current"
