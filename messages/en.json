@@ -1181,13 +1181,13 @@
       "tooBig": "This photo is too big (max 10 MB)."
     },
     "name": {
-      "title": "Your name as on the document",
+      "title": "Your name and ID number",
       "subtitle": "Write it exactly as it is printed.",
       "nameLabel": "Full name",
-      "last4Label": "Last 4 digits of the document number",
-      "last4Hint": "We keep only these 4 digits, never the full number.",
       "nameError": "Write your full name",
-      "last4Error": "Enter exactly 4 digits"
+      "numberLabel": "Document number",
+      "numberHint": "Kept encrypted to protect buyers. Only the Hatiwal team can see it.",
+      "numberError": "Digits only, 6 to 20"
     },
     "review": {
       "title": "Check and send",

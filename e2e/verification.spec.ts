@@ -39,7 +39,7 @@ test.describe("Get verified (signed in, eligible)", () => {
     await addPhoto(page); // back (e-Tazkira is two-sided)
     await addPhoto(page); // selfie
 
-    await page.getByTestId("verify-last4-input").fill("4821");
+    await page.getByTestId("verify-number-input").fill("1234564821");
     await page.getByTestId("verify-next").click();
 
     await expect(page.getByTestId("verify-review-photos").locator("img")).toHaveCount(3);
@@ -58,7 +58,7 @@ test.describe("Get verified (signed in, eligible)", () => {
     await expect(page.getByRole("heading", { name: "Take a selfie" })).toBeVisible();
   });
 
-  test("the last 4 digits must be exactly 4", async ({ page }) => {
+  test("the document number is digits only, 6 to 20", async ({ page }) => {
     await page.goto("/en/profile/verify");
     await page.getByTestId("verify-next").click();
     await page.getByTestId("verify-doc-passport").click();
@@ -66,12 +66,13 @@ test.describe("Get verified (signed in, eligible)", () => {
     await page.getByTestId("verify-next").click();
     await addPhoto(page);
     await addPhoto(page);
-    await page.getByTestId("verify-last4-input").fill("12");
-    await expect(page.getByTestId("verify-last4-error")).toBeVisible();
+    await page.getByTestId("verify-number-input").fill("12345");
+    await page.getByTestId("verify-number-input").blur();
+    await expect(page.getByTestId("verify-number-error")).toBeVisible();
     await expect(page.getByTestId("verify-next")).toBeDisabled();
     // Persian digits are accepted and stored as ASCII.
-    await page.getByTestId("verify-last4-input").fill("۴۸۲۱");
-    await expect(page.getByTestId("verify-last4-input")).toHaveValue("4821");
+    await page.getByTestId("verify-number-input").fill("۱۲۳۴۵۶۴۸۲۱");
+    await expect(page.getByTestId("verify-number-input")).toHaveValue("1234564821");
     await expect(page.getByTestId("verify-next")).toBeEnabled();
   });
 

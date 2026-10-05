@@ -1070,10 +1070,11 @@ function route(req, res, method, path, q, body, raw = "") {
   if (path === "/verification_requests" && method === "POST") {
     if (!requireAuth()) return;
     const field = (name) => new RegExp(`name="verification_request\\[${name}\\]"`).test(raw);
-    const last4 = /name="verification_request\[document_last4\]"\r?\n\r?\n(\d*)/.exec(raw)?.[1] ?? "";
+    const number = /name="verification_request\[document_number\]"\r?\n\r?\n(\d*)/.exec(raw)?.[1] ?? "";
+    const last4 = number.slice(-4);
     const docType = /name="verification_request\[document_type\]"\r?\n\r?\n(\w+)/.exec(raw)?.[1] ?? "";
     const needsBack = ["e_tazkira", "cnic", "kart_melli"].includes(docType);
-    if (!field("front") || !field("selfie") || (needsBack && !field("back")) || !/^\d{4}$/.test(last4)) {
+    if (!field("front") || !field("selfie") || (needsBack && !field("back")) || !/^\d{6,20}$/.test(number)) {
       return send(res, 422, { errors: ["Verification request is invalid"] });
     }
     return send(res, 201, {

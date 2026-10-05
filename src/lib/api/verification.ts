@@ -46,7 +46,8 @@ export interface VerificationStatus {
 export interface VerificationApplication {
   documentType: VerificationDocumentType;
   nameOnDocument: string;
-  documentLast4: string;
+  /** The full number; the API keeps it encrypted and never returns it. */
+  documentNumber: string;
   front: Blob;
   back?: Blob | null;
   selfie: Blob;
@@ -67,7 +68,7 @@ export async function applyForVerification(app: VerificationApplication): Promis
   const form = new FormData();
   form.append("verification_request[document_type]", app.documentType);
   form.append("verification_request[name_on_document]", app.nameOnDocument.trim());
-  form.append("verification_request[document_last4]", app.documentLast4);
+  form.append("verification_request[document_number]", app.documentNumber);
   form.append("verification_request[front]", app.front, "front.jpg");
   if (app.back) form.append("verification_request[back]", app.back, "back.jpg");
   form.append("verification_request[selfie]", app.selfie, "selfie.jpg");
@@ -85,12 +86,16 @@ export function verificationReasonKey(status: VerificationStatus): string | null
 }
 
 /** Persian/Arabic-Indic digits → ASCII digits only. */
-export function normalizeLast4(input: string): string {
+/** Digits only, a sensible length (no invented official formats): 6–20. */
+export const isValidDocumentNumber = (value: string) => /^\d{6,20}$/.test(value);
+
+/** Persian/Arabic-Indic digits → ASCII digits only, at most 20. */
+export function normalizeDocumentNumber(input: string): string {
   return input
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/\D/g, "")
-    .slice(0, 4);
+    .slice(0, 20);
 }
 
 /** Browser key of the apply flow's saved progress (never holds a photo). */

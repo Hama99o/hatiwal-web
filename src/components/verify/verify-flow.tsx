@@ -29,7 +29,8 @@ import {
   applyForVerification,
   clearVerificationDraft,
   VERIFICATION_DRAFT_KEY,
-  normalizeLast4,
+  normalizeDocumentNumber,
+  isValidDocumentNumber,
   MAX_VERIFICATION_PHOTO_BYTES,
   TWO_SIDED_DOCUMENTS,
   VERIFICATION_DOCUMENT_TYPES,
@@ -60,7 +61,6 @@ interface SavedDraft {
   step: Step;
   documentType: VerificationDocumentType | null;
   nameOnDocument: string;
-  documentLast4: string;
 }
 
 function stepsFor(doc: VerificationDocumentType | null): Step[] {
@@ -70,7 +70,6 @@ function stepsFor(doc: VerificationDocumentType | null): Step[] {
   return s;
 }
 
-const isValidLast4 = (v: string) => /^\d{4}$/.test(v);
 const isValidName = (v: string) => v.trim().split(/\s+/).filter(Boolean).length >= 2;
 
 function loadDraft(): SavedDraft | null {
@@ -299,7 +298,9 @@ export function VerifyFlow() {
   const [step, setStep] = useState<Step>("why");
   const [documentType, setDocumentType] = useState<VerificationDocumentType | null>(null);
   const [nameOnDocument, setName] = useState("");
-  const [documentLast4, setLast4] = useState("");
+  // The full ID number is kept in memory only, never in browser storage.
+  const [documentNumber, setNumber] = useState("");
+  const [touchedNumber, setTouchedNumber] = useState(false);
   const [photos, setPhotos] = useState<Record<PhotoKey, Blob | null>>({ front: null, back: null, selfie: null });
   const [touchedName, setTouchedName] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -315,7 +316,6 @@ export function VerifyFlow() {
     if (d && d.userId === user.id) {
       setDocumentType(d.documentType);
       setName(d.nameOnDocument);
-      setLast4(d.documentLast4);
       const order = stepsFor(d.documentType);
       const photoIdx = order.indexOf("front");
       const at = order.indexOf(d.step);
@@ -327,8 +327,8 @@ export function VerifyFlow() {
   }, [user, restored]);
 
   useEffect(() => {
-    if (restored && !done && user) saveDraft({ userId: user.id, step, documentType, nameOnDocument, documentLast4 });
-  }, [restored, done, user, step, documentType, nameOnDocument, documentLast4]);
+    if (restored && !done && user) saveDraft({ userId: user.id, step, documentType, nameOnDocument });
+  }, [restored, done, user, step, documentType, nameOnDocument]);
 
   useEffect(() => {
     if (step === "name" && !nameOnDocument && user?.fullName) setName(user.fullName);
@@ -343,14 +343,14 @@ export function VerifyFlow() {
   const back = () => (index > 0 ? setStep(steps[index - 1]) : router.push("/profile"));
 
   const complete =
-    !!documentType && !!photos.front && !!photos.selfie && (!twoSided || !!photos.back) && isValidName(nameOnDocument) && isValidLast4(documentLast4);
+    !!documentType && !!photos.front && !!photos.selfie && (!twoSided || !!photos.back) && isValidName(nameOnDocument) && isValidDocumentNumber(documentNumber);
 
   const submit = useMutation({
     mutationFn: () =>
       applyForVerification({
         documentType: documentType as VerificationDocumentType,
         nameOnDocument,
-        documentLast4,
+        documentNumber,
         front: photos.front as Blob,
         back: twoSided ? photos.back : null,
         selfie: photos.selfie as Blob,
@@ -502,9 +502,9 @@ export function VerifyFlow() {
       break;
 
     case "name": {
-      const last4Error = documentLast4.length > 0 && !isValidLast4(documentLast4);
+      const numberError = (touchedNumber || documentNumber.length >= 6) && documentNumber.length > 0 && !isValidDocumentNumber(documentNumber);
       const nameError = touchedName && !isValidName(nameOnDocument);
-      canContinue = isValidName(nameOnDocument) && isValidLast4(documentLast4);
+      canContinue = isValidName(nameOnDocument) && isValidDocumentNumber(documentNumber);
       content = (
         <div className="space-y-4">
           <StepTitle title={t("name.title")} subtitle={t("name.subtitle")} />
@@ -522,23 +522,23 @@ export function VerifyFlow() {
             {nameError && <span className="block text-sm text-destructive">{t("name.nameError")}</span>}
           </label>
           <label className="block space-y-1.5">
-            <span className="text-sm font-semibold">{t("name.last4Label")}</span>
+            <span className="text-sm font-semibold">{t("name.numberLabel")}</span>
             <Input
-              value={documentLast4}
-              onChange={(e) => setLast4(normalizeLast4(e.target.value))}
+              value={documentNumber}
+              onChange={(e) => setNumber(normalizeDocumentNumber(e.target.value))}
+              onBlur={() => setTouchedNumber(true)}
               inputMode="numeric"
-              maxLength={4}
-              placeholder="••••"
+              maxLength={20}
               autoComplete="off"
-              data-testid="verify-last4-input"
-              aria-invalid={last4Error || undefined}
+              data-testid="verify-number-input"
+              aria-invalid={numberError || undefined}
             />
-            {last4Error ? (
-              <span className="block text-sm text-destructive" data-testid="verify-last4-error">
-                {t("name.last4Error")}
+            {numberError ? (
+              <span className="block text-sm text-destructive" data-testid="verify-number-error">
+                {t("name.numberError")}
               </span>
             ) : (
-              <span className="block text-xs text-muted-foreground">{t("name.last4Hint")}</span>
+              <span className="block text-xs text-muted-foreground">{t("name.numberHint")}</span>
             )}
           </label>
           <LockLine />
@@ -572,7 +572,7 @@ export function VerifyFlow() {
           {block(
             t("review.document"),
             <p className="font-semibold">
-              {documentType ? t(`document.types.${documentType}`) : ""} · ••••{documentLast4}
+              {documentType ? t(`document.types.${documentType}`) : ""} · ••••{documentNumber.slice(-4)}
             </p>,
             "document",
             "document",
