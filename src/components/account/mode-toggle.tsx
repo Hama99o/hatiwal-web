@@ -25,6 +25,12 @@ export function ModeToggle({ className }: { className?: string }) {
 
   if (!user) return null;
   const seller = user.sellerMode;
+  // SHOP-1 "Nothing gets missed": in Buyer mode, a dot on the Seller side when a
+  // shop owner has unread SELLER messages (as Me or any shop). Never without a shop.
+  const counts = user.unreadCounts;
+  const hasShop = (user.shops ?? []).some((s) => s.status === "active");
+  const sellerUnread = counts ? counts.sellingMe + Object.values(counts.shops).reduce((a, b) => a + b, 0) : 0;
+  const showSellerDot = !seller && hasShop && sellerUnread > 0;
 
   async function switchTo(value: boolean) {
     if (value === seller || busy) return;
@@ -41,6 +47,7 @@ export function ModeToggle({ className }: { className?: string }) {
   }
 
   return (
+    <div className="relative">
     <SegmentedControl<Mode>
       className={className}
       fullWidth
@@ -53,5 +60,13 @@ export function ModeToggle({ className }: { className?: string }) {
         { value: "seller", label: t("profile.sellerMode"), icon: Store },
       ]}
     />
+      {showSellerDot && (
+        <span
+          data-testid="seller-messages-dot"
+          aria-label={t("shops.newSellerMessages")}
+          className="absolute end-2 top-1.5 size-2.5 rounded-full border-2 border-card bg-destructive"
+        />
+      )}
+    </div>
   );
 }

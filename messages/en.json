@@ -1378,6 +1378,7 @@
       "title": "Delete {name}?",
       "body": "Its products go back to your personal listings.",
       "confirm": "Delete"
-    }
+    },
+    "newSellerMessages": "New messages for your shop"
   }
 }
