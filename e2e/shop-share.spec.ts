@@ -2,7 +2,7 @@ import { test, expect, devices } from "@playwright/test";
 
 /*
  * SHOP-1 "Share my shop" (hatiwal-mobile docs/SHOPS.md, owner 2026-10-05).
- * DRAFT by the QA guard: fixme until the shop page and the mock API's
+^ * Enabled on release-1.1.6 (2026-10-05): the shop page and the mock API.s
  * /shops/:id land (apps-6a, shop-1-web). Then flip `test.describe.fixme` to
  * `test.describe` and point SHOP_ID at the mock fixture.
  *
@@ -21,7 +21,7 @@ function device(name: "Pixel 7" | "iPhone 14") {
   return rest;
 }
 
-test.describe.fixme("Share my shop: links", () => {
+test.describe("Share my shop: links", () => {
   test("/s/<id> lands on the shop page", async ({ page }) => {
     await page.goto(`/s/${SHOP_ID}`);
     await expect(page).toHaveURL(new RegExp(`/shops/${SHOP_ID}$`));
@@ -44,7 +44,7 @@ test.describe.fixme("Share my shop: links", () => {
   });
 });
 
-test.describe.fixme("Share my shop: Android phone", () => {
+test.describe("Share my shop: Android phone", () => {
   test.use(device("Pixel 7"));
 
   test("the open-in-app bar targets the shop, and dismiss is remembered", async ({ page, context }) => {
@@ -60,7 +60,7 @@ test.describe.fixme("Share my shop: Android phone", () => {
   });
 });
 
-test.describe.fixme("Share my shop: iPhone", () => {
+test.describe("Share my shop: iPhone", () => {
   test.use(device("iPhone 14"));
 
   test("the Smart App Banner meta points into the shop", async ({ page }) => {

@@ -4,14 +4,14 @@ import { BUYER_STATE } from "./auth-paths";
 /*
  * LOC-1 "All Afghanistan" (owner-approved, 2026-10-05), web twin of
  * hatiwal-mobile maestro/location/all_afghanistan.yaml.
- * DRAFT by the QA guard: fixme until the option lands on loc-1-web (hatiwal-d8).
+ * Enabled on release-1.1.6 (2026-10-05), where "All Afghanistan" is merged.
  *   Change → All Afghanistan → the bar reads "All Afghanistan"; the feed request
  *   carries no latitude/longitude (plain newest-first); it survives a reload;
  *   picking a province switches back to "near X".
  */
 const feedRequests = (reqs: Request[]) => reqs.filter((r) => /\/api\/v1\/listings(\?|$)/.test(r.url()));
 
-test.describe.fixme("Bazaar: All Afghanistan", () => {
+test.describe("Bazaar: All Afghanistan", () => {
   test.use({ storageState: BUYER_STATE });
 
   test("All Afghanistan drops the point, sticks, and a province brings it back", async ({ page }) => {
