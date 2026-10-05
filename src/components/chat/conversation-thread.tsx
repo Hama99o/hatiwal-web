@@ -390,6 +390,9 @@ export function ConversationThread({ id }: { id: string }) {
       ? conversation.shop
       : null;
   const closed = conversation?.status === "closed";
+  // SHOP-2: a "Message shop" chat has no product, so it takes plain messages
+  // only (text / photo / document): no offers, no meetups, no product phrases.
+  const plainShopChat = !isSupport && !conversation?.listing && !conversation?.listingDeleted && !!conversation?.shop;
 
   async function send(
     body: string,
@@ -842,7 +845,7 @@ export function ConversationThread({ id }: { id: string }) {
         * that can no longer send, so offering one is an invitation to a failure. */}
       {/* Buyer/seller phrase sets ("Is it still available?") mean nothing to
         * Support. */}
-      {!closed && !blocked && !isSupport && (
+      {!closed && !blocked && !isSupport && !plainShopChat && (
         <QuickReplies
           role={isSeller ? "seller" : "buyer"}
           onSelect={handleQuickReply}
@@ -905,7 +908,7 @@ export function ConversationThread({ id }: { id: string }) {
             )}
           </Button>
           {/* No meetup with Support: the API refuses deal kinds there (422). */}
-          {!isSupport && (
+          {!isSupport && !plainShopChat && (
             <Button
               type="button"
               variant="ghost"

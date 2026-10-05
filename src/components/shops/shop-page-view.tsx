@@ -83,6 +83,12 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
     onError: (err) => {
       const status = err instanceof ApiError ? err.status : 0;
       const code = err instanceof ApiError ? err.code : undefined;
+      // Blocked either way is a 422 with the same server message as starting a
+      // listing chat (localized by the API), so a 422 without a known code shows it.
+      if (err instanceof ApiError && status === 422 && !code && err.errors[0]) {
+        toast.error(err.errors[0]);
+        return;
+      }
       toast.error(
         t(
           status === 403

@@ -110,6 +110,8 @@ test.describe("SHOP-2 (several shops, Message shop)", () => {
     await expect(page).toHaveURL(/\/en\/conversations\/420$/);
     await expect(page.getByTestId("chat-shop-identity")).toContainText("Safi Cosmetics");
     await expect(page.getByText("Umair Safi")).toHaveCount(0);
+    // No product: plain messages only (the API refuses offers and meetups here).
+    await expect(page.getByRole("button", { name: "Propose Meetup" })).toHaveCount(0);
   });
 
   test("opening the same shop twice says so and links to the shop you already have", async ({ page }) => {
