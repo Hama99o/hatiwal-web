@@ -32,10 +32,12 @@ export default async function PrivacyPage({
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "privacy" });
 
-  // 1.1.6 (DRAFT, not approved): verification (VER-1), location (LOC-1) and
-  // shops (SHOP-1). Sources: hatiwal-mobile docs/VERIFICATION_PRIVACY_DRAFT.md
-  // and docs/PRIVACY_1.1.6_DRAFT.md. The shop-team sentence is phase 3 (SHOP-3)
-  // and deliberately left out.
+  // 1.1.6 (DRAFT until the owner approves; this branch is merged into
+  // release-1.1.6 only then): verification (VER-1, e-Tazkira only + a shop's
+  // proof of business), location (LOC-1) and shops (SHOP-1/2: buyers see the
+  // shop, never the owner's personal details). Sources: hatiwal-mobile
+  // docs/VERIFICATION_PRIVACY_DRAFT.md and docs/PRIVACY_1.1.6_DRAFT.md. The
+  // shop-team sentence describes SHOP-3, which 1.1.6 does not ship: left out.
   const sections: { title: string; body: string; extra?: string }[] = [
     { title: t("collectTitle"), body: t("collectBody") },
     { title: t("verifyTitle"), body: t("verifyBody") },
