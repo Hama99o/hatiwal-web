@@ -963,6 +963,10 @@
       "placeHold": "Place a hold for {name}",
       "placeHoldGeneric": "Place a hold",
       "heldForSomeoneElse": "Held for another buyer"
+    },
+    "blockedErrors": {
+      "blocked": "You blocked this person. Unblock them to send a message.",
+      "blockedBy": "You can't message this person."
     }
   },
   "warnings": {

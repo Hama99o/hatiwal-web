@@ -963,6 +963,10 @@
       "placeHold": "رزرو برای {name}",
       "placeHoldGeneric": "رزرو کردن",
       "heldForSomeoneElse": "برای خریدار دیگری رزرو شده"
+    },
+    "blockedErrors": {
+      "blocked": "شما این شخص را مسدود کرده‌اید. برای پیام دادن، او را از مسدودی خارج کنید.",
+      "blockedBy": "نمی‌توانید به این شخص پیام دهید."
     }
   },
   "warnings": {

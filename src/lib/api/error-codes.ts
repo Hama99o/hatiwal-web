@@ -40,6 +40,10 @@ export const API_ERROR_CODES = {
   saleHasReview: "sale_has_review",
   /** An offer asked for more units than remain. `POST /conversations/:id/messages`. */
   offerQuantityAboveAvailable: "offer_quantity_above_available_units",
+  /** Starting a chat (listing or "Message shop") refused: YOU blocked them. */
+  blocked: "blocked",
+  /** Starting a chat refused: THEY blocked you. */
+  blockedBy: "blocked_by",
 } as const;
 
 export type ApiErrorCode =
@@ -70,6 +74,9 @@ const MESSAGES: Record<ApiErrorCode, { key: string; needsCount: boolean }> = {
     key: "listing.stock.offerAboveAvailable",
     needsCount: true,
   },
+  // Mobile: chat.json `blockedErrors.*` — the API's own text is English only.
+  [API_ERROR_CODES.blocked]: { key: "chat.blockedErrors.blocked", needsCount: false },
+  [API_ERROR_CODES.blockedBy]: { key: "chat.blockedErrors.blockedBy", needsCount: false },
 };
 
 function isKnownCode(code: string | undefined): code is ApiErrorCode {

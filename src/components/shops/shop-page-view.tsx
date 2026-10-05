@@ -9,6 +9,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useLoginHref } from "@/components/auth/login-href";
 import { ApiError } from "@/lib/api/client";
 import { messageShop } from "@/lib/api/chat";
+import { apiErrorMessage } from "@/lib/api/error-codes";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
@@ -66,6 +67,7 @@ function OpenLine({ shop }: { shop: Shop }) {
  */
 export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabel: string | null }) {
   const t = useTranslations("shops");
+  const tRoot = useTranslations();
   const locale = useLocale();
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("products");
@@ -85,6 +87,12 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
       const code = err instanceof ApiError ? err.code : undefined;
       // Blocked either way is a 422 with the same server message as starting a
       // listing chat (localized by the API), so a 422 without a known code shows it.
+      // A block is said in the reader's language (codes blocked / blocked_by).
+      const coded = apiErrorMessage(err, tRoot);
+      if (coded) {
+        toast.error(coded);
+        return;
+      }
       if (err instanceof ApiError && status === 422 && !code && err.errors[0]) {
         toast.error(err.errors[0]);
         return;

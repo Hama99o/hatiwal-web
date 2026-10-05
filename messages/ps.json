@@ -963,6 +963,10 @@
       "placeHold": "د {name} لپاره ریزرو کول",
       "placeHoldGeneric": "ریزرو کول",
       "heldForSomeoneElse": "د بل پیرودونکي لپاره ریزرو شوی"
+    },
+    "blockedErrors": {
+      "blocked": "تاسو دا کس بند کړی. د پیغام لېږلو لپاره یې خلاص کړئ.",
+      "blockedBy": "تاسو دې کس ته پیغام نشئ لېږلی."
     }
   },
   "warnings": {

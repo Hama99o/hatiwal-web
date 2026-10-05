@@ -114,6 +114,17 @@ test.describe("SHOP-2 (several shops, Message shop)", () => {
     await expect(page.getByRole("button", { name: "Propose Meetup" })).toHaveCount(0);
   });
 
+  test("blocked by the shop's owner → the refusal in the reader's language, no chat", async ({ page }) => {
+    await page.route("**/api/me/shops/42/conversations", (route) =>
+      route.fulfill({ status: 422, json: { errors: ["you have been blocked by this user"], code: "blocked_by" } }),
+    );
+    await page.goto("/ps/shops/42");
+    await page.getByTestId("shop-message").click();
+    await expect(page.getByText("تاسو دې کس ته پیغام نشئ لېږلی.")).toBeVisible();
+    await expect(page.getByText("you have been blocked by this user")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/ps\/shops\/42$/);
+  });
+
   test("opening the same shop twice says so and links to the shop you already have", async ({ page }) => {
     // Resume a finished draft at "Check and open" (the form's own saved progress).
     await page.goto("/en/profile");

@@ -338,8 +338,9 @@ export function StartConversationButton({
       // (the global 60s staleTime would otherwise hide it).
       qc.invalidateQueries({ queryKey: ["conversations"] });
       router.push(`/conversations/${id}`);
-    } catch {
-      toast.error(t("chat.thread.startFailed"));
+    } catch (error) {
+      // A block is said in the reader's language (codes blocked / blocked_by).
+      toast.error(apiErrorMessage(error, t) ?? t("chat.thread.startFailed"));
       setBusy(false);
     }
   }
