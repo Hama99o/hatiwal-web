@@ -28,7 +28,7 @@ export function ShopVerificationCard({ shopId }: { shopId: number }) {
   if (data.status === "requested") return <div className={shell} data-testid="shop-verify-card">{head(Hourglass, "text-warning", t("underReview"))}</div>;
   if (data.status === "rejected" || data.status === "revoked") {
     const key = verificationReasonKey(data);
-    const reason = key ? t(key) : data.reason;
+    const reason = key && t.has(key) ? t(key) : data.reason;
     return (
       <div className={shell} data-testid="shop-verify-card">
         {head(ShieldAlert, "text-destructive", t("shop.rejected"))}

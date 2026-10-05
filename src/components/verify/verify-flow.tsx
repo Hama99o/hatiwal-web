@@ -27,14 +27,14 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 import {
   applyForVerification,
-  clearVerificationDraft,
-  VERIFICATION_DRAFT_KEY,
+  verificationDraftKey,
   normalizeDocumentNumber,
   isValidDocumentNumber,
   MAX_VERIFICATION_PHOTO_BYTES,
   TWO_SIDED_DOCUMENTS,
   VERIFICATION_DOCUMENT_TYPES,
   VERIFICATION_QK,
+  shopVerificationQK,
   type VerificationDocumentType,
 } from "@/lib/api/verification";
 import { cn } from "@/lib/utils";
@@ -50,9 +50,14 @@ import { cn } from "@/lib/utils";
  *
  * Photos: upload (on a phone `capture` opens the camera) or the webcam.
  * testids mirror mobile (maestro/verification/README.md).
+ *
+ * SHOP-1: a shop uses this SAME flow (`shopId`): the owner's e-Tazkira, selfie,
+ * name and number, plus ONE extra step, the proof of business (owner,
+ * 2026-10-05). Its draft is kept apart, per shop; its flow-level testids are
+ * prefixed `shop-verify-` (mobile maestro/shops/README.md).
  */
-type Step = "why" | "document" | "ready" | "front" | "back" | "selfie" | "name" | "review";
-type PhotoKey = "front" | "back" | "selfie";
+type Step = "why" | "document" | "ready" | "front" | "back" | "selfie" | "name" | "proof" | "review";
+type PhotoKey = "front" | "back" | "selfie" | "proof";
 
 
 interface SavedDraft {
@@ -63,31 +68,39 @@ interface SavedDraft {
   nameOnDocument: string;
 }
 
-function stepsFor(doc: VerificationDocumentType | null): Step[] {
+function stepsFor(doc: VerificationDocumentType | null, forShop = false): Step[] {
   const s: Step[] = ["why", "document", "ready", "front"];
   if (doc && TWO_SIDED_DOCUMENTS.includes(doc)) s.push("back");
-  s.push("selfie", "name", "review");
+  s.push("selfie", "name");
+  if (forShop) s.push("proof");
+  s.push("review");
   return s;
 }
 
 const isValidName = (v: string) => v.trim().split(/\s+/).filter(Boolean).length >= 2;
 
-function loadDraft(): SavedDraft | null {
+function loadDraft(key: string): SavedDraft | null {
   try {
-    const raw = window.localStorage.getItem(VERIFICATION_DRAFT_KEY);
+    const raw = window.localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as SavedDraft) : null;
   } catch {
     return null;
   }
 }
-function saveDraft(d: SavedDraft) {
+function saveDraft(key: string, d: SavedDraft) {
   try {
-    window.localStorage.setItem(VERIFICATION_DRAFT_KEY, JSON.stringify(d));
+    window.localStorage.setItem(key, JSON.stringify(d));
   } catch {
     /* private mode: progress just isn't remembered */
   }
 }
-const clearDraft = clearVerificationDraft;
+function clearDraft(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable: nothing was saved */
+  }
+}
 
 export function LockLine() {
   const t = useTranslations("verify");
@@ -289,19 +302,25 @@ export function PhotoStep({
   );
 }
 
-export function VerifyFlow() {
+export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
+  const forShop = typeof shopId === "number";
   const t = useTranslations("verify");
   const router = useRouter();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const draftKey = verificationDraftKey(shopId);
+  const queryKey = forShop ? shopVerificationQK(shopId) : VERIFICATION_QK;
+  const exitHref = forShop ? `/shops/${shopId}` : "/profile";
+  const tid = (id: string) => (forShop ? `shop-verify-${id}` : `verify-${id}`);
 
   const [step, setStep] = useState<Step>("why");
-  const [documentType, setDocumentType] = useState<VerificationDocumentType | null>(null);
+  // The e-Tazkira is the only accepted document, so it starts selected.
+  const [documentType, setDocumentType] = useState<VerificationDocumentType | null>(VERIFICATION_DOCUMENT_TYPES[0] ?? null);
   const [nameOnDocument, setName] = useState("");
   // The full ID number is kept in memory only, never in browser storage.
   const [documentNumber, setNumber] = useState("");
   const [touchedNumber, setTouchedNumber] = useState(false);
-  const [photos, setPhotos] = useState<Record<PhotoKey, Blob | null>>({ front: null, back: null, selfie: null });
+  const [photos, setPhotos] = useState<Record<PhotoKey, Blob | null>>({ front: null, back: null, selfie: null, proof: null });
   const [touchedName, setTouchedName] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -312,75 +331,79 @@ export function VerifyFlow() {
   // A draft that belongs to another account (shared computer) is thrown away.
   useEffect(() => {
     if (!user || restored) return;
-    const d = loadDraft();
+    const d = loadDraft(draftKey);
     if (d && d.userId === user.id) {
-      setDocumentType(d.documentType);
+      // A draft saved before "e-Tazkira only" may name another document.
+      const doc = d.documentType && VERIFICATION_DOCUMENT_TYPES.includes(d.documentType) ? d.documentType : (VERIFICATION_DOCUMENT_TYPES[0] ?? null);
+      setDocumentType(doc);
       setName(d.nameOnDocument);
-      const order = stepsFor(d.documentType);
+      const order = stepsFor(doc, forShop);
       const photoIdx = order.indexOf("front");
       const at = order.indexOf(d.step);
       setStep(at > photoIdx ? "front" : d.step);
     } else if (d) {
-      clearDraft();
+      clearDraft(draftKey);
     }
     setRestored(true);
-  }, [user, restored]);
+  }, [user, restored, draftKey, forShop]);
 
   useEffect(() => {
-    if (restored && !done && user) saveDraft({ userId: user.id, step, documentType, nameOnDocument });
-  }, [restored, done, user, step, documentType, nameOnDocument]);
+    if (restored && !done && user) saveDraft(draftKey, { userId: user.id, step, documentType, nameOnDocument });
+  }, [restored, done, user, step, documentType, nameOnDocument, draftKey]);
 
   useEffect(() => {
     if (step === "name" && !nameOnDocument && user?.fullName) setName(user.fullName);
   }, [step, nameOnDocument, user?.fullName]);
 
-  const steps = stepsFor(documentType);
+  const steps = stepsFor(documentType, forShop);
   const current: Step = steps.includes(step) ? step : "why";
   const index = steps.indexOf(current);
   const twoSided = !!documentType && TWO_SIDED_DOCUMENTS.includes(documentType);
 
   const next = () => setStep(steps[Math.min(index + 1, steps.length - 1)]);
-  const back = () => (index > 0 ? setStep(steps[index - 1]) : router.push("/profile"));
+  const back = () => (index > 0 ? setStep(steps[index - 1]) : router.push(exitHref));
 
   const complete =
-    !!documentType && !!photos.front && !!photos.selfie && (!twoSided || !!photos.back) && isValidName(nameOnDocument) && isValidDocumentNumber(documentNumber);
+    !!documentType && !!photos.front && !!photos.selfie && (!twoSided || !!photos.back) && isValidName(nameOnDocument) && isValidDocumentNumber(documentNumber) && (!forShop || !!photos.proof);
 
   const submit = useMutation({
     mutationFn: () =>
       applyForVerification({
+        subject: forShop ? `shop:${shopId}` : "me",
         documentType: documentType as VerificationDocumentType,
         nameOnDocument,
         documentNumber,
         front: photos.front as Blob,
         back: twoSided ? photos.back : null,
         selfie: photos.selfie as Blob,
+        proof: forShop ? photos.proof : null,
       }),
     retry: (count, err) => count < 2 && !(err instanceof ApiError),
     onMutate: () => setErrorKey(null),
     onSuccess: (status) => {
-      qc.setQueryData(VERIFICATION_QK, status);
-      clearDraft();
-      setPhotos({ front: null, back: null, selfie: null });
+      qc.setQueryData(queryKey, status);
+      clearDraft(draftKey);
+      setPhotos({ front: null, back: null, selfie: null, proof: null });
       setDone(true);
     },
     onError: (err) => {
       if (err instanceof ApiError && err.status === 429) setErrorKey("review.tooMany");
       else if (err instanceof ApiError && err.code === "verification_already_requested") setErrorKey("review.alreadyRequested");
       else setErrorKey("review.failed");
-      qc.invalidateQueries({ queryKey: VERIFICATION_QK });
+      qc.invalidateQueries({ queryKey });
     },
   });
 
   if (done) {
     return (
-      <div className="mx-auto max-w-md space-y-6 px-4 py-16 text-center" data-testid="verify-under-review">
+      <div className="mx-auto max-w-md space-y-6 px-4 py-16 text-center" data-testid={tid("under-review")}>
         <div className="mx-auto flex size-22 items-center justify-center rounded-full bg-warning/15">
           <Hourglass className="size-10 text-warning" />
         </div>
         <h1 className="text-2xl font-extrabold">{t("done.title")}</h1>
         <p className="text-muted-foreground">{t("done.body")}</p>
-        <Button asChild className="w-full" data-testid="verify-done-close">
-          <Link href="/profile">{t("done.close")}</Link>
+        <Button asChild className="w-full" data-testid={tid(forShop ? "done" : "done-close")}>
+          <Link href={exitHref}>{t("done.close")}</Link>
         </Button>
       </div>
     );
@@ -395,16 +418,16 @@ export function VerifyFlow() {
       content = (
         <div className="space-y-5">
           <BadgeCheck className="mx-auto size-16 text-primary" />
-          <StepTitle title={t("why.title")} subtitle={t("why.subtitle")} />
+          {forShop ? <StepTitle title={t("shop.whyTitle")} /> : <StepTitle title={t("why.title")} subtitle={t("why.subtitle")} />}
           <ul className="space-y-3">
-            {(["trust", "faster", "name"] as const).map((k) => (
+            {(forShop ? (["shop.benefitTrust", "shop.benefitBadge"] as const) : (["benefits.trust", "benefits.faster", "benefits.name"] as const)).map((k) => (
               <li key={k} className="flex items-center gap-2.5">
                 <Check className="size-5 text-success" />
-                {t(`benefits.${k}`)}
+                {t(k)}
               </li>
             ))}
           </ul>
-          <p className="rounded-lg bg-muted p-4 text-sm">{t("why.need")}</p>
+          <p className="rounded-lg bg-muted p-4 text-sm">{t(forShop ? "shop.need" : "why.need")}</p>
         </div>
       );
       break;
@@ -423,7 +446,7 @@ export function VerifyFlow() {
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  data-testid={`verify-doc-${type}`}
+                  data-testid={tid(`doc-${type}`)}
                   onClick={() => {
                     setDocumentType(type);
                     if (!TWO_SIDED_DOCUMENTS.includes(type)) setPhotos((p) => ({ ...p, back: null }));
@@ -485,10 +508,15 @@ export function VerifyFlow() {
     case "front":
     case "back":
     case "selfie":
+    case "proof":
       showContinue = false;
       content = (
         <div className="space-y-4">
-          <StepTitle title={t(`${current}.title`)} subtitle={t(`${current}.subtitle`)} />
+          {current === "proof" ? (
+            <StepTitle title={t("shop.proofTitle")} subtitle={t("shop.proofSubtitle")} />
+          ) : (
+            <StepTitle title={t(`${current}.title`)} subtitle={t(`${current}.subtitle`)} />
+          )}
           <PhotoStep
             key={current}
             kind={current}
@@ -516,7 +544,7 @@ export function VerifyFlow() {
               onBlur={() => setTouchedName(true)}
               autoComplete="name"
               dir="auto"
-              data-testid="verify-name-input"
+              data-testid={tid("name-input")}
               aria-invalid={nameError || undefined}
             />
             {nameError && <span className="block text-sm text-destructive">{t("name.nameError")}</span>}
@@ -527,14 +555,15 @@ export function VerifyFlow() {
               value={documentNumber}
               onChange={(e) => setNumber(normalizeDocumentNumber(e.target.value))}
               onBlur={() => setTouchedNumber(true)}
-              inputMode="numeric"
+              autoCapitalize="characters"
+              spellCheck={false}
               maxLength={20}
               autoComplete="off"
-              data-testid="verify-number-input"
+              data-testid={tid("number-input")}
               aria-invalid={numberError || undefined}
             />
             {numberError ? (
-              <span className="block text-sm text-destructive" data-testid="verify-number-error">
+              <span className="block text-sm text-destructive" data-testid={tid("number-error")}>
                 {t("name.numberError")}
               </span>
             ) : (
@@ -551,14 +580,14 @@ export function VerifyFlow() {
       showContinue = false;
       const shown = [photos.front, twoSided ? photos.back : null, photos.selfie].filter(Boolean) as Blob[];
       const block = (label: string, value: React.ReactNode, target: Step, id: string) => (
-        <div key={id} className="space-y-2 rounded-xl border bg-card p-3.5" data-testid={`verify-review-${id}`}>
+        <div key={id} className="space-y-2 rounded-xl border bg-card p-3.5" data-testid={tid(`review-${id}`)}>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{label}</span>
             <span className="flex items-center gap-3">
               <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
                 <Check className="size-3" /> {t("review.ready")}
               </span>
-              <button type="button" onClick={() => setStep(target)} aria-label={t("review.edit")} data-testid={`verify-edit-${id}`}>
+              <button type="button" onClick={() => setStep(target)} aria-label={t("review.edit")} data-testid={tid(`edit-${id}`)}>
                 <Pencil className="size-4 text-primary" />
               </button>
             </span>
@@ -588,13 +617,14 @@ export function VerifyFlow() {
             "photos",
           )}
           {block(t("review.name"), <p className="font-semibold" dir="auto">{nameOnDocument}</p>, "name", "name")}
+          {forShop && photos.proof && block(t("shop.proofTitle"), <ReviewThumb blob={photos.proof} />, "proof", "proof")}
           <LockLine />
           {errorKey && (
-            <p className="text-sm text-destructive" role="alert" data-testid="verify-submit-error">
+            <p className="text-sm text-destructive" role="alert" data-testid={tid("submit-error")}>
               {t(errorKey)}
             </p>
           )}
-          <Button className="w-full" onClick={() => submit.mutate()} disabled={submit.isPending || !complete} data-testid="verify-submit">
+          <Button className="w-full" onClick={() => submit.mutate()} disabled={submit.isPending || !complete} data-testid={tid("submit")}>
             {submit.isPending ? t("photo.sendingPlain") : errorKey ? t("tryAgain") : t("review.submit")}
           </Button>
         </div>
@@ -607,13 +637,13 @@ export function VerifyFlow() {
     <div className="mx-auto max-w-lg px-4 py-6">
       <div className="mb-6 space-y-3">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={back} aria-label={t("steps.back")} data-testid="verify-back">
+          <button type="button" onClick={back} aria-label={t("steps.back")} data-testid={tid("back")}>
             <ArrowLeft className="size-5 rtl:-scale-x-100" />
           </button>
-          <span className="text-sm text-muted-foreground" data-testid="verify-progress-label">
+          <span className="text-sm text-muted-foreground" data-testid={tid("progress-label")}>
             {t("steps.progress", { step: index + 1, total: steps.length })}
           </span>
-          <Link href="/profile" aria-label={t("steps.close")} data-testid="verify-close">
+          <Link href={exitHref} aria-label={t("steps.close")} data-testid={tid("close")}>
             <X className="size-5" />
           </Link>
         </div>
@@ -631,7 +661,7 @@ export function VerifyFlow() {
       {content}
 
       {showContinue && (
-        <Button className="mt-8 w-full" onClick={next} disabled={!canContinue} data-testid="verify-next">
+        <Button className="mt-8 w-full" onClick={next} disabled={!canContinue} data-testid={tid("next")}>
           {current === "why" ? t("why.start") : t("steps.next")}
           <ChevronRight className="size-4 rtl:-scale-x-100" />
         </Button>

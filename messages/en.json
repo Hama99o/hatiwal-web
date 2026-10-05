@@ -1203,7 +1203,7 @@
       "nameError": "Write your full name",
       "numberLabel": "Document number",
       "numberHint": "Kept encrypted to protect buyers. Only the Hatiwal team can see it.",
-      "numberError": "Digits only, 6 to 20"
+      "numberError": "Letters and numbers, 5 to 20, with at least one number"
     },
     "review": {
       "title": "Check and send",
@@ -1229,6 +1229,7 @@
       "name_mismatch": "The name does not match your document",
       "selfie_mismatch": "The selfie is missing or does not match the document",
       "document_not_accepted": "This document is not accepted",
+      "proof_not_accepted": "The proof of business was not accepted",
       "shop_sign_not_visible": "The shop sign is not visible",
       "policy_violation": "Our rules were broken",
       "other": "Other"
@@ -1246,17 +1247,9 @@
       "whyTitle": "Why get your shop verified?",
       "benefitTrust": "Buyers trust you more",
       "benefitBadge": "The ✓ badge on every product",
-      "need": "You'll need: a photo of your shop front, your licence or ID, and a phone we can call.",
-      "frontTitle": "Photo of your shop",
-      "frontSubtitle": "The shop front, with the sign visible.",
-      "docTitle": "Your licence or ID",
-      "docSubtitle": "A business licence, or the owner's Tazkira or ID.",
-      "licence": "Business licence",
-      "numberLabel": "Licence or ID number (optional)",
-      "phoneTitle": "A phone we can call",
-      "phoneSubtitle": "We call it to confirm.",
-      "phoneLabel": "Phone",
-      "phoneError": "Enter a phone number"
+      "need": "You'll need: your e-Tazkira, a selfie holding it, and a proof that the business is yours (a licence, a rental contract, a tax paper…).",
+      "proofTitle": "Proof of your business",
+      "proofSubtitle": "Any document showing the shop is yours: a business licence, a rental contract, a tax paper…"
     }
   },
   "shops": {

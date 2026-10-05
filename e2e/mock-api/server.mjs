@@ -1142,11 +1142,13 @@ function route(req, res, method, path, q, body, raw = "") {
   if (path === "/verification_requests" && method === "POST") {
     if (!requireAuth()) return;
     const field = (name) => new RegExp(`name="verification_request\\[${name}\\]"`).test(raw);
-    const number = /name="verification_request\[document_number\]"\r?\n\r?\n(\d*)/.exec(raw)?.[1] ?? "";
+    const number = /name="verification_request\[document_number\]"\r?\n\r?\n([0-9A-Z]*)/.exec(raw)?.[1] ?? "";
+    // SHOP-1: a shop sends the person's form + a required proof of business.
+    const forShop = /name="subject"\r?\n\r?\nshop:\d+/.test(raw);
     const last4 = number.slice(-4);
     const docType = /name="verification_request\[document_type\]"\r?\n\r?\n(\w+)/.exec(raw)?.[1] ?? "";
     const needsBack = ["e_tazkira", "cnic", "kart_melli"].includes(docType);
-    if (!field("front") || !field("selfie") || (needsBack && !field("back")) || !/^\d{6,20}$/.test(number)) {
+    if (!field("front") || !field("selfie") || (needsBack && !field("back")) || !/^(?=.*\d)[0-9A-Z]{5,20}$/.test(number) || docType !== "e_tazkira" || (forShop && !field("proof"))) {
       return send(res, 422, { errors: ["Verification request is invalid"] });
     }
     return send(res, 201, {
@@ -1158,7 +1160,7 @@ function route(req, res, method, path, q, body, raw = "") {
         name_changed: false,
         request: {
           id: 901, status: "requested", document_type: docType, name_on_document: "Ahmad Karimi",
-          document_last4: last4, files_count: needsBack ? 3 : 2, reason_code: null,
+          document_last4: last4, files_count: (needsBack ? 3 : 2) + (forShop ? 1 : 0), reason_code: null,
           created_at: "2026-10-05T10:00:00Z", decided_at: null,
         },
       },

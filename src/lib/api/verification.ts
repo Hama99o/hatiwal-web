@@ -11,17 +11,8 @@ export type VerificationMissing = "email_confirmed" | "avatar" | "full_name" | "
 
 /** "me", or a shop the caller manages (SHOP-1 verified shops). */
 export type VerificationSubject = "me" | `shop:${number}`;
-/** What a SHOP may show as its ID/licence (licence first). */
-export const SHOP_DOCUMENT_TYPES = ["licence", "tazkira", "e_tazkira", "cnic", "kart_melli", "passport"] as const;
-export type ShopDocumentType = (typeof SHOP_DOCUMENT_TYPES)[number];
-
-export const VERIFICATION_DOCUMENT_TYPES: VerificationDocumentType[] = [
-  "tazkira",
-  "e_tazkira",
-  "cnic",
-  "kart_melli",
-  "passport",
-];
+/** Owner, 2026-10-05: ONLY the e-Tazkira is accepted (the server refuses the rest). */
+export const VERIFICATION_DOCUMENT_TYPES: VerificationDocumentType[] = ["e_tazkira"];
 /** Documents with a back side (mirrors VerificationRequest::TWO_SIDED). */
 export const TWO_SIDED_DOCUMENTS: VerificationDocumentType[] = ["e_tazkira", "cnic", "kart_melli"];
 /** Same cap as the API (VerificationRequest::MAX_FILE_SIZE). */
@@ -50,6 +41,8 @@ export interface VerificationStatus {
 }
 
 export interface VerificationApplication {
+  /** "me" (default) or `shop:<id>`: a shop sends the owner's form + `proof`. */
+  subject?: VerificationSubject;
   documentType: VerificationDocumentType;
   nameOnDocument: string;
   /** The full number; the API keeps it encrypted and never returns it. */
@@ -57,6 +50,8 @@ export interface VerificationApplication {
   front: Blob;
   back?: Blob | null;
   selfie: Blob;
+  /** Shops only (required there): proof that the business is theirs: licence, rental contract, tax paper… */
+  proof?: Blob | null;
 }
 
 export const VERIFICATION_QK = ["verification-status"] as const;
@@ -70,35 +65,22 @@ export async function getVerificationStatus(subject: VerificationSubject = "me")
   return toStatus(await meRequest(`verification_requests/current?subject=${subject}`));
 }
 
-/** SHOP-1: apply for "Verified shop" (front = shop front, back = ID/licence). */
-export async function applyForShopVerification(app: {
-  shopId: number;
-  documentType: ShopDocumentType;
-  documentNumber?: string;
-  phone: string;
-  shopFront: Blob;
-  document: Blob;
-}): Promise<VerificationStatus> {
-  const form = new FormData();
-  form.append("subject", `shop:${app.shopId}`);
-  form.append("verification_request[document_type]", app.documentType);
-  form.append("verification_request[phone]", app.phone.trim());
-  if (app.documentNumber) form.append("verification_request[document_number]", app.documentNumber);
-  form.append("verification_request[front]", app.shopFront, "front.jpg");
-  form.append("verification_request[back]", app.document, "back.jpg");
-  return toStatus(await meRequest("verification_requests", { form }));
-}
-
 export const shopVerificationQK = (shopId: number) => ["verification-status", `shop:${shopId}`] as const;
 
+/**
+ * Send the request. A shop (SHOP-1) sends exactly the person's fields +
+ * `subject` + the `proof` photo (owner, 2026-10-05: no shop front, no phone).
+ */
 export async function applyForVerification(app: VerificationApplication): Promise<VerificationStatus> {
   const form = new FormData();
+  if (app.subject && app.subject !== "me") form.append("subject", app.subject);
   form.append("verification_request[document_type]", app.documentType);
   form.append("verification_request[name_on_document]", app.nameOnDocument.trim());
   form.append("verification_request[document_number]", app.documentNumber);
   form.append("verification_request[front]", app.front, "front.jpg");
   if (app.back) form.append("verification_request[back]", app.back, "back.jpg");
   form.append("verification_request[selfie]", app.selfie, "selfie.jpg");
+  if (app.proof) form.append("verification_request[proof]", app.proof, "proof.jpg");
   return toStatus(await meRequest("verification_requests", { form }));
 }
 
@@ -112,26 +94,35 @@ export function verificationReasonKey(status: VerificationStatus): string | null
   return code && code !== "other" ? `reasons.${code}` : null;
 }
 
-/** Persian/Arabic-Indic digits → ASCII digits only. */
-/** Digits only, a sensible length (no invented official formats): 6–20. */
-export const isValidDocumentNumber = (value: string) => /^\d{6,20}$/.test(value);
+/** Letters and digits, at least one digit, 5–20 characters (no invented official formats). */
+export const isValidDocumentNumber = (value: string) => /^(?=.*\d)[0-9A-Z]{5,20}$/.test(value);
 
-/** Persian/Arabic-Indic digits → ASCII digits only, at most 20. */
+/**
+ * A document number as stored: ASCII digits + upper-case letters (owner,
+ * 2026-10-05). Persian/Arabic-Indic digits become ASCII; spaces, dashes and
+ * other marks are dropped; at most 20. Mirrors the API's normalize_number.
+ */
 export function normalizeDocumentNumber(input: string): string {
   return input
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-    .replace(/\D/g, "")
+    .toUpperCase()
+    .replace(/[^0-9A-Z]/g, "")
     .slice(0, 20);
 }
 
 /** Browser key of the apply flow's saved progress (never holds a photo). */
 export const VERIFICATION_DRAFT_KEY = "hatiwal.verification-draft";
+/** A shop's draft is kept apart from the person's, one per shop. */
+export const verificationDraftKey = (shopId?: number) => (shopId ? `${VERIFICATION_DRAFT_KEY}.shop-${shopId}` : VERIFICATION_DRAFT_KEY);
 
-/** Forget the saved progress — on logout, so a shared computer never shows it. */
+/** Forget every saved progress (the person's and each shop's) — on logout, so a shared computer never shows it. */
 export function clearVerificationDraft(): void {
   try {
-    window.localStorage.removeItem(VERIFICATION_DRAFT_KEY);
+    for (let i = window.localStorage.length - 1; i >= 0; i--) {
+      const key = window.localStorage.key(i);
+      if (key && (key === VERIFICATION_DRAFT_KEY || key.startsWith(`${VERIFICATION_DRAFT_KEY}.`))) window.localStorage.removeItem(key);
+    }
   } catch {
     /* storage unavailable: nothing was saved */
   }

@@ -70,7 +70,7 @@ export function VerificationCard() {
 
   const status = data.status;
   const reasonKey = verificationReasonKey(data);
-  const reason = reasonKey ? t(reasonKey) : data.reason;
+  const reason = reasonKey && t.has(reasonKey) ? t(reasonKey) : data.reason;
 
   const heading = (icon: React.ReactNode, title: string) => (
     <div className="flex items-center gap-2.5">
