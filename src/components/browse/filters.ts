@@ -34,6 +34,8 @@ export interface BrowseFilters {
    * (BrowseHeader). Persisted to the URL as `active_sellers=1`.
    */
   activeSellers: boolean;
+  /** SHOP-1: the "Shops" chip — only listings posted as a shop (`seller_type=shop`). URL: `shops=1`. */
+  shops: boolean;
 }
 
 export const DEFAULT_FILTERS: BrowseFilters = {
@@ -49,6 +51,7 @@ export const DEFAULT_FILTERS: BrowseFilters = {
   nearestLat: "",
   nearestLng: "",
   activeSellers: false,
+  shops: false,
 };
 
 /** Default search radius (km) when a location is picked without an explicit radius. */
@@ -91,6 +94,7 @@ export function filtersFromParams(source: ParamSource): BrowseFilters {
     nearestLat: "",
     nearestLng: "",
     activeSellers: read(source, "active_sellers") === "1",
+    shops: read(source, "shops") === "1",
   };
 }
 
@@ -112,6 +116,7 @@ export function filtersToSearchString(f: BrowseFilters): string {
     if (f.radius) sp.set("radius", f.radius);
   }
   if (f.activeSellers) sp.set("active_sellers", "1");
+  if (f.shops) sp.set("shops", "1");
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -166,6 +171,7 @@ export function filtersToQuery(
     // Trust filter: 7 days matches mobile's Active sellers chip and the Rails
     // `seller_active_within` scope default the product spec settled on.
     sellerActiveDays: f.activeSellers ? 7 : undefined,
+    sellerType: f.shops ? "shop" : undefined,
   };
 }
 
@@ -189,6 +195,7 @@ export function activeFilterCount(f: BrowseFilters): number {
     manualLocation,
     f.q,
     f.activeSellers,
+    f.shops,
   ].filter(Boolean).length;
 }
 
@@ -201,6 +208,7 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
       f.priceMax ||
       f.lat ||
       f.activeSellers ||
+      f.shops ||
       f.sort !== "newest",
   );
 }

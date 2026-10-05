@@ -84,7 +84,10 @@ export function ListingActionBar({
   initialSaved,
   sentinelId,
   priceAnchorId,
+  isShop = false,
 }: {
+  /** SHOP-1: posted as a shop → "Message shop". */
+  isShop?: boolean;
   listingId: number;
   /** The listing's seller — the bar hides on your own listing. */
   sellerId?: number;
@@ -297,6 +300,7 @@ export function ListingActionBar({
             currency={currency}
             layout="bar"
             onDialogOpenChange={onDialogOpenChange}
+            isShop={isShop}
           />
           {/* `bar` chrome, not the photo-overlay circle: in a solid toolbar the
               heart has to read as a sibling of the Message button beside it — and

@@ -959,7 +959,7 @@
     "saved": "Saved",
     "chat": "Chats",
     "profile": "Me",
-    "myListings": "My Shop",
+    "myListings": "My listings",
     "createListing": "New Listing",
     "sellerDashboard": "Seller Dashboard"
   },
@@ -1216,6 +1216,168 @@
       "shop_sign_not_visible": "The shop sign is not visible",
       "policy_violation": "Our rules were broken",
       "other": "Other"
+    }
+  },
+  "shops": {
+    "open": "Open your shop",
+    "openSubtitle": "Sell as a business: name, address, opening hours",
+    "mine": "My shop",
+    "badge": "Shop",
+    "message": "Message shop",
+    "openNow": "Open now",
+    "closedNow": "Closed now",
+    "openUntil": "Open now · until {time}",
+    "opensAt": "Closed now · opens at {time}",
+    "opensOn": "Closed now · opens {day} {time}",
+    "directions": "Directions",
+    "call": "Call",
+    "share": {
+      "body": "Visit {name} on Hatiwal 🏪",
+      "button": "Share my shop",
+      "copy": "Copy link",
+      "copied": "Link copied"
+    },
+    "edit": "Edit shop",
+    "sellAs": "Sell as",
+    "sellingAs": "Selling as {name}",
+    "me": "Me",
+    "nowSellingAs": "Now selling as {name}",
+    "removedNotice": "You were removed from {shop}",
+    "continue": "Continue",
+    "verified": "Verified shop",
+    "filter": "Shops",
+    "tabs": {
+      "products": "Products",
+      "productsCount": "Products ({count})",
+      "reviews": "Reviews",
+      "about": "About"
+    },
+    "about": {
+      "description": "About the shop",
+      "address": "Address",
+      "hours": "Opening hours",
+      "since": "On Hatiwal since {date}",
+      "noHours": "Opening hours not added yet",
+      "closed": "Closed",
+      "today": "Today"
+    },
+    "days": {
+      "sat": "Saturday",
+      "sun": "Sunday",
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday"
+    },
+    "empty": {
+      "products": "No products yet",
+      "productsOwner": "No products yet — add your first product",
+      "addProduct": "Add a product",
+      "reviews": "No reviews yet"
+    },
+    "states": {
+      "loadError": "Couldn't load this shop.",
+      "retry": "Try again",
+      "suspended": "This shop is not available right now.",
+      "notFound": "This shop doesn't exist any more."
+    },
+    "form": {
+      "progress": "Step {step} of {total}",
+      "next": "Continue",
+      "back": "Back",
+      "close": "Close",
+      "notNow": "Not now",
+      "start": "Start",
+      "edit": "Edit",
+      "why": {
+        "title": "Why open a shop?",
+        "name": "Your shop's name and logo",
+        "visit": "People can find and visit you",
+        "badge": "A \"Shop\" badge buyers trust"
+      },
+      "name": {
+        "title": "Name your shop",
+        "nameLabel": "Shop name",
+        "descriptionLabel": "Short description (optional)",
+        "nameError": "Use 2 to 50 characters",
+        "descriptionError": "At most 160 characters",
+        "preview": "Preview"
+      },
+      "category": {
+        "title": "What do you sell?",
+        "subtitle": "Pick your main category."
+      },
+      "logo": {
+        "title": "Add your logo",
+        "subtitle": "Optional. You can add it later.",
+        "logo": "Logo",
+        "cover": "Cover photo",
+        "add": "Add",
+        "change": "Change",
+        "remove": "Remove",
+        "skipHint": "No logo? Your initials look good too."
+      },
+      "location": {
+        "title": "Where is your shop?",
+        "subtitle": "Put the pin on your shop.",
+        "pin": "Set the pin on the map",
+        "pinSet": "Pin set",
+        "addressLabel": "Area, street or landmark",
+        "addressHint": "For example: near Kabul Bank, 3rd floor",
+        "pinError": "Put the pin on your shop",
+        "addressError": "Tell buyers how to find you",
+        "outside": "This place is outside the areas Hatiwal covers."
+      },
+      "hours": {
+        "title": "When are you open?",
+        "subtitle": "Optional.",
+        "everyDay": "Every day 8–20",
+        "satThu": "Sat–Thu 8–18, Friday closed",
+        "custom": "Custom",
+        "none": "I'll add hours later",
+        "from": "From",
+        "to": "To",
+        "closedDay": "Closed",
+        "rangeError": "Closing time must be after opening time"
+      },
+      "contact": {
+        "title": "How can buyers reach you?",
+        "subtitle": "Chat stays the main way buyers reach you.",
+        "phoneLabel": "Shop phone (optional)",
+        "showPhone": "Show the phone on the shop page",
+        "phoneError": "Too long"
+      },
+      "review": {
+        "title": "Check and open",
+        "submit": "Open my shop",
+        "save": "Save changes",
+        "failed": "Couldn't save. Check your connection and try again.",
+        "oneShop": "You already have a shop.",
+        "basics": "Name and category",
+        "place": "Location",
+        "hours": "Opening hours",
+        "contact": "Contact",
+        "notAdded": "Not added"
+      },
+      "done": {
+        "title": "Your shop is open!",
+        "subtitle": "Here is what to do next.",
+        "addProduct": "Add your first product",
+        "moveListings": "Move your listings to the shop",
+        "share": "Share your shop",
+        "view": "Go to my shop",
+        "moveTitle": "Move listings to the shop",
+        "moveButton": "Move {count} listings",
+        "moved": "{count} listings moved to your shop",
+        "noListings": "You have no live listings to move."
+      }
+    },
+    "delete": {
+      "action": "Delete shop",
+      "title": "Delete {name}?",
+      "body": "Its products go back to your personal listings.",
+      "confirm": "Delete"
     }
   }
 }

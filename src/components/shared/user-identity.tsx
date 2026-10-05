@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { Logomark } from "@/components/layout/logo";
 import { UserAvatar } from "./user-avatar";
 import { VerifiedBadge } from "./verified-badge";
+import { ShopChip } from "./shop-chip";
 import { cn } from "@/lib/utils";
 
 interface UserIdentityProps {
@@ -36,7 +37,7 @@ interface UserIdentityProps {
    * "support" shows the Hatiwal brand mark instead of a person's avatar, for
    * Hatiwal Support in chat (mobile's UserIdentity `variant="support"`).
    */
-  variant?: "default" | "support";
+  variant?: "default" | "support" | "shop";
   className?: string;
 }
 
@@ -70,7 +71,7 @@ export function UserIdentity({
           <Logomark className="size-full" />
         </span>
       ) : (
-        <UserAvatar name={name} avatarUrl={avatarUrl} size={size} />
+        <UserAvatar name={name} avatarUrl={avatarUrl} size={size} variant={variant === "shop" ? "shop" : "user"} />
       )}
       <div
         className={cn(
@@ -85,6 +86,7 @@ export function UserIdentity({
             {name}
           </NameTag>
           {verified && <VerifiedBadge />}
+          {variant === "shop" && <ShopChip />}
         </div>
         {subtitle && (
           <span className="truncate text-sm text-muted-foreground">

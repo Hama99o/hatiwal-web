@@ -18,6 +18,8 @@ import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SellerListingActions } from "./seller-listing-actions";
 import { Button } from "@/components/ui/button";
+import { SellingAsPill } from "@/components/shops/selling-as-pill";
+import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 
 /**
  * THREE presented states, plus the two slices a seller actually navigates by.
@@ -76,8 +78,10 @@ export function SellerListingsView() {
   // as soon as the grid refetches, and a prompt living in that card would be
   // unmounted with it before the seller could rate anyone.
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
+  // SHOP-1: the server follows who the user sells as, so the cache does too.
+  const { sellingAs } = useSellingIdentity();
   const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["my-listings"],
+    queryKey: ["my-listings", sellingAs ? `shop-${sellingAs.id}` : "me"],
     queryFn: getMyListings,
   });
 
@@ -110,8 +114,12 @@ export function SellerListingsView() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {t("sidebar.myListings")}
+            {sellingAs ? t("shops.mine") : t("sidebar.myListings")}
           </h1>
+          {/* SHOP-1: who you sell as (renders nothing without a shop). */}
+          <div className="mt-2">
+            <SellingAsPill />
+          </div>
           {/* Gated on real DATA, not `!isPending`: in TanStack v5 `isPending` is
               false in the error state too, and `all` falls back to [] — so a
               failed load used to print "0 listings" directly above "Something

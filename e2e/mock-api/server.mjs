@@ -252,8 +252,36 @@ const SAVED_META = {
 // Derived so the two can never disagree: whatever is in SAVED_META is saved.
 const SAVED_IDS = Object.keys(SAVED_META).map(Number);
 
+// ── SHOP-1 (hatiwal-mobile qa/api_contract/SHOPS_2026-10.md) ────────────────
+// One public shop (id 42) with ONE product (9042). The product only comes back
+// for the shop filters (`shop_id=42`, `seller_type=shop`) and its own detail
+// page, so every existing feed count stays exactly as it was. Both personas
+// have NO shop: the "users without a shop see today's site" regression.
+const SHOP_42_CARD = { id: 42, name: "Safi Cosmetics", logo_url: null, verified: true, province: "Kabul", city: "Kabul" };
+const SHOP_42 = {
+  ...SHOP_42_CARD,
+  description: "Perfumes and cosmetics, original brands.",
+  category_id: 1,
+  category: { id: 1, slug: "electronics", name_en: "Electronics", name_ps: "برېښنايي", name_fa: "الکترونیک", name_ur: "الیکٹرانکس" },
+  latitude: "34.5553",
+  longitude: "69.2075",
+  address_line: "Near Kabul Bank, 3rd floor",
+  hours: { sat: [["08:00", "18:00"]], sun: [["08:00", "18:00"]], mon: [["08:00", "18:00"]], tue: [["08:00", "18:00"]], wed: [["08:00", "18:00"]], thu: [["08:00", "18:00"]], fri: [] },
+  created_at: "2026-10-05T10:00:00Z",
+  cover_url: null,
+  phone: "+93 700 111 222",
+  listings_count: 1,
+  verified_at: "2026-10-05T12:00:00Z",
+  owner: { id: 2, name: "Umair Safi" },
+  share_url: "https://hatiwal.com/s/42",
+  avg_rating: null,
+  review_count: 0,
+};
+const SHOP_LISTING = { id: 9042, title: "Chanel No. 5 (100 ml)", price: 9500, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "brand_new", category_id: 1, seller_id: 2, views_count: 4, created_at: "2026-10-05T11:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Original, sealed.", shop: SHOP_42_CARD };
+
 function findListing(id) {
   return [
+    SHOP_LISTING,
     ...LISTINGS,
     EXPIRED_MINE,
     EXPIRING_SOON_MINE,
@@ -390,6 +418,7 @@ function listView(l, { viewedIds = null, savedIds = null, savedByListingId = nul
     is_viewed: viewedIds?.includes(l.id) ?? false,
     is_saved: save !== null || (savedIds?.includes(l.id) ?? false),
     seller: listSeller(l),
+    shop: l.shop ?? null,
     category: catRef(l.category_id),
     price_drop_percent: l.price_drop_percent,
     price_dropped_at: l.price_dropped_at,
@@ -425,6 +454,7 @@ function sellerListView(l) {
     ...lifecycleFields(l),
     expires_at: l.expires_at ?? null,
     negotiable: l.negotiable ?? true,
+    shop_id: l.shop?.id ?? null,
     thumbnail_url: null,
     image_urls: [],
     // Rails emits this for every listing, 0 included — per-fixture override so a
@@ -462,6 +492,7 @@ function detailView(l) {
     // never claim a save/view this fixture cannot attribute to anyone.
     is_saved: false,
     is_viewed: false,
+    shop: l.shop ?? null,
     seller: detailedSeller(l),
     category: catRef(l.category_id),
     price_dropped_at: l.price_dropped_at,
@@ -492,9 +523,9 @@ function myListingView(id) {
 
 function userMe(persona) {
   if (persona === "empty") {
-    return { id: 99, email: "empty@hatiwal.test", firstname: "Sahar", lastname: "Noor", full_name: "Sahar Noor", city: null, province: null, phone: null, bio: null, latitude: null, longitude: null, preferred_language: "en", preferred_theme: "system", seller_mode: false, status: "active", verified: false, avatar_url: null, items_active_count: 0, items_sold_count: 0, saved_items_count: 0, unread_message_count: 0, avg_rating: null, review_count: 0, deletion_scheduled_at: null, created_at: "2026-02-01T00:00:00Z" };
+    return { id: 99, email: "empty@hatiwal.test", firstname: "Sahar", lastname: "Noor", full_name: "Sahar Noor", city: null, province: null, phone: null, bio: null, latitude: null, longitude: null, preferred_language: "en", preferred_theme: "system", seller_mode: false, status: "active", verified: false, avatar_url: null, items_active_count: 0, items_sold_count: 0, saved_items_count: 0, unread_message_count: 0, shops: [], selling_as_shop: null, avg_rating: null, review_count: 0, deletion_scheduled_at: null, created_at: "2026-02-01T00:00:00Z" };
   }
-  return { id: 1, email: "buyer@hatiwal.test", firstname: "Ahmad", lastname: "Karimi", full_name: "Ahmad Karimi", city: "Kabul", province: "Kabul", phone: "+93 700 000 000", bio: "Trusted local seller.", latitude: 34.55, longitude: 69.2, preferred_language: "en", preferred_theme: "system", seller_mode: true, status: "active", verified: true, avatar_url: null, items_active_count: 3, items_sold_count: 1, saved_items_count: 2, unread_message_count: 2, avg_rating: 4.7, review_count: 3, deletion_scheduled_at: null, created_at: "2026-01-01T00:00:00Z" };
+  return { id: 1, email: "buyer@hatiwal.test", firstname: "Ahmad", lastname: "Karimi", full_name: "Ahmad Karimi", city: "Kabul", province: "Kabul", phone: "+93 700 000 000", bio: "Trusted local seller.", latitude: 34.55, longitude: 69.2, preferred_language: "en", preferred_theme: "system", seller_mode: true, status: "active", verified: true, avatar_url: null, items_active_count: 3, items_sold_count: 1, saved_items_count: 2, unread_message_count: 2, shops: [], selling_as_shop: null, avg_rating: 4.7, review_count: 3, deletion_scheduled_at: null, created_at: "2026-01-01T00:00:00Z" };
 }
 
 // Chat fixtures (buyer persona). Conversation/Message use snake_case keys.
@@ -867,7 +898,7 @@ function route(req, res, method, path, q, body, raw = "") {
   // passes neither, so every flag is false, and their response is byte-identical
   // to what it always was.
   if (method === "GET" && path === "/listings") {
-    let items = filterListings(q);
+    let items = q.get("shop_id") === "42" || q.get("seller_type") === "shop" ? [SHOP_LISTING] : q.get("shop_id") ? [] : filterListings(q);
     if (who === "full") items = items.filter((l) => !HIDDEN_IDS.includes(l.id));
     const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
     return send(res, 200, {
@@ -935,6 +966,12 @@ function route(req, res, method, path, q, body, raw = "") {
     const items = uid === 1 && role === "of_seller" ? REVIEWS_OF_SELLER_1 : [];
     const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
     return send(res, 200, { reviews: slice, meta: { pagination } });
+  }
+
+  // SHOP-1: the public shop page; unknown ids are 404 like Rails.
+  const shopMatch = path.match(/^\/shops\/(\d+)$/);
+  if (method === "GET" && shopMatch) {
+    return shopMatch[1] === "42" ? send(res, 200, { shop: SHOP_42 }) : send(res, 404, { error: "Not found" });
   }
 
   // ── Authenticated ─────────────────────────────────────────────────────────
@@ -1054,6 +1091,23 @@ function route(req, res, method, path, q, body, raw = "") {
     const payload = { listing: ownerDetailView(listing) };
     if (method === "PATCH") payload.transaction = row;
     return send(res, 200, payload);
+  }
+
+  // SHOP-1: open a shop (stateless: answers a new owner-view shop, id 77).
+  if (path === "/shops" && method === "POST") {
+    if (!requireAuth()) return;
+    const field = (name) => new RegExp(`name="shop\\[${name}\\]"\\r?\\n\\r?\\n([^\\r\\n]*)`).exec(raw)?.[1] ?? "";
+    const name = field("name");
+    if (name.trim().length < 2 || !field("category_id") || !field("latitude") || !field("address_line")) {
+      return send(res, 422, { errors: ["Shop is invalid"] });
+    }
+    return send(res, 201, {
+      shop: { ...SHOP_42, id: 77, name, verified: false, verified_at: null, listings_count: 0, share_url: "https://hatiwal.com/s/77", owner: { id: 1, name: "Ahmad Karimi" }, status: "active", phone_public: false, role: "owner", address_line: field("address_line") },
+    });
+  }
+  if (path === "/my/shops" && method === "GET") {
+    if (!requireAuth()) return;
+    return send(res, 200, { shops: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
   }
 
   // VER-1: apply for the Verified badge. Stateless on purpose (specs run in

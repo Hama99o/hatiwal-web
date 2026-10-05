@@ -28,6 +28,8 @@ import {
 export function AuthNav() {
   const t = useTranslations();
   const { user, status, logout } = useAuth();
+  // SHOP-1: "My listings" as Me, "My shop" when selling as a shop.
+  const myListingsLabel = user?.sellingAsShop ? t("shops.mine") : t("sidebar.myListings");
   const router = useRouter();
 
   if (status === "loading") {
@@ -91,7 +93,7 @@ export function AuthNav() {
           >
             <Link href="/my-listings">
               <Tag className="size-4" />
-              {t("sidebar.myListings")}
+              {myListingsLabel}
             </Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
@@ -123,7 +125,7 @@ export function AuthNav() {
           <DropdownMenuItem asChild>
             <Link href="/my-listings">
               <Tag className="size-4" />
-              {t("sidebar.myListings")}
+              {myListingsLabel}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>

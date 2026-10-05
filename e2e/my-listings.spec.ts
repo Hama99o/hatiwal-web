@@ -33,7 +33,7 @@ test.describe("My Shop (seller dashboard)", () => {
 
   test("lists the seller's listings across all statuses", async ({ page }) => {
     await openMyShop(page);
-    await expect(page.getByRole("heading", { name: "My Shop" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My listings" })).toBeVisible();
     // Seller 1 owns one listing in each lifecycle state.
     await expect(page.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(page.getByText("Antique Carpet")).toBeVisible(); // draft

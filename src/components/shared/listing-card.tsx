@@ -8,6 +8,7 @@ import { ConditionBadge } from "./condition-badge";
 import { ExpiryBadge } from "./expiry-badge";
 import { PriceDropBadge } from "./price-drop-badge";
 import { FirmPriceBadge } from "./firm-price-badge";
+import { ShopChip } from "./shop-chip";
 import { SaveButton } from "./save-button";
 import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -128,6 +129,8 @@ export function ListingCard({
 
   const meta = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      {/* SHOP-1: posted as a shop → the small "Shop" chip. */}
+      {listing.shop && <ShopChip testId="listing-shop-chip" />}
       {listing.location && (
         <span className="flex min-w-0 items-center gap-1">
           <MapPin className="size-3 shrink-0" />

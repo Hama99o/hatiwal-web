@@ -24,6 +24,10 @@ export interface ListingsQuery {
   location?: string;
   /** Trust filter — only listings whose seller signed in within the last N days. */
   sellerActiveDays?: number;
+  /** SHOP-1: the Bazaar "Shops" chip — only listings posted as a shop. */
+  sellerType?: "shop";
+  /** SHOP-1: one shop's products (shop page). */
+  shopId?: number;
 }
 
 /** Raw listing as it arrives (after snake→camel) — price/lat/lng are strings. */
@@ -83,6 +87,8 @@ function toParams(q: ListingsQuery): QueryParams {
     radius: q.radius,
     location: q.location,
     seller_active_days: q.sellerActiveDays,
+    seller_type: q.sellerType,
+    shop_id: q.shopId,
   };
 }
 

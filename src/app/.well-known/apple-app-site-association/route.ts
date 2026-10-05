@@ -1,6 +1,6 @@
 import { IOS_BUNDLE_ID, APPLE_TEAM_ID } from "@/lib/app-links";
 
-// iOS Universal Links: tells iPhones that hatiwal.com listing and seller links
+// iOS Universal Links: tells iPhones that hatiwal.com listing, seller and shop links
 // belong to the Hatiwal app (1.1.5+, associatedDomains applinks:hatiwal.com),
 // so a tapped share link opens the app instead of Safari. Must be JSON at this
 // exact path with no redirect; the locale middleware skips dotted paths.
@@ -19,6 +19,10 @@ export function GET() {
             { "/": "/sellers/*" },
             { "/": "/*/listings/*" },
             { "/": "/*/sellers/*" },
+            // SHOP-1 "Share my shop": /s/<id> short links and the shop page.
+            { "/": "/s/*" },
+            { "/": "/shops/*" },
+            { "/": "/*/shops/*" },
           ],
         },
       ],

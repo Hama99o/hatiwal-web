@@ -51,9 +51,15 @@ export async function getConversations(
    * listing title, and any message body — see Conversation.matching in the API.
    */
   search?: string,
+  /** SHOP-1: the identity scope for a user WITH a shop (role + shop_id=<id>|none). Omit = as before. */
+  scope?: { role: "buying" | "selling"; shopId?: number | "none" },
 ): Promise<ConversationsResult> {
   const params = new URLSearchParams();
   if (listingId) params.set("listing_id", String(listingId));
+  if (scope) {
+    params.set("role", scope.role);
+    if (scope.shopId !== undefined) params.set("shop_id", String(scope.shopId));
+  }
   if (archived) params.set("archived", "true");
   // Trimmed, and omitted when empty: a bare `search=` would make the server run
   // a blank match instead of returning the plain inbox.

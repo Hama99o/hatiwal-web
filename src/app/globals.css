@@ -47,6 +47,8 @@
   --ring: hsl(221 83% 53%);
   /* Brand accent — saffron / lapis-fleck gold (#E8B23A). Same in light & dark. */
   --brand-gold: hsl(41 80% 57%);
+  /* Brand lapis — the tile the logo "H" sits on; a shop's default logo (SHOP-1). Same in both themes. */
+  --brand-lapis: hsl(222 65% 25%);
   --radius: 0.75rem;
 }
 
@@ -84,6 +86,7 @@
   --input: hsl(217 33% 17%);
   --ring: hsl(224 76% 48%);
   --brand-gold: hsl(41 80% 57%);
+  --brand-lapis: hsl(222 65% 25%);
 }
 
 @theme inline {
@@ -113,6 +116,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-brand-gold: var(--brand-gold);
+  --color-brand-lapis: var(--brand-lapis);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

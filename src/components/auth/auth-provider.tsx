@@ -237,6 +237,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     clearVerificationDraft(); // VER-1: never leave the apply flow's progress for the next person
+    try {
+      window.localStorage.removeItem("hatiwal.shop-draft"); // SHOP-1: nor a half-made shop
+    } catch {
+      /* storage unavailable */
+    }
     setUser(null);
     setStatus("guest");
     // AFTER flipping to guest, so anything that refetches in response to the
