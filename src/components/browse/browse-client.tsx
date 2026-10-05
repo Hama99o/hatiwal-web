@@ -897,6 +897,7 @@ export function BrowseClient({
             <LocationBar
               province={home.province}
               allCountry={allCountry}
+              loading={status === "loading" && !probeTimedOut}
               onChange={() => setWantLocationSheet(true)}
             />
           )}

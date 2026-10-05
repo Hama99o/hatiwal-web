@@ -21,11 +21,18 @@ export function LocationBar({
   province,
   onChange,
   allCountry = false,
+  loading = false,
 }: {
   province: string | null;
   onChange: () => void;
   /** LOC-1 "All Afghanistan": the bar names the country, not a place. */
   allCountry?: boolean;
+  /**
+   * The session probe has not answered yet: a signed-in viewer's place is not
+   * known, so name none rather than "Kabul" for a moment (mobile waits for
+   * `me` the same way — useHomeLocation's `ready`).
+   */
+  loading?: boolean;
 }) {
   const t = useTranslations("location");
   const nearPlace = usePlaceName(province);
@@ -45,11 +52,18 @@ export function LocationBar({
       <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
       <p className="min-w-0 truncate">
         {before}
-        {at >= 0 && (
-          <span data-testid="location-bar-place" className="font-semibold text-foreground">
-            {place}
-          </span>
-        )}
+        {at >= 0 &&
+          (loading ? (
+            <span
+              data-testid="location-bar-place-loading"
+              aria-hidden
+              className="inline-block h-3.5 w-16 animate-pulse rounded bg-muted align-middle"
+            />
+          ) : (
+            <span data-testid="location-bar-place" className="font-semibold text-foreground">
+              {place}
+            </span>
+          ))}
         {after}
       </p>
       <span aria-hidden>·</span>

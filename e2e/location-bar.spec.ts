@@ -1,8 +1,25 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Request } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
 
 // LOC-1 — "Showing items near … · Change" on the Bazaar
 // (hatiwal-mobile/docs/USER_LOCATION.md). Same test ids as the mobile app.
+// Web = app parity: the same rule (own → guess → Kabul, read from me.location),
+// the same sheet, the same clues, and the SAME feed params as mobile's
+// browseLocationParams (default order = sort=nearest around home, no radius).
+
+const HERAT = { latitude: 34.3529, longitude: 62.204 };
+const listingRequests = (reqs: Request[]) => reqs.filter((r) => /\/listings(\?|$)/.test(r.url()) && r.method() === "GET");
+
+/** Serve this viewer's `me` with another location block (the API resolves the rule; we only read it). */
+async function meWithLocation(page: Page, location: Record<string, unknown>) {
+  await page.route(/\/api\/me\/users\/me(\?|$)/, async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    const res = await route.fetch();
+    const json = await res.json();
+    json.user = { ...json.user, location };
+    await route.fulfill({ response: res, json });
+  });
+}
 test.describe("Bazaar location bar — guest", () => {
   test("shows Kabul, in the default 'near you' order, and asks a guest to sign in on Change", async ({ page }) => {
     await page.goto("/en/bazaar");
@@ -110,5 +127,88 @@ test.describe("Bazaar location bar — signed in, nothing known", () => {
   test("a user with no location sees Kabul", async ({ page }) => {
     await page.goto("/en/bazaar");
     await expect(page.getByTestId("location-bar-place")).toHaveText("Kabul");
+  });
+});
+
+test.describe("Bazaar location bar — web = app parity", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("a GUESS (no own address) drives the bar and the feed: sort=nearest around it, no radius", async ({ page }) => {
+    await meWithLocation(page, { source: "guess", ...HERAT, province: "Herat" });
+    const reqs: Request[] = [];
+    page.on("request", (r) => reqs.push(r));
+    await page.goto("/en/bazaar");
+    await expect(page.getByTestId("location-bar-place")).toHaveText("Herat");
+    await expect
+      .poll(() => listingRequests(reqs).some((r) => new URL(r.url()).searchParams.get("latitude")?.startsWith("34.35")))
+      .toBe(true);
+    const url = new URL(listingRequests(reqs).filter((r) => new URL(r.url()).searchParams.get("latitude")?.startsWith("34.35")).at(-1)!.url());
+    expect(url.searchParams.get("sort")).toBe("nearest");
+    expect(url.searchParams.get("longitude")).toMatch(/^62\.2/);
+    expect(url.searchParams.has("radius")).toBe(false);
+  });
+
+  test("a place outside Afghanistan/Pakistan/Iran in me.location falls back to Kabul", async ({ page }) => {
+    await meWithLocation(page, { source: "guess", latitude: 25.2048, longitude: 55.2708, province: null }); // Dubai
+    await page.goto("/en/bazaar");
+    await expect(page.getByTestId("location-bar-place")).toHaveText("Kabul");
+  });
+
+  test("never names Kabul for a signed-in viewer before `me` answers", async ({ page }) => {
+    await meWithLocation(page, { source: "own", ...HERAT, province: "Herat" });
+    const seen: string[] = [];
+    await page.exposeFunction("__place", (text: string) => seen.push(text));
+    await page.addInitScript(() => {
+      new MutationObserver(() => {
+        const el = document.querySelector('[data-testid="location-bar-place"]');
+        if (el?.textContent) (window as unknown as { __place: (t: string) => void }).__place(el.textContent);
+      }).observe(document, { subtree: true, childList: true, characterData: true });
+    });
+    await page.goto("/en/bazaar");
+    await expect(page.getByTestId("location-bar-place")).toHaveText("Herat");
+    expect(seen).not.toContain("Kabul");
+  });
+
+  test("'Use my current location' asks only on the tap, and saves that place as the own address", async ({ page, context }) => {
+    await context.grantPermissions(["geolocation"]);
+    await context.setGeolocation(HERAT);
+    await page.goto("/en/bazaar");
+    await page.getByTestId("location-change").click();
+    const put = page.waitForRequest((r) => r.url().includes("/api/me/users/me") && r.method() === "PUT");
+    await page.getByTestId("location-use-current").click();
+    await page.getByTestId("location-save").click();
+    const body = (await put).postDataJSON();
+    expect(body.user.province).toBe("Herat");
+    expect(Number(body.user.latitude)).toBeCloseTo(HERAT.latitude, 2);
+    await expect(page.getByTestId("location-bar-place")).toHaveText("Herat");
+  });
+
+  test("the GPS clue: sent once, only when location is ALREADY allowed, never for an own address", async ({ page, context }) => {
+    await meWithLocation(page, { source: "default", latitude: 34.5553, longitude: 69.2075, province: "Kabul" });
+    await context.grantPermissions(["geolocation"]);
+    await context.setGeolocation(HERAT);
+    const clue = page.waitForRequest((r) => r.url().includes("location_guess") && r.method() === "PATCH");
+    await page.goto("/en/bazaar");
+    expect((await clue).postDataJSON()).toMatchObject({ source: "gps", latitude: HERAT.latitude, longitude: HERAT.longitude });
+  });
+
+  test("the search_area clue: a zone the buyer PICKS is sent (once it settles)", async ({ page, context }) => {
+    await meWithLocation(page, { source: "default", latitude: 34.5553, longitude: 69.2075, province: "Kabul" });
+    await context.grantPermissions(["geolocation"]);
+    await context.setGeolocation(HERAT);
+    await page.goto("/en/bazaar");
+    // The silent daily GPS clue may go first; wait for the search_area one.
+    const clue = page.waitForRequest(
+      (r) => r.url().includes("location_guess") && r.method() === "PATCH" && r.postDataJSON()?.source === "search_area",
+    );
+    await page.getByRole("button", { name: "Use my location" }).first().click();
+    await expect(page.getByTestId("location-bar")).toHaveCount(0); // a zone hides the bar
+    expect((await clue).postDataJSON()).toMatchObject({ source: "search_area", latitude: HERAT.latitude });
+  });
+
+  test("an old /browse link keeps its filters on the way to /bazaar", async ({ page }) => {
+    await page.goto("/en/browse?sort=newest");
+    await expect(page).toHaveURL(/\/en\/bazaar\?sort=newest$/);
+    await expect(page.getByTestId("location-bar")).toHaveCount(0);
   });
 });
