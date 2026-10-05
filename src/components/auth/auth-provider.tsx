@@ -10,6 +10,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "@/lib/types";
 import { setBazaarScope } from "@/components/location/use-bazaar-scope";
+import { clearVerificationDraft } from "@/lib/api/verification";
 
 type AuthStatus = "loading" | "authed" | "guest";
 
@@ -236,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    clearVerificationDraft(); // VER-1: never leave the apply flow's progress for the next person
     setUser(null);
     setStatus("guest");
     // AFTER flipping to guest, so anything that refetches in response to the

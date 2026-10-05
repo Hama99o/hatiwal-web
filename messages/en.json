@@ -1095,5 +1095,143 @@
       }
     },
     "otherOptions": "Other options"
+  },
+  "verify": {
+    "cta": "Get verified",
+    "title": "Get verified. Buyers trust you more.",
+    "withTazkira": "Verify your identity · with your Tazkira",
+    "onlyTeam": "Only the Hatiwal team sees this. We delete it after the check.",
+    "underReview": "Under review — we usually answer within 2 days",
+    "tryAgain": "Try again",
+    "applyAgain": "Apply again",
+    "benefits": {
+      "trust": "A blue ✓ next to your name",
+      "faster": "Verified sellers sell faster",
+      "name": "Proves the name on your profile is yours"
+    },
+    "card": {
+      "missingTitle": "Before you can apply",
+      "requested": "Under review · sent {date}",
+      "verified": "Verified ✓ since {date}",
+      "verifiedNoDate": "Verified ✓",
+      "rejected": "We couldn't verify you",
+      "revoked": "Your verified badge was removed",
+      "cancel": "Cancel request",
+      "cancelTitle": "Cancel your request?",
+      "cancelBody": "Your photos are deleted straight away. You can apply again later.",
+      "cancelConfirm": "Cancel request",
+      "keep": "Keep it",
+      "loadError": "Couldn't load your verification status.",
+      "photosSent": "{count, plural, one {# photo sent} other {# photos sent}}",
+      "nameChanged": "Your name changed — verify again"
+    },
+    "missing": {
+      "email_confirmed": "Confirm your email address",
+      "avatar": "Add a profile photo",
+      "full_name": "Add your first and last name"
+    },
+    "steps": {
+      "progress": "Step {step} of {total}",
+      "next": "Continue",
+      "back": "Back",
+      "close": "Close"
+    },
+    "why": {
+      "title": "Why get verified?",
+      "subtitle": "Show buyers you are a real person.",
+      "need": "What you need: your ID document and 2 minutes.",
+      "start": "Start"
+    },
+    "document": {
+      "title": "Which document?",
+      "subtitle": "Choose the one you have with you.",
+      "types": {
+        "tazkira": "Tazkira",
+        "e_tazkira": "e-Tazkira",
+        "cnic": "CNIC",
+        "kart_melli": "Kart-e Melli",
+        "passport": "Passport"
+      },
+      "hints": {
+        "tazkira": "Afghanistan · paper",
+        "e_tazkira": "Afghanistan · card",
+        "cnic": "Pakistan",
+        "kart_melli": "Iran",
+        "passport": "Any country"
+      }
+    },
+    "ready": {
+      "title": "Get your document ready",
+      "subtitle": "Put it on a dark, flat surface in good light.",
+      "good": "Like this: the whole document, sharp, easy to read",
+      "cropped": "Cropped",
+      "glare": "Glare",
+      "blurry": "Blurry"
+    },
+    "front": {
+      "title": "Front of your document",
+      "subtitle": "Fit the whole document inside the frame."
+    },
+    "back": {
+      "title": "Back of your document",
+      "subtitle": "Turn it over and fit the whole back inside the frame."
+    },
+    "selfie": {
+      "title": "Take a selfie",
+      "subtitle": "Hold your document next to your face.",
+      "tipFace": "Your face and the document both clear",
+      "tipLight": "Good light, no sunglasses or hat",
+      "tipHold": "Don't cover the photo on the document"
+    },
+    "photo": {
+      "take": "Take photo",
+      "gallery": "Choose from gallery",
+      "retake": "Retake",
+      "use": "Use this photo",
+      "failed": "Couldn't open the camera. Try the gallery.",
+      "upload": "Upload a photo",
+      "webcam": "Use webcam",
+      "capture": "Take photo",
+      "webcamFailed": "Couldn't open the webcam. Upload a photo instead.",
+      "sendingPlain": "Sending…",
+      "tooBig": "This photo is too big (max 10 MB)."
+    },
+    "name": {
+      "title": "Your name and ID number",
+      "subtitle": "Write it exactly as it is printed.",
+      "nameLabel": "Full name",
+      "nameError": "Write your full name",
+      "numberLabel": "Document number",
+      "numberHint": "Kept encrypted to protect buyers. Only the Hatiwal team can see it.",
+      "numberError": "Digits only, 6 to 20"
+    },
+    "review": {
+      "title": "Check and send",
+      "subtitle": "Everything is ready. Check it once more.",
+      "ready": "Ready",
+      "document": "Document",
+      "photos": "Photos",
+      "name": "Name on document",
+      "edit": "Edit",
+      "submit": "Send request",
+      "sending": "Sending… {percent}%",
+      "failed": "Couldn't send. Check your connection and try again.",
+      "alreadyRequested": "You already have a request under review.",
+      "tooMany": "You've tried 3 times today. Please try again tomorrow."
+    },
+    "done": {
+      "title": "Under review",
+      "body": "We usually answer within 2 days. We'll send you a message.",
+      "close": "Done"
+    },
+    "reasons": {
+      "photo_not_clear": "The photo is not clear",
+      "name_mismatch": "The name does not match your document",
+      "selfie_mismatch": "The selfie is missing or does not match the document",
+      "document_not_accepted": "This document is not accepted",
+      "shop_sign_not_visible": "The shop sign is not visible",
+      "policy_violation": "Our rules were broken",
+      "other": "Other"
+    }
   }
 }
