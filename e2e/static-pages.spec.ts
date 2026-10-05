@@ -5,7 +5,8 @@ import { SUPPORT_EMAIL } from "../src/lib/app-links";
 // must render in every locale the site serves, with a contact address that can
 // actually receive mail (see SUPPORT_EMAIL).
 test.describe("Legal / static pages", () => {
-  for (const locale of ["en", "ps", "fa", "ur"] as const) {
+  // "ur" is hidden for now (owner, 2026-10-05); add it back with HIDDEN_LOCALES.
+  for (const locale of ["en", "ps", "fa"] as const) {
     test(`privacy policy renders (${locale})`, async ({ page }) => {
       const resp = await page.goto(`/${locale}/privacy`);
       expect(resp?.status()).toBe(200);

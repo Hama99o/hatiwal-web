@@ -10,7 +10,28 @@ import { BUYER_STATE } from "./auth-paths";
  * them touched this work. This is that gap closed.
  */
 
+// Owner, 2026-10-05: Urdu is HIDDEN for now (src/i18n/routing.ts HIDDEN_LOCALES),
+// not removed. These checks run again once it is visible.
+const URDU_HIDDEN = true;
+
+test.describe("Urdu is hidden for now", () => {
+  test("/ur redirects to English and keeps the path", async ({ page }) => {
+    await page.goto("/ur/bazaar");
+    await expect(page).toHaveURL(/\/en\/bazaar/);
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  });
+
+  test("the language switcher does not offer Urdu", async ({ page }) => {
+    await page.goto("/en");
+    await page.getByRole("button", { name: "Language" }).click();
+    await expect(page.getByRole("menuitem", { name: "پښتو" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "اردو" })).toHaveCount(0);
+  });
+});
+
 test.describe("Urdu locale (Pakistan expansion)", () => {
+  test.skip(URDU_HIDDEN, "Urdu hidden by the owner (2026-10-05)");
+
   test("Urdu renders RTL with lang=ur", async ({ page }) => {
     await page.goto("/ur");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");

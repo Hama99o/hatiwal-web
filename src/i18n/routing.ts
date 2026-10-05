@@ -12,12 +12,23 @@ import { defineRouting } from "next-intl/routing";
  * so a partially translated locale renders raw key paths ("listing.form.title")
  * in the UI rather than English. ur.json is 866/866.
  */
+/** Every locale with a complete messages file. */
+export const ALL_LOCALES = ["en", "ps", "fa", "ur"] as const;
+
+export type Locale = (typeof ALL_LOCALES)[number];
+
+/**
+ * Hidden from the site (owner, 2026-10-05: "hide Urdu for now, don't remove
+ * it"): no route, no switcher entry, no sitemap/hreflang. messages/ur.json
+ * stays. To bring it back, remove it here. /ur/... redirects to /en/...
+ * (src/middleware.ts).
+ */
+export const HIDDEN_LOCALES: readonly Locale[] = ["ur"];
+
 export const routing = defineRouting({
-  locales: ["en", "ps", "fa", "ur"],
+  locales: ALL_LOCALES.filter((l) => !HIDDEN_LOCALES.includes(l)),
   defaultLocale: "en",
 });
-
-export type Locale = (typeof routing.locales)[number];
 
 // Urdu is right-to-left, like Pashto and Dari. Omitting it here would render
 // Urdu left-to-right — the page would "work" and look broken.
