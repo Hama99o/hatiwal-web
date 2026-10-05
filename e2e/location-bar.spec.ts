@@ -48,6 +48,17 @@ test.describe("Bazaar location bar — signed in", () => {
     await expect(page.getByTestId("location-bar-place")).toHaveText("Herat");
   });
 
+  test("a zone read from a shared link is not sent as a location clue", async ({ page }) => {
+    const clues: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("location_guess")) clues.push(r.url());
+    });
+    await page.goto("/en/bazaar?lat=34.3529&lng=62.204&radius=10");
+    await expect(page.getByTestId("results-count")).toBeVisible();
+    await page.waitForTimeout(2500); // past the clue's 1.5 s settle
+    expect(clues).toEqual([]);
+  });
+
   test("never asks for location permission on its own", async ({ page, context }) => {
     await context.clearPermissions();
     let asked = false;

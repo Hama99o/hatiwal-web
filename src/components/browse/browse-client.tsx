@@ -326,12 +326,14 @@ export function BrowseClient({
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) =>
+      (pos) => {
         update({
           lat: String(pos.coords.latitude),
           lng: String(pos.coords.longitude),
           radius: filters.radius || String(DEFAULT_RADIUS_KM),
-        }),
+        });
+        reportPickedArea(pos.coords.latitude, pos.coords.longitude);
+      },
       (err) => {
         const key =
           err.code === err.PERMISSION_DENIED
@@ -403,14 +405,21 @@ export function BrowseClient({
     }
   }, [wantLocationSheet, authed, status, probeTimedOut, router, loginHref]);
 
-  // LOC-1 — the zone a buyer searches in is a clue to where they live. Settled,
-  // not per drag: the map moves the pin continuously while it is dragged.
-  useEffect(() => {
-    if (!filters.lat || !filters.lng) return;
-    const point = { latitude: Number(filters.lat), longitude: Number(filters.lng) };
-    const id = setTimeout(() => reportSearchArea(point), 1500);
-    return () => clearTimeout(id);
-  }, [filters.lat, filters.lng, reportSearchArea]);
+  // LOC-1 — a zone the buyer PICKS (map, place search, "Use my location") is a
+  // clue to where they live. Only a pick: a zone read from a shared link's URL
+  // says where the SENDER was looking. Settled, not per drag: the map moves the
+  // pin continuously while it is dragged.
+  const clueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reportPickedArea = useCallback(
+    (latitude: number, longitude: number) => {
+      if (clueTimer.current) clearTimeout(clueTimer.current);
+      clueTimer.current = setTimeout(() => reportSearchArea({ latitude, longitude }), 1500);
+    },
+    [reportSearchArea],
+  );
+  useEffect(() => () => {
+    if (clueTimer.current) clearTimeout(clueTimer.current);
+  }, []);
 
   const RADIUS_PRESETS = [5, 10, 25, 50];
 
@@ -623,13 +632,14 @@ export function BrowseClient({
           radiusKm={
             filters.lat ? Number(filters.radius) || DEFAULT_RADIUS_KM : undefined
           }
-          onChange={(la, ln) =>
+          onChange={(la, ln) => {
             update({
               lat: String(la),
               lng: String(ln),
               radius: filters.radius || String(DEFAULT_RADIUS_KM),
-            })
-          }
+            });
+            reportPickedArea(la, ln);
+          }}
           className="h-64"
         />
 

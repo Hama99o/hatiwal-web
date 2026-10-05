@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { Check, Loader2, LocateFixed, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -44,15 +45,23 @@ export function LocationSheet({
   const [locating, setLocating] = useState(false);
   const [outside, setOutside] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
+
+  const saveM = useMutation({
+    mutationFn: (p: Pending) => updateProfile(p),
+    onSuccess: (user) => {
+      setUser(user);
+      toast.success(t("location.saved"));
+      close();
+    },
+  });
+  const saving = saveM.isPending;
 
   const close = () => {
     setPending(null);
     setSearch("");
     setOutside(false);
     setShowMap(false);
-    setError(false);
+    saveM.reset();
     onClose();
   };
 
@@ -88,21 +97,6 @@ export function LocationSheet({
     );
   };
 
-  const save = async () => {
-    if (!pending) return;
-    setSaving(true);
-    setError(false);
-    try {
-      const user = await updateProfile(pending);
-      setUser(user);
-      toast.success(t("location.saved"));
-      close();
-    } catch {
-      setError(true);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const provinces = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -207,7 +201,7 @@ export function LocationSheet({
           )}
         </ul>
 
-        {error && (
+        {saveM.isError && (
           <p role="alert" className="text-sm text-destructive">
             {t("location.saveError")}
           </p>
@@ -216,7 +210,7 @@ export function LocationSheet({
           <Button type="button" variant="outline" onClick={close} disabled={saving}>
             {t("common.cancel")}
           </Button>
-          <Button type="button" data-testid="location-save" onClick={save} disabled={!pending || saving}>
+          <Button type="button" data-testid="location-save" onClick={() => pending && saveM.mutate(pending)} disabled={!pending || saving}>
             {saving && <Loader2 className="size-4 animate-spin" aria-hidden />}
             {t("location.save")}
           </Button>
