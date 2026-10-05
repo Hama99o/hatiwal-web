@@ -622,7 +622,19 @@ const ARCHIVED_CONVERSATIONS = Array.from({ length: FILLER_COUNT }, (_, i) =>
   }),
 );
 
-const ALL_CONVERSATIONS = [...CONVERSATIONS, ...ARCHIVED_CONVERSATIONS];
+// SHOP-2: the buyer persona's listing-less chat with shop 42 ("Message shop").
+// Only reachable by id (POST /shops/42/conversations answers it), so the inbox
+// specs' lists are unchanged.
+const SHOP_42_CHAT = {
+  id: 420, kind: "listing", status: "open", viewer_role: "buyer", last_message_at: null, created_at: "2026-10-05T12:00:00Z",
+  listing: null, listing_deleted: false, shop: SHOP_42_CARD,
+  other_participant: { id: 2, name: "Umair Safi", city: "Kabul", verified: true, avatar_url: null },
+  buyer: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+  seller: { id: 2, name: "Umair Safi", city: "Kabul", avatar_url: null },
+  unread_count: 0, last_message_body: null, last_message_kind: null, blocked_with_participant: false,
+};
+
+const ALL_CONVERSATIONS = [...CONVERSATIONS, ...ARCHIVED_CONVERSATIONS, SHOP_42_CHAT];
 
 const MESSAGES = {
   // Returned newest-first (Rails order); chat.ts reverses for display.
@@ -1119,6 +1131,10 @@ function route(req, res, method, path, q, body, raw = "") {
     if (name.trim().length < 2 || !field("category_id") || !field("latitude") || !field("address_line")) {
       return send(res, 422, { errors: ["Shop is invalid"] });
     }
+    // SHOP-2: the same shop as one of yours → shop_duplicate + its id.
+    if (name.trim().toLowerCase() === "safi cosmetics") {
+      return send(res, 422, { errors: ["You already have this shop"], code: "shop_duplicate", duplicate_shop_id: 42 });
+    }
     return send(res, 201, {
       shop: { ...SHOP_42, id: 77, name, verified: false, verified_at: null, listings_count: 0, share_url: "https://hatiwal.com/s/77", owner: { id: 1, name: "Ahmad Karimi" }, status: "active", phone_public: false, role: "owner", address_line: field("address_line") },
     });
@@ -1310,6 +1326,12 @@ function route(req, res, method, path, q, body, raw = "") {
     // pages through meta.pagination.next_page.
     const { slice, pagination } = paginate(convs, q.get("page[number]"), q.get("page[size]"));
     return send(res, 200, { conversations: slice, meta: { pagination } });
+  }
+  // SHOP-2 "Message shop": find-or-create, so always the same chat (200).
+  const shopConvMatch = path.match(/^\/shops\/(\d+)\/conversations$/);
+  if (shopConvMatch && method === "POST") {
+    if (!requireAuth()) return;
+    return shopConvMatch[1] === "42" ? send(res, 200, { conversation: SHOP_42_CHAT }) : send(res, 404, { error: "Not found" });
   }
   const startConvMatch = path.match(/^\/listings\/(\d+)\/conversations$/);
   if (startConvMatch && method === "POST") {

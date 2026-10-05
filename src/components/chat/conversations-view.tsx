@@ -336,9 +336,14 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                 // listing. Its name is always the localized label — the
                 // account's stored name is English.
                 const support = isSupportThread(c);
+                // SHOP-1/2: the BUYER talks to the shop (name, logo), never the
+                // owner's personal name; a listing-less "Message shop" chat
+                // leads with the shop on both sides.
+                const shopFace = !support && c.viewerRole === "buyer" ? (c.shop ?? null) : null;
+                const shopChat = !support && !c.listing && !c.listingDeleted && c.shop ? c.shop : null;
                 const name = support
                   ? t("chat.support.name")
-                  : (who?.name ?? t("chat.unknownUser"));
+                  : (shopFace?.name ?? who?.name ?? t("chat.unknownUser"));
                 const unread = (c.unreadCount ?? 0) > 0;
                 return (
                   <li key={c.id} className="relative flex items-center">
@@ -350,8 +355,9 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                         <Logomark className="size-12 shrink-0" />
                       ) : (
                         <UserAvatar
+                          variant={shopFace ? "shop" : "user"}
                           name={name}
-                          avatarUrl={who?.avatarUrl}
+                          avatarUrl={shopFace ? shopFace.logoUrl : who?.avatarUrl}
                           size={48}
                         />
                       )}
@@ -397,6 +403,8 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                         <p className="truncate text-xs text-muted-foreground">
                           {support ? (
                             t("chat.support.headerNote")
+                          ) : shopChat ? (
+                            <span data-testid={`conversation-shop-chat-${c.id}`}>{shopChat.name}</span>
                           ) : c.listing ? (
                             <HighlightedText
                               text={c.listing.title}
@@ -414,7 +422,9 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                             a thumbnail. */}
                         {!support && (
                           <div className="flex size-12 items-center justify-center overflow-hidden rounded-md bg-muted">
-                            {c.listing ? (
+                            {shopChat ? (
+                              <UserAvatar variant="shop" name={shopChat.name} avatarUrl={shopChat.logoUrl} size={48} />
+                            ) : c.listing ? (
                               <RemoteImage
                                 src={c.listing.thumbnailUrl}
                                 alt={c.listing.title}

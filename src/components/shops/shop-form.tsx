@@ -139,6 +139,8 @@ export function ShopForm({ shopId }: { shopId?: number }) {
   const [ready, setReady] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  // SHOP-2: the same shop as one of yours (same name within 200 m, or the same address).
+  const [duplicateId, setDuplicateId] = useState<number | null>(null);
   const [opened, setOpened] = useState<Shop | null>(null);
 
   const { data: shop } = useQuery({ queryKey: ["shop", shopId], queryFn: () => getMyShop(shopId as number), enabled: editing });
@@ -209,7 +211,10 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       };
       return editing ? updateShop(shopId as number, input) : createShop(input);
     },
-    onMutate: () => setErrorKey(null),
+    onMutate: () => {
+      setErrorKey(null);
+      setDuplicateId(null);
+    },
     onSuccess: async (saved) => {
       qc.invalidateQueries({ queryKey: ["my-shops"] });
       qc.setQueryData(["shop", saved.id], saved);
@@ -227,7 +232,17 @@ export function ShopForm({ shopId }: { shopId?: number }) {
     },
     onError: (err) => {
       const code = err instanceof ApiError ? err.code : undefined;
-      setErrorKey(code === "shop_limit_reached" ? "form.review.oneShop" : code === "outside_service_area" ? "form.location.outside" : "form.review.failed");
+      const dup = err instanceof ApiError ? err.details.duplicate_shop_id : undefined;
+      setDuplicateId(code === "shop_duplicate" && typeof dup === "number" ? dup : null);
+      setErrorKey(
+        code === "shop_duplicate"
+          ? "form.review.duplicate"
+          : err instanceof ApiError && err.status === 429
+            ? "form.review.tooMany"
+            : code === "outside_service_area"
+              ? "form.location.outside"
+              : "form.review.failed",
+      );
     },
   });
 
@@ -451,6 +466,11 @@ export function ShopForm({ shopId }: { shopId?: number }) {
           {block("hours", t("form.review.hours"), hoursLabel, "hours")}
           {block("contact", t("form.review.contact"), draft.phone || notAdded, "contact")}
           {errorKey && <p className="text-sm text-destructive" role="alert">{t(errorKey)}</p>}
+          {duplicateId && duplicateId !== shopId && (
+            <Button asChild variant="outline" className="w-full" data-testid="shop-form-open-duplicate">
+              <Link href={`/shops/${duplicateId}`}>{t("form.review.openDuplicate")}</Link>
+            </Button>
+          )}
           <Button className="w-full" disabled={!allReady || save.isPending} onClick={() => save.mutate()} data-testid="shop-form-open">
             {editing ? t("form.review.save") : t("form.review.submit")}
           </Button>

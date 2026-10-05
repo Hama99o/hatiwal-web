@@ -1256,8 +1256,16 @@
     "open": "Open your shop",
     "openSubtitle": "Sell as a business: name, address, opening hours",
     "mine": "My shop",
+    "mineMany": "My shops",
+    "openAnother": "Open another shop",
     "badge": "Shop",
     "message": "Message shop",
+    "messageErrors": {
+      "blocked": "You can't message this shop.",
+      "unavailable": "This shop is not open on Hatiwal right now.",
+      "tooMany": "Too many new chats. Try again later.",
+      "failed": "Couldn't open the chat. Try again."
+    },
     "openNow": "Open now",
     "closedNow": "Closed now",
     "openUntil": "Open now · until {time}",
@@ -1388,12 +1396,14 @@
         "submit": "Open my shop",
         "save": "Save changes",
         "failed": "Couldn't save. Check your connection and try again.",
-        "oneShop": "You already have a shop.",
         "basics": "Name and category",
         "place": "Location",
         "hours": "Opening hours",
         "contact": "Contact",
-        "notAdded": "Not added"
+        "notAdded": "Not added",
+        "duplicate": "You already have this shop (the same name nearby, or the same address).",
+        "openDuplicate": "Go to that shop",
+        "tooMany": "You opened many shops today. Try again tomorrow."
       },
       "done": {
         "title": "Your shop is open!",

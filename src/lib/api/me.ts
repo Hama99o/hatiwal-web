@@ -40,8 +40,8 @@ export async function meRequest<T>(
     // whole body rather than just the array: `errors` is English ActiveModel
     // text that must never reach a ps/fa user, while `code` is a stable token
     // each surface maps to its own localized copy (see ./error-codes.ts).
-    const { errors, code } = await readApiError(res);
-    throw new ApiError(res.status, `me/${path} ${res.status}`, errors, code);
+    const { errors, code, details } = await readApiError(res);
+    throw new ApiError(res.status, `me/${path} ${res.status}`, errors, code, details);
   }
   // Tolerate empty bodies (e.g. 204 from DELETE).
   const text = await res.text();

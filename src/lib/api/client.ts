@@ -43,6 +43,12 @@ export class ApiError extends Error {
      * Undefined for every failure Rails did not tag — including most 422s.
      */
     public code?: string,
+    /**
+     * The rest of the error body, for the few failures that carry more than a
+     * code — e.g. SHOP-2's `shop_duplicate` names the shop it clashes with
+     * (`duplicate_shop_id`). Read with care: it is whatever Rails sent.
+     */
+    public details: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -58,7 +64,7 @@ export class ApiError extends Error {
  */
 export async function readApiError(
   res: Response,
-): Promise<{ errors: string[]; code?: string }> {
+): Promise<{ errors: string[]; code?: string; details?: Record<string, unknown> }> {
   try {
     const text = await res.text();
     if (!text) return { errors: [] };
@@ -70,10 +76,11 @@ export async function readApiError(
       code: rawCode,
     } = body as { errors?: unknown; error?: unknown; code?: unknown };
     const code = typeof rawCode === "string" && rawCode ? rawCode : undefined;
-    if (Array.isArray(errors)) return { errors: errors.map(String), code };
-    if (typeof errors === "string") return { errors: [errors], code };
-    if (typeof error === "string") return { errors: [error], code };
-    return { errors: [], code };
+    const details = body as Record<string, unknown>;
+    if (Array.isArray(errors)) return { errors: errors.map(String), code, details };
+    if (typeof errors === "string") return { errors: [errors], code, details };
+    if (typeof error === "string") return { errors: [error], code, details };
+    return { errors: [], code, details };
   } catch {
     return { errors: [] };
   }

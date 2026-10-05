@@ -100,3 +100,54 @@ test.describe("Buyer mode is personal (owner, 2026-10-05)", () => {
     await expect(page.getByTestId("selling-as-pill")).toHaveCount(0);
   });
 });
+
+test.describe("SHOP-2 (several shops, Message shop)", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("'Message shop' on a shop page opens the shop's chat, which shows the shop, no product", async ({ page }) => {
+    await page.goto("/en/shops/42");
+    await page.getByTestId("shop-message").click();
+    await expect(page).toHaveURL(/\/en\/conversations\/420$/);
+    await expect(page.getByTestId("chat-shop-identity")).toContainText("Safi Cosmetics");
+    await expect(page.getByText("Umair Safi")).toHaveCount(0);
+  });
+
+  test("opening the same shop twice says so and links to the shop you already have", async ({ page }) => {
+    // Resume a finished draft at "Check and open" (the form's own saved progress).
+    await page.goto("/en/profile");
+    await page.evaluate(() =>
+      window.localStorage.setItem(
+        "hatiwal.shop-draft",
+        JSON.stringify({
+          userId: 1, step: "review", name: "Safi Cosmetics", description: "", categoryId: 1,
+          latitude: 34.55, longitude: 69.2, addressLine: "Shar-e Naw, Kabul",
+          hoursPreset: null, hours: {}, phone: "", phonePublic: false,
+        }),
+      ),
+    );
+    await page.goto("/en/shops/new");
+    await page.getByTestId("shop-form-open").click();
+    await expect(page.getByText("You already have this shop (the same name nearby, or the same address).")).toBeVisible();
+    await expect(page.getByTestId("shop-form-open-duplicate")).toHaveAttribute("href", "/en/shops/42");
+  });
+});
+
+test.describe("an owner of several shops", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("sees 'My shops' with one row per shop and 'Open another shop'", async ({ page }) => {
+    await page.route("**/api/me/users/me**", async (route) => {
+      const res = await route.fetch();
+      const json = await res.json();
+      const card = (id: number, name: string, status = "active") => ({ id, name, logo_url: null, verified: false, province: "Kabul", city: "Kabul", role: "owner", status });
+      json.user = { ...json.user, shops: [card(42, "Safi Cosmetics"), card(43, "Safi Phones"), card(44, "Safi Shoes", "pending")] };
+      await route.fulfill({ response: res, json });
+    });
+    await page.goto("/en/profile");
+    await expect(page.getByRole("heading", { name: "My shops" })).toBeVisible();
+    await expect(page.getByTestId("profile-my-shop")).toContainText("Safi Cosmetics");
+    await expect(page.getByTestId("profile-my-shop-43")).toContainText("Safi Phones");
+    await expect(page.getByTestId("profile-my-shop-44")).toBeVisible();
+    await expect(page.getByTestId("profile-open-another-shop")).toBeVisible();
+  });
+});

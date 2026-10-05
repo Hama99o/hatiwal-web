@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useQuery } from "@tanstack/react-query";
-import { Navigation, Pencil, Phone, Store } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { MessageCircle, Navigation, Pencil, Phone, Store } from "lucide-react";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useLoginHref } from "@/components/auth/login-href";
+import { ApiError } from "@/lib/api/client";
+import { messageShop } from "@/lib/api/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
@@ -57,7 +61,7 @@ function OpenLine({ shop }: { shop: Shop }) {
 
 /**
  * The shop page body (Glovo logo-over-cover; Fresha/Subway hours, Directions,
- * Call). Phase 1: NO "Message shop" button here — chats hang off a listing.
+ * Call). SHOP-2: "Message shop" (no product) for anyone who is not a member.
  * testids mirror mobile (shop-page, shop-tab-*, shop-directions, shop-call…).
  */
 export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabel: string | null }) {
@@ -66,6 +70,32 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("products");
   const isMember = !!user?.shops?.some((s) => s.id === shop.id);
+  const router = useRouter();
+  const qc = useQueryClient();
+  const loginHref = useLoginHref();
+  // SHOP-2: find-or-create the one listing-less chat with this shop.
+  const message = useMutation({
+    mutationFn: () => messageShop(shop.id),
+    onSuccess: (conversation) => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      router.push(`/conversations/${conversation.id}`);
+    },
+    onError: (err) => {
+      const status = err instanceof ApiError ? err.status : 0;
+      const code = err instanceof ApiError ? err.code : undefined;
+      toast.error(
+        t(
+          status === 403
+            ? "messageErrors.blocked"
+            : status === 404 || code === "shop_unavailable"
+              ? "messageErrors.unavailable"
+              : status === 429
+                ? "messageErrors.tooMany"
+                : "messageErrors.failed",
+        ),
+      );
+    },
+  });
 
   const { data: products, isPending } = useQuery({
     queryKey: ["shop-products", shop.id],
@@ -120,6 +150,18 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
         </div>
         <OpenLine shop={shop} />
         <div className="flex flex-wrap gap-2">
+          {!isMember &&
+            (user ? (
+              <Button onClick={() => message.mutate()} disabled={message.isPending} data-testid="shop-message">
+                <MessageCircle className="size-4" /> {t("message")}
+              </Button>
+            ) : (
+              <Button asChild data-testid="shop-message">
+                <Link href={loginHref({ includeQuery: false })}>
+                  <MessageCircle className="size-4" /> {t("message")}
+                </Link>
+              </Button>
+            ))}
           <Button asChild variant="outline" data-testid="shop-directions">
             <a href={directions} target="_blank" rel="noopener noreferrer">
               <Navigation className="size-4" /> {t("directions")}

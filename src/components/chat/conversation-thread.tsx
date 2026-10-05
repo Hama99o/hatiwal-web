@@ -381,6 +381,14 @@ export function ConversationThread({ id }: { id: string }) {
   // "listing removed" — and a support thread reports `listingDeleted: true`.
   const isSupport = isSupportThread(conversation);
   const other = conversation?.otherParticipant;
+  // SHOP-1/2: the buyer talks to the SHOP (name, logo, Shop chip, link to the
+  // shop page), never to the owner's personal profile.
+  const shopFace =
+    !isSupport &&
+    conversation?.shop &&
+    (conversation.viewerRole === "buyer" || (user != null && conversation.buyer?.id === user.id))
+      ? conversation.shop
+      : null;
   const closed = conversation?.status === "closed";
 
   async function send(
@@ -549,6 +557,17 @@ export function ConversationThread({ id }: { id: string }) {
             size={40}
             className="min-w-0 flex-1"
           />
+        ) : shopFace ? (
+          <div className="min-w-0 flex-1" data-testid="chat-shop-identity">
+            <UserIdentity
+              name={shopFace.name}
+              avatarUrl={shopFace.logoUrl}
+              verified={shopFace.verified}
+              variant="shop"
+              href={`/shops/${shopFace.id}`}
+              size={40}
+            />
+          </div>
         ) : other && (
           <UserIdentity
             name={other.name}
