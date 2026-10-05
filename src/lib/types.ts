@@ -167,6 +167,8 @@ export interface ShopCard {
   verified: boolean;
   province: string | null;
   city: string | null;
+  /** SHOP-2: carried on a conversation's shop (and the public view) so a chat with a suspended/closed shop can say so. */
+  status?: "active" | "pending" | "suspended" | "closed";
 }
 
 export interface Listing {

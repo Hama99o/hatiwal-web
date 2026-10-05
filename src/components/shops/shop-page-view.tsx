@@ -99,9 +99,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
       }
       toast.error(
         t(
-          status === 403
-            ? "messageErrors.blocked"
-            : status === 404 || code === "shop_unavailable"
+          status === 404 || code === "shop_unavailable"
               ? "messageErrors.unavailable"
               : status === 429
                 ? "messageErrors.tooMany"

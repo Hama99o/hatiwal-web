@@ -1265,7 +1265,6 @@
     "badge": "Shop",
     "message": "Message shop",
     "messageErrors": {
-      "blocked": "You can't message this shop.",
       "unavailable": "This shop is not open on Hatiwal right now.",
       "tooMany": "Too many new chats. Try again later.",
       "failed": "Couldn't open the chat. Try again."

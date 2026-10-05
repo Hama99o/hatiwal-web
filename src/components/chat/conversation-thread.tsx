@@ -393,6 +393,9 @@ export function ConversationThread({ id }: { id: string }) {
   // SHOP-2: a "Message shop" chat has no product, so it takes plain messages
   // only (text / photo / document): no offers, no meetups, no product phrases.
   const plainShopChat = !isSupport && !conversation?.listing && !conversation?.listingDeleted && !!conversation?.shop;
+  // ...and once its shop is suspended or closed the history stays readable but
+  // the API refuses new messages (422 shop_unavailable): no composer then.
+  const shopUnavailable = plainShopChat && !!conversation?.shop?.status && conversation.shop.status !== "active";
 
   async function send(
     body: string,
@@ -869,9 +872,13 @@ export function ConversationThread({ id }: { id: string }) {
         * that was fixed in 502fc36; this copy is that fix's counterpart, with
         * the en/ps/fa strings taken verbatim from mobile so both clients say
         * the same sentence. */}
-      {closed || blocked ? (
-        <div className="border-t p-4 text-center text-sm text-muted-foreground">
-          {closed ? t("chat.thread.closedInput") : t("chat.block.messagingUnavailable")}
+      {closed || blocked || shopUnavailable ? (
+        <div className="border-t p-4 text-center text-sm text-muted-foreground" data-testid="composer-unavailable">
+          {closed
+            ? t("chat.thread.closedInput")
+            : blocked
+              ? t("chat.block.messagingUnavailable")
+              : t("shops.messageErrors.unavailable")}
         </div>
       ) : (
         <form

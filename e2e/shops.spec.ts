@@ -114,6 +114,19 @@ test.describe("SHOP-2 (several shops, Message shop)", () => {
     await expect(page.getByRole("button", { name: "Propose Meetup" })).toHaveCount(0);
   });
 
+  test("a suspended shop's chat keeps its history but has no composer", async ({ page }) => {
+    await page.route("**/api/me/conversations/420", async (route) => {
+      const res = await route.fetch();
+      const json = await res.json();
+      json.conversation.shop = { ...json.conversation.shop, status: "suspended" };
+      await route.fulfill({ response: res, json });
+    });
+    await page.goto("/en/conversations/420");
+    await expect(page.getByTestId("chat-shop-identity")).toContainText("Safi Cosmetics");
+    await expect(page.getByTestId("composer-unavailable")).toHaveText("This shop is not open on Hatiwal right now.");
+    await expect(page.getByPlaceholder("Type a message...")).toHaveCount(0);
+  });
+
   test("blocked by the shop's owner → the refusal in the reader's language, no chat", async ({ page }) => {
     await page.route("**/api/me/shops/42/conversations", (route) =>
       route.fulfill({ status: 422, json: { errors: ["you have been blocked by this user"], code: "blocked_by" } }),

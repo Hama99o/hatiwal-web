@@ -110,7 +110,7 @@ export async function startConversation(
 /**
  * SHOP-2 "Message shop" (no product): find-or-create the caller's one
  * listing-less chat with the shop (201 the first time, 200 after).
- * 422 own_shop · 404 shop not active · 403 blocked · 429 throttled.
+ * 422 own_shop · 404 shop not active · 422 blocked / blocked_by (codes) · 429 throttled.
  */
 export async function messageShop(shopId: number, message?: string): Promise<Conversation> {
   const d = await meRequest<{ conversation: Conversation }>(`shops/${shopId}/conversations`, {
