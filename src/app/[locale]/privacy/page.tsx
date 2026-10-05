@@ -32,11 +32,18 @@ export default async function PrivacyPage({
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "privacy" });
 
-  const sections: { title: string; body: string }[] = [
+  // 1.1.6 (DRAFT, not approved): verification (VER-1), location (LOC-1) and
+  // shops (SHOP-1). Sources: hatiwal-mobile docs/VERIFICATION_PRIVACY_DRAFT.md
+  // and docs/PRIVACY_1.1.6_DRAFT.md. The shop-team sentence is phase 3 (SHOP-3)
+  // and deliberately left out.
+  const sections: { title: string; body: string; extra?: string }[] = [
     { title: t("collectTitle"), body: t("collectBody") },
+    { title: t("verifyTitle"), body: t("verifyBody") },
+    { title: t("locationTitle"), body: t("locationBody") },
+    { title: t("shopsTitle"), body: t("shopsBody") },
     { title: t("useTitle"), body: t("useBody") },
     { title: t("shareTitle"), body: t("shareBody") },
-    { title: t("retentionTitle"), body: t("retentionBody") },
+    { title: t("retentionTitle"), body: t("retentionBody"), extra: t("retentionVerify") },
     { title: t("choicesTitle"), body: t("choicesBody") },
   ];
 
@@ -51,6 +58,7 @@ export default async function PrivacyPage({
           <section key={s.title}>
             <h2 className="text-lg font-semibold">{s.title}</h2>
             <p className="mt-2 text-sm text-muted-foreground">{s.body}</p>
+            {s.extra && <p className="mt-2 text-sm text-muted-foreground">{s.extra}</p>}
           </section>
         ))}
 
