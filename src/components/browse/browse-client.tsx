@@ -22,11 +22,11 @@ import {
   LISTING_CONDITIONS,
   type Category,
   type Listing,
-  type ListingSort,
   type ListingsResult,
 } from "@/lib/types";
 import {
   type BrowseFilters,
+  type BrowseSort,
   DEFAULT_FILTERS,
   DEFAULT_RADIUS_KM,
   activeFilterCount,
@@ -46,6 +46,10 @@ import { useSearchHistory } from "@/lib/use-search-history";
 import { publishBrowseQuery } from "@/lib/use-browse-query";
 import { SavedSearches } from "./saved-searches";
 import { LocationMap } from "@/components/map/location-map";
+import { LocationBar } from "@/components/location/location-bar";
+import { LocationSheet } from "@/components/location/location-sheet";
+import { useHomeLocation } from "@/components/location/use-home-location";
+import { useLoginHref } from "@/components/auth/login-href";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,8 +124,17 @@ export function BrowseClient({
   // viewer's hidden listings filtered out, `is_viewed` and `is_saved` filled from
   // pre-computed Sets — see `getListingsAsViewer`), so this island has to fetch
   // as the viewer once it knows there is one — see the query below.
-  const { status, user } = useAuth();
+  const { status, user, probeTimedOut } = useAuth();
   const authed = status === "authed";
+  // LOC-1 — "items near you" (hatiwal-mobile/docs/USER_LOCATION.md): the
+  // default "home" order centres on me.location (own → guess → Kabul).
+  const { home, reportSearchArea } = useHomeLocation();
+  const [showLocationSheet, setShowLocationSheet] = useState(false);
+  const loginHref = useLoginHref();
+  // Change is an own-address edit, so it needs a session. A click made while
+  // the session probe is still out is HELD until it answers — never sent to
+  // /login for a viewer who turns out to be signed in.
+  const [wantLocationSheet, setWantLocationSheet] = useState(false);
 
   const [filters, setFilters] = useState<BrowseFilters>(initialFilters);
   const [searchInput, setSearchInput] = useState(initialFilters.q);
@@ -211,8 +224,13 @@ export function BrowseClient({
   // change would show the initial (e.g. all-categories) results — treated as
   // fresh for the whole staleTime — with no refetch and no skeleton. A changed
   // key gets undefined → fetches normally.
+  //
+  // The SSR seed is ordered around Kabul (it is anonymous), so it is only the
+  // right answer for the "home" order while home IS Kabul.
+  const isHomeOrder = filters.sort === "home" && !(filters.lat && filters.lng);
   const sameAsInitial =
-    filtersToSearchString(filters) === filtersToSearchString(initialFilters);
+    filtersToSearchString(filters) === filtersToSearchString(initialFilters) &&
+    (!isHomeOrder || home.source === "default");
   const query = useInfiniteQuery({
     // VIEWER-SCOPED. A guest's feed and a buyer's personalised feed are two
     // different result sets for the same filters (which rows are hidden, which
@@ -223,7 +241,14 @@ export function BrowseClient({
     // beside the `queryClient.clear()` at every identity change in
     // auth-provider.tsx: A → logout → B in one tab cannot serve A's rows here
     // even if that clear is ever weakened.
-    queryKey: ["listings", authed ? (user?.id ?? "authed") : "guest", filters],
+    queryKey: [
+      "listings",
+      authed ? (user?.id ?? "authed") : "guest",
+      filters,
+      // Where "home" is, for the default order — a saved own address or a new
+      // guess must refetch the feed, not reuse the old order.
+      isHomeOrder ? [home.latitude, home.longitude] : null,
+    ],
     initialPageParam: 1,
     // Authed → through the /api/me proxy, which attaches the devise tokens so
     // Rails can personalise. Guests (and the window before the session probe
@@ -231,7 +256,7 @@ export function BrowseClient({
     // infinite scroll stays personalised all the way down.
     queryFn: ({ pageParam }) =>
       (authed ? getListingsAsViewer : getListings)(
-        filtersToQuery(filters, categories, pageParam),
+        filtersToQuery(filters, categories, pageParam, undefined, home),
       ),
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
     initialData:
@@ -357,7 +382,7 @@ export function BrowseClient({
   // Sort change: "Nearest first" triggers the geolocation request; any other
   // option applies immediately and drops the GPS fix so it isn't left dangling.
   const handleSortChange = useCallback(
-    (value: ListingSort) => {
+    (value: BrowseSort) => {
       if (value === "nearest") {
         acquireNearest();
       } else {
@@ -366,6 +391,26 @@ export function BrowseClient({
     },
     [acquireNearest, update],
   );
+
+  useEffect(() => {
+    if (!wantLocationSheet) return;
+    if (authed) {
+      setWantLocationSheet(false);
+      setShowLocationSheet(true);
+    } else if (status === "guest" || probeTimedOut) {
+      setWantLocationSheet(false);
+      router.push(loginHref({ includeQuery: true }));
+    }
+  }, [wantLocationSheet, authed, status, probeTimedOut, router, loginHref]);
+
+  // LOC-1 — the zone a buyer searches in is a clue to where they live. Settled,
+  // not per drag: the map moves the pin continuously while it is dragged.
+  useEffect(() => {
+    if (!filters.lat || !filters.lng) return;
+    const point = { latitude: Number(filters.lat), longitude: Number(filters.lng) };
+    const id = setTimeout(() => reportSearchArea(point), 1500);
+    return () => clearTimeout(id);
+  }, [filters.lat, filters.lng, reportSearchArea]);
 
   const RADIUS_PRESETS = [5, 10, 25, 50];
 
@@ -786,11 +831,12 @@ export function BrowseClient({
                 <select
                   value={filters.sort}
                   onChange={(e) =>
-                    handleSortChange(e.target.value as ListingSort)
+                    handleSortChange(e.target.value as BrowseSort)
                   }
                   disabled={nearestLoading}
                   className={cn(SELECT_CLASS, nearestLoading && "opacity-70")}
                 >
+                  <option value="home">{t("location.nearYou")}</option>
                   <option value="newest">{t("browse.sort.newest")}</option>
                   <option value="oldest">{t("browse.sort.oldest")}</option>
                   <option value="price_asc">{t("browse.sort.priceAsc")}</option>
@@ -815,6 +861,20 @@ export function BrowseClient({
               />
             </div>
           </div>
+
+          {/* LOC-1 — only while the feed is actually in "near you" order: with
+              a zone filter or another sort it would name the wrong place. */}
+          {isHomeOrder && (
+            <LocationBar
+              province={home.province}
+              onChange={() => setWantLocationSheet(true)}
+            />
+          )}
+          <LocationSheet
+            open={showLocationSheet}
+            onClose={() => setShowLocationSheet(false)}
+            currentProvince={home.province}
+          />
 
           {/* Active-filter summary pill — makes it obvious results are
               filtered and offers a one-tap clear-all, on mobile AND desktop

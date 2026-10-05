@@ -410,6 +410,17 @@ export interface Conversation {
 }
 
 /** The signed-in user (camelCase of the Rails `/users/me` `:me` serializer view). */
+/**
+ * LOC-1 — `me.location`: where "items near you" centres, already resolved by
+ * the API as own address → guessed → Kabul. Read it; never re-implement it.
+ */
+export interface HomeLocation {
+  source: "own" | "guess" | "default";
+  latitude: number;
+  longitude: number;
+  province: string | null;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -428,6 +439,8 @@ export interface User {
   bio: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** LOC-1 — see HomeLocation. Undefined on an older API. */
+  location?: HomeLocation;
   avatarUrl: string | null;
   preferredLanguage: "en" | "ps" | "fa";
   preferredTheme: "light" | "dark" | "system";

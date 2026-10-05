@@ -81,6 +81,9 @@ export interface ProfileUpdate {
   bio?: string | null;
   city?: string | null;
   province?: string | null;
+  /** The own map point (LOC-1 Change sheet); null clears it. */
+  latitude?: number | null;
+  longitude?: number | null;
   preferredLanguage?: "en" | "ps" | "fa";
   /** A SEPARATE WhatsApp number — often a different SIM from `phone`. */
   whatsappNumber?: string | null;
