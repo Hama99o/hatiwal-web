@@ -59,7 +59,7 @@ export const ANDROID_PACKAGE = "com.hatiwal.app";
 export const APP_SCHEME = "hatiwal";
 
 /** A page that exists BOTH on the web and in the app. */
-export type AppRoute = { kind: "listing" | "seller"; id: number | string };
+export type AppRoute = { kind: "listing" | "seller" | "shop"; id: number | string };
 
 /**
  * The one map between the two route sets. Web and app name the same pages
@@ -69,6 +69,8 @@ export type AppRoute = { kind: "listing" | "seller"; id: number | string };
 const ROUTES: Record<AppRoute["kind"], { web: string; app: string }> = {
   listing: { web: "listings", app: "listing" },
   seller: { web: "sellers", app: "seller" },
+  // SHOP-1: web /shops/<id>, app hatiwal://shop/<id> (app/(main)/shop/[id]).
+  shop: { web: "shops", app: "shop" },
 };
 
 /**

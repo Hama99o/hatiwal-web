@@ -1,0 +1,223 @@
+"use client";
+
+import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useQuery } from "@tanstack/react-query";
+import { Navigation, Pencil, Phone, Store } from "lucide-react";
+import { Link } from "@/i18n/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
+import { UserAvatar } from "@/components/shared/user-avatar";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
+import { ShopChip } from "@/components/shared/shop-chip";
+import { ShareButton } from "@/components/shared/share-button";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ListingGrid, ListingGridSkeleton } from "@/components/shared/listing-grid";
+import { RemoteImage } from "@/components/shared/remote-image";
+import { ReviewsSection } from "@/components/seller/reviews-section";
+import { LocationMap } from "@/components/map/location-map";
+import { Button } from "@/components/ui/button";
+import { formatDate } from "@/lib/format";
+import { getListings } from "@/lib/api/listings";
+import type { Shop } from "@/lib/api/shops";
+import { SHOP_DAYS, dayOf, hasHours, shopOpenStatus } from "@/lib/shop-hours";
+import { cn } from "@/lib/utils";
+import { ShopVerificationCard } from "./shop-verification-card";
+
+type Tab = "products" | "reviews" | "about";
+
+const PUBLIC_SITE = "https://hatiwal.com";
+
+/** "Share my shop" link: always https://hatiwal.com/s/<id> (docs/SHOPS.md). */
+export function shopShareUrl(shop: Pick<Shop, "id" | "shareUrl">): string {
+  return shop.shareUrl && /^https:\/\//i.test(shop.shareUrl) ? shop.shareUrl : `${PUBLIC_SITE}/s/${shop.id}`;
+}
+
+function OpenLine({ shop }: { shop: Shop }) {
+  const t = useTranslations("shops");
+  // From the API (Asia/Kabul): the same on the server render and the client,
+  // so no hydration mismatch.
+  const status = shopOpenStatus(shop);
+  if (status.state === "unknown") return null;
+  const open = status.state === "open";
+  const text =
+    status.state === "open"
+      ? t("openUntil", { time: status.until })
+      : status.opensAt
+        ? status.opensAt.today
+          ? t("opensAt", { time: status.opensAt.time })
+          : t("opensOn", { day: t(`days.${status.opensAt.day}`), time: status.opensAt.time })
+        : t("closedNow");
+  return (
+    <p className={cn("flex items-center gap-1.5 text-sm font-semibold", open ? "text-success" : "text-muted-foreground")} data-testid="shop-open-status">
+      <span className={cn("size-2 rounded-full", open ? "bg-success" : "bg-destructive")} aria-hidden />
+      {text}
+    </p>
+  );
+}
+
+/**
+ * The shop page body (Glovo logo-over-cover; Fresha/Subway hours, Directions,
+ * Call). Phase 1: NO "Message shop" button here — chats hang off a listing.
+ * testids mirror mobile (shop-page, shop-tab-*, shop-directions, shop-call…).
+ */
+export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabel: string | null }) {
+  const t = useTranslations("shops");
+  const locale = useLocale();
+  const { user } = useAuth();
+  const [tab, setTab] = useState<Tab>("products");
+  const isMember = !!user?.shops?.some((s) => s.id === shop.id);
+
+  const { data: products, isPending } = useQuery({
+    queryKey: ["shop-products", shop.id],
+    queryFn: () => getListings({ shopId: shop.id, pageSize: 48 }),
+    enabled: tab === "products",
+  });
+
+  const lat = Number(shop.latitude);
+  const lng = Number(shop.longitude);
+  const directions = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const subtitle = [categoryLabel, shop.city ?? shop.province].filter(Boolean).join(" · ");
+  const today = dayOf(new Date());
+  const share = (
+    <ShareButton shareTitle={shop.name} text={t("share.body", { name: shop.name })} url={shopShareUrl(shop)} testId="shop-share" />
+  );
+
+  return (
+    <div className="mx-auto max-w-5xl pb-12" data-testid="shop-page">
+      <div className="relative h-44 w-full overflow-hidden bg-brand-lapis sm:h-56 sm:rounded-b-2xl">
+        {shop.coverUrl && <RemoteImage src={shop.coverUrl} alt="" fill sizes="100vw" className="object-cover" />}
+      </div>
+      <div className="space-y-3 px-4">
+        <div className="-mt-10 flex items-end justify-between gap-3">
+          <span className="rounded-[22px] border-4 border-background">
+            <UserAvatar variant="shop" name={shop.name} avatarUrl={shop.logoUrl} size={80} />
+          </span>
+          <div className="flex gap-2">
+            {isMember && (
+              <Button asChild variant="outline" data-testid="shop-page-edit">
+                <Link href={`/shops/${shop.id}/edit`}>
+                  <Pencil className="size-4" /> {t("edit")}
+                </Link>
+              </Button>
+            )}
+            {share}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-extrabold tracking-tight" data-testid="shop-page-name">
+            {shop.name}
+          </h1>
+          {shop.verified && (
+            <span data-testid="shop-verified-badge">
+              <VerifiedBadge />
+            </span>
+          )}
+        </div>
+        {shop.verified && <p className="text-sm font-semibold text-primary">{t("verified")}</p>}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ShopChip />
+          {subtitle && <span className="truncate">{subtitle}</span>}
+        </div>
+        <OpenLine shop={shop} />
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" data-testid="shop-directions">
+            <a href={directions} target="_blank" rel="noopener noreferrer">
+              <Navigation className="size-4" /> {t("directions")}
+            </a>
+          </Button>
+          {shop.phone && (
+            <Button asChild variant="outline" data-testid="shop-call">
+              <a href={`tel:${shop.phone}`}>
+                <Phone className="size-4" /> {t("call")}
+              </a>
+            </Button>
+          )}
+          {isMember && (
+            <ShareButton
+              shareTitle={shop.name}
+              text={t("share.body", { name: shop.name })}
+              url={shopShareUrl(shop)}
+              label={t("share.button")}
+              variant="default"
+              testId="shop-share-button"
+            />
+          )}
+        </div>
+
+        {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
+        {isMember && <ShopVerificationCard shopId={shop.id} />}
+
+        <div role="tablist" className="flex rounded-lg bg-muted p-1">
+          {(["products", "reviews", "about"] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              data-testid={`shop-tab-${key}`}
+              className={cn("flex-1 rounded-md py-2 text-sm", tab === key ? "bg-card font-bold shadow-sm" : "text-muted-foreground")}
+            >
+              {key === "products" ? t("tabs.productsCount", { count: shop.listingsCount }) : t(`tabs.${key}`)}
+            </button>
+          ))}
+        </div>
+
+        {tab === "products" &&
+          (isPending ? (
+            <ListingGridSkeleton count={6} />
+          ) : products && products.items.length > 0 ? (
+            <ListingGrid listings={products.items} />
+          ) : (
+            <EmptyState
+              icon={Store}
+              title={isMember ? t("empty.productsOwner") : t("empty.products")}
+              action={isMember ? { label: t("empty.addProduct"), href: "/listings/new" } : undefined}
+            />
+          ))}
+
+        {tab === "reviews" && <ReviewsSection sellerId={shop.owner.id} headingSize="sm" title={t("tabs.reviews")} />}
+
+        {tab === "about" && (
+          <div className="space-y-6" data-testid="shop-page-about">
+            {shop.description && (
+              <section className="space-y-1.5">
+                <h2 className="font-bold">{t("about.description")}</h2>
+                <p dir="auto">{shop.description}</p>
+              </section>
+            )}
+            <section className="space-y-2">
+              <h2 className="font-bold">{t("about.address")}</h2>
+              <p dir="auto">{shop.addressLine}</p>
+              {Number.isFinite(lat) && Number.isFinite(lng) && <LocationMap lat={lat} lng={lng} className="h-56 rounded-lg" />}
+            </section>
+            <section className="space-y-2">
+              <h2 className="font-bold">{t("about.hours")}</h2>
+              {hasHours(shop.hours) ? (
+                <dl className="space-y-1 text-sm">
+                  {SHOP_DAYS.map((day) => {
+                    const ranges = shop.hours[day];
+                    return (
+                      <div key={day} className={cn("flex justify-between", day === today && "font-extrabold")} data-testid={`shop-hours-${day}`}>
+                        <dt>
+                          {t(`days.${day}`)}
+                          {day === today && ` · ${t("about.today")}`}
+                        </dt>
+                        <dd className={cn(!ranges?.length && "text-muted-foreground")}>
+                          {ranges === undefined ? "—" : ranges.length ? ranges.map(([a, b]) => `${a}–${b}`).join(", ") : t("about.closed")}
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("about.noHours")}</p>
+              )}
+            </section>
+            <p className="text-sm text-muted-foreground">{t("about.since", { date: formatDate(shop.createdAt, locale) })}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

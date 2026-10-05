@@ -51,7 +51,10 @@ export function StartConversationButton({
   availableUnits,
   layout = "stacked",
   onDialogOpenChange,
+  isShop = false,
 }: {
+  /** SHOP-1: the listing was posted as a shop → the CTA reads "Message shop". */
+  isShop?: boolean;
   listingId: number;
   sellerId?: number;
   price?: number | null;
@@ -232,8 +235,8 @@ export function StartConversationButton({
         ) : (
           <MessageCircle className="size-4" />
         ))}
-      <span className={compact ? "min-w-0 truncate" : undefined}>
-        {t("listing.detail.contactSeller")}
+      <span className={compact ? "min-w-0 truncate" : undefined} data-testid={isShop ? "listing-message-shop" : undefined}>
+        {isShop ? t("shops.message") : t("listing.detail.contactSeller")}
       </span>
     </>
   );

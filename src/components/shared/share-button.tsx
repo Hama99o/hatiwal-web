@@ -32,7 +32,15 @@ export function ShareButton({
   className,
   variant = "outline",
   size = "default",
+  url: shareUrl,
+  label,
+  testId,
 }: {
+  /** The link to share; defaults to the current page. SHOP-1 passes https://hatiwal.com/s/<id>. */
+  url?: string;
+  /** Button label override (e.g. "Share my shop"); defaults to Share / Copy link. */
+  label?: string;
+  testId?: string;
   /** Title passed to navigator.share (e.g. the listing title / seller name). */
   shareTitle: string;
   /** Localized share body, mirrors mobile's listing.share.body / seller.share.body. */
@@ -61,7 +69,7 @@ export function ShareButton({
   }
 
   async function onShare() {
-    const url = window.location.href;
+    const url = shareUrl ?? window.location.href;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ title: shareTitle, text, url });
@@ -83,9 +91,11 @@ export function ShareButton({
       size={size}
       onClick={onShare}
       className={cn("shrink-0", className)}
+      data-testid={testId}
+      data-share-url={shareUrl}
     >
       <Share2 aria-hidden />
-      {canShare ? t("common.share") : t("common.copyLink")}
+      {label ?? (canShare ? t("common.share") : t("common.copyLink"))}
     </Button>
   );
 }

@@ -197,7 +197,7 @@ test.describe("Sell flow — sell in one tap", () => {
     await expect(
       page.getByText(en.reviews.promptSellerTitle.replace("{name}", "")),
     ).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "My Shop" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My listings" })).toBeVisible();
   });
 
   test("the final price is offered on an outside sale too", async ({ page }) => {

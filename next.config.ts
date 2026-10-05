@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/l/:id(\\d+)", destination: "/listings/:id", permanent: false },
       { source: "/u/:id(\\d+)", destination: "/sellers/:id", permanent: false },
+      // SHOP-1: Shop.share_url_for → /s/<id>.
+      { source: "/s/:id(\\d+)", destination: "/shops/:id", permanent: false },
     ];
   },
   images: {

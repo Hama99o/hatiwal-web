@@ -158,9 +158,22 @@ export interface Category extends CategoryRef {
   activeListingsCount?: number;
 }
 
+/** SHOP-1: the small shop identity on listings, conversations and `me`
+ *  (hatiwal-mobile qa/api_contract/SHOPS_2026-10.md). */
+export interface ShopCard {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  verified: boolean;
+  province: string | null;
+  city: string | null;
+}
+
 export interface Listing {
   id: number;
   title: string;
+  /** SHOP-1: posted as a shop (Shop chip, "Message shop"); null = personal. */
+  shop?: ShopCard | null;
   description: string | null;
   /** Always a number here (Rails sends a string like "50.0" — normalized on ingest). */
   price: number;
@@ -359,6 +372,8 @@ export interface ConversationParticipant {
 
 export interface Conversation {
   id: number;
+  /** SHOP-1: the listing's shop; null = personal. */
+  shop?: ShopCard | null;
   status: "open" | "closed";
   /**
    * "support" for a thread with Hatiwal Support (no listing), "listing" for
@@ -460,6 +475,12 @@ export interface User {
   itemsSoldCount?: number;
   savedItemsCount?: number;
   unreadMessageCount?: number;
+  /** SHOP-1: who the user sells as (null = Me), checked server-side. */
+  sellingAsShop?: ShopCard | null;
+  /** SHOP-1: the shops the user can sell as; absent/empty = no shop. */
+  shops?: (ShopCard & { role: "owner" | "manager" | "staff"; status: "active" | "suspended" | "pending" | "closed" })[];
+  /** SHOP-1: unread per identity, when the API sends the split. */
+  unreadCounts?: { buying: number; sellingMe: number; shops: Record<string, number> };
   deletionScheduledAt?: string | null;
   /**
    * Away mode (mobile W713). `isAway` is the computed flag (true only when

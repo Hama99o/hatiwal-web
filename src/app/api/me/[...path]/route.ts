@@ -105,6 +105,14 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^verification_requests$/],
   ["GET", /^verification_requests\/current$/],
   ["DELETE", /^verification_requests\/\d+$/],
+  // SHOP-1: open / edit a shop, the owner view, my shops, move listings,
+  // and who the user sells as.
+  ["POST", /^shops$/],
+  ["GET", /^shops\/\d+$/],
+  ["PATCH", /^shops\/\d+$/],
+  ["POST", /^shops\/\d+\/move_listings$/],
+  ["GET", /^my\/shops$/],
+  ["PATCH", /^users\/me\/selling_as$/],
 ];
 
 async function handle(

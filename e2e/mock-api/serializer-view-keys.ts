@@ -93,6 +93,8 @@ export const LIST_VIEW_KEYS = [
   "is_viewed",
   "is_saved",
   "seller",
+  // SHOP-1: the shop card, null for a personal listing.
+  "shop",
   "category",
   "price_drop_percent",
   "price_dropped_at",
@@ -116,6 +118,8 @@ export const SELLER_LIST_VIEW_KEYS = [
   "sold_at",
   "expires_at",
   "negotiable",
+  // SHOP-1
+  "shop_id",
   "thumbnail_url",
   "image_urls",
   "conversations_count",
@@ -148,6 +152,8 @@ export const DETAILED_VIEW_KEYS = [
   "saves_count",
   "is_saved",
   "is_viewed",
+  // SHOP-1
+  "shop",
   "seller",
   "category",
   "price_dropped_at",

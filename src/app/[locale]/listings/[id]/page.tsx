@@ -333,14 +333,29 @@ export default async function ListingDetailPage({
                 <p className="mb-3 text-sm font-medium text-muted-foreground">
                   {t("listing.detail.seller")}
                 </p>
-                <UserIdentity
-                  name={listing.seller.name}
-                  avatarUrl={listing.seller.avatarUrl}
-                  verified={listing.seller.verified}
-                  subtitle={listing.seller.city}
-                  href={`/sellers/${listing.seller.id}`}
-                  size={48}
-                />
+                {/* SHOP-1: posted as a shop → "🏪 Safi Cosmetics · Shop" → the shop page. */}
+                {listing.shop ? (
+                  <span data-testid="listing-shop-link">
+                    <UserIdentity
+                      variant="shop"
+                      name={listing.shop.name}
+                      avatarUrl={listing.shop.logoUrl}
+                      verified={listing.shop.verified}
+                      subtitle={listing.shop.city ?? listing.shop.province}
+                      href={`/shops/${listing.shop.id}`}
+                      size={48}
+                    />
+                  </span>
+                ) : (
+                  <UserIdentity
+                    name={listing.seller.name}
+                    avatarUrl={listing.seller.avatarUrl}
+                    verified={listing.seller.verified}
+                    subtitle={listing.seller.city}
+                    href={`/sellers/${listing.seller.id}`}
+                    size={48}
+                  />
+                )}
                 <RatingDisplay
                   avgRating={listing.seller.avgRating}
                   reviewCount={listing.seller.reviewCount}
@@ -395,6 +410,7 @@ export default async function ListingDetailPage({
                 {isLiveListing ? (
                   <div className="space-y-2">
                     <StartConversationButton
+                      isShop={!!listing.shop}
                       listingId={listing.id}
                       sellerId={listing.seller?.id}
                       price={listing.price}
@@ -433,6 +449,7 @@ export default async function ListingDetailPage({
                      similar in Vehicles" and "shop more from Ahmad Karimi" would
                      be sending them shopping from themselves. The owner gets
                      <OwnerListingBar> instead, where Manage/Edit live. */
+                  <div data-testid="listing-unavailable">
                   <UnavailableActions
                     status={listing.status}
                     category={listing.category}
@@ -443,6 +460,7 @@ export default async function ListingDetailPage({
                     sellerName={listing.seller?.name}
                     locale={locale}
                   />
+                  </div>
                 )}
                 <SaveButton
                   listingId={listing.id}
@@ -526,6 +544,7 @@ export default async function ListingDetailPage({
           initialSaved={listing.isSaved}
           sentinelId="listing-actions"
           priceAnchorId="listing-price"
+          isShop={!!listing.shop}
         />
       </div>
     </ViewerIdProvider>

@@ -19,6 +19,7 @@ import {
 import { WarningsBanner } from "./warnings-banner";
 import { PendingReviewsNudge } from "./pending-reviews-nudge";
 import { VerificationCard } from "@/components/verify/verification-card";
+import { ShopEntryCard } from "@/components/shops/shop-entry-card";
 import { ModeToggle } from "./mode-toggle";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -62,6 +63,8 @@ export function ProfileView() {
       <PendingReviewsNudge />
       {/* VER-1: Get verified / under review / verified / rejected / revoked. */}
       <VerificationCard />
+      {/* SHOP-1: "Open your shop" / "My shop · name · Open now". */}
+      <ShopEntryCard />
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">
         <UserIdentity

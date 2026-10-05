@@ -32,6 +32,8 @@ import {
   type ConversationsResult,
 } from "@/lib/api/chat";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useSellingIdentity } from "@/components/shops/use-selling-identity";
+import { SellingAsPill } from "@/components/shops/selling-as-pill";
 import type { Conversation } from "@/lib/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Logomark } from "@/components/layout/logo";
@@ -80,8 +82,18 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
   const t = useTranslations();
   const locale = useLocale();
   const queryClient = useQueryClient();
-  const { refresh } = useAuth();
+  const { refresh, user } = useAuth();
   const [tab, setTab] = useState<TabMode>("inbox");
+  // SHOP-1: for a user WITH a shop the inbox follows who they are (docs/SHOPS.md
+  // "Chats"): Buyer mode = buying; Seller as Me = personal selling; Seller as a
+  // shop = that shop's chats. No shop = today's mixed inbox, unchanged.
+  const { hasShop, sellingAs } = useSellingIdentity();
+  const identityScope =
+    hasShop && !listingId
+      ? user?.sellerMode
+        ? { role: "selling" as const, shopId: sellingAs?.id ?? ("none" as const) }
+        : { role: "buying" as const }
+      : undefined;
   const [term, setTerm] = useState("");
   // ...and a settled copy for the SERVER query.
   //
@@ -112,6 +124,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
     // The SETTLED term is part of the key, so a search is its own cached result
     // set rather than a filtered view of the inbox.
     debouncedTerm,
+    identityScope ? `${identityScope.role}-${identityScope.shopId ?? "all"}` : "any",
   ];
 
   // Rails paginates this index at 20/page. Paging is the ONLY way to reach
@@ -120,7 +133,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
   const query = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam }) =>
-      getConversations(listingId, archived, pageParam, debouncedTerm),
+      getConversations(listingId, archived, pageParam, debouncedTerm, identityScope),
     initialPageParam: 1,
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
   });
@@ -242,6 +255,13 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
             { value: "archived", label: t("chat.tabs.archived"), icon: Archive },
           ]}
         />
+      )}
+
+      {/* SHOP-1: in Seller mode the inbox follows who you sell as. */}
+      {user?.sellerMode && !listingId && (
+        <div className="mb-3">
+          <SellingAsPill />
+        </div>
       )}
 
       {/* Find-a-thread search (mobile parity). Render-only: it narrows the

@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   UserCheck,
   X,
+  Store,
 } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { getListings, getListingsAsViewer } from "@/lib/api/listings";
@@ -88,11 +89,13 @@ function Chip({
   onClick,
   children,
   title,
+  testId,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
   title?: string;
+  testId?: string;
 }) {
   return (
     <button
@@ -100,6 +103,7 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       title={title}
+      data-testid={testId}
       className={cn(
         "rounded-full border px-3 py-1 text-sm transition-colors",
         active
@@ -567,6 +571,14 @@ export function BrowseClient({
               {filters.activeSellers && (
                 <X className="size-3" aria-hidden />
               )}
+            </span>
+          </Chip>
+          {/* SHOP-1: the Bazaar "Shops" chip (seller_type=shop). */}
+          <Chip active={filters.shops} onClick={() => update({ shops: !filters.shops })} testId="browse-filter-shops">
+            <span className="inline-flex items-center gap-1.5">
+              <Store className="size-3.5" aria-hidden />
+              {t("shops.filter")}
+              {filters.shops && <X className="size-3" aria-hidden />}
             </span>
           </Chip>
         </div>

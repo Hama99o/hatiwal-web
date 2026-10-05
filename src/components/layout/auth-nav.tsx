@@ -16,6 +16,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CountBadge } from "@/components/shared/count-badge";
 import { Button } from "@/components/ui/button";
+import { DroppedToMeNotice } from "@/components/shops/dropped-to-me-notice";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,8 @@ import {
 export function AuthNav() {
   const t = useTranslations();
   const { user, status, logout } = useAuth();
+  // SHOP-1: "My listings" as Me, "My shop" when selling as a shop.
+  const myListingsLabel = user?.sellingAsShop ? t("shops.mine") : t("sidebar.myListings");
   const router = useRouter();
 
   if (status === "loading") {
@@ -53,6 +56,8 @@ export function AuthNav() {
 
   return (
     <>
+      {/* SHOP-1: "You were removed from …" once, if the server drops you to Me. */}
+      <DroppedToMeNotice />
       <Button
         asChild
         variant="ghost"
@@ -91,7 +96,7 @@ export function AuthNav() {
           >
             <Link href="/my-listings">
               <Tag className="size-4" />
-              {t("sidebar.myListings")}
+              {myListingsLabel}
             </Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
@@ -123,7 +128,7 @@ export function AuthNav() {
           <DropdownMenuItem asChild>
             <Link href="/my-listings">
               <Tag className="size-4" />
-              {t("sidebar.myListings")}
+              {myListingsLabel}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>

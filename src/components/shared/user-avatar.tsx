@@ -11,6 +11,8 @@ interface UserAvatarProps {
   avatarUrl?: string | null;
   size?: number;
   className?: string;
+  /** SHOP-1: a shop is a rounded square — its logo, or initials on brand lapis. */
+  variant?: "user" | "shop";
 }
 
 /**
@@ -24,12 +26,16 @@ export function UserAvatar({
   avatarUrl,
   size = 40,
   className,
+  variant = "user",
 }: UserAvatarProps) {
+  const shop = variant === "shop";
   return (
     <span
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, borderRadius: shop ? size * 0.24 : undefined }}
+      data-testid={shop ? "shop-avatar" : undefined}
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 align-middle",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden align-middle",
+        shop ? "bg-brand-lapis" : "rounded-full bg-primary/10",
         className,
       )}
     >
@@ -43,7 +49,7 @@ export function UserAvatar({
         />
       ) : (
         <span
-          className="font-semibold leading-none text-primary"
+          className={cn("font-semibold leading-none", shop ? "font-extrabold text-white" : "text-primary")}
           style={{ fontSize: Math.round(size * 0.4) }}
         >
           {initials(name)}
