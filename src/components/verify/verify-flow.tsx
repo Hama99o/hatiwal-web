@@ -27,6 +27,8 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 import {
   applyForVerification,
+  clearVerificationDraft,
+  VERIFICATION_DRAFT_KEY,
   normalizeLast4,
   MAX_VERIFICATION_PHOTO_BYTES,
   TWO_SIDED_DOCUMENTS,
@@ -51,9 +53,10 @@ import { cn } from "@/lib/utils";
 type Step = "why" | "document" | "ready" | "front" | "back" | "selfie" | "name" | "review";
 type PhotoKey = "front" | "back" | "selfie";
 
-const DRAFT_KEY = "hatiwal.verification-draft";
 
 interface SavedDraft {
+  /** Whose draft this is: another account's draft is discarded unseen. */
+  userId: number;
   step: Step;
   documentType: VerificationDocumentType | null;
   nameOnDocument: string;
@@ -72,7 +75,7 @@ const isValidName = (v: string) => v.trim().split(/\s+/).filter(Boolean).length 
 
 function loadDraft(): SavedDraft | null {
   try {
-    const raw = window.localStorage.getItem(DRAFT_KEY);
+    const raw = window.localStorage.getItem(VERIFICATION_DRAFT_KEY);
     return raw ? (JSON.parse(raw) as SavedDraft) : null;
   } catch {
     return null;
@@ -80,18 +83,12 @@ function loadDraft(): SavedDraft | null {
 }
 function saveDraft(d: SavedDraft) {
   try {
-    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    window.localStorage.setItem(VERIFICATION_DRAFT_KEY, JSON.stringify(d));
   } catch {
     /* private mode: progress just isn't remembered */
   }
 }
-function clearDraft() {
-  try {
-    window.localStorage.removeItem(DRAFT_KEY);
-  } catch {
-    /* ignore */
-  }
-}
+const clearDraft = clearVerificationDraft;
 
 function LockLine() {
   const t = useTranslations("verify");
@@ -309,11 +306,13 @@ export function VerifyFlow() {
   const [done, setDone] = useState(false);
   const [restored, setRestored] = useState(false);
 
-  // Resume saved progress once, on the client. Photos are not saved, so a
-  // resumed draft goes back to the first photo still missing.
+  // Resume saved progress once the account is known, on the client. Photos are
+  // not saved, so a resumed draft goes back to the first photo still missing.
+  // A draft that belongs to another account (shared computer) is thrown away.
   useEffect(() => {
+    if (!user || restored) return;
     const d = loadDraft();
-    if (d) {
+    if (d && d.userId === user.id) {
       setDocumentType(d.documentType);
       setName(d.nameOnDocument);
       setLast4(d.documentLast4);
@@ -321,13 +320,15 @@ export function VerifyFlow() {
       const photoIdx = order.indexOf("front");
       const at = order.indexOf(d.step);
       setStep(at > photoIdx ? "front" : d.step);
+    } else if (d) {
+      clearDraft();
     }
     setRestored(true);
-  }, []);
+  }, [user, restored]);
 
   useEffect(() => {
-    if (restored && !done) saveDraft({ step, documentType, nameOnDocument, documentLast4 });
-  }, [restored, done, step, documentType, nameOnDocument, documentLast4]);
+    if (restored && !done && user) saveDraft({ userId: user.id, step, documentType, nameOnDocument, documentLast4 });
+  }, [restored, done, user, step, documentType, nameOnDocument, documentLast4]);
 
   useEffect(() => {
     if (step === "name" && !nameOnDocument && user?.fullName) setName(user.fullName);

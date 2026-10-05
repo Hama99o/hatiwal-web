@@ -1106,7 +1106,8 @@
       "cancelConfirm": "غوښتنه لغوه کړئ",
       "keep": "پرېږدئ یې",
       "loadError": "د تایید حالت رانه شو.",
-      "photosSent": "{count, plural, one {# انځور لېږل شوی} other {# انځورونه لېږل شوي}}"
+      "photosSent": "{count, plural, one {# انځور لېږل شوی} other {# انځورونه لېږل شوي}}",
+      "nameChanged": "ستاسو نوم بدل شو — بیا تایید یې کړئ"
     },
     "missing": {
       "email_confirmed": "خپل برېښنالیک تایید کړئ",

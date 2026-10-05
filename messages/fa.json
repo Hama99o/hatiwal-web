@@ -1106,7 +1106,8 @@
       "cancelConfirm": "لغو درخواست",
       "keep": "نگه دارید",
       "loadError": "وضعیت تایید بارگیری نشد.",
-      "photosSent": "{count, plural, one {# عکس ارسال شد} other {# عکس ارسال شد}}"
+      "photosSent": "{count, plural, one {# عکس ارسال شد} other {# عکس ارسال شد}}",
+      "nameChanged": "نام شما تغییر کرد — دوباره تایید بگیرید"
     },
     "missing": {
       "email_confirmed": "ایمیل خود را تایید کنید",

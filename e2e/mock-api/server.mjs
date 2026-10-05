@@ -1064,7 +1064,7 @@ function route(req, res, method, path, q, body, raw = "") {
   if (path === "/verification_requests/current" && method === "GET") {
     if (!requireAuth()) return;
     return send(res, 200, {
-      verification_status: { status: "none", verified_since: null, missing: empty ? ["avatar"] : [], reason: null, request: null },
+      verification_status: { status: "none", verified_since: null, missing: empty ? ["avatar"] : [], reason: null, name_changed: false, request: null },
     });
   }
   if (path === "/verification_requests" && method === "POST") {
@@ -1082,6 +1082,7 @@ function route(req, res, method, path, q, body, raw = "") {
         verified_since: null,
         missing: [],
         reason: null,
+        name_changed: false,
         request: {
           id: 901, status: "requested", document_type: docType, name_on_document: "Ahmad Karimi",
           document_last4: last4, files_count: needsBack ? 3 : 2, reason_code: null,
@@ -1093,7 +1094,7 @@ function route(req, res, method, path, q, body, raw = "") {
   const cancelVerification = /^\/verification_requests\/(\d+)$/.exec(path);
   if (cancelVerification && method === "DELETE") {
     if (!requireAuth()) return;
-    return send(res, 200, { verification_status: { status: "none", verified_since: null, missing: [], reason: null, request: null } });
+    return send(res, 200, { verification_status: { status: "none", verified_since: null, missing: [], reason: null, name_changed: false, request: null } });
   }
 
   // Pending reviews — sold sales the caller still owes a review on (REV2).

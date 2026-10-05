@@ -38,6 +38,8 @@ export interface VerificationStatus {
   verifiedSince: string | null;
   missing: VerificationMissing[];
   reason: string | null;
+  /** The badge came off because the name changed after approval: "verify again". */
+  nameChanged: boolean;
   request: VerificationRequestSummary | null;
 }
 
@@ -54,7 +56,7 @@ export const VERIFICATION_QK = ["verification-status"] as const;
 
 function toStatus(d: { verificationStatus: VerificationStatus }): VerificationStatus {
   const s = d.verificationStatus;
-  return { ...s, missing: s.missing ?? [], request: s.request ?? null };
+  return { ...s, missing: s.missing ?? [], nameChanged: s.nameChanged ?? false, request: s.request ?? null };
 }
 
 export async function getVerificationStatus(): Promise<VerificationStatus> {
@@ -89,4 +91,16 @@ export function normalizeLast4(input: string): string {
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/\D/g, "")
     .slice(0, 4);
+}
+
+/** Browser key of the apply flow's saved progress (never holds a photo). */
+export const VERIFICATION_DRAFT_KEY = "hatiwal.verification-draft";
+
+/** Forget the saved progress — on logout, so a shared computer never shows it. */
+export function clearVerificationDraft(): void {
+  try {
+    window.localStorage.removeItem(VERIFICATION_DRAFT_KEY);
+  } catch {
+    /* storage unavailable: nothing was saved */
+  }
 }

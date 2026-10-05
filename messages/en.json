@@ -1106,7 +1106,8 @@
       "cancelConfirm": "Cancel request",
       "keep": "Keep it",
       "loadError": "Couldn't load your verification status.",
-      "photosSent": "{count, plural, one {# photo sent} other {# photos sent}}"
+      "photosSent": "{count, plural, one {# photo sent} other {# photos sent}}",
+      "nameChanged": "Your name changed — verify again"
     },
     "missing": {
       "email_confirmed": "Confirm your email address",

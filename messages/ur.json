@@ -1106,7 +1106,8 @@
       "cancelConfirm": "درخواست منسوخ کریں",
       "keep": "رہنے دیں",
       "loadError": "تصدیق کی حالت لوڈ نہیں ہو سکی۔",
-      "photosSent": "{count, plural, one {# تصویر بھیجی گئی} other {# تصاویر بھیجی گئیں}}"
+      "photosSent": "{count, plural, one {# تصویر بھیجی گئی} other {# تصاویر بھیجی گئیں}}",
+      "nameChanged": "آپ کا نام بدل گیا — دوبارہ تصدیق کروائیں"
     },
     "missing": {
       "email_confirmed": "اپنا ای میل تصدیق کریں",
