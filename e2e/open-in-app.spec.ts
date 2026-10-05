@@ -201,7 +201,7 @@ test.describe("Android phone", () => {
   test("RTL: translated (ps)", async ({ page }) => {
     await page.goto("/ps/listings/1");
     await expectSheet(page);
-    await expect(sheet(page)).toContainText("د هتیوال اپ ترلاسه کړئ");
+    await expect(sheet(page)).toContainText("د هټیوال اپ ترلاسه کړئ");
     await expect(page.getByTestId("app-prompt-open")).toHaveText("اپ لرم — پرانیزئ یې");
   });
 });

@@ -168,7 +168,7 @@ test.describe("Support thread", () => {
   }) => {
     await reshapeThread(page, 1, support);
     await page.goto("/ps/conversations/1");
-    await expect(page.getByText("د هتیوال ملاتړ")).toBeVisible();
+    await expect(page.getByText("د هټیوال ملاتړ")).toBeVisible();
     await expect(page.getByText("Hatiwal Support")).toHaveCount(0);
   });
 });
