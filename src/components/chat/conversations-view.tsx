@@ -25,6 +25,7 @@ import { Link } from "@/i18n/navigation";
 import {
   archiveConversation,
   getConversations,
+  isShopChat,
   isSupportThread,
   markConversationRead,
   markConversationUnread,
@@ -340,7 +341,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                 // owner's personal name; a listing-less "Message shop" chat
                 // leads with the shop on both sides.
                 const shopFace = !support && c.viewerRole === "buyer" ? (c.shop ?? null) : null;
-                const shopChat = !support && !c.listing && !c.listingDeleted && c.shop ? c.shop : null;
+                const shopChat = isShopChat(c) ? (c.shop ?? null) : null;
                 const name = support
                   ? t("chat.support.name")
                   : (shopFace?.name ?? who?.name ?? t("chat.unknownUser"));

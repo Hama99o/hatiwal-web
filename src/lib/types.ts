@@ -376,6 +376,8 @@ export interface Conversation {
   id: number;
   /** SHOP-1: the listing's shop; null = personal. */
   shop?: ShopCard | null;
+  /** SHOP-2: a "Message shop" chat (also reported as listing null + deleted). Use `isShopChat`. */
+  shopChat?: boolean;
   status: "open" | "closed";
   /**
    * "support" for a thread with Hatiwal Support (no listing), "listing" for

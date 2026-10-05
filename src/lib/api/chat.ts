@@ -22,6 +22,20 @@ export function isSupportThread(
   return conversation?.kind === "support";
 }
 
+/**
+ * SHOP-2: a "Message shop" chat — no product, plain messages only, the shop on
+ * both sides. Decided from `shopChat` (like `kind` for Support), never from
+ * `listing == null`: the API reports such a chat as listing null + deleted.
+ */
+export function isShopChat(
+  conversation: Pick<Conversation, "kind" | "shop" | "shopChat" | "listing" | "listingDeleted"> | null | undefined,
+): boolean {
+  if (!conversation || isSupportThread(conversation) || !conversation.shop) return false;
+  if (typeof conversation.shopChat === "boolean") return conversation.shopChat;
+  // An API before the `shop_chat` key (api 54397ca) sent listing null + not deleted.
+  return !conversation.listing && !conversation.listingDeleted;
+}
+
 export interface ConversationsResult {
   items: Conversation[];
   pagination: Pagination;

@@ -627,7 +627,9 @@ const ARCHIVED_CONVERSATIONS = Array.from({ length: FILLER_COUNT }, (_, i) =>
 // specs' lists are unchanged.
 const SHOP_42_CHAT = {
   id: 420, kind: "listing", status: "open", viewer_role: "buyer", last_message_at: null, created_at: "2026-10-05T12:00:00Z",
-  listing: null, listing_deleted: false, shop: SHOP_42_CARD,
+  // As the API sends it since 54397ca: reported as a removed listing (old
+  // apps never crash) + shop_chat, which clients branch on first.
+  listing: null, listing_deleted: true, shop_chat: true, shop: { ...SHOP_42_CARD, status: "active" },
   other_participant: { id: 2, name: "Umair Safi", city: "Kabul", verified: true, avatar_url: null },
   buyer: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
   seller: { id: 2, name: "Umair Safi", city: "Kabul", avatar_url: null },

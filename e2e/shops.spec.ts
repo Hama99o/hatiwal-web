@@ -110,6 +110,8 @@ test.describe("SHOP-2 (several shops, Message shop)", () => {
     await expect(page).toHaveURL(/\/en\/conversations\/420$/);
     await expect(page.getByTestId("chat-shop-identity")).toContainText("Safi Cosmetics");
     await expect(page.getByText("Umair Safi")).toHaveCount(0);
+    // Reported as a removed listing for old apps, but never shown as one.
+    await expect(page.getByText("This listing has been removed", { exact: false })).toHaveCount(0);
     // No product: plain messages only (the API refuses offers and meetups here).
     await expect(page.getByRole("button", { name: "Propose Meetup" })).toHaveCount(0);
   });

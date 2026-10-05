@@ -26,6 +26,7 @@ import {
   deleteMessage,
   getConversation,
   getMessages,
+  isShopChat,
   isSupportThread,
   markRead,
   sendFile,
@@ -392,7 +393,7 @@ export function ConversationThread({ id }: { id: string }) {
   const closed = conversation?.status === "closed";
   // SHOP-2: a "Message shop" chat has no product, so it takes plain messages
   // only (text / photo / document): no offers, no meetups, no product phrases.
-  const plainShopChat = !isSupport && !conversation?.listing && !conversation?.listingDeleted && !!conversation?.shop;
+  const plainShopChat = isShopChat(conversation);
   // ...and once its shop is suspended or closed the history stays readable but
   // the API refuses new messages (422 shop_unavailable): no composer then.
   const shopUnavailable = plainShopChat && !!conversation?.shop?.status && conversation.shop.status !== "active";
@@ -676,7 +677,7 @@ export function ConversationThread({ id }: { id: string }) {
         * Kind FIRST: a support thread has no listing either, and also reports
         * `listingDeleted: true` — it must get neither the header nor the
         * notice. */}
-      {isSupport ? null : pinnedListing ? (
+      {isSupport || plainShopChat ? null : pinnedListing ? (
         <Link
           href={`/listings/${pinnedListing.id}`}
           className="flex items-center gap-3 border-b bg-card/50 px-3 py-2 transition-colors hover:bg-accent"
