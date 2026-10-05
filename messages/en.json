@@ -1,4 +1,20 @@
 {
+  "location": {
+    "showingNear": "Showing items near {place}",
+    "change": "Change",
+    "useCurrent": "Use my current location",
+    "locating": "Finding your location…",
+    "whereDoYouLive": "Where do you live?",
+    "pickOnMap": "Choose an area on the map",
+    "searchProvinces": "Search provinces",
+    "save": "Save",
+    "saved": "Location saved",
+    "saveError": "Could not save your location. Please try again.",
+    "yourArea": "your area",
+    "outsideServiceArea": "Hatiwal is for Afghanistan, Pakistan and Iran. We'll show items near Kabul.",
+    "nearYou": "Near you",
+    "allAfghanistan": "All Afghanistan"
+  },
   "common": {
     "appName": "Hatiwal",
     "save": "Save",

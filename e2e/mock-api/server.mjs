@@ -492,9 +492,9 @@ function myListingView(id) {
 
 function userMe(persona) {
   if (persona === "empty") {
-    return { id: 99, email: "empty@hatiwal.test", firstname: "Sahar", lastname: "Noor", full_name: "Sahar Noor", city: null, province: null, phone: null, bio: null, latitude: null, longitude: null, preferred_language: "en", preferred_theme: "system", seller_mode: false, status: "active", verified: false, avatar_url: null, items_active_count: 0, items_sold_count: 0, saved_items_count: 0, unread_message_count: 0, avg_rating: null, review_count: 0, deletion_scheduled_at: null, created_at: "2026-02-01T00:00:00Z" };
+    return { id: 99, email: "empty@hatiwal.test", firstname: "Sahar", lastname: "Noor", full_name: "Sahar Noor", city: null, province: null, phone: null, bio: null, latitude: null, longitude: null, location: { source: "default", latitude: 34.5553, longitude: 69.2075, province: "Kabul" }, preferred_language: "en", preferred_theme: "system", seller_mode: false, status: "active", verified: false, avatar_url: null, items_active_count: 0, items_sold_count: 0, saved_items_count: 0, unread_message_count: 0, avg_rating: null, review_count: 0, deletion_scheduled_at: null, created_at: "2026-02-01T00:00:00Z" };
   }
-  return { id: 1, email: "buyer@hatiwal.test", firstname: "Ahmad", lastname: "Karimi", full_name: "Ahmad Karimi", city: "Kabul", province: "Kabul", phone: "+93 700 000 000", bio: "Trusted local seller.", latitude: 34.55, longitude: 69.2, preferred_language: "en", preferred_theme: "system", seller_mode: true, status: "active", verified: true, avatar_url: null, items_active_count: 3, items_sold_count: 1, saved_items_count: 2, unread_message_count: 2, avg_rating: 4.7, review_count: 3, deletion_scheduled_at: null, created_at: "2026-01-01T00:00:00Z" };
+  return { id: 1, email: "buyer@hatiwal.test", firstname: "Ahmad", lastname: "Karimi", full_name: "Ahmad Karimi", city: "Kabul", province: "Kabul", phone: "+93 700 000 000", bio: "Trusted local seller.", latitude: 34.55, longitude: 69.2, location: { source: "own", latitude: 34.55, longitude: 69.2, province: "Kabul" }, preferred_language: "en", preferred_theme: "system", seller_mode: true, status: "active", verified: true, avatar_url: null, items_active_count: 3, items_sold_count: 1, saved_items_count: 2, unread_message_count: 2, avg_rating: 4.7, review_count: 3, deletion_scheduled_at: null, created_at: "2026-01-01T00:00:00Z" };
 }
 
 // Chat fixtures (buyer persona). Conversation/Message use snake_case keys.
@@ -950,8 +950,21 @@ function route(req, res, method, path, q, body, raw = "") {
     if (method === "GET") return send(res, 200, { user: userMe(empty ? "empty" : "full") });
     if (method === "PUT" || method === "PATCH") {
       const patch = body && body.user ? body.user : {};
-      return send(res, 200, { user: { ...userMe(empty ? "empty" : "full"), ...patch } });
+      const merged = { ...userMe(empty ? "empty" : "full"), ...patch };
+      // LOC-1: saving a province (the Bazaar's Change sheet) makes it the OWN
+      // address, which is what Rails' `location` block then reports.
+      if (patch.province) {
+        const capitals = { Kabul: [34.5553, 69.2075], Herat: [34.3529, 62.204], Kandahar: [31.6133, 65.7101], Balkh: [36.709, 67.1109] };
+        const [lat, lng] = patch.latitude != null ? [patch.latitude, patch.longitude] : (capitals[patch.province] ?? capitals.Kabul);
+        merged.location = { source: "own", latitude: lat, longitude: lng, province: patch.province };
+      }
+      return send(res, 200, { user: merged });
     }
+  }
+  // LOC-1: a location clue — Rails answers 204 whether it kept it or not.
+  if (path === "/users/me/location_guess" && method === "PATCH") {
+    if (!requireAuth()) return;
+    return send(res, 204);
   }
   if (path === "/users/me/restore" && method === "POST") {
     if (!requireAuth()) return;

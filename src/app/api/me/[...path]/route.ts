@@ -28,6 +28,8 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^my\/listings\/\d+$/],
   ["PUT", /^my\/listings\/\d+$/],
   ["PATCH", /^my\/listings\/\d+$/],
+  // LOC-1: a clue about where the user is (area searched, permitted GPS).
+  ["PATCH", /^users\/me\/location_guess$/],
   ["DELETE", /^my\/listings\/\d+$/],
   ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew)$/],
   ["GET", /^my\/listings\/\d+\/analytics$/],

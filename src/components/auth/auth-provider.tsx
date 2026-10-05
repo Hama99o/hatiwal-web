@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { User } from "@/lib/types";
+import { setBazaarScope } from "@/components/location/use-bazaar-scope";
 
 type AuthStatus = "loading" | "authed" | "guest";
 
@@ -242,6 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // signed-out user's data. Runs even if the logout request itself failed —
     // the local session is being abandoned either way.
     clearCacheForIdentityChange();
+    // LOC-1: the "All Afghanistan" Bazaar preference is per person, like theme/language.
+    setBazaarScope("near");
   }, [clearCacheForIdentityChange]);
 
   const forgotPassword = useCallback(async (email: string) => {

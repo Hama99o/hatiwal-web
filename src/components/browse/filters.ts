@@ -3,6 +3,18 @@ import type { Category, ListingSort } from "@/lib/types";
 import type { ListingsQuery } from "@/lib/api/listings";
 
 /**
+ * The Bazaar's sort: a Rails sort, or "home" — the DEFAULT, "items near you"
+ * (LOC-1, hatiwal-mobile/docs/USER_LOCATION.md). "home" is client-side naming
+ * only: it is sent as sort=nearest around the viewer's home location (own
+ * address → guess → Kabul, from me.location), and never written to the URL.
+ * Mirrors mobile, where the default (sort = null) does the same.
+ */
+export type BrowseSort = ListingSort | "home";
+
+/** Kabul — where "near you" centres for a guest, for the SSR seed, and for anyone the API places nowhere. */
+export const DEFAULT_HOME_POINT = { latitude: 34.5553, longitude: 69.2075 } as const;
+
+/**
  * Browse filter state — the single shared definition used by BOTH the server
  * page (for SSR/SEO of the first results page) and the client island (for
  * interactive filtering + infinite scroll). Keeps URL ⇄ state ⇄ API in sync
@@ -12,7 +24,7 @@ export interface BrowseFilters {
   q: string;
   categorySlug: string;
   condition: string;
-  sort: ListingSort;
+  sort: BrowseSort;
   priceMin: string;
   priceMax: string;
   /** Location filter — set together (lat+lng), radius in km. */
@@ -40,7 +52,7 @@ export const DEFAULT_FILTERS: BrowseFilters = {
   q: "",
   categorySlug: "",
   condition: "",
-  sort: "newest",
+  sort: "home",
   priceMin: "",
   priceMax: "",
   lat: "",
@@ -56,7 +68,8 @@ export const DEFAULT_RADIUS_KM = 10;
 
 // "nearest" is intentionally omitted: it is an ephemeral, browser-only sort
 // that depends on a live Geolocation fix, so it is never read from (or written
-// to) the URL. A direct `?sort=nearest` link therefore falls back to "newest".
+// to) the URL. A direct `?sort=nearest` link therefore falls back to the
+// default, "home". "newest" IS in the URL now that it is no longer the default.
 const SORTS: ListingSort[] = [
   "newest",
   "oldest",
@@ -74,9 +87,9 @@ function read(source: ParamSource, key: string): string {
 
 export function filtersFromParams(source: ParamSource): BrowseFilters {
   const sortRaw = read(source, "sort");
-  const sort = SORTS.includes(sortRaw as ListingSort)
+  const sort: BrowseSort = SORTS.includes(sortRaw as ListingSort)
     ? (sortRaw as ListingSort)
-    : "newest";
+    : "home";
   return {
     q: read(source, "q"),
     categorySlug: read(source, "category"),
@@ -101,8 +114,8 @@ export function filtersToSearchString(f: BrowseFilters): string {
   if (f.categorySlug) sp.set("category", f.categorySlug);
   if (f.condition) sp.set("condition", f.condition);
   // "nearest" is client-only and never persisted to the URL (see SORTS above),
-  // so a reload/shared link falls back to the default order.
-  if (f.sort && f.sort !== "newest" && f.sort !== "nearest")
+  // and "home" is the default, so a reload/shared link falls back to it.
+  if (f.sort && f.sort !== "home" && f.sort !== "nearest")
     sp.set("sort", f.sort);
   if (f.priceMin) sp.set("min", f.priceMin);
   if (f.priceMax) sp.set("max", f.priceMax);
@@ -116,12 +129,20 @@ export function filtersToSearchString(f: BrowseFilters): string {
   return s ? `?${s}` : "";
 }
 
-/** Map UI filter state to the Rails listings query (resolving slug → id). */
+/**
+ * Map UI filter state to the Rails listings query (resolving slug → id).
+ * `home` is the viewer's home point for the default "home" order — Kabul when
+ * omitted (the anonymous SSR seed, a guest).
+ */
 export function filtersToQuery(
   f: BrowseFilters,
   categories: Category[],
   page = 1,
   pageSize = 24,
+  home: { latitude: number; longitude: number } = DEFAULT_HOME_POINT,
+  // LOC-1 "All Afghanistan": the default order is the whole country, newest
+  // first — no point and no sort sent.
+  allCountry = false,
 ): ListingsQuery {
   const category = f.categorySlug
     ? findCategoryBySlug(categories, f.categorySlug)
@@ -129,6 +150,10 @@ export function filtersToQuery(
   const isNearest = f.sort === "nearest";
   const hasNearest = Boolean(f.nearestLat && f.nearestLng);
   const hasLocation = Boolean(f.lat && f.lng);
+  // "home" with no zone filter = nearest around home. With a zone filter the
+  // zone wins and the server's default order applies inside it.
+  const isDefault = f.sort === "home" && !hasLocation;
+  const isHome = isDefault && !allCountry;
   return {
     page,
     pageSize,
@@ -137,7 +162,7 @@ export function filtersToQuery(
     search: f.q || undefined,
     categoryId: category?.id,
     condition: f.condition || undefined,
-    sort: f.sort,
+    sort: isHome ? "nearest" : f.sort === "home" ? undefined : f.sort,
     priceMin: f.priceMin ? Number(f.priceMin) : undefined,
     priceMax: f.priceMax ? Number(f.priceMax) : undefined,
     // "nearest" takes over the location params with its own GPS fix and drops
@@ -150,14 +175,18 @@ export function filtersToQuery(
         : undefined
       : hasLocation
         ? Number(f.lat)
-        : undefined,
+        : isHome
+          ? home.latitude
+          : undefined,
     longitude: isNearest
       ? hasNearest
         ? Number(f.nearestLng)
         : undefined
       : hasLocation
         ? Number(f.lng)
-        : undefined,
+        : isHome
+          ? home.longitude
+          : undefined,
     radius: isNearest
       ? undefined
       : hasLocation
@@ -201,6 +230,6 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
       f.priceMax ||
       f.lat ||
       f.activeSellers ||
-      f.sort !== "newest",
+      f.sort !== "home",
   );
 }
