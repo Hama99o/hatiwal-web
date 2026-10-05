@@ -1216,6 +1216,31 @@
       "shop_sign_not_visible": "The shop sign is not visible",
       "policy_violation": "Our rules were broken",
       "other": "Other"
+    },
+    "shop": {
+      "cardTitle": "Get the Verified shop ✓ badge",
+      "missingTitle": "Before you can apply",
+      "missing": {
+        "logo": "Add your logo first",
+        "location": "Set your shop's pin first",
+        "live_product": "Post at least 1 product first"
+      },
+      "verified": "Verified shop ✓",
+      "rejected": "We couldn't verify your shop",
+      "whyTitle": "Why get your shop verified?",
+      "benefitTrust": "Buyers trust you more",
+      "benefitBadge": "The ✓ badge on every product",
+      "need": "You'll need: a photo of your shop front, your licence or ID, and a phone we can call.",
+      "frontTitle": "Photo of your shop",
+      "frontSubtitle": "The shop front, with the sign visible.",
+      "docTitle": "Your licence or ID",
+      "docSubtitle": "A business licence, or the owner's Tazkira or ID.",
+      "licence": "Business licence",
+      "numberLabel": "Licence or ID number (optional)",
+      "phoneTitle": "A phone we can call",
+      "phoneSubtitle": "We call it to confirm.",
+      "phoneLabel": "Phone",
+      "phoneError": "Enter a phone number"
     }
   },
   "shops": {
@@ -1339,7 +1364,8 @@
         "from": "From",
         "to": "To",
         "closedDay": "Closed",
-        "rangeError": "Closing time must be after opening time"
+        "rangeError": "Opening and closing can't be the same time",
+        "overnightHint": "Closes after midnight? Enter it like 18:00 to 02:00."
       },
       "contact": {
         "title": "How can buyers reach you?",
@@ -1379,6 +1405,11 @@
       "body": "Its products go back to your personal listings.",
       "confirm": "Delete"
     },
-    "newSellerMessages": "New messages for your shop"
+    "newSellerMessages": "New messages for your shop",
+    "unavailableNotice": "{shop} is not available",
+    "status": {
+      "pending": "Waiting for approval",
+      "suspended": "Suspended — contact Support"
+    }
   }
 }

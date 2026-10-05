@@ -16,6 +16,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CountBadge } from "@/components/shared/count-badge";
 import { Button } from "@/components/ui/button";
+import { DroppedToMeNotice } from "@/components/shops/dropped-to-me-notice";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,8 @@ export function AuthNav() {
 
   return (
     <>
+      {/* SHOP-1: "You were removed from …" once, if the server drops you to Me. */}
+      <DroppedToMeNotice />
       <Button
         asChild
         variant="ghost"

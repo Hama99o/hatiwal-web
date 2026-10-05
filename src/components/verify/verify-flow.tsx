@@ -89,7 +89,7 @@ function saveDraft(d: SavedDraft) {
 }
 const clearDraft = clearVerificationDraft;
 
-function LockLine() {
+export function LockLine() {
   const t = useTranslations("verify");
   return (
     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -99,7 +99,7 @@ function LockLine() {
   );
 }
 
-function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+export function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="space-y-1.5">
       <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
@@ -131,7 +131,7 @@ function DocumentSketch({ variant, className }: { variant: "good" | "cropped" | 
   );
 }
 
-function PhotoStep({
+export function PhotoStep({
   kind,
   file,
   onPicked,

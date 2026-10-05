@@ -465,7 +465,7 @@ export interface User {
   /** SHOP-1: who the user sells as (null = Me), checked server-side. */
   sellingAsShop?: ShopCard | null;
   /** SHOP-1: the shops the user can sell as; absent/empty = no shop. */
-  shops?: (ShopCard & { role: "owner" | "manager" | "staff"; status: "active" | "suspended" | "pending" })[];
+  shops?: (ShopCard & { role: "owner" | "manager" | "staff"; status: "active" | "suspended" | "pending" | "closed" })[];
   /** SHOP-1: unread per identity, when the API sends the split. */
   unreadCounts?: { buying: number; sellingMe: number; shops: Record<string, number> };
   deletionScheduledAt?: string | null;

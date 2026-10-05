@@ -368,6 +368,11 @@ export function ShopForm({ shopId }: { shopId?: number }) {
               {current === p && <Check className="size-4 text-primary" />}
             </button>
           ))}
+          {current === "custom" && (
+            <p className="text-xs text-muted-foreground" data-testid="shop-form-overnight-hint">
+              {t("form.hours.overnightHint")}
+            </p>
+          )}
           {current === "custom" &&
             SHOP_DAYS.map((day) => {
               const ranges = draft.hours[day] ?? [];

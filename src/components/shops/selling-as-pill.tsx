@@ -8,7 +8,7 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useSellingIdentity } from "./use-selling-identity";
+import { sellAsAsk, useSellingIdentity } from "./use-selling-identity";
 
 const askedKey = (userId: number) => `hatiwal.sell-as-asked-${userId}`;
 
@@ -37,6 +37,9 @@ export function SellingAsPill() {
 
   useEffect(() => {
     if (!hasShop || !user) return;
+    // One owner for the ask-once dialog, however many pills are mounted.
+    if (sellAsAsk.claimed) return;
+    sellAsAsk.claimed = true;
     try {
       if (!window.localStorage.getItem(askedKey(user.id))) {
         window.localStorage.setItem(askedKey(user.id), "1");

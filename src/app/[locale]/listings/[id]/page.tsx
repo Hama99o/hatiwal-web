@@ -449,6 +449,7 @@ export default async function ListingDetailPage({
                      similar in Vehicles" and "shop more from Ahmad Karimi" would
                      be sending them shopping from themselves. The owner gets
                      <OwnerListingBar> instead, where Manage/Edit live. */
+                  <div data-testid="listing-unavailable">
                   <UnavailableActions
                     status={listing.status}
                     category={listing.category}
@@ -459,6 +460,7 @@ export default async function ListingDetailPage({
                     sellerName={listing.seller?.name}
                     locale={locale}
                   />
+                  </div>
                 )}
                 <SaveButton
                   listingId={listing.id}

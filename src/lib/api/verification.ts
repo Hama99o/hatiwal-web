@@ -7,7 +7,13 @@ import { meRequest } from "./me";
  */
 export type VerificationState = "none" | "requested" | "verified" | "rejected" | "revoked";
 export type VerificationDocumentType = "tazkira" | "e_tazkira" | "cnic" | "kart_melli" | "passport";
-export type VerificationMissing = "email_confirmed" | "avatar" | "full_name";
+export type VerificationMissing = "email_confirmed" | "avatar" | "full_name" | "logo" | "location" | "live_product";
+
+/** "me", or a shop the caller manages (SHOP-1 verified shops). */
+export type VerificationSubject = "me" | `shop:${number}`;
+/** What a SHOP may show as its ID/licence (licence first). */
+export const SHOP_DOCUMENT_TYPES = ["licence", "tazkira", "e_tazkira", "cnic", "kart_melli", "passport"] as const;
+export type ShopDocumentType = (typeof SHOP_DOCUMENT_TYPES)[number];
 
 export const VERIFICATION_DOCUMENT_TYPES: VerificationDocumentType[] = [
   "tazkira",
@@ -60,9 +66,30 @@ function toStatus(d: { verificationStatus: VerificationStatus }): VerificationSt
   return { ...s, missing: s.missing ?? [], nameChanged: s.nameChanged ?? false, request: s.request ?? null };
 }
 
-export async function getVerificationStatus(): Promise<VerificationStatus> {
-  return toStatus(await meRequest("verification_requests/current?subject=me"));
+export async function getVerificationStatus(subject: VerificationSubject = "me"): Promise<VerificationStatus> {
+  return toStatus(await meRequest(`verification_requests/current?subject=${subject}`));
 }
+
+/** SHOP-1: apply for "Verified shop" (front = shop front, back = ID/licence). */
+export async function applyForShopVerification(app: {
+  shopId: number;
+  documentType: ShopDocumentType;
+  documentNumber?: string;
+  phone: string;
+  shopFront: Blob;
+  document: Blob;
+}): Promise<VerificationStatus> {
+  const form = new FormData();
+  form.append("subject", `shop:${app.shopId}`);
+  form.append("verification_request[document_type]", app.documentType);
+  form.append("verification_request[phone]", app.phone.trim());
+  if (app.documentNumber) form.append("verification_request[document_number]", app.documentNumber);
+  form.append("verification_request[front]", app.shopFront, "front.jpg");
+  form.append("verification_request[back]", app.document, "back.jpg");
+  return toStatus(await meRequest("verification_requests", { form }));
+}
+
+export const shopVerificationQK = (shopId: number) => ["verification-status", `shop:${shopId}`] as const;
 
 export async function applyForVerification(app: VerificationApplication): Promise<VerificationStatus> {
   const form = new FormData();

@@ -19,8 +19,9 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 import { getListings } from "@/lib/api/listings";
 import type { Shop } from "@/lib/api/shops";
-import { SHOP_DAYS, dayOf, hasHours, openStatus } from "@/lib/shop-hours";
+import { SHOP_DAYS, dayOf, hasHours, shopOpenStatus } from "@/lib/shop-hours";
 import { cn } from "@/lib/utils";
+import { ShopVerificationCard } from "./shop-verification-card";
 
 type Tab = "products" | "reviews" | "about";
 
@@ -33,7 +34,9 @@ export function shopShareUrl(shop: Pick<Shop, "id" | "shareUrl">): string {
 
 function OpenLine({ shop }: { shop: Shop }) {
   const t = useTranslations("shops");
-  const status = openStatus(shop.hours);
+  // From the API (Asia/Kabul): the same on the server render and the client,
+  // so no hydration mismatch.
+  const status = shopOpenStatus(shop);
   if (status.state === "unknown") return null;
   const open = status.state === "open";
   const text =
@@ -140,6 +143,9 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
             />
           )}
         </div>
+
+        {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
+        {isMember && <ShopVerificationCard shopId={shop.id} />}
 
         <div role="tablist" className="flex rounded-lg bg-muted p-1">
           {(["products", "reviews", "about"] as const).map((key) => (

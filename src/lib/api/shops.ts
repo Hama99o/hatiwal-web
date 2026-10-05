@@ -15,6 +15,12 @@ export interface Shop extends ShopCard {
   longitude: string | number;
   addressLine: string;
   hours: ShopHours;
+  /** Computed by the API in Asia/Kabul; null = no hours given. Absent on an older API. */
+  openNow?: boolean | null;
+  /** The next open↔closed moment (ISO8601), or null. */
+  nextChangeAt?: string | null;
+  /** The zone open_now is computed in: Asia/Kabul, or Asia/Karachi for Pakistan. */
+  timeZone?: string | null;
   createdAt: string;
   coverUrl: string | null;
   phone: string | null;
@@ -24,7 +30,7 @@ export interface Shop extends ShopCard {
   shareUrl: string | null;
   avgRating: number | null;
   reviewCount: number;
-  status?: "active" | "suspended" | "pending";
+  status?: "active" | "suspended" | "pending" | "closed";
   phonePublic?: boolean;
   role?: "owner" | "manager" | "staff" | null;
 }

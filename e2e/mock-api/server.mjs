@@ -968,6 +968,11 @@ function route(req, res, method, path, q, body, raw = "") {
     return send(res, 200, { reviews: slice, meta: { pagination } });
   }
 
+  // SHOP-1: the guest shop list (sitemap: ?verified=true).
+  if (method === "GET" && path === "/shops") {
+    return send(res, 200, { shops: [{ id: 42, name: SHOP_42.name, updated_at: "2026-10-05T12:00:00Z", verified: true }], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 1, total_pages: 1 } } });
+  }
+
   // SHOP-1: the public shop page; unknown ids are 404 like Rails.
   const shopMatch = path.match(/^\/shops\/(\d+)$/);
   if (method === "GET" && shopMatch) {

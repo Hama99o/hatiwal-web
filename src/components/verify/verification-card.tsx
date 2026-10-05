@@ -34,7 +34,7 @@ export function VerificationCard() {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: VERIFICATION_QK,
-    queryFn: getVerificationStatus,
+    queryFn: () => getVerificationStatus(),
     enabled: !!user,
   });
 

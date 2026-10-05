@@ -23,7 +23,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
   const t = useTranslations("shops");
   const router = useRouter();
   const qc = useQueryClient();
-  const { switchTo } = useSellingIdentity();
+  const { switchToAsync } = useSellingIdentity();
   const [moving, setMoving] = useState(false);
   const [unticked, setUnticked] = useState<Set<number>>(new Set());
   const [moved, setMoved] = useState(false);
@@ -84,7 +84,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
       <div className="rounded-xl border bg-card p-4">
         <UserIdentity variant="shop" name={shop.name} avatarUrl={shop.logoUrl} verified={shop.verified} size={48} />
       </div>
-      <button type="button" className={row} data-testid="shop-opened-add-product" onClick={() => { switchTo(shop.id); router.push("/listings/new"); }}>
+      <button type="button" className={row} data-testid="shop-opened-add-product" onClick={async () => { await switchToAsync(shop.id); router.push("/listings/new"); }}>
         <Plus className="size-5 text-primary" /> {t("form.done.addProduct")}
       </button>
       <button type="button" className={row} data-testid="shop-opened-move-listings" onClick={() => setMoving(true)}>
