@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Request } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
+import { withSessionUser } from "./session-user";
 
 // LOC-1 — "Showing items near … · Change" on the Bazaar
 // (hatiwal-mobile/docs/USER_LOCATION.md). Same test ids as the mobile app.
@@ -12,14 +13,9 @@ const listingRequests = (reqs: Request[]) => reqs.filter((r) => /\/listings(\?|$
 
 /** Serve this viewer's `me` with another location block (the API resolves the rule; we only read it). */
 async function meWithLocation(page: Page, location: Record<string, unknown>) {
-  await page.route(/\/api\/me\/users\/me(\?|$)/, async (route) => {
-    if (route.request().method() !== "GET") return route.continue();
-    const res = await route.fetch();
-    const json = await res.json();
-    json.user = { ...json.user, location };
-    await route.fulfill({ response: res, json });
-  });
+  await withSessionUser(page, { location });
 }
+
 test.describe("Bazaar location bar — guest", () => {
   test("shows Kabul, in the default 'near you' order, and asks a guest to sign in on Change", async ({ page }) => {
     await page.goto("/en/bazaar");
@@ -196,8 +192,9 @@ test.describe("Bazaar location bar — web = app parity", () => {
     await meWithLocation(page, { source: "default", latitude: 34.5553, longitude: 69.2075, province: "Kabul" });
     await context.grantPermissions(["geolocation"]);
     await context.setGeolocation(HERAT);
+    // The daily GPS clue already went today: only the picked zone can send one.
+    await page.addInitScript(() => window.localStorage.setItem("loc1-gps-clue-at", String(Date.now())));
     await page.goto("/en/bazaar");
-    // The silent daily GPS clue may go first; wait for the search_area one.
     const clue = page.waitForRequest(
       (r) => r.url().includes("location_guess") && r.method() === "PATCH" && r.postDataJSON()?.source === "search_area",
     );

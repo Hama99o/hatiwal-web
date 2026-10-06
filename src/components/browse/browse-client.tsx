@@ -421,13 +421,18 @@ export function BrowseClient({
   // says where the SENDER was looking. Settled, not per drag: the map moves the
   // pin continuously while it is dragged.
   const clueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reportPickedArea = useCallback(
-    (latitude: number, longitude: number) => {
-      if (clueTimer.current) clearTimeout(clueTimer.current);
-      clueTimer.current = setTimeout(() => reportSearchArea({ latitude, longitude }), 1500);
-    },
-    [reportSearchArea],
-  );
+  // The timer reads the LATEST reporter when it fires. Closing over the one
+  // from the render that scheduled it sent nothing for signed-in buyers: the
+  // filters panel can hold an early render's callback, from before the
+  // session probe answered (authed=false), so every picked zone was dropped.
+  const reportSearchAreaRef = useRef(reportSearchArea);
+  useEffect(() => {
+    reportSearchAreaRef.current = reportSearchArea;
+  }, [reportSearchArea]);
+  const reportPickedArea = useCallback((latitude: number, longitude: number) => {
+    if (clueTimer.current) clearTimeout(clueTimer.current);
+    clueTimer.current = setTimeout(() => reportSearchAreaRef.current({ latitude, longitude }), 1500);
+  }, []);
   useEffect(() => () => {
     if (clueTimer.current) clearTimeout(clueTimer.current);
   }, []);

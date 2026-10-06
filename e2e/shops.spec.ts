@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
+import { shopEntry, withSessionUser } from "./session-user";
 
 /**
  * SHOP-1 on the web (hatiwal-mobile docs/SHOPS.md phase 1). Mock fixture: shop
@@ -9,14 +10,15 @@ import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
  * guard's e2e/shop-share.spec.ts.
  */
 test.describe("Shop page (guest)", () => {
-  test("shows the shop: name, Shop chip, Directions + Call, products, no chat button", async ({ page }) => {
+  test("shows the shop: name, Shop chip, Directions + Call, products, and Message shop asks a guest to sign in", async ({ page }) => {
     await page.goto("/en/shops/42");
     await expect(page.getByTestId("shop-page")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: "Safi Cosmetics" })).toBeVisible();
     await expect(page.getByTestId("shop-verified-badge")).toBeVisible();
     await expect(page.getByTestId("shop-directions")).toBeVisible();
     await expect(page.getByTestId("shop-call")).toHaveAttribute("href", "tel:+93 700 111 222");
-    await expect(page.getByTestId("shop-message")).toHaveCount(0);
+    // SHOP-2: "Message shop" is on the shop page; for a guest it is the sign-in link.
+    await expect(page.getByTestId("shop-message")).toHaveAttribute("href", /\/en\/login/);
     await expect(page.getByText("Chanel No. 5 (100 ml)")).toBeVisible();
   });
 
@@ -164,12 +166,9 @@ test.describe("an owner of several shops", () => {
   test.use({ storageState: BUYER_STATE });
 
   test("sees 'My shops' with one row per shop and 'Open another shop'", async ({ page }) => {
-    await page.route("**/api/me/users/me**", async (route) => {
-      const res = await route.fetch();
-      const json = await res.json();
-      const card = (id: number, name: string, status = "active") => ({ id, name, logo_url: null, verified: false, province: "Kabul", city: "Kabul", role: "owner", status });
-      json.user = { ...json.user, shops: [card(42, "Safi Cosmetics"), card(43, "Safi Phones"), card(44, "Safi Shoes", "pending")] };
-      await route.fulfill({ response: res, json });
+    await withSessionUser(page, {
+      sellerMode: true,
+      shops: [shopEntry(42, "Safi Cosmetics"), shopEntry(43, "Safi Phones"), shopEntry(44, "Safi Shoes", "pending")],
     });
     await page.goto("/en/profile");
     await expect(page.getByRole("heading", { name: "My shops" })).toBeVisible();

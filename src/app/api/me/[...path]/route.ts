@@ -113,6 +113,9 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^shops\/\d+\/move_listings$/],
   ["GET", /^my\/shops$/],
   ["PATCH", /^users\/me\/selling_as$/],
+  // SHOP-2: "Message shop" — find-or-create the listing-less chat with a shop.
+  // Without this entry the button 403s for every signed-in buyer on the web.
+  ["POST", /^shops\/\d+\/conversations$/],
 ];
 
 async function handle(

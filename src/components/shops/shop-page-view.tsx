@@ -69,7 +69,10 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
   const t = useTranslations("shops");
   const tRoot = useTranslations();
   const locale = useLocale();
-  const { user } = useAuth();
+  const { user, status, probeTimedOut } = useAuth();
+  // Only a CONFIRMED guest gets the sign-in link: while the session probe is
+  // still answering, a signed-in buyer's early click must not land on /login.
+  const isGuest = status === "guest" || (status === "loading" && probeTimedOut);
   const [tab, setTab] = useState<Tab>("products");
   const isMember = !!user?.shops?.some((s) => s.id === shop.id);
   const router = useRouter();
@@ -163,8 +166,8 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
         <OpenLine shop={shop} />
         <div className="flex flex-wrap gap-2">
           {!isMember &&
-            (user ? (
-              <Button onClick={() => message.mutate()} disabled={message.isPending} data-testid="shop-message">
+            (!isGuest ? (
+              <Button onClick={() => message.mutate()} disabled={status !== "authed" || message.isPending} data-testid="shop-message">
                 <MessageCircle className="size-4" /> {t("message")}
               </Button>
             ) : (

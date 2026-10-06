@@ -51,7 +51,8 @@ test.describe("Share my shop: Android phone", () => {
     const prompt = page.getByTestId("app-prompt");
     await expect(prompt).toBeVisible({ timeout: 45_000 });
     await expect(prompt.getByRole("link", { name: /open/i })).toHaveAttribute("href", new RegExp(`^intent://shop/${SHOP_ID}#Intent;`));
-    await prompt.getByRole("button", { name: /close|dismiss|×/i }).click();
+    // The bar's dismiss is labelled "Not now" (app-prompt.tsx, t("notNow")).
+    await prompt.getByRole("button", { name: /not now|close|dismiss|×/i }).first().click();
     expect((await context.cookies()).some((c) => c.name === "hatiwal_app_prompt")).toBe(true);
     await page.reload();
     await page.waitForTimeout(3_000);

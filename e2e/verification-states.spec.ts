@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import { shopEntry, withSessionUser } from "./session-user";
 
 /**
  * VER-1 + SHOP-1/2 verification cards on the web, state by state, against the
@@ -85,17 +86,7 @@ test.describe("The shop's verification card (shop page, owner)", () => {
 
   // Make the buyer persona a member of shop 42, so the owner's card shows.
   test.beforeEach(async ({ page }) => {
-    await page.route(/\/api\/me\/users\/me(\?|$)/, async (route) => {
-      if (route.request().method() !== "GET") return route.continue();
-      const res = await route.fetch();
-      const json = await res.json();
-      json.user = {
-        ...json.user,
-        seller_mode: true,
-        shops: [{ id: 42, name: "Safi Cosmetics", logo_url: null, verified: false, province: "Kabul", city: "Kabul", role: "owner", status: "active" }],
-      };
-      await route.fulfill({ response: res, json });
-    });
+    await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics")] });
   });
 
   test("under review", async ({ page }) => {
@@ -124,19 +115,11 @@ test.describe("Selling as, with several shops (SHOP-2)", () => {
   test.use({ storageState: BUYER_STATE });
 
   test("the sheet lists Me + every ACTIVE shop (not a pending one), with their unread", async ({ page }) => {
-    await page.route(/\/api\/me\/users\/me(\?|$)/, async (route) => {
-      if (route.request().method() !== "GET") return route.continue();
-      const res = await route.fetch();
-      const json = await res.json();
-      const card = (id: number, name: string, status = "active") => ({ id, name, logo_url: null, verified: false, province: "Kabul", city: "Kabul", role: "owner", status });
-      json.user = {
-        ...json.user,
-        seller_mode: true,
-        shops: [card(42, "Safi Cosmetics"), card(43, "Safi Phones"), card(44, "Safi Shoes", "pending")],
-        selling_as_shop: null,
-        unread_counts: { buying: 0, selling_me: 0, shops: { "43": 5 } },
-      };
-      await route.fulfill({ response: res, json });
+    await withSessionUser(page, {
+      sellerMode: true,
+      shops: [shopEntry(42, "Safi Cosmetics"), shopEntry(43, "Safi Phones"), shopEntry(44, "Safi Shoes", "pending")],
+      sellingAsShop: null,
+      unreadCounts: { buying: 0, sellingMe: 0, shops: { "43": 5 } },
     });
     // The sheet asks once by itself; mark it asked so the pill opens it.
     await page.addInitScript(() => window.localStorage.setItem("hatiwal.sell-as-asked-1", "1"));

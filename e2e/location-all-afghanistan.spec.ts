@@ -9,7 +9,9 @@ import { BUYER_STATE } from "./auth-paths";
  *   carries no latitude/longitude (plain newest-first); it survives a reload;
  *   picking a province switches back to "near X".
  */
-const feedRequests = (reqs: Request[]) => reqs.filter((r) => /\/api\/v1\/listings(\?|$)/.test(r.url()));
+// Signed in, the feed goes through the /api/me proxy (getListingsAsViewer), so
+// match the listings index on either path.
+const feedRequests = (reqs: Request[]) => reqs.filter((r) => /\/(api\/v1|api\/me)\/listings(\?|$)/.test(r.url()));
 
 test.describe("Bazaar: All Afghanistan", () => {
   test.use({ storageState: BUYER_STATE });

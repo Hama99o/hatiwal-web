@@ -79,7 +79,7 @@ export function SellerListingsView() {
   // unmounted with it before the seller could rate anyone.
   const [reviewTxn, setReviewTxn] = useState<Transaction | null>(null);
   // SHOP-1: the server follows who the user sells as, so the cache does too.
-  const { sellingAs } = useSellingIdentity();
+  const { sellingAs, hasShop } = useSellingIdentity();
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["my-listings", sellingAs ? `shop-${sellingAs.id}` : "me"],
     queryFn: getMyListings,
@@ -116,10 +116,6 @@ export function SellerListingsView() {
           <h1 className="text-2xl font-bold tracking-tight">
             {sellingAs ? t("shops.mine") : t("sidebar.myListings")}
           </h1>
-          {/* SHOP-1: who you sell as (renders nothing without a shop). */}
-          <div className="mt-2">
-            <SellingAsPill />
-          </div>
           {/* Gated on real DATA, not `!isPending`: in TanStack v5 `isPending` is
               false in the error state too, and `all` falls back to [] — so a
               failed load used to print "0 listings" directly above "Something
@@ -129,6 +125,14 @@ export function SellerListingsView() {
             <p className="text-sm text-muted-foreground">
               {t("listing.shopCount", { count: all.length })}
             </p>
+          )}
+          {/* SHOP-1: who you sell as. Below the count, so the count stays right
+              under the heading; mounted only with a shop, so a seller without
+              one gets no empty box. */}
+          {hasShop && (
+            <div className="mt-2">
+              <SellingAsPill />
+            </div>
           )}
         </div>
         <Button asChild>

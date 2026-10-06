@@ -286,6 +286,9 @@ export function ListingCard({
           {listing.condition && (
             <ConditionBadge condition={listing.condition} />
           )}
+          {/* SHOP-1: posted as a shop → the small "Shop" chip, on the grid card
+              too (it was only in the list row's meta; mobile shows it on both). */}
+          {listing.shop && <ShopChip testId="listing-shop-chip" />}
           {listing.location && (
             <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
               <MapPin className="size-3 shrink-0" />
