@@ -45,6 +45,21 @@ const zain = localFont({
   adjustFontFallback: false,
   display: "swap",
 });
+// Dari digits (owner, 2026-10-06: option 2). Zain draws ۰–۹ and ٠–٩ with the
+// SAME outlines as Latin 0–9 (measured with fontTools), so fa prices read
+// "700". This face is Noto Sans Arabic restricted to the digits (+ the Arabic
+// decimal / thousands separators) and leads the fa stack: digits come from
+// Noto, every letter still from Zain. Mobile does the same (dfac867).
+const hatiwalDigits = localFont({
+  src: [
+    { path: "../fonts/NotoSansArabic_400Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/NotoSansArabic_700Bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-digits",
+  declarations: [{ prop: "unicode-range", value: "U+0660-0669, U+066B-066C, U+06F0-06F9" }],
+  adjustFontFallback: false,
+  display: "swap",
+});
 const notoArabic = localFont({
   src: [
     { path: "../fonts/NotoSansArabic_400Regular.ttf", weight: "400", style: "normal" },
@@ -140,7 +155,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={dir(locale)}
-      className={`${rubik.variable} ${zain.variable} ${notoArabic.variable}`}
+      className={`${rubik.variable} ${zain.variable} ${notoArabic.variable} ${hatiwalDigits.variable}`}
       suppressHydrationWarning
     >
       {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) inject

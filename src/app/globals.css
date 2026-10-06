@@ -147,9 +147,11 @@ html:lang(ur) {
     var(--font-noto-arabic), var(--font-rubik), ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
 }
+/* fa: the digits-only face FIRST (Zain's ۰–۹ look exactly like 0–9), then Zain
+   for every letter. */
 html:lang(fa) {
   --font-sans:
-    var(--font-zain), var(--font-noto-arabic), var(--font-rubik),
+    var(--font-digits), var(--font-zain), var(--font-noto-arabic), var(--font-rubik),
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
     sans-serif;
 }
