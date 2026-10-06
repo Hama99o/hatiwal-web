@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { ShopForm } from "@/components/shops/shop-form";
+import { EmailConfirmGate } from "@/components/account/email-confirm-gate";
 
 // SHOP-1: "Open your shop". Signed in only, not indexed.
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -15,7 +16,9 @@ export default async function NewShopPage({ params }: { params: Promise<{ locale
   setRequestLocale(locale);
   return (
     <RequireAuth>
-      <ShopForm />
+      <EmailConfirmGate reason="shop">
+        <ShopForm />
+      </EmailConfirmGate>
     </RequireAuth>
   );
 }

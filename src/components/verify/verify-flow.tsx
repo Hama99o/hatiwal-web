@@ -25,6 +25,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
+import { EMAIL_UNCONFIRMED, markEmailUnconfirmed } from "@/components/account/email-confirm-gate";
 import {
   applyForVerification,
   verificationDraftKey,
@@ -307,7 +308,7 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
   const t = useTranslations("verify");
   const router = useRouter();
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const draftKey = verificationDraftKey(shopId);
   const queryKey = forShop ? shopVerificationQK(shopId) : VERIFICATION_QK;
   const exitHref = forShop ? `/shops/${shopId}` : "/profile";
@@ -387,6 +388,7 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
       setDone(true);
     },
     onError: (err) => {
+      if (err instanceof ApiError && err.code === EMAIL_UNCONFIRMED) return markEmailUnconfirmed(user, setUser);
       if (err instanceof ApiError && err.status === 429) setErrorKey("review.tooMany");
       else if (err instanceof ApiError && err.code === "verification_already_requested") setErrorKey("review.alreadyRequested");
       else setErrorKey("review.failed");

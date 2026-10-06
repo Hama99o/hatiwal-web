@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api/client";
+import { EMAIL_UNCONFIRMED, markEmailUnconfirmed } from "@/components/account/email-confirm-gate";
 import { categoryName, getCategories } from "@/lib/api/categories";
 import { createShop, getMyShop, updateShop, type Shop, type ShopInput } from "@/lib/api/shops";
 import { presetHours, detectPreset, hoursAreValid, isValidRange, SHOP_DAYS, type HoursPreset, type ShopHours, type ShopDay } from "@/lib/shop-hours";
@@ -130,7 +131,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
-  const { user, refresh } = useAuth();
+  const { user, refresh, setUser } = useAuth();
   const editing = shopId != null;
 
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -232,6 +233,8 @@ export function ShopForm({ shopId }: { shopId?: number }) {
     },
     onError: (err) => {
       const code = err instanceof ApiError ? err.code : undefined;
+      // Owner rule (1.1.6): the gate replaces the form.
+      if (code === EMAIL_UNCONFIRMED) return markEmailUnconfirmed(user, setUser);
       const dup = err instanceof ApiError ? err.details.duplicate_shop_id : undefined;
       setDuplicateId(code === "shop_duplicate" && typeof dup === "number" ? dup : null);
       setErrorKey(

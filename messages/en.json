@@ -712,7 +712,13 @@
       "failBody": "The link may have expired or already been used. Open your profile and send a new one.",
       "goHome": "Go to Bazaar",
       "goProfile": "Open my profile",
-      "pageTitle": "Email confirmation"
+      "pageTitle": "Email confirmation",
+      "gateTitleShop": "Confirm your email to open a shop",
+      "gateTitleVerify": "Confirm your email to get verified",
+      "gateBody": "We sent a link to {email}. Open it, then come back here.",
+      "changeEmail": "Change email",
+      "required": "Confirm your email first.",
+      "resendIn": "{count, plural, one {Resend in # second} other {Resend in # seconds}}"
     }
   },
   "saved": {
