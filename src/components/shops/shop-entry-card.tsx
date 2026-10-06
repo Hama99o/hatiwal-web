@@ -63,7 +63,15 @@ export function ShopEntryCard() {
           >
             <UserAvatar variant="shop" name={card.name} avatarUrl={card.logoUrl} size={44} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-bold">{many ? card.name : t("mine")}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="truncate font-bold">{many ? card.name : t("mine")}</span>
+                {/* SHOP-3: Owner / Staff. */}
+                {card.role && (
+                  <span className="rounded-full bg-muted px-2 py-px text-[11px] font-semibold text-muted-foreground" data-testid={`profile-my-shop-role-${card.role}`}>
+                    {t(`roles.${card.role}`)}
+                  </span>
+                )}
+              </span>
               {subtitle && (
                 <span
                   className={`block truncate text-sm ${card.status === "suspended" ? "text-destructive" : "text-muted-foreground"}`}

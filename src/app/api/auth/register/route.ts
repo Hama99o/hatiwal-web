@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     firstname,
     lastname,
     preferredLanguage,
+    inviteToken,
   } = body ?? {};
 
   if (!email || !password || !firstname || !lastname) {
@@ -37,6 +38,11 @@ export async function POST(req: Request) {
       // its own default rather than receiving null.
       ...(["en", "ps", "fa"].includes(preferredLanguage)
         ? { preferred_language: preferredLanguage }
+        : {}),
+      // SHOP-3: the team invite this sign-up came from (validated shape only;
+      // joining still needs the accept call).
+      ...(typeof inviteToken === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(inviteToken)
+        ? { invite_token: inviteToken }
         : {}),
     }),
     cache: "no-store",

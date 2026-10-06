@@ -1329,6 +1329,47 @@ function route(req, res, method, path, q, body, raw = "") {
     const { slice, pagination } = paginate(convs, q.get("page[number]"), q.get("page[size]"));
     return send(res, 200, { conversations: slice, meta: { pagination } });
   }
+  // SHOP-3: the team of shop 42 (stateless). Members: the owner (Umair, 2)
+  // and one staff member (Ali, 7); one pending link invite. Public invites by
+  // token mirror d8's QA seeds (qa-team-link / -expired / -used / -cancelled).
+  if (path === "/shops/42/members" && method === "GET") {
+    if (!requireAuth()) return;
+    return send(res, 200, { shop_members: [
+      { user: { id: 2, name: "Umair Safi", avatar_url: null }, role: "owner", joined_at: "2026-10-01T00:00:00Z" },
+      { user: { id: 7, name: "Ali Ahmadi", avatar_url: null }, role: "staff", joined_at: "2026-10-04T00:00:00Z" },
+    ] });
+  }
+  const TEAM_INVITE = { id: 31, email: null, role: "staff", status: "pending", url: "https://hatiwal.com/join/qa-team-link", expires_at: "2099-01-01T00:00:00Z", created_at: "2026-10-05T00:00:00Z" };
+  if (path === "/shops/42/invites" && method === "GET") {
+    if (!requireAuth()) return;
+    return send(res, 200, { shop_invites: [TEAM_INVITE] });
+  }
+  if (path === "/shops/42/invites" && method === "POST") {
+    if (!requireAuth()) return;
+    const email = /"email"\s*:\s*"([^"]+)"/.exec(raw)?.[1] ?? null;
+    if (email === "self@hatiwal.test") return send(res, 422, { error: "You can't invite yourself", code: "cannot_invite_self" });
+    return send(res, 201, { shop_invite: { ...TEAM_INVITE, id: 32, email, url: "https://hatiwal.com/join/qa-team-new" } });
+  }
+  if (/^\/shops\/42\/(invites\/\d+|members\/\d+|membership)$/.test(path) && method === "DELETE") {
+    if (!requireAuth()) return;
+    return send(res, 204);
+  }
+  const inviteMatch = path.match(/^\/shop_invites\/([A-Za-z0-9_-]+)(\/(accept|decline))?$/);
+  if (inviteMatch) {
+    const token = inviteMatch[1];
+    const statusByToken = { "qa-team-link": "pending", "qa-team-email": "pending", "qa-team-expired": "expired", "qa-team-used": "accepted", "qa-team-cancelled": "cancelled" };
+    const status = statusByToken[token];
+    if (!status) return send(res, 404, { error: "Not found", code: "not_found" });
+    if (method === "GET" && !inviteMatch[2]) {
+      return send(res, 200, { shop_invite: { shop: SHOP_42_CARD, inviter_name: "Umair Safi", role: "staff", status, expires_at: "2099-01-01T00:00:00Z" } });
+    }
+    if (!requireAuth()) return;
+    if (status !== "pending") return send(res, 410, { error: "Gone", code: status === "expired" ? "invite_expired" : status === "accepted" ? "invite_used" : "invite_cancelled" });
+    if (inviteMatch[3] === "decline") return send(res, 204);
+    if (token === "qa-team-email") return send(res, 403, { error: "Wrong account", code: "invite_wrong_account" });
+    return send(res, 200, { shop_member: { role: "staff" }, me: { ...userMe(empty ? "empty" : "full"), shops: [{ ...SHOP_42_CARD, role: "staff", status: "active" }] } });
+  }
+
   // SHOP-2 "Message shop": find-or-create, so always the same chat (200).
   const shopConvMatch = path.match(/^\/shops\/(\d+)\/conversations$/);
   if (shopConvMatch && method === "POST") {

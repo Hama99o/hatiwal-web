@@ -116,6 +116,14 @@ const ALLOWED: Array<[string, RegExp]> = [
   // SHOP-2: "Message shop" — find-or-create the listing-less chat with a shop.
   // Without this entry the button 403s for every signed-in buyer on the web.
   ["POST", /^shops\/\d+\/conversations$/],
+  // SHOP-3: the team — members, leave, invites (owner), accept / decline.
+  ["GET", /^shops\/\d+\/members$/],
+  ["DELETE", /^shops\/\d+\/members\/\d+$/],
+  ["DELETE", /^shops\/\d+\/membership$/],
+  ["GET", /^shops\/\d+\/invites$/],
+  ["POST", /^shops\/\d+\/invites$/],
+  ["DELETE", /^shops\/\d+\/invites\/\d+$/],
+  ["POST", /^shop_invites\/[A-Za-z0-9_-]+\/(accept|decline)$/],
 ];
 
 async function handle(

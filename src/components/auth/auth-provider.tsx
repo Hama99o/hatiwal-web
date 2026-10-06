@@ -15,6 +15,8 @@ import { clearVerificationDraft } from "@/lib/api/verification";
 type AuthStatus = "loading" | "authed" | "guest";
 
 interface RegisterInput {
+  /** SHOP-3: a team invite this sign-up came from. */
+  inviteToken?: string;
   email: string;
   password: string;
   passwordConfirmation: string;

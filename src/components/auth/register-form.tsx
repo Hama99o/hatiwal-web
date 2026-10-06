@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
+import { isInviteToken } from "@/lib/api/shop-team";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,16 @@ export function RegisterForm() {
   const { register: registerUser, status } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
 
+  // SHOP-3: a sign-up that started from a team invite (/signup?invite=<token>)
+  // carries the token and lands back on that invite's Join page.
+  const [inviteToken] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const t = new URLSearchParams(window.location.search).get("invite");
+    return isInviteToken(t) ? t : null;
+  });
   useEffect(() => {
-    if (status === "authed") router.replace("/profile");
-  }, [status, router]);
+    if (status === "authed") router.replace(inviteToken ? `/join/${inviteToken}` : "/profile");
+  }, [status, router, inviteToken]);
 
   const schema = z
     .object({
@@ -59,6 +67,7 @@ export function RegisterForm() {
     const res = await registerUser({
       ...values,
       preferredLanguage: locale as "en" | "ps" | "fa",
+      ...(inviteToken ? { inviteToken } : {}),
     });
     // On success the redirect effect fires (status → "authed").
     if (!res.ok) {
