@@ -55,6 +55,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { MessageBubble } from "./message-bubble";
+import { useSellerSideEntry } from "./use-seller-side-entry";
 import { QuickReplies } from "./quick-replies";
 import { useComposerDraft } from "./use-composer-draft";
 import { filterMessages, searchableCount } from "@/lib/message-search";
@@ -390,6 +391,8 @@ export function ConversationThread({ id }: { id: string }) {
     (conversation.viewerRole === "buyer" || (user != null && conversation.buyer?.id === user.id))
       ? conversation.shop
       : null;
+  // Seller side (seller or team member): Seller mode + the chat's identity.
+  const { sellerSide, shopName: replyingShop } = useSellerSideEntry(conversation, !!isSupport);
   const closed = conversation?.status === "closed";
   // SHOP-2: a "Message shop" chat has no product, so it takes plain messages
   // only (text / photo / document): no offers, no meetups, no product phrases.
@@ -626,6 +629,12 @@ export function ConversationThread({ id }: { id: string }) {
           </Button>
         )}
       </div>
+
+      {sellerSide && (
+        <div className="border-b bg-muted/40 px-4 py-1.5 text-xs font-semibold text-muted-foreground" data-testid="chat-replying-as">
+          {t("chat.replyingAs", { name: replyingShop ?? t("shops.me") })}
+        </div>
+      )}
 
       {/* In-thread search (client-side only) */}
       {searchOpen && (

@@ -974,7 +974,8 @@
       "blocked": "You blocked this person. Unblock them to send a message.",
       "blockedBy": "You can't message this person."
     },
-    "repliedBy": "Replied by {name}"
+    "repliedBy": "Replied by {name}",
+    "replyingAs": "Replying as {name}"
   },
   "warnings": {
     "title": "Account warning",
@@ -1531,7 +1532,8 @@
       "transferred": "{name} is now the owner",
       "copyLink": "Copy link",
       "linkCopied": "Link copied",
-      "shareFailed": "Couldn't share the link. Try again or copy it."
+      "shareFailed": "Couldn't share the link. Try again or copy it.",
+      "noLongerOnTeam": "You're no longer on this shop's team"
     }
   }
 }
