@@ -81,12 +81,14 @@ export function UserIdentity({
       >
         {/* div, not span: `nameAs` may be a heading, which is flow content and
             cannot legally live inside a phrasing-content span. */}
-        <div className="flex items-center gap-1">
-          <NameTag className="truncate font-semibold text-foreground">
+        {/* min-w-0 here + shrink-0 on badge/chip: the NAME truncates; the
+            Shop chip never wraps to "S/ho/p" (design review 1.1.6, P1). */}
+        <div className="flex min-w-0 items-center gap-1">
+          <NameTag className="min-w-0 truncate font-semibold text-foreground">
             {name}
           </NameTag>
-          {verified && <VerifiedBadge />}
-          {variant === "shop" && <ShopChip />}
+          {verified && <VerifiedBadge className="shrink-0" />}
+          {variant === "shop" && <ShopChip className="shrink-0" />}
         </div>
         {subtitle && (
           <span className="truncate text-sm text-muted-foreground">
@@ -103,7 +105,7 @@ export function UserIdentity({
 
   if (href) {
     return (
-      <Link href={href} className="transition-opacity hover:opacity-80">
+      <Link href={href} className="block min-w-0 transition-opacity hover:opacity-80">
         {body}
       </Link>
     );

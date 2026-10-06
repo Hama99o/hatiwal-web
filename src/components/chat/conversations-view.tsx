@@ -35,6 +35,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { SellingAsPill } from "@/components/shops/selling-as-pill";
+import { ShopChip } from "@/components/shared/shop-chip";
 import type { Conversation } from "@/lib/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Logomark } from "@/components/layout/logo";
@@ -405,7 +406,13 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                           {support ? (
                             t("chat.support.headerNote")
                           ) : shopChat ? (
-                            <span data-testid={`conversation-shop-chat-${c.id}`}>{shopChat.name}</span>
+                            // The buyer's title already IS the shop: no second
+                            // name (design review 1.1.6, #4) — the Shop chip.
+                            shopFace ? (
+                              <ShopChip testId={`conversation-shop-chat-${c.id}`} />
+                            ) : (
+                              <span data-testid={`conversation-shop-chat-${c.id}`}>{shopChat.name}</span>
+                            )
                           ) : c.listing ? (
                             <HighlightedText
                               text={c.listing.title}

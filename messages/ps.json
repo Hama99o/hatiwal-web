@@ -1135,7 +1135,9 @@
       "keep": "پرېږدئ یې",
       "loadError": "د تایید حالت رانه شو.",
       "photosSent": "{count, plural, one {# انځور لېږل شوی} other {# انځورونه لېږل شوي}}",
-      "nameChanged": "ستاسو نوم بدل شو — بیا تایید یې کړئ"
+      "nameChanged": "ستاسو نوم بدل شو — بیا تایید یې کړئ",
+      "answerSoon": "معمولاً په ۲ ورځو کې ځواب درکوو.",
+      "photosDeleted": "ستاسو انځورونه له کتنې وروسته پاک شول، لکه څنګه چې مو ژمنه کړې وه."
     },
     "missing": {
       "email_confirmed": "خپل برېښنالیک تایید کړئ",
@@ -1143,7 +1145,7 @@
       "full_name": "خپل نوم او تخلص ولیکئ"
     },
     "steps": {
-      "progress": "ګام {step} له {total}",
+      "progress": "ګام {step, number} له {total, number}",
       "next": "مخته",
       "back": "شاته",
       "close": "بندول"
@@ -1226,7 +1228,7 @@
       "name": "په سند کې نوم",
       "edit": "سمول",
       "submit": "غوښتنه ولېږئ",
-      "sending": "لېږل کېږي… {percent}٪",
+      "sending": "لېږل کېږي… {percent, number}٪",
       "failed": "ونه لېږل شو. خپل انټرنېټ وګورئ او بیا هڅه وکړئ.",
       "alreadyRequested": "ستاسو یوه غوښتنه لا د کتنې لاندې ده.",
       "tooMany": "تاسو نن ۳ ځله هڅه کړې. مهرباني وکړئ سبا بیا هڅه وکړئ."
@@ -1301,7 +1303,7 @@
     "filter": "دوکانونه",
     "tabs": {
       "products": "توکي",
-      "productsCount": "توکي ({count})",
+      "productsCount": "توکي ({count, number})",
       "reviews": "نظرونه",
       "about": "په اړه"
     },
@@ -1336,7 +1338,7 @@
       "notFound": "دا دوکان نور نشته."
     },
     "form": {
-      "progress": "ګام {step} له {total}",
+      "progress": "ګام {step, number} له {total, number}",
       "next": "مخته",
       "back": "شاته",
       "close": "بندول",
@@ -1424,8 +1426,8 @@
         "share": "خپل دوکان شریک کړئ",
         "view": "زما دوکان ته لاړ شئ",
         "moveTitle": "اعلانونه دوکان ته یوسئ",
-        "moveButton": "{count} اعلانونه یوسئ",
-        "moved": "{count} اعلانونه ستاسو دوکان ته ولاړل",
+        "moveButton": "{count, number} اعلانونه یوسئ",
+        "moved": "{count, number} اعلانونه ستاسو دوکان ته ولاړل",
         "noListings": "تاسو د وړلو لپاره ژوندي اعلانونه نه لرئ."
       }
     },

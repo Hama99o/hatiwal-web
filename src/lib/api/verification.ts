@@ -25,6 +25,8 @@ export interface VerificationRequestSummary {
   nameOnDocument: string | null;
   documentLast4: string | null;
   filesCount: number;
+  /** The photos were deleted after the 90-day retention (api). */
+  filesPurged?: boolean;
   reasonCode: string | null;
   createdAt: string;
   decidedAt: string | null;

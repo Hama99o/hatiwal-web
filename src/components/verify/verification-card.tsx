@@ -96,13 +96,14 @@ export function VerificationCard() {
           <Hourglass className="size-5 text-warning" />,
           t("card.requested", { date: formatDate(request?.createdAt, locale) }),
         )}
-        <p className="text-sm text-muted-foreground">
-          {t("underReview")}
-          {request ? ` · ${t("card.photosSent", { count: request.filesCount })}` : ""}
-        </p>
+        {/* "Under review" is the title only; the body says what happens next
+            and the photo count gets its own line (design review 1.1.6, #8). */}
+        <p className="text-sm text-muted-foreground" data-testid="verify-card-answer-soon">{t("card.answerSoon")}</p>
+        {request ? <p className="text-sm text-muted-foreground">{t("card.photosSent", { count: request.filesCount })}</p> : null}
         {request && (
           <>
-            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setConfirmCancel(true)} data-testid="verify-cancel">
+            {/* #9: a real button, full width on the text edge, 44px. */}
+            <Button variant="outline" className="min-h-11 w-full text-destructive" onClick={() => setConfirmCancel(true)} data-testid="verify-cancel">
               {t("card.cancel")}
             </Button>
             <ConfirmDialog
@@ -191,9 +192,19 @@ export function VerificationCard() {
     );
   }
 
+  // #10 (owner): after the 90-day purge the card keeps the REAL decision and
+  // says the photos are gone (request.files_purged, api; `request` is only
+  // sent for requested / rejected / revoked).
+  const purged = data.request?.filesPurged === true;
+
   return (
     <section className={shell} data-testid="verify-card">
       {body}
+      {purged && (
+        <p className="text-sm text-muted-foreground" data-testid="verify-card-photos-deleted">
+          {t("card.photosDeleted")}
+        </p>
+      )}
     </section>
   );
 }

@@ -74,7 +74,7 @@ export function ShopEntryCard() {
               </span>
               {subtitle && (
                 <span
-                  className={`block truncate text-sm ${card.status === "suspended" ? "text-destructive" : "text-muted-foreground"}`}
+                  className={`block text-sm ${card.status === "suspended" ? "line-clamp-2 text-destructive" : "truncate text-muted-foreground"}`}
                   data-testid={`profile-my-shop-status-${card.status}`}
                 >
                   {subtitle}

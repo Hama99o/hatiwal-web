@@ -1197,7 +1197,7 @@ function route(req, res, method, path, q, body, raw = "") {
         name_changed: false,
         request: {
           id: 901, status: "requested", document_type: docType, name_on_document: "Ahmad Karimi",
-          document_last4: last4, files_count: (needsBack ? 3 : 2) + (forShop ? 1 : 0), reason_code: null,
+          document_last4: last4, files_count: (needsBack ? 3 : 2) + (forShop ? 1 : 0), files_purged: false, reason_code: null,
           created_at: "2026-10-05T10:00:00Z", decided_at: null,
         },
       },

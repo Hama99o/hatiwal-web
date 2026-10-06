@@ -1135,7 +1135,9 @@
       "keep": "نگه دارید",
       "loadError": "وضعیت تایید بارگیری نشد.",
       "photosSent": "{count, plural, one {# عکس ارسال شد} other {# عکس ارسال شد}}",
-      "nameChanged": "نام شما تغییر کرد — دوباره تایید بگیرید"
+      "nameChanged": "نام شما تغییر کرد — دوباره تایید بگیرید",
+      "answerSoon": "معمولاً ظرف ۲ روز پاسخ می‌دهیم.",
+      "photosDeleted": "عکس‌های شما پس از بررسی حذف شدند، همان‌طور که قول داده بودیم."
     },
     "missing": {
       "email_confirmed": "ایمیل خود را تایید کنید",
@@ -1143,7 +1145,7 @@
       "full_name": "نام و تخلص خود را بنویسید"
     },
     "steps": {
-      "progress": "مرحله {step} از {total}",
+      "progress": "مرحله {step, number} از {total, number}",
       "next": "ادامه",
       "back": "بازگشت",
       "close": "بستن"
@@ -1226,7 +1228,7 @@
       "name": "نام در سند",
       "edit": "ویرایش",
       "submit": "ارسال درخواست",
-      "sending": "در حال ارسال… {percent}٪",
+      "sending": "در حال ارسال… {percent, number}٪",
       "failed": "ارسال نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.",
       "alreadyRequested": "یک درخواست شما هنوز در حال بررسی است.",
       "tooMany": "امروز ۳ بار تلاش کرده‌اید. لطفاً فردا دوباره تلاش کنید."
@@ -1301,7 +1303,7 @@
     "filter": "دوکان‌ها",
     "tabs": {
       "products": "محصولات",
-      "productsCount": "محصولات ({count})",
+      "productsCount": "محصولات ({count, number})",
       "reviews": "نظرها",
       "about": "درباره"
     },
@@ -1336,7 +1338,7 @@
       "notFound": "این دوکان دیگر وجود ندارد."
     },
     "form": {
-      "progress": "مرحله {step} از {total}",
+      "progress": "مرحله {step, number} از {total, number}",
       "next": "ادامه",
       "back": "بازگشت",
       "close": "بستن",
@@ -1424,8 +1426,8 @@
         "share": "دوکان خود را به اشتراک بگذارید",
         "view": "رفتن به دوکان من",
         "moveTitle": "انتقال آگهی‌ها به دوکان",
-        "moveButton": "انتقال {count} آگهی",
-        "moved": "{count} آگهی به دوکان شما منتقل شد",
+        "moveButton": "انتقال {count, number} آگهی",
+        "moved": "{count, number} آگهی به دوکان شما منتقل شد",
         "noListings": "آگهی فعالی برای انتقال ندارید."
       }
     },

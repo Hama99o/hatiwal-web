@@ -200,7 +200,7 @@ export function TeamView({ shopId }: { shopId: number }) {
               </span>
               {m.role !== "owner" && m.user.id !== user?.id && (canChangeRole || canRemoveMember(role, m.role)) && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger aria-label={tc("actions")} data-testid={`team-member-menu-${m.user.id}`} className="flex size-9 items-center justify-center rounded-full hover:bg-accent">
+                  <DropdownMenuTrigger aria-label={tc("actions")} data-testid={`team-member-menu-${m.user.id}`} className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-accent">
                     <MoreHorizontal className="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -260,7 +260,7 @@ export function TeamView({ shopId }: { shopId: number }) {
                     </span>
                   </span>
                   <DropdownMenu>
-                    <DropdownMenuTrigger aria-label={tc("actions")} data-testid={`team-invite-menu-${i.id}`} className="flex size-9 items-center justify-center rounded-full hover:bg-accent">
+                    <DropdownMenuTrigger aria-label={tc("actions")} data-testid={`team-invite-menu-${i.id}`} className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-accent">
                       <MoreHorizontal className="size-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">

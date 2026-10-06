@@ -1135,7 +1135,9 @@
       "keep": "Keep it",
       "loadError": "Couldn't load your verification status.",
       "photosSent": "{count, plural, one {# photo sent} other {# photos sent}}",
-      "nameChanged": "Your name changed — verify again"
+      "nameChanged": "Your name changed — verify again",
+      "answerSoon": "We usually answer within 2 days.",
+      "photosDeleted": "Your photos were deleted after the check, as promised."
     },
     "missing": {
       "email_confirmed": "Confirm your email address",
@@ -1143,7 +1145,7 @@
       "full_name": "Add your first and last name"
     },
     "steps": {
-      "progress": "Step {step} of {total}",
+      "progress": "Step {step, number} of {total, number}",
       "next": "Continue",
       "back": "Back",
       "close": "Close"
@@ -1226,7 +1228,7 @@
       "name": "Name on document",
       "edit": "Edit",
       "submit": "Send request",
-      "sending": "Sending… {percent}%",
+      "sending": "Sending… {percent, number}%",
       "failed": "Couldn't send. Check your connection and try again.",
       "alreadyRequested": "You already have a request under review.",
       "tooMany": "You've tried 3 times today. Please try again tomorrow."
@@ -1301,7 +1303,7 @@
     "filter": "Shops",
     "tabs": {
       "products": "Products",
-      "productsCount": "Products ({count})",
+      "productsCount": "Products ({count, number})",
       "reviews": "Reviews",
       "about": "About"
     },
@@ -1336,7 +1338,7 @@
       "notFound": "This shop doesn't exist any more."
     },
     "form": {
-      "progress": "Step {step} of {total}",
+      "progress": "Step {step, number} of {total, number}",
       "next": "Continue",
       "back": "Back",
       "close": "Close",
@@ -1424,8 +1426,8 @@
         "share": "Share your shop",
         "view": "Go to my shop",
         "moveTitle": "Move listings to the shop",
-        "moveButton": "Move {count} listings",
-        "moved": "{count} listings moved to your shop",
+        "moveButton": "Move {count, number} listings",
+        "moved": "{count, number} listings moved to your shop",
         "noListings": "You have no live listings to move."
       }
     },
