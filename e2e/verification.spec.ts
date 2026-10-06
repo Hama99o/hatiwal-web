@@ -33,7 +33,7 @@ test.describe("Get verified (signed in, eligible)", () => {
     await expect(page.getByRole("radio")).toHaveCount(1);
     await page.getByTestId("verify-next").click();
 
-    await expect(page.getByText("Only the Hatiwal team sees this. We delete it after the check.")).toBeVisible();
+    await expect(page.getByText("Only the Hatiwal team sees this. Photos are deleted 90 days after the check; your document number is kept encrypted.")).toBeVisible();
     await page.getByTestId("verify-next").click();
 
     await addPhoto(page); // front
