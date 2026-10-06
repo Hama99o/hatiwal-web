@@ -992,6 +992,21 @@ function route(req, res, method, path, q, body, raw = "") {
   }
 
   // SHOP-1: the public shop page; unknown ids are 404 like Rails.
+  // The shop's own reviews (public; same objects as /users/:id/reviews): 2 for
+  // shop 42, none for any other shop. Never the owner's personal reviews.
+  const shopReviewsMatch = path.match(/^\/shops\/(\d+)\/reviews$/);
+  if (method === "GET" && shopReviewsMatch) {
+    const items = shopReviewsMatch[1] === "42" ? [
+      { id: 701, rating: 5, comment: "Original perfume, the shop was easy to find.", role: "of_seller", visible: true,
+        revealed_at: "2026-10-02T10:00:00Z", created_at: "2026-10-01T09:00:00Z", transaction_id: 801, reviewee_id: 2,
+        reviewer: { id: 3, name: "Mariam Hashimi", avatar_url: null } },
+      { id: 702, rating: 4, comment: "Good price, quick answers.", role: "of_seller", visible: true,
+        revealed_at: "2026-10-03T10:00:00Z", created_at: "2026-10-02T09:00:00Z", transaction_id: 802, reviewee_id: 2,
+        reviewer: { id: 4, name: "Karim Jan", avatar_url: null } },
+    ] : [];
+    const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
+    return send(res, 200, { reviews: slice, meta: { pagination } });
+  }
   const shopMatch = path.match(/^\/shops\/(\d+)$/);
   if (method === "GET" && shopMatch) {
     return shopMatch[1] === "42" ? send(res, 200, { shop: SHOP_42 }) : send(res, 404, { error: "Not found" });

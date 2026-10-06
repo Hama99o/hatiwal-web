@@ -33,6 +33,21 @@ export async function getUserReviews(
 }
 
 /**
+ * A SHOP's reviews (public): the reviews of its sales, never the owner's
+ * personal ones. `GET /shops/:id/reviews` answers the same review objects as
+ * /users/:id/reviews.
+ */
+export async function getShopReviews(
+  shopId: number | string,
+  opts: { page?: number; pageSize?: number } = {},
+): Promise<ReviewsResult> {
+  const data = await apiGet<ReviewsEnvelope>(`shops/${shopId}/reviews`, {
+    params: { "page[number]": opts.page, "page[size]": opts.pageSize },
+  });
+  return { items: data.reviews, pagination: data.meta.pagination };
+}
+
+/**
  * Leave a review on a sold transaction (authed — routed through the /api/me
  * proxy). The review is created HIDDEN and revealed once both parties rate
  * each other (or after 14 days). Backend infers the reviewer's role, so only

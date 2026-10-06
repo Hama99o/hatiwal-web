@@ -13,12 +13,15 @@ export function ReviewCard({ review }: { review: Review }) {
   const locale = useLocale();
 
   return (
-    <article className="rounded-lg border bg-card p-4 text-card-foreground">
+    <article className="rounded-lg border bg-card p-4 text-card-foreground" data-testid="review-card">
       <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 + flex-1: a long reviewer name truncates instead of
+            pushing the date past the card's edge (mobile had the same bug). */}
         <UserIdentity
           name={review.reviewer.name}
           avatarUrl={review.reviewer.avatarUrl}
           size={36}
+          className="min-w-0 flex-1"
         />
         {/* `formatDate`, not `useFormatter().dateTime`: next-intl formats with
             the raw routing tag, and V8 ships no `ps` data — so every review date
@@ -27,7 +30,8 @@ export function ReviewCard({ review }: { review: Review }) {
             `Intl.DateTimeFormat` gap `src/i18n/intl-locale-alias.ts` documents
             as belonging to `format.ts`. */}
         <time
-          className="shrink-0 text-xs text-muted-foreground"
+          className="shrink-0 whitespace-nowrap text-xs text-muted-foreground"
+          data-testid="review-date"
           dateTime={review.createdAt}
         >
           {formatDate(review.createdAt, locale)}

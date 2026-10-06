@@ -18,7 +18,7 @@ import { ShareButton } from "@/components/shared/share-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListingGrid, ListingGridSkeleton } from "@/components/shared/listing-grid";
 import { RemoteImage } from "@/components/shared/remote-image";
-import { ReviewsSection } from "@/components/seller/reviews-section";
+import { ShopReviews } from "@/components/shops/shop-reviews";
 import { LocationMap } from "@/components/map/location-map";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
@@ -247,7 +247,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
             />
           ))}
 
-        {tab === "reviews" && <ReviewsSection sellerId={shop.owner.id} headingSize="sm" title={t("tabs.reviews")} />}
+        {tab === "reviews" && <ShopReviews shopId={shop.id} />}
 
         {tab === "about" && (
           <div className="space-y-6" data-testid="shop-page-about">
