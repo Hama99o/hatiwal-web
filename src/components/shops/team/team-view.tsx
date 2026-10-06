@@ -80,10 +80,11 @@ export function TeamView({ shopId }: { shopId: number }) {
       if (navigator.share) await navigator.share({ title: shop?.name, text, url: invite.url });
       else {
         await navigator.clipboard.writeText(invite.url);
-        toast.success(t("team.copied"));
+        toast.success(t("team.linkCopied"));
       }
-    } catch {
-      /* the share sheet was dismissed */
+    } catch (err) {
+      // Dismissing the share sheet is not a failure; anything else is.
+      if ((err as Error)?.name !== "AbortError") toast.error(t("team.shareFailed"));
     }
   };
 
@@ -332,10 +333,10 @@ export function TeamView({ shopId }: { shopId: number }) {
                   <span className="min-w-0 flex-1 truncate" dir="ltr">{sent.url}</span>
                   <button
                     type="button"
-                    aria-label={t("team.copy")}
+                    aria-label={t("team.copyLink")}
                     onClick={async () => {
                       await navigator.clipboard?.writeText(sent.url).catch(() => null);
-                      toast.success(t("team.copied"));
+                      toast.success(t("team.linkCopied"));
                     }}
                   >
                     <Copy className="size-4" />

@@ -1510,8 +1510,6 @@
         "cannot_transfer_to_self": "You already own this shop.",
         "verification_pending": "A Verified request is waiting. Cancel it first, then hand the shop over."
       },
-      "copy": "Copy link",
-      "copied": "Link copied",
       "expiresIn": "{count, plural, one {expires in # day} other {expires in # days}}",
       "resend": "Send again",
       "resent": "Invite sent again",
@@ -1524,7 +1522,10 @@
       "transferBody": "{name} will own the shop and you become a Manager. A Verified badge is removed: the new owner applies again with their own e-Tazkira. Only the new owner can give it back to you.",
       "transferConfirm": "Make owner",
       "roleChanged": "{name} is now {role}",
-      "transferred": "{name} is now the owner"
+      "transferred": "{name} is now the owner",
+      "copyLink": "Copy link",
+      "linkCopied": "Link copied",
+      "shareFailed": "Couldn't share the link. Try again or copy it."
     }
   }
 }

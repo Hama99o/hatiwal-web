@@ -92,6 +92,8 @@ test.describe("Invite (T2, T3)", () => {
     await page.getByTestId("invite-share-link").click();
     await expect(page.getByTestId("invite-sent")).toBeVisible();
     await expect(page.getByTestId("invite-url")).toContainText("https://hatiwal.com/join/qa-team-new");
+    await page.getByRole("button", { name: "Copy link" }).click();
+    await expect(page.getByText("Link copied")).toBeVisible();
     await page.getByTestId("invite-another").click();
     await page.getByTestId("invite-by-contact").click();
     await page.getByTestId("invite-contact-input").fill("ali@example.com");
@@ -397,5 +399,35 @@ test.describe("Replied by (1.1.6)", () => {
     await page.goto("/en/conversations/1");
     await expect(page.getByText("Shop reply")).toBeVisible();
     await expect(page.getByTestId("message-replied-by")).toHaveCount(0);
+  });
+});
+
+test.describe("Dialogs stay above the on-screen keyboard (iOS Safari)", () => {
+  test.use({ storageState: BUYER_STATE, viewport: { width: 375, height: 667 } });
+
+  /**
+   * Playwright can't open a real keyboard, so this shrinks window.visualViewport
+   * the way iOS does (the layout viewport stays 667 high) and fires its resize.
+   * The Dialog primitive sizes its overlay to the visual viewport, so Send must
+   * stay inside the visible part.
+   */
+  test("invite by email: the input and Send stay in the visible viewport", async ({ page }) => {
+    await asMember(page, "owner");
+    await page.goto("/en/shops/42/team");
+    await page.getByTestId("team-invite").click();
+    await page.getByTestId("invite-by-contact").click();
+    await page.getByTestId("invite-contact-input").fill("not-an-email");
+    const KEYBOARD_FREE = 667 - 300;
+    await page.evaluate((h) => {
+      const vv = window.visualViewport!;
+      Object.defineProperty(vv, "height", { configurable: true, get: () => h });
+      Object.defineProperty(vv, "offsetTop", { configurable: true, get: () => 0 });
+      vv.dispatchEvent(new Event("resize"));
+    }, KEYBOARD_FREE);
+    for (const el of [page.getByTestId("invite-contact-input"), page.getByText("Enter a valid email"), page.getByTestId("invite-send")]) {
+      const box = (await el.boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.y + box.height).toBeLessThanOrEqual(KEYBOARD_FREE);
+    }
   });
 });

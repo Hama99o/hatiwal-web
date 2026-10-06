@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,13 @@ const FOCUSABLE =
  * message/offer dialogs. React still owns the subtree, so state, context (auth,
  * next-intl, React Query) and event bubbling are unaffected; only the DOM
  * position changes.
+ *
+ * KEYBOARD (iOS Safari): `position: fixed; inset: 0` is the LAYOUT viewport,
+ * which does not shrink when the on-screen keyboard opens, so a centred card
+ * with an input (invite by email, report, offer, review…) sat under the
+ * keyboard. While open, the overlay is sized to `window.visualViewport` (the
+ * part actually visible) and the card scrolls inside it, so the input, its
+ * error and the action button stay on screen.
  */
 export function Dialog({
   open,
@@ -58,6 +65,20 @@ export function Dialog({
   closeRef.current = onClose;
   const dismissRef = useRef(dismissible);
   dismissRef.current = dismissible;
+  const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!open || !vv) return;
+    const sync = () => setViewport({ top: vv.offsetTop, height: vv.height });
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -109,7 +130,11 @@ export function Dialog({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-x-0 top-0 z-50 flex h-dvh items-center justify-center p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
+      data-testid="dialog-viewport"
+    >
       <div
         className="absolute inset-0 bg-black/50"
         onClick={() => dismissible && onClose()}
@@ -121,7 +146,7 @@ export function Dialog({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         className={cn(
-          "relative z-10 w-full rounded-lg border bg-card p-6 shadow-lg focus:outline-none",
+          "relative z-10 max-h-full w-full overflow-y-auto rounded-lg border bg-card p-6 shadow-lg focus:outline-none",
           className,
         )}
       >
