@@ -283,6 +283,16 @@ export function BrowseClient({
     // once that fetch settles. Guests keep the default (fresh) — their SSR feed
     // is already the right answer and must not trigger an extra round-trip.
     initialDataUpdatedAt: authed ? 0 : undefined,
+    // Same FILTERS, new viewer or new home (the session probe answering, then
+    // `me` placing home): keep the cards on screen while the personalised
+    // feed loads. The key used to change with no data, `isPending` swapped the
+    // grid for the skeleton, and every card unmounted a moment after load: a
+    // tap at that instant was lost, or landed on a node being destroyed (the
+    // responsive e2e's "Element is not attached"). Cards are keyed by listing
+    // id, so the new feed updates them in place. A FILTER change still shows
+    // the skeleton (its results are different, not reordered).
+    placeholderData: (previous, previousQuery) =>
+      previousQuery && JSON.stringify(previousQuery.queryKey[2]) === JSON.stringify(filters) ? previous : undefined,
   });
 
   // Flatten pages, de-duplicating by id: offset pagination can repeat a listing
