@@ -5,7 +5,9 @@ import { test, expect } from "@playwright/test";
  * sections render in Pashto, right-to-left, with the brand spelled هټیوال and
  * the facts that match what 1.1.6 ships (e-Tazkira only, a shop's proof of
  * business, photos deleted after 90 days, the number kept encrypted, buyers see
- * the shop and never the owner's personal details; no shop-team sentence).
+ * the shop and never the owner's personal details; the shop team: members
+ * answer the shop's chats, never see each other's personal chats, only the
+ * owner changes roles / transfers / closes; a shop chat includes the team).
  */
 test("the 1.1.6 sections render in ps (هټیوال)", async ({ page }) => {
   await page.goto("/ps/privacy");
@@ -19,6 +21,22 @@ test("the 1.1.6 sections render in ps (هټیوال)", async ({ page }) => {
   await expect(body).toContainText("برېښنايي تذکره");
   await expect(body).toContainText("۹۰");
   await expect(body).toContainText("د دوکان په چټونو کې پیرودونکي د دوکان نوم او لوګو ویني");
-  // The team (SHOP-3) is not in 1.1.6.
-  await expect(body).not.toContainText("ټیم");
+  // The team (SHOP-3, in 1.1.6): members, personal chats, owner-only actions.
+  await expect(body).toContainText("دوکان کولای شي ټیم ولري");
+  await expect(body).toContainText("غړي هېڅکله د یو بل شخصي چټونه نه ویني");
+  await expect(body).toContainText("یوازې مالک رولونه بدلولی");
+  // A shop chat is not "two people" any more.
+  await expect(body).toContainText("د دوکان ټول ټیم د دوکان په توګه حسابېږي");
+  // ID photos: Hatiwal's own reviewers, never a shop's team.
+  await expect(body).toContainText("هېڅکله د کوم دوکان ټیم نه");
+});
+
+test("the team and shop-chat facts read in en", async ({ page }) => {
+  await page.goto("/en/privacy");
+  const body = page.locator("main, body").first();
+  await expect(body).toContainText("A shop can have a team.");
+  await expect(body).toContainText("Members never see each other's personal chats");
+  await expect(body).toContainText("In a chat with a shop, the shop's whole team counts as the shop");
+  await expect(body).toContainText("Only Hatiwal's own reviewers can see your photos and number (never a shop's team)");
+  await expect(body).not.toContainText("private between the two people in a conversation");
 });
