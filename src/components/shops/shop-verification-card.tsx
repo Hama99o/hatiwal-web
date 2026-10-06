@@ -11,7 +11,15 @@ import { getVerificationStatus, shopVerificationQK, verificationReasonKey } from
 /** `readOnly` (SHOP-3 staff): the status, never the apply / try-again button. */
 export function ShopVerificationCard({ shopId, readOnly = false }: { shopId: number; readOnly?: boolean }) {
   const t = useTranslations("verify");
-  const { data } = useQuery({ queryKey: shopVerificationQK(shopId), queryFn: () => getVerificationStatus(`shop:${shopId}`) });
+  // Refetched on every mount: what's "missing" (a live product, the logo, the
+  // pin) changes on other screens — a product posted, published, moved or
+  // deleted — and the global 60 s staleTime kept a stale "Post at least 1
+  // product first" beside "Products (1)" (d8). One small GET per shop-page visit.
+  const { data } = useQuery({
+    queryKey: shopVerificationQK(shopId),
+    queryFn: () => getVerificationStatus(`shop:${shopId}`),
+    refetchOnMount: "always",
+  });
   if (!data || data.status === "verified") return null;
 
   const shell = "space-y-3 rounded-lg border bg-card p-4";
