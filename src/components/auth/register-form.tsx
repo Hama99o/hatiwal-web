@@ -23,11 +23,12 @@ export function RegisterForm() {
 
   // SHOP-3: a sign-up that started from a team invite (/signup?invite=<token>)
   // carries the token and lands back on that invite's Join page.
-  const [inviteToken] = useState(() => {
-    if (typeof window === "undefined") return null;
+  // Read after mount (not in render): the server render has no URL to read.
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("invite");
-    return isInviteToken(t) ? t : null;
-  });
+    if (isInviteToken(t)) setInviteToken(t);
+  }, []);
   useEffect(() => {
     if (status === "authed") router.replace(inviteToken ? `/join/${inviteToken}` : "/profile");
   }, [status, router, inviteToken]);
@@ -84,7 +85,7 @@ export function RegisterForm() {
       subtitle={t("auth.subtitle")}
       footerText={t("auth.hasAccount")}
       footerLinkLabel={t("auth.login")}
-      footerHref="/login"
+      footerHref={inviteToken ? `/login?next=${encodeURIComponent(`/join/${inviteToken}`)}` : "/login"}
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {formError && (

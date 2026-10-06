@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { RequireAuth } from "@/components/auth/require-auth";
+import { OwnerOnly } from "@/components/shops/team/owner-only";
 import { ShopVerifyFlow } from "@/components/shops/shop-verify-flow";
 
 // SHOP-1: apply for "Verified shop". Signed in (shop owner) only, not indexed.
@@ -15,7 +16,9 @@ export default async function ShopVerifyPage({ params }: { params: Promise<{ loc
   setRequestLocale(locale);
   return (
     <RequireAuth>
-      <ShopVerifyFlow shopId={Number(id)} />
+      <OwnerOnly shopId={Number(id)}>
+        <ShopVerifyFlow shopId={Number(id)} />
+      </OwnerOnly>
     </RequireAuth>
   );
 }

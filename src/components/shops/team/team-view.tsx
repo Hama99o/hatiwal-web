@@ -24,6 +24,8 @@ import {
   getShopMembers,
   leaveShop,
   removeShopMember,
+  resendShopInvite,
+  teamErrorCode,
   teamErrorKey,
   type ShopInvite,
   type ShopMember,
@@ -48,12 +50,13 @@ export function TeamView({ shopId }: { shopId: number }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState<ShopInvite | null>(null);
   const [removing, setRemoving] = useState<ShopMember | null>(null);
+  const [cancelling, setCancelling] = useState<ShopInvite | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [now] = useState(() => Date.now());
 
   const { data: shop } = useQuery({ queryKey: ["shop", shopId], queryFn: () => getMyShop(shopId) });
   const isOwner = shop?.role === "owner";
-  const { data: members, isPending, isError, refetch } = useQuery({ queryKey: ["shop-members", shopId], queryFn: () => getShopMembers(shopId) });
+  const { data: members, isPending, isError, error: membersError, refetch } = useQuery({ queryKey: ["shop-members", shopId], queryFn: () => getShopMembers(shopId) });
   const { data: invites } = useQuery({ queryKey: ["shop-invites", shopId], queryFn: () => getShopInvites(shopId), enabled: isOwner });
   const pending = (invites ?? []).filter((i) => i.status === "pending");
 
@@ -95,7 +98,22 @@ export function TeamView({ shopId }: { shopId: number }) {
     },
     onError: failed,
   });
-  const cancel = useMutation({ mutationFn: (id: number) => cancelShopInvite(shopId, id), onSuccess: reload, onError: failed });
+  const cancel = useMutation({
+    mutationFn: (id: number) => cancelShopInvite(shopId, id),
+    onSuccess: () => {
+      reload();
+      setCancelling(null);
+    },
+    onError: failed,
+  });
+  const resend = useMutation({
+    mutationFn: (id: number) => resendShopInvite(shopId, id),
+    onSuccess: () => {
+      reload();
+      toast.success(t("team.resent"));
+    },
+    onError: failed,
+  });
   const leave = useMutation({
     mutationFn: () => leaveShop(shopId),
     onSuccess: async () => {
@@ -106,7 +124,9 @@ export function TeamView({ shopId }: { shopId: number }) {
     onError: failed,
   });
 
-  if (shop && !shop.role) {
+  // Not (or no longer) a member: the shop says so, or the members list 403s
+  // (removed while this page was open).
+  if ((shop && !shop.role) || teamErrorCode(membersError) === "not_a_member") {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16" data-testid="team-not-member">
         <EmptyState icon={Users} title={t("team.errors.not_a_member")} action={{ label: t("team.join.toBazaar"), href: "/bazaar" }} />
@@ -180,7 +200,11 @@ export function TeamView({ shopId }: { shopId: number }) {
                     {i.email ? <Mail className="size-4 text-muted-foreground" /> : <Link2 className="size-4 text-muted-foreground" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate">{i.email ?? t("team.linkSent", { date: formatDate(i.createdAt, locale) })}</span>
+                    {i.email ? (
+                      <span className="block truncate" dir="ltr">{i.email}</span>
+                    ) : (
+                      <span className="block truncate">{t("team.linkSent", { date: formatDate(i.createdAt, locale) })}</span>
+                    )}
                     <span className="block text-sm text-muted-foreground">
                       {t(`roles.${i.role}`)} · {t("team.expiresIn", { count: days })}
                     </span>
@@ -190,10 +214,17 @@ export function TeamView({ shopId }: { shopId: number }) {
                       <MoreHorizontal className="size-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => shareInvite(i)} data-testid="invite-share">
-                        {t("team.shareAgain")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => cancel.mutate(i.id)} data-testid="invite-cancel" className="text-destructive">
+                      {i.email ? (
+                        // Bound to that address: re-notify it, never hand its link to someone else.
+                        <DropdownMenuItem onClick={() => resend.mutate(i.id)} data-testid="invite-resend">
+                          {t("team.resend")}
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => shareInvite(i)} data-testid="invite-share">
+                          {t("team.shareAgain")}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => setCancelling(i)} data-testid="invite-cancel" className="text-destructive">
                         {t("team.cancelInvite")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -236,7 +267,7 @@ export function TeamView({ shopId }: { shopId: number }) {
             >
               <h2 id={titleId} className="text-lg font-extrabold">{t("team.byEmail")}</h2>
               <p className="text-sm text-muted-foreground">{t("team.emailHint")}</p>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off" data-testid="invite-contact-input" />
+              <Input type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" aria-label={t("team.byEmail")} data-testid="invite-contact-input" />
               {email.length > 3 && !EMAIL.test(email.trim()) && <p className="text-sm text-destructive">{t("team.emailInvalid")}</p>}
               <Button type="submit" className="w-full" disabled={create.isPending || !EMAIL.test(email.trim())} data-testid="invite-send">
                 <Send className="size-4" /> {t("team.send")}
@@ -262,9 +293,11 @@ export function TeamView({ shopId }: { shopId: number }) {
                   </button>
                 </div>
               )}
-              <Button className="w-full" onClick={() => shareInvite(sent)} data-testid="invite-share-again">
-                {t("team.shareAgain")}
-              </Button>
+              {!sent.email && (
+                <Button className="w-full" onClick={() => shareInvite(sent)} data-testid="invite-share-again">
+                  {t("team.shareAgain")}
+                </Button>
+              )}
               <Button variant="outline" className="w-full" onClick={() => setSheet("invite")} data-testid="invite-another">
                 {t("team.inviteAnother")}
               </Button>
@@ -283,6 +316,17 @@ export function TeamView({ shopId }: { shopId: number }) {
         loading={remove.isPending}
         onConfirm={() => removing && remove.mutate(removing.user.id)}
         onCancel={() => setRemoving(null)}
+      />
+      <ConfirmDialog
+        open={cancelling !== null}
+        title={t("team.cancelTitle")}
+        description={t("team.cancelBody")}
+        confirmLabel={t("team.cancelInvite")}
+        cancelLabel={tc("cancel")}
+        destructive
+        loading={cancel.isPending}
+        onConfirm={() => cancelling && cancel.mutate(cancelling.id)}
+        onCancel={() => setCancelling(null)}
       />
       <ConfirmDialog
         open={leaving}

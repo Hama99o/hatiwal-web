@@ -146,3 +146,98 @@ test.describe("Join (T4, T5, T6)", () => {
     });
   });
 });
+
+test.describe("d8 review: the fixes, each reproduced", () => {
+  test("HIGH: a failed load (5xx / offline) offers a retry, never the 'expired' page", async ({ page }) => {
+    let fail = true;
+    await page.route("**/api/proxy/shop_invites/qa-team-link", (route) =>
+      fail ? route.fulfill({ status: 503, json: { errors: ["Upstream request failed"] } }) : route.continue(),
+    );
+    await page.goto("/en/join/qa-team-link");
+    await expect(page.getByTestId("join-load-error")).toBeVisible();
+    await expect(page.getByTestId("join-error-invite_expired")).toHaveCount(0);
+    fail = false;
+    await page.getByTestId("join-retry").click();
+    await expect(page.getByTestId("join-screen")).toBeVisible();
+  });
+
+  test("a guest signs up from the invite and lands back on it, signed in (invite_token sent)", async ({ page }) => {
+    await page.goto("/en/join/qa-team-link");
+    await page.getByTestId("join-signup").click();
+    await expect(page).toHaveURL(/\/en\/signup\?invite=qa-team-link$/);
+    // Switching to log-in keeps the invite.
+    // The form footer's Login link (the header has one too).
+    await expect(page.getByRole("link", { name: "Login" }).last()).toHaveAttribute("href", /next=%2Fjoin%2Fqa-team-link/);
+    await page.locator("#firstname").fill("Nawid");
+    await page.locator("#lastname").fill("Newbie");
+    await page.locator("#email").fill("newbie@hatiwal.test");
+    await page.locator("#password").fill("Password123!");
+    await page.locator("#passwordConfirmation").fill("Password123!");
+    const signup = page.waitForRequest((r) => r.url().includes("/api/auth/register") && r.method() === "POST");
+    await page.locator("form button[type=submit]").click();
+    expect((await signup).postDataJSON()).toMatchObject({ inviteToken: "qa-team-link" });
+    await expect(page).toHaveURL(/\/en\/join\/qa-team-link$/);
+    await expect(page.getByTestId("join-accept")).toBeVisible();
+  });
+
+  test.describe("signed in", () => {
+    test.use({ storageState: BUYER_STATE });
+
+    test("an email invite whose address isn't confirmed says so (invite_email_unconfirmed)", async ({ page }) => {
+      await page.goto("/en/join/qa-team-unconfirmed");
+      await page.getByTestId("join-accept").click();
+      await expect(page.getByTestId("join-error-invite_email_unconfirmed")).toContainText("Confirm your email first");
+    });
+
+    test("staff opening the shop's edit / verify pages by URL are told it's the owner's", async ({ page }) => {
+      await asMember(page, "staff");
+      await page.goto("/en/shops/42/edit");
+      await expect(page.getByTestId("owner-only")).toContainText("Only the shop's owner can do that");
+      await page.goto("/en/shops/42/verify");
+      await expect(page.getByTestId("owner-only")).toBeVisible();
+    });
+
+    test("cancelling an invite asks first, and calls DELETE only after confirming", async ({ page }) => {
+      await asMember(page, "owner");
+      await page.goto("/en/shops/42/team");
+      let deleted = false;
+      page.on("request", (r) => {
+        if (r.url().includes("/api/me/shops/42/invites/31") && r.method() === "DELETE") deleted = true;
+      });
+      await page.getByTestId("team-invite-menu-31").click();
+      await page.getByTestId("invite-cancel").click();
+      await expect(page.getByRole("heading", { name: "Cancel this invite?" })).toBeVisible();
+      expect(deleted).toBe(false);
+      await page.getByRole("button", { name: "Cancel invite" }).click();
+      await expect.poll(() => deleted).toBe(true);
+    });
+
+    test("a LINK invite offers Share again, never Resend (link_invite)", async ({ page }) => {
+      await asMember(page, "owner");
+      await page.goto("/en/shops/42/team");
+      await page.getByTestId("team-invite-menu-31").click();
+      await expect(page.getByTestId("invite-share")).toBeVisible();
+      await expect(page.getByTestId("invite-resend")).toHaveCount(0);
+    });
+
+    test("a full team / too many invites are refused in words", async ({ page }) => {
+      await asMember(page, "owner");
+      await page.goto("/en/shops/42/team");
+      await page.getByTestId("team-invite").click();
+      await page.getByTestId("invite-by-contact").click();
+      await page.getByTestId("invite-contact-input").fill("full@hatiwal.test");
+      await page.getByTestId("invite-send").click();
+      await expect(page.getByText("The team is full (20 people)")).toBeVisible();
+      await page.getByTestId("invite-contact-input").fill("many@hatiwal.test");
+      await page.getByTestId("invite-send").click();
+      await expect(page.getByText("Too many invites today. Try again tomorrow.")).toBeVisible();
+    });
+
+    test("a member removed while the Team page is open sees the not-member page", async ({ page }) => {
+      await withSessionUser(page, { sellerMode: true, shops: [shopEntry(43, "Old Shop", "active", "staff")] });
+      await page.goto("/en/shops/43/team");
+      await expect(page.getByTestId("team-not-member")).toBeVisible();
+    });
+  });
+});
+

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, CircleSlash, PartyPopper, Store } from "lucide-react";
+import { Check, CircleSlash, PartyPopper, Store, WifiOff } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
@@ -42,13 +42,13 @@ export function JoinView({ token }: { token: string }) {
   const t = useTranslations("shops");
   const router = useRouter();
   const qc = useQueryClient();
-  const { user, status, refresh } = useAuth();
+  const { user, status, setUser } = useAuth();
   const { switchTo } = useSellingIdentity();
   const [refusal, setRefusal] = useState<TeamErrorCode | null>(null);
   const [joined, setJoined] = useState(false);
   const authed = status === "authed";
 
-  const { data: invite, isPending, error } = useQuery({
+  const { data: invite, isPending, error, refetch, isRefetching } = useQuery({
     queryKey: ["shop-invite", token],
     queryFn: () => getPublicInvite(token),
     retry: (count, err) => count < 2 && !(err instanceof ApiError),
@@ -56,10 +56,13 @@ export function JoinView({ token }: { token: string }) {
 
   const accept = useMutation({
     mutationFn: () => acceptShopInvite(token),
-    onSuccess: async () => {
-      await refresh();
-      qc.invalidateQueries({ queryKey: ["my-shops"] });
+    // The accept answer carries the fresh `me`: set it together with "joined",
+    // so the page never flashes "already in this shop" in between (no second
+    // /users/me round trip).
+    onSuccess: ({ me }) => {
       setJoined(true);
+      if (me) setUser(me);
+      qc.invalidateQueries({ queryKey: ["my-shops"] });
     },
     onError: (err) => {
       const code = teamErrorCode(err);
@@ -84,6 +87,21 @@ export function JoinView({ token }: { token: string }) {
         <Skeleton className="size-22 rounded-2xl" />
         <Skeleton className="h-6 w-2/3" />
         <Skeleton className="h-4 w-1/2" />
+      </div>,
+    );
+  }
+
+  // A failure that says nothing about the invite (offline, 5xx, 429) can be
+  // retried; only "not found" reads like an expired invite.
+  const httpStatus = error instanceof ApiError ? error.status : 0;
+  if (error && !teamErrorCode(error) && httpStatus !== 404 && httpStatus !== 410) {
+    return shell(
+      <div className="flex flex-col items-center gap-4" data-testid="join-load-error">
+        <WifiOff className="size-9 text-muted-foreground" />
+        <h1 className="text-lg font-bold">{t("team.join.loadError")}</h1>
+        <Button onClick={() => refetch()} disabled={isRefetching} data-testid="join-retry">
+          {t("states.retry")}
+        </Button>
       </div>,
     );
   }

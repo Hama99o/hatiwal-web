@@ -1,4 +1,6 @@
-import { apiGet, ApiError } from "./client";
+import { ApiError, readApiError } from "./client";
+import { convertKeysToCamel } from "./case";
+import { PROXY_BASE } from "@/lib/env";
 import { meRequest } from "./me";
 import type { ShopCard, User } from "@/lib/types";
 
@@ -68,9 +70,23 @@ export async function cancelShopInvite(shopId: number, inviteId: number): Promis
   await meRequest(`shops/${shopId}/invites/${inviteId}`, { method: "DELETE" });
 }
 
-/** Public: works for a guest (no proxy). */
+/** Email invites only (they are bound to their address); a link invite → 422 link_invite. */
+export async function resendShopInvite(shopId: number, inviteId: number): Promise<ShopInvite> {
+  return (await meRequest<{ shopInvite: ShopInvite }>(`shops/${shopId}/invites/${inviteId}/resend`, { method: "POST", json: {} })).shopInvite;
+}
+
+/**
+ * Public: works for a guest (the public GET proxy). Read by hand rather than
+ * apiGet, which drops the error body: the Join page must tell "no such
+ * invite" (404 → expired) from "couldn't load it" (offline / 5xx / 429 → retry).
+ */
 export async function getPublicInvite(token: string): Promise<PublicInvite> {
-  return (await apiGet<{ shopInvite: PublicInvite }>(`shop_invites/${encodeURIComponent(token)}`)).shopInvite;
+  const res = await fetch(`${PROXY_BASE}/shop_invites/${encodeURIComponent(token)}`, { headers: { Accept: "application/json" }, cache: "no-store" });
+  if (!res.ok) {
+    const { errors, code, details } = await readApiError(res);
+    throw new ApiError(res.status, `GET shop_invites ${res.status}`, errors, code, details);
+  }
+  return convertKeysToCamel<{ shopInvite: PublicInvite }>(await res.json()).shopInvite;
 }
 
 export async function acceptShopInvite(token: string): Promise<{ me: User }> {
@@ -86,6 +102,8 @@ export const TEAM_ERROR_CODES = [
   "invite_used",
   "invite_cancelled",
   "invite_wrong_account",
+  "invite_email_unconfirmed",
+  "link_invite",
   "not_a_member",
   "forbidden",
   "already_member",
@@ -103,6 +121,7 @@ export const JOIN_PAGE_CODES: TeamErrorCode[] = [
   "invite_used",
   "invite_cancelled",
   "invite_wrong_account",
+  "invite_email_unconfirmed",
   "already_member",
   "shop_unavailable",
 ];

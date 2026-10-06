@@ -1435,7 +1435,8 @@
     },
     "roles": {
       "owner": "Owner",
-      "staff": "Staff"
+      "staff": "Staff",
+      "manager": "Manager"
     },
     "team": {
       "title": "Team",
@@ -1484,7 +1485,8 @@
         "doneTitle": "You're in {shop}",
         "startSelling": "Start selling as {shop}",
         "openShop": "Open the shop",
-        "toBazaar": "Go to the Bazaar"
+        "toBazaar": "Go to the Bazaar",
+        "loadError": "Couldn't open this invite."
       },
       "errors": {
         "invite_expired": "This invite has expired",
@@ -1499,11 +1501,17 @@
         "owner_cannot_leave": "The owner can't leave the shop",
         "team_full": "The team is full (20 people)",
         "too_many_invites": "Too many invites today. Try again tomorrow.",
-        "generic": "Something went wrong. Try again."
+        "generic": "Something went wrong. Try again.",
+        "invite_email_unconfirmed": "Confirm your email first, then open this invite again",
+        "link_invite": "This is a link invite: share the link again instead."
       },
       "copy": "Copy link",
       "copied": "Link copied",
-      "expiresIn": "{count, plural, one {expires in # day} other {expires in # days}}"
+      "expiresIn": "{count, plural, one {expires in # day} other {expires in # days}}",
+      "resend": "Send again",
+      "resent": "Invite sent again",
+      "cancelTitle": "Cancel this invite?",
+      "cancelBody": "The link stops working."
     }
   }
 }

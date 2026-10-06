@@ -123,6 +123,7 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^shops\/\d+\/invites$/],
   ["POST", /^shops\/\d+\/invites$/],
   ["DELETE", /^shops\/\d+\/invites\/\d+$/],
+  ["POST", /^shops\/\d+\/invites\/\d+\/resend$/],
   ["POST", /^shop_invites\/[A-Za-z0-9_-]+\/(accept|decline)$/],
 ];
 
