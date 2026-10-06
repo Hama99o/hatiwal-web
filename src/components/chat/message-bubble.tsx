@@ -32,9 +32,12 @@ export function MessageBubble({
   onCounter,
   onDelete,
   highlight,
+  viewerId,
 }: {
   message: Message;
   mine: boolean;
+  /** The signed-in user: "Replied by" is shown for a TEAMMATE's message only. */
+  viewerId?: number | null;
   responded: boolean;
   onRespond: (kind: RespondKind, respondsToId: number) => void;
   /**
@@ -340,6 +343,12 @@ export function MessageBubble({
             mutedMeta,
           )}
         >
+          {/* SHOP-3: which teammate wrote it. Only members get sentBy. */}
+          {m.sentBy && m.sentBy.id !== viewerId && (
+            <span className="min-w-0 truncate" data-testid="message-replied-by">
+              {t("chat.repliedBy", { name: m.sentBy.name })} ·
+            </span>
+          )}
           <span className="whitespace-nowrap tabular-nums">
             {formatTime(m.createdAt, locale)}
           </span>

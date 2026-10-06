@@ -810,12 +810,16 @@ export function ConversationThread({ id }: { id: string }) {
                 )}
                 <MessageBubble
                   message={m}
-                  mine={m.sender.id === me}
+                  // SHOP-3: a teammate's message (only members get sentBy)
+                  // sits on the team's side, like the viewer's own.
+                  mine={m.sender.id === me || !!m.sentBy}
+                  viewerId={me}
                   responded={respondedIds.has(m.id)}
                   highlight={searching ? trimmedQuery : undefined}
                   onCounter={
                     m.kind === "offer" &&
                     m.sender.id !== me &&
+                    !m.sentBy &&
                     isSeller &&
                     !respondedIds.has(m.id)
                       ? () => openCounter(m)

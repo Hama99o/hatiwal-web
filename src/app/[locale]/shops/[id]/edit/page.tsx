@@ -16,7 +16,7 @@ export default async function EditShopPage({ params }: { params: Promise<{ local
   setRequestLocale(locale);
   return (
     <RequireAuth>
-      <OwnerOnly shopId={Number(id)}>
+      <OwnerOnly shopId={Number(id)} action="editShop">
         <ShopForm shopId={Number(id)} />
       </OwnerOnly>
     </RequireAuth>

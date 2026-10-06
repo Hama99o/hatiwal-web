@@ -9,9 +9,16 @@ import { shopEntry, withSessionUser } from "./session-user";
  * mirror d8's QA seeds (qa-team-link / -expired / -used / -cancelled / -email).
  */
 
-/** Make the buyer persona a member of shop 42 with this role. */
-async function asMember(page: Page, role: "owner" | "staff") {
-  await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", role)] });
+type Role = "owner" | "manager" | "staff";
+
+/**
+ * Make the buyer persona (id 1) a member of shop 42 with this role. Returns a
+ * setter: the shop's GET then answers the NEW role (a transfer makes the
+ * caller a Manager).
+ */
+async function asMember(page: Page, initial: Role) {
+  let role: Role = initial;
+  await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", initial)] });
   await page.route("**/api/me/shops/42", async (route) => {
     if (route.request().method() !== "GET") return route.continue();
     const res = await route.fetch();
@@ -19,6 +26,9 @@ async function asMember(page: Page, role: "owner" | "staff") {
     json.shop = { ...json.shop, role };
     await route.fulfill({ response: res, json });
   });
+  return (next: Role) => {
+    role = next;
+  };
 }
 
 test.describe("Team (T1, T7)", () => {
@@ -241,3 +251,151 @@ test.describe("d8 review: the fixes, each reproduced", () => {
   });
 });
 
+/**
+ * Brought into 1.1.6 (api 76ca115): the Manager role, change role, transfer
+ * ownership, "replied by". The mock's shop 42: owner Umair (2), staff Ali (7),
+ * manager Sara (8). The one matrix: hatiwal-mobile docs/SHOPS.md.
+ */
+test.describe("Manager, change role, transfer (1.1.6)", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("the owner makes staff a manager, and a manager staff again", async ({ page }) => {
+    await asMember(page, "owner");
+    await page.goto("/en/shops/42/team");
+    await expect(page.getByTestId("team-member-role-8")).toHaveText("Manager");
+
+    await page.getByTestId("team-member-menu-7").click();
+    await expect(page.getByTestId("member-make-staff")).toHaveCount(0);
+    const promote = page.waitForRequest((r) => r.url().includes("/api/me/shops/42/members/7") && r.method() === "PATCH");
+    await page.getByTestId("member-make-manager").click();
+    expect((await promote).postDataJSON()).toEqual({ role: "manager" });
+    await expect(page.getByText("Ali Ahmadi is now Manager")).toBeVisible();
+
+    await page.getByTestId("team-member-menu-8").click();
+    await expect(page.getByTestId("member-make-manager")).toHaveCount(0);
+    const demote = page.waitForRequest((r) => r.url().includes("/api/me/shops/42/members/8") && r.method() === "PATCH");
+    await page.getByTestId("member-make-staff").click();
+    expect((await demote).postDataJSON()).toEqual({ role: "staff" });
+    await expect(page.getByText("Sara Noori is now Staff")).toBeVisible();
+  });
+
+  test("a manager sees invites and removes staff, but can't touch a manager or transfer", async ({ page }) => {
+    await asMember(page, "manager");
+    await page.goto("/en/shops/42/team");
+    await expect(page.getByTestId("team-invite")).toBeVisible();
+    await expect(page.getByTestId("team-invite-row-31")).toBeVisible();
+    await expect(page.getByTestId("team-member-menu-8")).toHaveCount(0); // another manager
+    await expect(page.getByTestId("team-member-menu-2")).toHaveCount(0); // the owner
+    await page.getByTestId("team-member-menu-7").click();
+    await expect(page.getByTestId("member-remove")).toBeVisible();
+    await expect(page.getByTestId("member-transfer")).toHaveCount(0);
+    await expect(page.getByTestId("member-make-manager")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("team-leave")).toBeVisible();
+  });
+
+  test("a manager edits the shop but the Verified application stays the owner's", async ({ page }) => {
+    await asMember(page, "manager");
+    await page.goto("/en/shops/42");
+    await expect(page.getByTestId("shop-page-edit")).toBeVisible();
+    await page.goto("/en/shops/42/edit");
+    await expect(page.getByTestId("owner-only")).toHaveCount(0);
+    await page.goto("/en/shops/42/verify");
+    await expect(page.getByTestId("owner-only")).toBeVisible();
+  });
+
+  test("transfer asks first; then the caller is a Manager (no more owner-only actions)", async ({ page }) => {
+    const setRole = await asMember(page, "owner");
+    await page.goto("/en/shops/42/team");
+    await page.getByTestId("team-member-menu-8").click();
+    await page.getByTestId("member-transfer").click();
+    await expect(page.getByRole("heading", { name: "Make Sara Noori the owner?" })).toBeVisible();
+    await expect(page.getByText("A Verified badge is removed")).toBeVisible();
+    setRole("manager");
+    const post = page.waitForRequest((r) => r.url().includes("/api/me/shops/42/transfer") && r.method() === "POST");
+    await page.getByRole("button", { name: "Make owner" }).click();
+    expect((await post).postDataJSON()).toEqual({ user_id: 8 });
+    await expect(page.getByText("Sara Noori is now the owner")).toBeVisible();
+    // Now a Manager: no menu on a manager, and no Transfer on staff.
+    await expect(page.getByTestId("team-member-menu-8")).toHaveCount(0);
+    await page.getByTestId("team-member-menu-7").click();
+    await expect(page.getByTestId("member-transfer")).toHaveCount(0);
+    await expect(page.getByTestId("member-remove")).toBeVisible();
+  });
+
+  for (const [code, sentence] of [
+    ["cannot_change_owner", "The owner's role can't be changed."],
+    ["invalid_role", "That role doesn't exist."],
+  ] as const) {
+    test(`change role refused → ${code} in words`, async ({ page }) => {
+      await asMember(page, "owner");
+      await page.route("**/api/me/shops/42/members/7", (route) =>
+        route.request().method() === "PATCH" ? route.fulfill({ status: 422, json: { error: "x", code } }) : route.continue(),
+      );
+      await page.goto("/en/shops/42/team");
+      await page.getByTestId("team-member-menu-7").click();
+      await page.getByTestId("member-make-manager").click();
+      await expect(page.getByText(sentence)).toBeVisible();
+    });
+  }
+
+  for (const [code, sentence] of [
+    ["cannot_transfer_to_self", "You already own this shop."],
+    ["verification_pending", "A Verified request is waiting. Cancel it first, then hand the shop over."],
+  ] as const) {
+    test(`transfer refused → ${code} in words`, async ({ page }) => {
+      await asMember(page, "owner");
+      await page.route("**/api/me/shops/42/transfer", (route) => route.fulfill({ status: 422, json: { error: "x", code } }));
+      await page.goto("/en/shops/42/team");
+      await page.getByTestId("team-member-menu-7").click();
+      await page.getByTestId("member-transfer").click();
+      await page.getByRole("button", { name: "Make owner" }).click();
+      await expect(page.getByText(sentence)).toBeVisible();
+    });
+  }
+
+  test("ps: the role menu reads in Pashto, right to left, in dark mode", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await asMember(page, "owner");
+    await page.goto("/ps/shops/42/team");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByTestId("team-member-role-8")).toHaveText("مدیر");
+    await page.getByTestId("team-member-menu-7").click();
+    await expect(page.getByTestId("member-make-manager")).toHaveText("مدیر یې کړئ");
+  });
+});
+
+test.describe("Replied by (1.1.6)", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  /** Messages of conversation 1 as the API answers them (snake_case). */
+  const msg = (id: number, senderId: number, body: string, sentBy?: { id: number; name: string }) => ({
+    id, body, kind: "text", read_at: null, created_at: `2026-06-22T1${id}:00:00Z`, responds_to_id: null,
+    sender: { id: senderId, name: "Safi Cosmetics", avatar_url: null }, attachment_url: null,
+    ...(sentBy ? { sent_by: sentBy } : {}),
+  });
+
+  test("a member sees which teammate replied, on the team's side; never on their own message", async ({ page }) => {
+    await page.route("**/api/me/conversations/1/messages?*", (route) =>
+      route.fulfill({ json: { messages: [
+        msg(3, 1, "My own reply", { id: 1, name: "Ahmad Karimi" }),
+        msg(2, 2, "Teammate reply", { id: 2, name: "Umair Safi" }),
+        msg(1, 3, "Buyer question"),
+      ], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 3, total_pages: 1 } } } }),
+    );
+    await page.goto("/en/conversations/1");
+    await expect(page.getByText("Teammate reply")).toBeVisible();
+    await expect(page.getByTestId("message-replied-by")).toHaveCount(1);
+    await expect(page.getByTestId("message-replied-by")).toContainText("Replied by Umair Safi");
+  });
+
+  test("the buyer never sees a Replied by line (the API never sends sent_by to them)", async ({ page }) => {
+    await page.route("**/api/me/conversations/1/messages?*", (route) =>
+      route.fulfill({ json: { messages: [msg(2, 2, "Shop reply"), msg(1, 1, "My question")],
+        meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 2, total_pages: 1 } } } }),
+    );
+    await page.goto("/en/conversations/1");
+    await expect(page.getByText("Shop reply")).toBeVisible();
+    await expect(page.getByTestId("message-replied-by")).toHaveCount(0);
+  });
+});

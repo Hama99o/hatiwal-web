@@ -27,6 +27,7 @@ import type { Shop } from "@/lib/api/shops";
 import { SHOP_DAYS, dayOf, hasHours, shopOpenStatus } from "@/lib/shop-hours";
 import { cn } from "@/lib/utils";
 import { ShopVerificationCard } from "./shop-verification-card";
+import { shopCan } from "@/lib/shop-permissions";
 
 type Tab = "products" | "reviews" | "about";
 
@@ -76,9 +77,11 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
   const [tab, setTab] = useState<Tab>("products");
   const membership = user?.shops?.find((s) => s.id === shop.id);
   const isMember = !!membership;
-  // SHOP-3: staff sell, answer chats and share; only the owner edits the shop
-  // and applies for the badge. Every member reaches the Team page.
-  const isOwner = membership?.role === "owner";
+  // SHOP-3 (the Owner / Manager / Staff matrix, api 76ca115): every member
+  // reaches the Team page; owner + managers edit the shop; only the owner
+  // applies for the badge (it's their own ID).
+  const canEdit = shopCan(membership?.role, "editShop");
+  const canVerify = shopCan(membership?.role, "applyVerified");
   const router = useRouter();
   const qc = useQueryClient();
   const loginHref = useLoginHref();
@@ -149,7 +152,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
                 </Link>
               </Button>
             )}
-            {isOwner && (
+            {canEdit && (
               <Button asChild variant="outline" data-testid="shop-page-edit">
                 <Link href={`/shops/${shop.id}/edit`}>
                   <Pencil className="size-4" /> {t("edit")}
@@ -213,7 +216,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
         </div>
 
         {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
-        {isMember && <ShopVerificationCard shopId={shop.id} readOnly={!isOwner} />}
+        {isMember && <ShopVerificationCard shopId={shop.id} readOnly={!canVerify} />}
 
         <div role="tablist" className="flex rounded-lg bg-muted p-1">
           {(["products", "reviews", "about"] as const).map((key) => (

@@ -362,6 +362,12 @@ export interface Message {
   /** Soft-delete tombstone: when true, body/attachment are suppressed server-side. */
   deleted?: boolean;
   deletedAt?: string | null;
+  /**
+   * SHOP-3 "replied by" (api 76ca115): the member who wrote a shop-chat
+   * message. Sent to the shop's members only (their own messages included);
+   * the buyer never gets the key.
+   */
+  sentBy?: { id: number; name: string } | null;
 }
 
 export interface ConversationParticipant {

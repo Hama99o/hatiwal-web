@@ -16,7 +16,7 @@ export default async function ShopVerifyPage({ params }: { params: Promise<{ loc
   setRequestLocale(locale);
   return (
     <RequireAuth>
-      <OwnerOnly shopId={Number(id)}>
+      <OwnerOnly shopId={Number(id)} action="applyVerified">
         <ShopVerifyFlow shopId={Number(id)} />
       </OwnerOnly>
     </RequireAuth>

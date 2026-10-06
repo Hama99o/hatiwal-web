@@ -1341,7 +1341,31 @@ function route(req, res, method, path, q, body, raw = "") {
     return send(res, 200, { shop_members: [
       { user: { id: 2, name: "Umair Safi", avatar_url: null }, role: "owner", joined_at: "2026-10-01T00:00:00Z" },
       { user: { id: 7, name: "Ali Ahmadi", avatar_url: null }, role: "staff", joined_at: "2026-10-04T00:00:00Z" },
+      { user: { id: 8, name: "Sara Noori", avatar_url: null }, role: "manager", joined_at: "2026-10-05T00:00:00Z" },
     ] });
+  }
+  // Manager / change role / transfer (api 76ca115), stateless like the rest.
+  const roleMatch = path.match(/^\/shops\/42\/members\/(\d+)$/);
+  if (roleMatch && method === "PATCH") {
+    if (!requireAuth()) return;
+    const uid = Number(roleMatch[1]);
+    const role = /"role"\s*:\s*"([^"]+)"/.exec(raw)?.[1];
+    if (uid === 2) return send(res, 422, { error: "The owner's role can't be changed", code: "cannot_change_owner" });
+    if (role !== "manager" && role !== "staff") return send(res, 422, { error: "Invalid role", code: "invalid_role" });
+    const name = uid === 8 ? "Sara Noori" : "Ali Ahmadi";
+    return send(res, 200, { shop_member: { user: { id: uid, name, avatar_url: null }, role, joined_at: "2026-10-04T00:00:00Z" } });
+  }
+  if (path === "/shops/42/transfer" && method === "POST") {
+    if (!requireAuth()) return;
+    const uid = Number(/"user_id"\s*:\s*(\d+)/.exec(raw)?.[1]);
+    if (uid === 1) return send(res, 422, { error: "You already own this shop", code: "cannot_transfer_to_self" });
+    if (uid !== 7 && uid !== 8) return send(res, 422, { error: "Not a member", code: "not_a_member" });
+    const me = userMe(empty ? "empty" : "full");
+    // The caller is now a Manager; a Verified badge is dropped.
+    return send(res, 200, {
+      shop: { ...SHOP_42, verified: false, verified_at: null, role: "manager" },
+      me: { ...me, shops: [{ ...SHOP_42_CARD, verified: false, role: "manager", status: "active" }] },
+    });
   }
   const TEAM_INVITE = { id: 31, email: null, role: "staff", status: "pending", url: "https://hatiwal.com/join/qa-team-link", expires_at: "2099-01-01T00:00:00Z", created_at: "2026-10-05T00:00:00Z" };
   if (path === "/shops/42/invites" && method === "GET") {

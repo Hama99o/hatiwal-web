@@ -119,6 +119,9 @@ const ALLOWED: Array<[string, RegExp]> = [
   // SHOP-3: the team — members, leave, invites (owner), accept / decline.
   ["GET", /^shops\/\d+\/members$/],
   ["DELETE", /^shops\/\d+\/members\/\d+$/],
+  // Manager / change role / transfer (api 76ca115): ALLOW-LISTED, or the menu 403s.
+  ["PATCH", /^shops\/\d+\/members\/\d+$/],
+  ["POST", /^shops\/\d+\/transfer$/],
   ["DELETE", /^shops\/\d+\/membership$/],
   ["GET", /^shops\/\d+\/invites$/],
   ["POST", /^shops\/\d+\/invites$/],

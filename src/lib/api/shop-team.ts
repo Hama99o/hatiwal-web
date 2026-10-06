@@ -6,11 +6,12 @@ import type { ShopCard, User } from "@/lib/types";
 
 /**
  * SHOP-3 — the shop's team (hatiwal-mobile docs/SHOPS.md "Phase 3 — the team",
- * as built: api `shop-3-api` 29d86e3). Two roles: owner and staff. Every error
+ * as built: api `shop-3-api` 29d86e3; Manager, change role, transfer: 76ca115).
+ * Three roles: owner, manager, staff. Every error
  * body is `{ error, code }`; `teamErrorKey` maps the code to a sentence in 4
  * locales (same keys as mobile), an unknown code falls back to the server text.
  */
-export type ShopRole = "owner" | "staff";
+export type ShopRole = "owner" | "manager" | "staff";
 export type InviteStatus = "pending" | "accepted" | "declined" | "cancelled" | "expired";
 
 export interface ShopMember {
@@ -27,6 +28,12 @@ export interface ShopInvite {
   url: string;
   expiresAt: string;
   createdAt: string;
+}
+
+/** "Replied by": the member who wrote a shop-chat message, sent to members only. */
+export interface SentBy {
+  id: number;
+  name: string;
 }
 
 export interface PublicInvite {
@@ -64,6 +71,20 @@ export async function createShopInvite(shopId: number, email?: string): Promise<
       json: email ? { email: email.trim() } : {},
     })
   ).shopInvite;
+}
+
+/** Owner only: manager ⇄ staff. */
+export async function changeShopMemberRole(shopId: number, userId: number, role: "manager" | "staff"): Promise<ShopMember> {
+  return (await meRequest<{ shopMember: ShopMember }>(`shops/${shopId}/members/${userId}`, { method: "PATCH", json: { role } })).shopMember;
+}
+
+/**
+ * Owner only: the member becomes the owner, the caller a Manager, and a
+ * Verified badge is dropped (it vouched for the old owner's ID). Answers the
+ * shop (owner view, the caller's new role) and the caller's fresh `me`.
+ */
+export async function transferShop(shopId: number, userId: number): Promise<{ shop: unknown; me: User }> {
+  return meRequest<{ shop: unknown; me: User }>(`shops/${shopId}/transfer`, { method: "POST", json: { userId } });
 }
 
 export async function cancelShopInvite(shopId: number, inviteId: number): Promise<void> {
@@ -112,6 +133,10 @@ export const TEAM_ERROR_CODES = [
   "owner_cannot_leave",
   "team_full",
   "too_many_invites",
+  "cannot_change_owner",
+  "invalid_role",
+  "cannot_transfer_to_self",
+  "verification_pending",
 ] as const;
 export type TeamErrorCode = (typeof TEAM_ERROR_CODES)[number];
 

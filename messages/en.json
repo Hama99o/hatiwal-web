@@ -967,7 +967,8 @@
     "blockedErrors": {
       "blocked": "You blocked this person. Unblock them to send a message.",
       "blockedBy": "You can't message this person."
-    }
+    },
+    "repliedBy": "Replied by {name}"
   },
   "warnings": {
     "title": "Account warning",
@@ -1503,7 +1504,11 @@
         "too_many_invites": "Too many invites today. Try again tomorrow.",
         "generic": "Something went wrong. Try again.",
         "invite_email_unconfirmed": "Confirm your email first, then open this invite again",
-        "link_invite": "This is a link invite: share the link again instead."
+        "link_invite": "This is a link invite: share the link again instead.",
+        "cannot_change_owner": "The owner's role can't be changed.",
+        "invalid_role": "That role doesn't exist.",
+        "cannot_transfer_to_self": "You already own this shop.",
+        "verification_pending": "A Verified request is waiting. Cancel it first, then hand the shop over."
       },
       "copy": "Copy link",
       "copied": "Link copied",
@@ -1511,7 +1516,15 @@
       "resend": "Send again",
       "resent": "Invite sent again",
       "cancelTitle": "Cancel this invite?",
-      "cancelBody": "The link stops working."
+      "cancelBody": "The link stops working.",
+      "makeManager": "Make manager",
+      "makeStaff": "Make staff",
+      "transfer": "Make owner",
+      "transferTitle": "Make {name} the owner?",
+      "transferBody": "{name} will own the shop and you become a Manager. A Verified badge is removed: the new owner applies again with their own e-Tazkira. Only the new owner can give it back to you.",
+      "transferConfirm": "Make owner",
+      "roleChanged": "{name} is now {role}",
+      "transferred": "{name} is now the owner"
     }
   }
 }
