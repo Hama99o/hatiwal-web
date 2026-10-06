@@ -20,6 +20,7 @@ import { WarningsBanner } from "./warnings-banner";
 import { PendingReviewsNudge } from "./pending-reviews-nudge";
 import { VerificationCard } from "@/components/verify/verification-card";
 import { ShopEntryCard } from "@/components/shops/shop-entry-card";
+import { ShopInvitationsSection } from "@/components/shops/shop-invitations";
 import { ModeToggle } from "./mode-toggle";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -65,6 +66,8 @@ export function ProfileView() {
       <VerificationCard />
       {/* SHOP-1: "Open your shop" / "My shop · name · Open now". Buyer mode is
           personal (owner, 2026-10-05): shop tools only in Seller mode. */}
+      {/* Owner, 1.1.6: pending invitations to join a shop, in BOTH modes, above My shops. */}
+      <ShopInvitationsSection />
       {user.sellerMode && <ShopEntryCard />}
       <AwayBanner awayUntil={user.awayUntil} messageKey="profile.away.youAreAway" />
       <div className="flex items-start justify-between gap-4">

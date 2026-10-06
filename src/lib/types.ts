@@ -491,6 +491,8 @@ export interface User {
   shops?: (ShopCard & { role: "owner" | "manager" | "staff"; status: "active" | "suspended" | "pending" | "closed" })[];
   /** SHOP-1: unread per identity, when the API sends the split. */
   unreadCounts?: { buying: number; sellingMe: number; shops: Record<string, number> };
+  /** Pending EMAIL invites to this (confirmed) address; 0 when unconfirmed. */
+  pendingShopInvitesCount?: number;
   deletionScheduledAt?: string | null;
   /**
    * Away mode (mobile W713). `isAway` is the computed flag (true only when

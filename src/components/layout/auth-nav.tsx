@@ -113,7 +113,17 @@ export function AuthNav() {
             className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label={name}
           >
-            <UserAvatar name={name} avatarUrl={user.avatarUrl} size={36} />
+            <span className="relative block">
+              <UserAvatar name={name} avatarUrl={user.avatarUrl} size={36} />
+              {/* Owner, 1.1.6: a pending invitation to join a shop. */}
+              {(user.pendingShopInvitesCount ?? 0) > 0 && (
+                <span
+                  data-testid="profile-invites-dot"
+                  aria-label={t("shops.invitations.title")}
+                  className="absolute -end-0.5 -top-0.5 size-3 rounded-full border-2 border-background bg-destructive"
+                />
+              )}
+            </span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">

@@ -1160,6 +1160,16 @@ function route(req, res, method, path, q, body, raw = "") {
       shop: { ...SHOP_42, id: 77, name, verified: false, verified_at: null, listings_count: 0, share_url: "https://hatiwal.com/s/77", owner: { id: 1, name: "Ahmad Karimi" }, status: "active", phone_public: false, role: "owner", address_line: field("address_line") },
     });
   }
+  // "Invitations to join a shop" (owner, 1.1.6; api GET /my/shop_invites):
+  // one pending email invite. Stateless: the count lives on the session user,
+  // which specs set (withSessionUser) so the list is read only when they want.
+  if (path === "/my/shop_invites" && method === "GET") {
+    if (!requireAuth()) return;
+    return send(res, 200, {
+      shop_invites: [{ id: 501, token: "qa-team-mine", role: "staff", shop: SHOP_42_CARD, inviter_name: "Umair Safi", expires_at: "2099-01-01T00:00:00Z", created_at: "2026-10-06T00:00:00Z" }],
+      meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 1, total_pages: 1 } },
+    });
+  }
   if (path === "/my/shops" && method === "GET") {
     if (!requireAuth()) return;
     return send(res, 200, { shops: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
@@ -1425,7 +1435,7 @@ function route(req, res, method, path, q, body, raw = "") {
     const token = inviteMatch[1];
     // Like the real API: accept / decline authenticate FIRST, then look the token up.
     if (inviteMatch[2] && !requireAuth()) return;
-    const statusByToken = { "qa-team-link": "pending", "qa-team-email": "pending", "qa-team-unconfirmed": "pending", "qa-team-expired": "expired", "qa-team-used": "accepted", "qa-team-cancelled": "cancelled" };
+    const statusByToken = { "qa-team-mine": "pending", "qa-team-link": "pending", "qa-team-email": "pending", "qa-team-unconfirmed": "pending", "qa-team-expired": "expired", "qa-team-used": "accepted", "qa-team-cancelled": "cancelled" };
     const status = statusByToken[token];
     if (!status) return send(res, 404, { error: "Not found", code: "not_found" });
     if (method === "GET" && !inviteMatch[2]) {

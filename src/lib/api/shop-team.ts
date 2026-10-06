@@ -118,6 +118,25 @@ export async function declineShopInvite(token: string): Promise<void> {
   await meRequest(`shop_invites/${encodeURIComponent(token)}/decline`, { method: "POST", json: {} });
 }
 
+/**
+ * "Invitations to join a shop" (owner, 1.1.6; api GET /my/shop_invites): the
+ * caller's pending EMAIL invites (to their confirmed address), newest first.
+ * Answered with acceptShopInvite / declineShopInvite by token.
+ */
+export interface MyShopInvite {
+  id: number;
+  token: string;
+  role: ShopRole;
+  shop: ShopCard;
+  inviterName: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export async function getMyShopInvites(): Promise<MyShopInvite[]> {
+  return (await meRequest<{ shopInvites: MyShopInvite[] }>("my/shop_invites")).shopInvites ?? [];
+}
+
 export const TEAM_ERROR_CODES = [
   "invite_expired",
   "invite_used",

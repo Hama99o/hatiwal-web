@@ -1536,6 +1536,19 @@
       "linkCopied": "Link copied",
       "shareFailed": "Couldn't share the link. Try again or copy it.",
       "noLongerOnTeam": "You're no longer on this shop's team"
+    },
+    "invitations": {
+      "title": "Invitations to join a shop",
+      "invitesYou": "{inviter} invites you to join {shop} as {role}",
+      "expiresIn": "Expires in {count, plural, one {# day} other {# days}}",
+      "accept": "Accept",
+      "decline": "Decline",
+      "declineTitle": "Decline the invitation to {shop}?",
+      "declineBody": "You can't join with this invitation afterwards.",
+      "declined": "Invitation declined",
+      "joined": "You joined {shop}",
+      "groupTitle": "Invitations",
+      "continueSeller": "Continue to Seller mode"
     }
   }
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { sellAsAsk, useSellingIdentity } from "./use-selling-identity";
+import { InvitationRows } from "./shop-invitations";
 
 const askedKey = (userId: number) => `hatiwal.sell-as-asked-${userId}`;
 
@@ -107,6 +108,9 @@ export function SellingAsPill() {
               );
             })}
           </div>
+          {/* Owner, 1.1.6: pending invitations, under the identities. Accept →
+              the shop appears above as a new identity (the fresh `me`). */}
+          <InvitationRows />
           <Button
             className="mt-3 w-full"
             disabled={switching}

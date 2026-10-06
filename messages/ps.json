@@ -1536,6 +1536,19 @@
       "linkCopied": "لینک کاپي شو",
       "shareFailed": "لینک شریک نه شو. بیا هڅه وکړئ یا یې کاپي کړئ.",
       "noLongerOnTeam": "تاسو نور د دې دوکان په ټیم کې نه یاست"
+    },
+    "invitations": {
+      "title": "دوکان ته د یوځای کېدو بلنې",
+      "invitesYou": "{inviter} تاسو {shop} ته د {role} په توګه رابولي",
+      "expiresIn": "{count, plural, one {په # ورځ کې پای ته رسېږي} other {په # ورځو کې پای ته رسېږي}}",
+      "accept": "منل",
+      "decline": "ردول",
+      "declineTitle": "{shop} ته بلنه رد کړئ؟",
+      "declineBody": "وروسته له دې بلنې سره نه شئ یوځای کېدلی.",
+      "declined": "بلنه رد شوه",
+      "joined": "تاسو {shop} ته یوځای شوئ",
+      "groupTitle": "بلنې",
+      "continueSeller": "د پلورونکي حالت ته دوام"
     }
   }
 }

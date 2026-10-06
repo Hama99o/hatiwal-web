@@ -1536,6 +1536,19 @@
       "linkCopied": "لینک کاپی شد",
       "shareFailed": "لینک به اشتراک گذاشته نشد. دوباره تلاش کنید یا آن را کاپی کنید.",
       "noLongerOnTeam": "شما دیگر عضو تیم این دوکان نیستید"
+    },
+    "invitations": {
+      "title": "دعوت‌ها برای پیوستن به دوکان",
+      "invitesYou": "{inviter} شما را به‌عنوان {role} به {shop} دعوت می‌کند",
+      "expiresIn": "{count, plural, one {تا # روز دیگر منقضی می‌شود} other {تا # روز دیگر منقضی می‌شود}}",
+      "accept": "پذیرفتن",
+      "decline": "رد کردن",
+      "declineTitle": "دعوت به {shop} را رد می‌کنید؟",
+      "declineBody": "پس از آن نمی‌توانید با این دعوت عضو شوید.",
+      "declined": "دعوت رد شد",
+      "joined": "شما به {shop} پیوستید",
+      "groupTitle": "دعوت‌ها",
+      "continueSeller": "ادامه به حالت فروشنده"
     }
   }
 }

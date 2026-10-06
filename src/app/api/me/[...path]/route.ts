@@ -128,6 +128,8 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["DELETE", /^shops\/\d+\/invites\/\d+$/],
   ["POST", /^shops\/\d+\/invites\/\d+\/resend$/],
   ["POST", /^shop_invites\/[A-Za-z0-9_-]+\/(accept|decline)$/],
+  // "Invitations to join a shop" (owner, 1.1.6): the caller's pending email invites.
+  ["GET", /^my\/shop_invites$/],
 ];
 
 async function handle(
