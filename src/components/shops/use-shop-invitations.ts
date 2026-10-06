@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-provider";
+import { sellAs } from "@/lib/api/shops";
 import {
   acceptShopInvite,
   declineShopInvite,
@@ -62,7 +63,22 @@ export function useShopInvitations() {
   };
 
   const accept = useMutation({
-    mutationFn: (invite: MyShopInvite) => acceptShopInvite(invite.token),
+    // Accepting answers "who do you sell as?" (the app does the same, mobile
+    // 18bfbbd): mark the ask-once Selling-as dialog answered and sell as the
+    // joined shop, so Seller mode lands there with no question.
+    mutationFn: async (invite: MyShopInvite) => {
+      const res = await acceptShopInvite(invite.token);
+      const uid = res.me?.id ?? user?.id;
+      if (uid != null) {
+        try {
+          window.localStorage.setItem(`hatiwal.sell-as-asked-${uid}`, "1");
+        } catch {
+          /* storage blocked: the dialog may ask once, harmless */
+        }
+      }
+      const selling = await sellAs<NonNullable<typeof res.me>>(invite.shop.id).catch(() => null);
+      return { ...res, me: selling ?? res.me };
+    },
     onSuccess: ({ me }, invite) => {
       // The fresh `me` has the shop in shops[] (and the count down by one).
       if (me) setUser(me);

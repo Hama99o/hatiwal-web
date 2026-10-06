@@ -25,6 +25,8 @@ test("Profile lists the invitation; Accept joins the shop with a toast", async (
   // The fresh `me` has the shop, and no invitation left.
   await expect(page.getByTestId("shop-invitations")).toHaveCount(0);
   await expect(page.getByTestId("profile-shops")).toBeVisible();
+  // Accepting answered "who do you sell as?": no ask-once dialog later (mobile 18bfbbd).
+  expect(await page.evaluate(() => window.localStorage.getItem("hatiwal.sell-as-asked-1"))).toBe("1");
 });
 
 test("Decline asks first, then the invitation goes", async ({ page }) => {
