@@ -245,14 +245,25 @@ for (const vp of VIEWPORTS) {
         await cards.count(),
         "no listing links on /en/bazaar — a marketplace feed with no listings to open",
       ).toBeGreaterThan(0);
-      const card = cards.first();
-      await expect(card, "the first listing link is not clickable").toBeVisible();
-      await card.click();
+      // The feed re-renders shortly after load (seen since before 908d4c7):
+      // a click at that instant can hit a card that is being replaced and stay
+      // on the Bazaar. Re-find the card and retry until the listing opens; the
+      // assertion is "a listing CAN be opened", not "on the first frame".
+      await expect(async () => {
+        const card = cards.first();
+        await expect(card, "the first listing link is not clickable").toBeVisible();
+        await card.click();
+        await expect(page, "the click did not open a listing").toHaveURL(/\/listings\/\d+/, { timeout: 4000 });
+      }).toPass({ timeout: 30_000 });
       await page.waitForLoadState("networkidle");
 
       // AFN is the marketplace's currency and appears on every listing — the
       // price is the one thing a buyer must never lose to a layout break.
-      const price = page.getByText(/AFN/).first();
+      // The listing's OWN price block: a bare getByText(/AFN/).first() could
+      // land on a card in a section that loads and re-renders after the page
+      // ("Element is not attached to the DOM" at every width, already before
+      // 908d4c7).
+      const price = page.locator("#listing-price").getByText(/AFN/).first();
       await expect(price).toBeVisible();
       await price.scrollIntoViewIfNeeded();
 
