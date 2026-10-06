@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MessageCircle, Navigation, Pencil, Phone, Store } from "lucide-react";
+import { MessageCircle, Navigation, Pencil, Phone, Store, Users } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useLoginHref } from "@/components/auth/login-href";
 import { ApiError } from "@/lib/api/client";
@@ -74,7 +74,11 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
   // still answering, a signed-in buyer's early click must not land on /login.
   const isGuest = status === "guest" || (status === "loading" && probeTimedOut);
   const [tab, setTab] = useState<Tab>("products");
-  const isMember = !!user?.shops?.some((s) => s.id === shop.id);
+  const membership = user?.shops?.find((s) => s.id === shop.id);
+  const isMember = !!membership;
+  // SHOP-3: staff sell, answer chats and share; only the owner edits the shop
+  // and applies for the badge. Every member reaches the Team page.
+  const isOwner = membership?.role === "owner";
   const router = useRouter();
   const qc = useQueryClient();
   const loginHref = useLoginHref();
@@ -139,6 +143,13 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           </span>
           <div className="flex gap-2">
             {isMember && (
+              <Button asChild variant="outline" data-testid="shop-page-team">
+                <Link href={`/shops/${shop.id}/team`}>
+                  <Users className="size-4" /> {t("team.title")}
+                </Link>
+              </Button>
+            )}
+            {isOwner && (
               <Button asChild variant="outline" data-testid="shop-page-edit">
                 <Link href={`/shops/${shop.id}/edit`}>
                   <Pencil className="size-4" /> {t("edit")}
@@ -202,7 +213,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
         </div>
 
         {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
-        {isMember && <ShopVerificationCard shopId={shop.id} />}
+        {isMember && <ShopVerificationCard shopId={shop.id} readOnly={!isOwner} />}
 
         <div role="tablist" className="flex rounded-lg bg-muted p-1">
           {(["products", "reviews", "about"] as const).map((key) => (

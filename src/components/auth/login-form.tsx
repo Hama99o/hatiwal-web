@@ -114,6 +114,13 @@ export function LoginForm() {
   const router = useRouter();
   const { login, status } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
+  // SHOP-3: a log-in on its way back to a team invite (?next=/join/<token>)
+  // keeps that invite if the person switches to sign-up instead.
+  const [signupHref, setSignupHref] = useState("/signup");
+  useEffect(() => {
+    const m = /^\/(?:[a-z]{2}\/)?join\/([A-Za-z0-9_-]{1,128})$/.exec(new URLSearchParams(window.location.search).get("next") ?? "");
+    if (m) setSignupHref(`/signup?invite=${m[1]}`);
+  }, []);
 
   // Redirect away once authenticated — to the gated page that sent us here
   // (?next=), else /profile. Covers a fresh login and revisiting /login when
@@ -158,7 +165,7 @@ export function LoginForm() {
       subtitle={t("auth.subtitle")}
       footerText={t("auth.noAccount")}
       footerLinkLabel={t("auth.register")}
-      footerHref="/signup"
+      footerHref={signupHref}
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {formError && (

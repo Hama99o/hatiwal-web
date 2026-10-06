@@ -23,6 +23,9 @@ export function GET() {
             { "/": "/s/*" },
             { "/": "/shops/*" },
             { "/": "/*/shops/*" },
+            // SHOP-3: a team invite opens the app's Join screen.
+            { "/": "/join/*" },
+            { "/": "/*/join/*" },
           ],
         },
       ],

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { getVerificationStatus, shopVerificationQK, verificationReasonKey } from "@/lib/api/verification";
 
 /** SHOP-1: "Get the Verified shop ✓ badge" on the owner's shop page (same states as mobile). */
-export function ShopVerificationCard({ shopId }: { shopId: number }) {
+/** `readOnly` (SHOP-3 staff): the status, never the apply / try-again button. */
+export function ShopVerificationCard({ shopId, readOnly = false }: { shopId: number; readOnly?: boolean }) {
   const t = useTranslations("verify");
   const { data } = useQuery({ queryKey: shopVerificationQK(shopId), queryFn: () => getVerificationStatus(`shop:${shopId}`) });
   if (!data || data.status === "verified") return null;
@@ -19,11 +20,12 @@ export function ShopVerificationCard({ shopId }: { shopId: number }) {
       <Icon className={`size-5 ${tone}`} /> {title}
     </p>
   );
-  const start = (label: string) => (
-    <Button asChild className="w-full" data-testid="shop-verify-start">
-      <Link href={`/shops/${shopId}/verify`}>{label}</Link>
-    </Button>
-  );
+  const start = (label: string) =>
+    readOnly ? null : (
+      <Button asChild className="w-full" data-testid="shop-verify-start">
+        <Link href={`/shops/${shopId}/verify`}>{label}</Link>
+      </Button>
+    );
 
   if (data.status === "requested") return <div className={shell} data-testid="shop-verify-card">{head(Hourglass, "text-warning", t("underReview"))}</div>;
   if (data.status === "rejected" || data.status === "revoked") {
