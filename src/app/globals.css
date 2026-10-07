@@ -36,7 +36,10 @@
   --muted-foreground: hsl(215 16% 47%);
   --accent: hsl(210 40% 96%);
   --accent-foreground: hsl(222 47% 11%);
-  --destructive: hsl(0 84% 60%);
+  /* Design pass 2026-10-07: hsl(0 84% 60%) was 3.62:1 under its own
+     foreground (AA is 4.5) and 3.78:1 as text on a card. The dark value is
+     4.59:1 and 4.80:1 as text: the same red in both themes. */
+  --destructive: hsl(0 72% 51%);
   --destructive-foreground: hsl(0 0% 98%);
   --success: hsl(142 76% 36%);
   --success-foreground: hsl(0 0% 98%);
