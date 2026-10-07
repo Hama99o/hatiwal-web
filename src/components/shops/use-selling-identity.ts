@@ -56,7 +56,8 @@ export function useSellingIdentity() {
     ready: !!user,
     hasShop: shops.length > 0,
     unreadFor: (shopId: number | null): number | null =>
-      counts ? (shopId === null ? counts.sellingMe : counts.shops[String(shopId)] ?? 0) : null,
+      // Seller as Me also shows the person's own Support thread (owner, 2026-10-12).
+      counts ? (shopId === null ? counts.sellingMe + (counts.support ?? 0) : counts.shops[String(shopId)] ?? 0) : null,
     unreadBuying: counts ? counts.buying : null,
     switchTo: (shopId: number | null) => {
       if ((sellingAs?.id ?? null) === shopId || mutation.isPending) return;

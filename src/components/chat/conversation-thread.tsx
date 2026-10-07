@@ -34,7 +34,6 @@ import {
   unblockUser,
   type SupportMessageContext,
 } from "@/lib/api/chat";
-import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { useConversationCable } from "@/lib/cable";
 import { getMyListing } from "@/lib/api/me";
 import { hasOpenHold, isLive } from "@/lib/stock";
@@ -385,13 +384,11 @@ export function ConversationThread({ id }: { id: string }) {
   // Decided from `kind`, never from `listing == null`, which also means
   // "listing removed" — and a support thread reports `listingDeleted: true`.
   const isSupport = isSupportThread(conversation);
-  // Support: tell the admin which mode / shop this was written from.
-  const { sellingAs } = useSellingIdentity();
-  const supportContext: SupportMessageContext | undefined = !isSupport
-    ? undefined
-    : user?.sellerMode
-      ? sellingAs ? { mode: "seller", shopId: sellingAs.id } : { mode: "seller" }
-      : { mode: "buyer" };
+  // Support (owner, 2026-10-12: per identity): in the PERSON's own thread,
+  // tell the admin whether it was written in Buyer mode or as Me. A shop's
+  // thread (it has a shop) is stamped by the server with the member and role.
+  const supportContext: SupportMessageContext | undefined =
+    !isSupport || conversation?.shop ? undefined : { mode: user?.sellerMode ? "seller" : "buyer" };
   const other = conversation?.otherParticipant;
   // SHOP-1/2: the buyer talks to the SHOP (name, logo, Shop chip, link to the
   // shop page), never to the owner's personal profile.

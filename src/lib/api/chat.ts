@@ -145,8 +145,8 @@ export async function getMessages(
   return (d.messages ?? []).slice().reverse();
 }
 
-/** Where a Support message was written from: buyer, seller as Me, or seller as a shop. */
-export type SupportMessageContext = { mode: "buyer" | "seller"; shopId?: number };
+/** Sent only in the PERSON's Support thread: Buyer mode or Seller as Me. A shop's thread is stamped by the server. */
+export type SupportMessageContext = { mode: "buyer" | "seller" };
 
 export async function sendMessage(
   conversationId: number,

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
@@ -142,24 +141,13 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
   });
 
-  // Owner, 2026-10-07: the identity-scoped inboxes are role-filtered on the
-  // server, which leaves the Support thread out, while the unread badge counts
-  // it. Fetch it on its own (page 1 of the full inbox; the server pins it
-  // first) and pin it on top of every scoped view, same as mobile.
-  const supportQuery = useQuery({
-    queryKey: ["conversations", "support-thread"],
-    queryFn: async () =>
-      (await getConversations(undefined, false, 1)).items.find(isSupportThread) ?? null,
-    enabled: !!identityScope && !archived,
-    staleTime: 30_000,
-  });
-  const supportThread = identityScope && !archived && !debouncedTerm ? supportQuery.data : null;
-
-  const conversations = useMemo<Conversation[]>(() => {
-    const items = (query.data?.pages ?? []).flatMap((page) => page.items);
-    if (!supportThread || items.some((c) => c.id === supportThread.id)) return items;
-    return [supportThread, ...items];
-  }, [query.data, supportThread]);
+  // Owner, 2026-10-12: Support is per identity. The server pins THIS view's
+  // Support thread first (the person's in Buying / Selling as Me, the shop's
+  // when a shop is selected) and never another's, so the list is used as is.
+  const conversations = useMemo<Conversation[]>(
+    () => (query.data?.pages ?? []).flatMap((page) => page.items),
+    [query.data],
+  );
 
   // Bound to the active locale and passed into the preview helper so an offer
   // row reads "Offer: ؋ ۷۵٬۰۰۰" on /ps — the same locale-formatted price every

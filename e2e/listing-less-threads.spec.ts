@@ -176,6 +176,18 @@ test.describe("Support thread", () => {
     expect(request.postDataJSON().context).toEqual({ mode: "buyer" });
   });
 
+  test("a message in a SHOP's Support thread sends no context: the server stamps the member", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
+    await reshapeThread(page, 1, (r) => ({ ...support(r), shop: { id: 42, name: "Safi Cosmetics" }, shop_chat: false }));
+    await page.goto("/en/conversations/1");
+    await page.getByPlaceholder("Type a message...").fill("Salaam");
+    const [request] = await Promise.all([
+      page.waitForRequest((r) => r.method() === "POST" && /\/conversations\/1\/messages$/.test(r.url())),
+      page.getByRole("button", { name: "Send", exact: true }).click(),
+    ]);
+    expect(request.postDataJSON().context).toBeUndefined();
+  });
+
   test("the name is localized, never the stored English name (ps)", async ({
     page,
   }) => {
@@ -186,24 +198,34 @@ test.describe("Support thread", () => {
   });
 });
 
-test.describe("Support pinned in every scoped inbox (owner, 2026-10-07)", () => {
+test.describe("Support per identity (owner, 2026-10-12)", () => {
   test.use({ storageState: BUYER_STATE });
 
-  test("a shop owner in Seller mode still sees Hatiwal Support on top", async ({ page }) => {
+  // The server pins each identity's own Support thread first in that view (the
+  // shop's when a shop is selected); the web shows the list as served.
+  test("selling as a shop: that shop's Support thread is on top, once", async ({ page }) => {
     await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
-    // The server role-filters a scoped inbox (Support is left out); the full
-    // inbox carries it first.
     await page.route(/\/api\/me\/conversations(\?.*)?$/, async (route) => {
       const response = await route.fetch();
       const body = (await response.json()) as { conversations: Row[] };
-      const scoped = new URL(route.request().url()).searchParams.has("role");
-      body.conversations = scoped
-        ? body.conversations.slice(1)
-        : body.conversations.map((c, i) => (i === 0 ? support(c) : c));
+      body.conversations = body.conversations.map((c, i) => (i === 0 ? support(c) : c));
       return route.fulfill({ response, json: body });
     });
     await page.goto("/en/conversations");
-    const first = page.getByRole("listitem").first();
-    await expect(first).toContainText("Hatiwal Support");
+    await expect(page.getByRole("listitem").first()).toContainText("Hatiwal Support");
+    await expect(page.getByRole("listitem").filter({ hasText: "Hatiwal Support" })).toHaveCount(1);
+  });
+
+  test("a view the server sends without Support shows none: nothing is pinned from another identity", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
+    await page.route(/\/api\/me\/conversations(\?.*)?$/, async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { conversations: Row[] };
+      body.conversations = body.conversations.filter((c) => c.kind !== "support");
+      return route.fulfill({ response, json: body });
+    });
+    await page.goto("/en/conversations");
+    await expect(page.getByRole("listitem").first()).toBeVisible();
+    await expect(page.getByText("Hatiwal Support")).toHaveCount(0);
   });
 });

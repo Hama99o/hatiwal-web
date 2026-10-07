@@ -498,7 +498,12 @@ export interface User {
   /** SHOP-1: the shops the user can sell as; absent/empty = no shop. */
   shops?: (ShopCard & { role: "owner" | "manager" | "staff"; status: "active" | "suspended" | "pending" | "closed" })[];
   /** SHOP-1: unread per identity, when the API sends the split. */
-  unreadCounts?: { buying: number; sellingMe: number; shops: Record<string, number> };
+  /**
+   * Unread per identity. `support` = the person's own Support thread, shown in
+   * Buyer mode and Seller as Me (already inside `buying`); a shop's own Support
+   * thread is inside its `shops` entry (owner, 2026-10-12).
+   */
+  unreadCounts?: { buying: number; sellingMe: number; support?: number; shops: Record<string, number> };
   /** Pending EMAIL invites to this (confirmed) address; 0 when unconfirmed. */
   pendingShopInvitesCount?: number;
   deletionScheduledAt?: string | null;
