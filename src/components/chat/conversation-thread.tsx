@@ -56,6 +56,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { MessageBubble } from "./message-bubble";
+import { NoticeActionButton } from "./notice-action-button";
 import { startsTeamRun, TeamSenderLabel } from "@/components/chat/team-sender-label";
 import { useSellerSideEntry } from "./use-seller-side-entry";
 import { QuickReplies } from "./quick-replies";
@@ -861,6 +862,8 @@ export function ConversationThread({ id }: { id: string }) {
                     send(label, kind, respondsToId);
                   }}
                 />
+                {/* Tappable Support notices (owner, 2026-10-12): the button under the notice. */}
+                {isSupport && m.action && m.sender.id !== me && <NoticeActionButton action={m.action} />}
               </Fragment>
             );
           })

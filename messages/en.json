@@ -1021,7 +1021,20 @@
       "blocked": "You blocked this person. Unblock them to send a message.",
       "blockedBy": "You can't message this person."
     },
-    "replyingAs": "Replying as {name}"
+    "replyingAs": "Replying as {name}",
+    "noticeAction": {
+      "open": "Open",
+      "openInvite": "Open invitation",
+      "viewShop": "View shop",
+      "viewTeam": "View team",
+      "tryVerificationAgain": "Try verification again",
+      "verifyAgain": "Verify again",
+      "renewListing": "Renew listing",
+      "gone": {
+        "invite": "This invitation has expired or was already answered.",
+        "listing": "This listing is no longer yours to manage."
+      }
+    }
   },
   "warnings": {
     "title": "Account warning",

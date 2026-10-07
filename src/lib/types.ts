@@ -1,3 +1,4 @@
+import type { NoticeAction } from "@/lib/notice-action";
 /**
  * Domain types — field names mirror the mobile app exactly (camelCase, post
  * snake→camel conversion of the Rails JSON). Keep these in sync with
@@ -349,6 +350,12 @@ export interface Message {
    * — the listing went to `name` (a shop, or a person when `shopId` is null).
    */
   notice?: { notice: string; shopId?: number | null; name?: string } | null;
+  /**
+   * A Support notice's button (owner, 2026-10-12), e.g. {type: "open_invite",
+   * labelKey: "chat.noticeAction.openInvite", params: {token}}. Null on every
+   * other message. See lib/notice-action.ts.
+   */
+  action?: NoticeAction | null;
   kind: MessageKind;
   readAt: string | null;
   createdAt: string;
