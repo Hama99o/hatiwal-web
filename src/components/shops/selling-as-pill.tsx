@@ -61,8 +61,9 @@ export function SellingAsPill() {
     .filter((id) => id !== current)
     .reduce<number>((sum, id) => sum + (unreadFor(id) ?? 0), 0);
   const options = [
-    { id: null as number | null, name: `${t("me")} · ${meName}`, logo: user.avatarUrl, shop: false },
-    ...shops.map((s) => ({ id: s.id as number | null, name: s.name, logo: s.logoUrl, shop: true })),
+    // The avatar takes the person's own name: initials of "Me · Ahmad" read "M·".
+    { id: null as number | null, name: `${t("me")} · ${meName}`, avatarName: meName, logo: user.avatarUrl, shop: false },
+    ...shops.map((s) => ({ id: s.id as number | null, name: s.name, avatarName: s.name, logo: s.logoUrl, shop: true })),
   ];
 
   return (
@@ -100,7 +101,7 @@ export function SellingAsPill() {
                   data-testid={o.id === null ? "sell-as-option-me" : `sell-as-option-shop-${o.id}`}
                   className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-start transition-colors hover:bg-accent", selected && "border-2 border-primary")}
                 >
-                  <UserAvatar variant={o.shop ? "shop" : "user"} name={o.name} avatarUrl={o.logo} size={36} />
+                  <UserAvatar variant={o.shop ? "shop" : "user"} name={o.avatarName} avatarUrl={o.logo} size={36} />
                   <span className="flex-1 truncate font-semibold">{o.name}</span>
                   <UnreadDot count={unreadFor(o.id)} />
                   {selected && <Check className="size-4 text-primary" />}

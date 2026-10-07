@@ -392,6 +392,9 @@ export function ConversationThread({ id }: { id: string }) {
   const supportContext: SupportMessageContext | undefined =
     !isSupport || conversation?.shop ? undefined : { mode: user?.sellerMode ? "seller" : "buyer" };
   const other = conversation?.otherParticipant;
+  const holdLabel = other
+    ? t("chat.listingActions.placeHold", { name: other.name })
+    : t("chat.listingActions.placeHoldGeneric");
   // SHOP-1/2: the buyer talks to the SHOP (name, logo, Shop chip, link to the
   // shop page), never to the owner's personal profile.
   const shopFace =
@@ -761,12 +764,12 @@ export function ConversationThread({ id }: { id: string }) {
             <Button
               size="sm"
               variant="outline"
-              className="min-w-32 flex-1"
+              className="min-w-32 flex-1 overflow-hidden"
               disabled={lifecycle.busy}
               onClick={() => lifecycle.ask("activate")}
             >
               <LockOpen className="size-4" />
-              {t("chat.listingActions.releaseHold")}
+              <span className="truncate">{t("chat.listingActions.releaseHold")}</span>
             </Button>
           ) : heldForSomeoneElse ? (
             <p className="flex flex-1 items-center gap-1.5 text-xs text-muted-foreground">
@@ -777,14 +780,14 @@ export function ConversationThread({ id }: { id: string }) {
             <Button
               size="sm"
               variant="outline"
-              className="min-w-32 flex-1"
+              className="min-w-32 flex-1 overflow-hidden"
               disabled={lifecycle.busy}
               onClick={() => lifecycle.ask("reserve")}
+              title={holdLabel}
             >
               <Clock className="size-4" />
-              {other
-                ? t("chat.listingActions.placeHold", { name: other.name })
-                : t("chat.listingActions.placeHoldGeneric")}
+              {/* A long name truncates inside the button (it overflowed its border at 390 px). */}
+              <span className="truncate">{holdLabel}</span>
             </Button>
           )}
         </div>
