@@ -56,6 +56,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { MessageBubble } from "./message-bubble";
+import { startsTeamRun, TeamSenderLabel } from "@/components/chat/team-sender-label";
 import { useSellerSideEntry } from "./use-seller-side-entry";
 import { QuickReplies } from "./quick-replies";
 import { useComposerDraft } from "./use-composer-draft";
@@ -824,12 +825,15 @@ export function ConversationThread({ id }: { id: string }) {
                     </span>
                   </div>
                 )}
+                {/* Item 7 (owner, 2026-10-12): who on the team sent it, once per run. */}
+                {m.sentBy && startsTeamRun(visibleMessages, i, showDay) && (
+                  <TeamSenderLabel name={m.sentBy.name} isMe={m.sentBy.id === me} />
+                )}
                 <MessageBubble
                   message={m}
                   // SHOP-3: a teammate's message (only members get sentBy)
                   // sits on the team's side, like the viewer's own.
                   mine={m.sender.id === me || !!m.sentBy}
-                  viewerId={me}
                   responded={respondedIds.has(m.id)}
                   highlight={searching ? trimmedQuery : undefined}
                   onCounter={

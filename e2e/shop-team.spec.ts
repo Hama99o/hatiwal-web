@@ -367,7 +367,7 @@ test.describe("Manager, change role, transfer (1.1.6)", () => {
   });
 });
 
-test.describe("Replied by (1.1.6)", () => {
+test.describe("Who on the team sent it (item 7, owner 2026-10-12)", () => {
   test.use({ storageState: BUYER_STATE });
 
   /** Messages of conversation 1 as the API answers them (snake_case). */
@@ -376,29 +376,47 @@ test.describe("Replied by (1.1.6)", () => {
     sender: { id: senderId, name: "Safi Cosmetics", avatar_url: null }, attachment_url: null,
     ...(sentBy ? { sent_by: sentBy } : {}),
   });
+  const page1 = (messages: unknown[]) => ({
+    messages,
+    meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: messages.length, total_pages: 1 } },
+  });
+  const umair = { id: 2, name: "Umair Safi" };
+  const me = { id: 1, name: "Ahmad Karimi" };
+  // Newest first, as the API pages them.
+  const teamThread = page1([
+    msg(5, 1, "My own reply", me),
+    msg(4, 2, "Teammate again", umair),
+    msg(3, 2, "Teammate reply", umair),
+    msg(2, 3, "Buyer question"),
+  ]);
 
-  test("a member sees which teammate replied, on the team's side; never on their own message", async ({ page }) => {
-    await page.route("**/api/me/conversations/1/messages?*", (route) =>
-      route.fulfill({ json: { messages: [
-        msg(3, 1, "My own reply", { id: 1, name: "Ahmad Karimi" }),
-        msg(2, 2, "Teammate reply", { id: 2, name: "Umair Safi" }),
-        msg(1, 3, "Buyer question"),
-      ], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 3, total_pages: 1 } } } }),
-    );
+  test("a member sees the teammate's name once per run, and You on their own", async ({ page }) => {
+    await page.route("**/api/me/conversations/1/messages?*", (route) => route.fulfill({ json: teamThread }));
     await page.goto("/en/conversations/1");
-    await expect(page.getByText("Teammate reply")).toBeVisible();
-    await expect(page.getByTestId("message-replied-by")).toHaveCount(1);
-    await expect(page.getByTestId("message-replied-by")).toContainText("Replied by Umair Safi");
+    await expect(page.getByText("Teammate again")).toBeVisible();
+    await expect(page.getByTestId("message-team-sender")).toHaveCount(2);
+    await expect(page.getByTestId("message-team-sender-name")).toHaveText("Umair Safi");
+    await expect(page.getByTestId("message-team-sender-you")).toHaveText("You");
   });
 
-  test("the buyer never sees a Replied by line (the API never sends sent_by to them)", async ({ page }) => {
+  test("RTL (ps): the label is translated and on the team's (mirrored) side", async ({ page }) => {
+    await page.route("**/api/me/conversations/1/messages?*", (route) => route.fulfill({ json: teamThread }));
+    await page.goto("/ps/conversations/1");
+    await expect(page.getByText("Teammate again")).toBeVisible();
+    await expect(page.getByTestId("message-team-sender-you")).toHaveText("تاسو");
+    const label = await page.getByTestId("message-team-sender-name").boundingBox();
+    const viewport = page.viewportSize();
+    // dir="rtl": the team's side is the LEFT half.
+    expect(label && viewport && label.x + label.width / 2).toBeLessThan((viewport?.width ?? 0) / 2);
+  });
+
+  test("the buyer never sees a team label (the API never sends sent_by to them)", async ({ page }) => {
     await page.route("**/api/me/conversations/1/messages?*", (route) =>
-      route.fulfill({ json: { messages: [msg(2, 2, "Shop reply"), msg(1, 1, "My question")],
-        meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 2, total_pages: 1 } } } }),
+      route.fulfill({ json: page1([msg(2, 2, "Shop reply"), msg(1, 1, "My question")]) }),
     );
     await page.goto("/en/conversations/1");
     await expect(page.getByText("Shop reply")).toBeVisible();
-    await expect(page.getByTestId("message-replied-by")).toHaveCount(0);
+    await expect(page.getByTestId("message-team-sender")).toHaveCount(0);
   });
 });
 

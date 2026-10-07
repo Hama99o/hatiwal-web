@@ -979,7 +979,6 @@
       "blocked": "You blocked this person. Unblock them to send a message.",
       "blockedBy": "You can't message this person."
     },
-    "repliedBy": "Replied by {name}",
     "replyingAs": "Replying as {name}"
   },
   "warnings": {
