@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import { shopEntry, withSessionUser } from "./session-user";
 
 /*
  * Conversations with no listing — a removed listing, and a support thread.
@@ -170,5 +171,27 @@ test.describe("Support thread", () => {
     await page.goto("/ps/conversations/1");
     await expect(page.getByText("د هټیوال ملاتړ")).toBeVisible();
     await expect(page.getByText("Hatiwal Support")).toHaveCount(0);
+  });
+});
+
+test.describe("Support pinned in every scoped inbox (owner, 2026-10-07)", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("a shop owner in Seller mode still sees Hatiwal Support on top", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
+    // The server role-filters a scoped inbox (Support is left out); the full
+    // inbox carries it first.
+    await page.route(/\/api\/me\/conversations(\?.*)?$/, async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { conversations: Row[] };
+      const scoped = new URL(route.request().url()).searchParams.has("role");
+      body.conversations = scoped
+        ? body.conversations.slice(1)
+        : body.conversations.map((c, i) => (i === 0 ? support(c) : c));
+      return route.fulfill({ response, json: body });
+    });
+    await page.goto("/en/conversations");
+    const first = page.getByRole("listitem").first();
+    await expect(first).toContainText("Hatiwal Support");
   });
 });
