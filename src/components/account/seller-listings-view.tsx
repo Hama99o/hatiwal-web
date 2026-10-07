@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { PackageOpen, Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -72,7 +73,11 @@ function matchesTab(
 export function SellerListingsView() {
   const t = useTranslations();
   const format = useFormatter();
-  const [tab, setTab] = useState<Tab>("all");
+  // Item 2: a numbers tile opens its tab (`/my-listings?status=expired`, …).
+  const statusParam = useSearchParams().get("status");
+  const [tab, setTab] = useState<Tab>(
+    (TABS as readonly string[]).includes(statusParam ?? "") ? (statusParam as Tab) : "all",
+  );
   // REV2: a sale that recorded a real buyer → rate them straight away. Owned
   // HERE, not by the card: marking an item sold drops it out of the Active tab
   // as soon as the grid refetches, and a prompt living in that card would be

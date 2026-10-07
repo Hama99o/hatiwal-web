@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MessageCircle, Navigation, Pencil, Phone, Store, Users } from "lucide-react";
+import { BarChart3, MessageCircle, Navigation, Pencil, Phone, Store, Users } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useLoginHref } from "@/components/auth/login-href";
 import { ApiError } from "@/lib/api/client";
@@ -146,6 +146,14 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
             <UserAvatar variant="shop" name={shop.name} avatarUrl={shop.logoUrl} size={80} />
           </span>
           <div className="flex gap-2">
+            {/* Item 2: this shop's numbers, for every member. */}
+            {isMember && (
+              <Button asChild variant="outline" data-testid="shop-page-analytics">
+                <Link href={`/analytics?shop=${shop.id}`}>
+                  <BarChart3 className="size-4" /> {tRoot("seller.analytics.title")}
+                </Link>
+              </Button>
+            )}
             {isMember && (
               <Button asChild variant="outline" data-testid="shop-page-team">
                 <Link href={`/shops/${shop.id}/team`}>

@@ -676,7 +676,28 @@
       "thisWeek": "این هفته فعال",
       "thisMonth": "این ماه فعال"
     },
-    "awayBanner": "فروشنده تا {date} در دسترس نیست"
+    "awayBanner": "فروشنده تا {date} در دسترس نیست",
+    "analytics": {
+      "title": "آمار شما",
+      "cardTitle": "آمار · {name}",
+      "forMe": "آگهی‌های شخصی شما",
+      "forShop": "آگهی‌های این فروشگاه، برای همهٔ تیم",
+      "listings": "آگهی‌ها",
+      "active": "فعال",
+      "sold": "فروخته‌شده",
+      "expired": "منقضی",
+      "total": "همه",
+      "drafts": "{count, plural, other {# پیش‌نویس}}",
+      "sales": "{count, plural, other {# فروش ثبت شده}}",
+      "reach": "دسترسی",
+      "views": "بازدیدها",
+      "chats": "گفتگوها",
+      "relaunchAll": "راه‌اندازی دوبارهٔ همه",
+      "relaunchAllTitle": "{count, plural, one {# آگهی منقضی دوباره راه‌اندازی شود؟} other {# آگهی منقضی دوباره راه‌اندازی شوند؟}}",
+      "relaunchAllBody": "هر کدام برای ۹۰ روز دوباره فعال می‌شود، با عکس‌ها و گفتگوهایش. چیزی دوباره منتشر نمی‌شود.",
+      "relaunchedAll": "{count, plural, one {# آگهی دوباره فعال شد} other {# آگهی دوباره فعال شدند}}",
+      "openListings": "باز کردن آگهی‌های من"
+    }
   },
   "auth": {
     "login": "ورود",

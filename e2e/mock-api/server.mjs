@@ -1041,6 +1041,22 @@ function route(req, res, method, path, q, body, raw = "") {
   const empty = who === "empty";
 
   // /users/me
+  // Item 2: a seller's numbers — Me, or shop 42 (any member). Fixed numbers:
+  // the specs check the page shows THESE, labelled with whose they are.
+  if (path === "/my/analytics" && method === "GET") {
+    if (!requireAuth()) return;
+    const sid = q.get("shop_id");
+    if (sid && sid !== "42") return send(res, 403, { error: "not a member", code: "not_a_member" });
+    return send(res, 200, {
+      analytics: sid
+        ? { shop: SHOP_42_CARD, total: 7, active: 5, expired: 0, sold: 2, draft: 0, sales: 2, units_sold: 2, views: 310, chats: 9 }
+        : { shop: null, total: 9, active: 3, expired: 1, sold: 2, draft: 1, sales: 3, units_sold: 4, views: 1204, chats: 37 },
+    });
+  }
+  if (path === "/my/listings/relaunch_expired" && method === "POST") {
+    if (!requireAuth()) return;
+    return send(res, 200, { renewed: 1, failed: 0 });
+  }
   if (path === "/users/me") {
     if (!requireAuth()) return;
     if (method === "GET") return send(res, 200, { user: userMe(empty ? "empty" : "full") });

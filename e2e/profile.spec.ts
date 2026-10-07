@@ -8,10 +8,13 @@ test.describe("Profile (signed in)", () => {
   test("shows the user, stats, and account actions", async ({ page }) => {
     await page.goto("/en/profile");
     await expect(page.getByText("Ahmad Karimi")).toBeVisible();
-    // The mock viewer is in Seller mode: no stats card there (owner,
-    // 2026-10-07: unclear whether personal or the shop's).
+    // The mock viewer is in Seller mode: no unlabelled stats card there (owner,
+    // 2026-10-07: unclear whether personal or the shop's). Its numbers live in
+    // the card that SAYS whose they are (item 2, 2026-10-12) — and only there.
     await expect(page.getByTestId("profile-stat-value")).toHaveCount(0);
-    await expect(page.getByText("Sold", { exact: true })).toHaveCount(0);
+    await expect(page.getByTestId("profile-seller-numbers-title")).toHaveText("Numbers · Me");
+    await expect(page.getByText("Sold", { exact: true })).toHaveCount(1);
+    await expect(page.getByTestId("profile-seller-numbers").getByText("Sold", { exact: true })).toBeVisible();
     await expect(page.getByText("Personal Info")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Edit Profile/i }),

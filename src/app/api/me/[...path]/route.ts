@@ -33,6 +33,9 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["DELETE", /^my\/listings\/\d+$/],
   ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew|relaunch|move)$/],
   ["POST", /^my\/listings\/\d+\/duplicate$/],
+  // Item 2: a seller's numbers (Me / one shop) and "Relaunch all".
+  ["GET", /^my\/analytics$/],
+  ["POST", /^my\/listings\/relaunch_expired$/],
   ["GET", /^my\/listings\/\d+\/analytics$/],
   // Chat (Phase 4):
   ["GET", /^conversations$/],

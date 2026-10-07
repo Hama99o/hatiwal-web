@@ -159,7 +159,28 @@
       "thisWeek": "اس ہفتے فعال",
       "thisMonth": "اس مہینے فعال"
     },
-    "awayBanner": "بیچنے والا {date} تک دستیاب نہیں"
+    "awayBanner": "بیچنے والا {date} تک دستیاب نہیں",
+    "analytics": {
+      "title": "آپ کے اعداد",
+      "cardTitle": "اعداد · {name}",
+      "forMe": "آپ کے ذاتی اشتہارات",
+      "forShop": "اس دکان کے اشتہارات، پوری ٹیم کے لیے",
+      "listings": "اشتہارات",
+      "active": "فعال",
+      "sold": "فروخت شدہ",
+      "expired": "میعاد ختم",
+      "total": "کل",
+      "drafts": "{count, plural, one {# مسودہ} other {# مسودے}}",
+      "sales": "{count, plural, one {# فروخت درج} other {# فروختیں درج}}",
+      "reach": "رسائی",
+      "views": "دیکھے گئے",
+      "chats": "گفتگو",
+      "relaunchAll": "سب دوبارہ لانچ کریں",
+      "relaunchAllTitle": "{count, plural, one {# میعاد ختم اشتہار دوبارہ لانچ کریں؟} other {# میعاد ختم اشتہارات دوبارہ لانچ کریں؟}}",
+      "relaunchAllBody": "ہر ایک 90 دن کے لیے دوبارہ فعال ہو جائے گا، اپنی تصاویر اور گفتگو کے ساتھ۔ کچھ دوبارہ پوسٹ نہیں ہوگا۔",
+      "relaunchedAll": "{count, plural, one {# اشتہار دوبارہ فعال ہو گیا} other {# اشتہارات دوبارہ فعال ہو گئے}}",
+      "openListings": "میرے اشتہارات کھولیں"
+    }
   },
   "common": {
     "appName": "ہاٹیوال",

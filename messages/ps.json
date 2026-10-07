@@ -676,7 +676,28 @@
       "thisWeek": "دا اونۍ فعال",
       "thisMonth": "دا میاشت فعال"
     },
-    "awayBanner": "پلورونکی تر {date} پورې غایب دی"
+    "awayBanner": "پلورونکی تر {date} پورې غایب دی",
+    "analytics": {
+      "title": "ستاسو شمېرې",
+      "cardTitle": "شمېرې · {name}",
+      "forMe": "ستاسو شخصي اعلانونه",
+      "forShop": "د دې دوکان اعلانونه، د ټول ټیم لپاره",
+      "listings": "اعلانونه",
+      "active": "فعال",
+      "sold": "پلورل شوي",
+      "expired": "نیټه تېره",
+      "total": "ټول",
+      "drafts": "{count, plural, one {# مسوده} other {# مسودې}}",
+      "sales": "{count, plural, one {# پلور ثبت شوی} other {# پلورونه ثبت شوي}}",
+      "reach": "لاسرسی",
+      "views": "لیدنې",
+      "chats": "خبرې اترې",
+      "relaunchAll": "ټول بیا پیلول",
+      "relaunchAllTitle": "{count, plural, one {# نیټه تېر اعلان بیا پیل شي؟} other {# نیټه تېر اعلانونه بیا پیل شي؟}}",
+      "relaunchAllBody": "هر یو د ۹۰ ورځو لپاره بیا فعالېږي، له انځورونو او خبرو اترو سره. هېڅ شی بیا نه خپرېږي.",
+      "relaunchedAll": "{count, plural, one {# اعلان بیا فعال شو} other {# اعلانونه بیا فعال شول}}",
+      "openListings": "زما اعلانونه پرانیزئ"
+    }
   },
   "auth": {
     "login": "ننوتل",

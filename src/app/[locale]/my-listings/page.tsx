@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { RequireAuth } from "@/components/auth/require-auth";
@@ -22,7 +23,10 @@ export default async function MyListingsPage({
   setRequestLocale(locale);
   return (
     <RequireAuth>
-      <SellerListingsView />
+      {/* The view reads ?status (useSearchParams). */}
+      <Suspense>
+        <SellerListingsView />
+      </Suspense>
     </RequireAuth>
   );
 }

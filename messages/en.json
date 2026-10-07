@@ -676,7 +676,28 @@
       "thisWeek": "Active this week",
       "thisMonth": "Active this month"
     },
-    "awayBanner": "Seller is away until {date}"
+    "awayBanner": "Seller is away until {date}",
+    "analytics": {
+      "title": "Your numbers",
+      "cardTitle": "Numbers · {name}",
+      "forMe": "Your personal listings",
+      "forShop": "This shop's listings, for its whole team",
+      "listings": "Listings",
+      "active": "Active",
+      "sold": "Sold",
+      "expired": "Expired",
+      "total": "Total",
+      "drafts": "{count, plural, one {# draft} other {# drafts}}",
+      "sales": "{count, plural, one {# sale recorded} other {# sales recorded}}",
+      "reach": "Reach",
+      "views": "Views",
+      "chats": "Chats",
+      "relaunchAll": "Relaunch all",
+      "relaunchAllTitle": "{count, plural, one {Relaunch # expired listing?} other {Relaunch # expired listings?}}",
+      "relaunchAllBody": "Each one is live again for 90 days, with its photos and chats. Nothing is re-posted.",
+      "relaunchedAll": "{count, plural, one {# listing is live again} other {# listings are live again}}",
+      "openListings": "Open My listings"
+    }
   },
   "auth": {
     "login": "Login",

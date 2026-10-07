@@ -1,5 +1,6 @@
 "use client";
 
+import { SellerNumbersCard } from "./seller-numbers-card";
 import { useLocale, useTranslations } from "next-intl";
 import { ChevronRight, Eye, EyeOff, Heart, History, LogOut, Pencil, ShoppingBag } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -119,6 +120,10 @@ export function ProfileView() {
       </div>
 
       <ModeToggle className="w-full" />
+
+      {/* Item 2 (owner, 2026-10-12): Seller mode gets its numbers back, labelled
+          with whose they are (Me / the shop sold as), opening /analytics. */}
+      {user.sellerMode && <SellerNumbersCard />}
 
       {stats.length > 0 && (
       <div className={stats.length > 1 ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
