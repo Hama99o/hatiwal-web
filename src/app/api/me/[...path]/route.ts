@@ -32,6 +32,7 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["PATCH", /^users\/me\/location_guess$/],
   ["DELETE", /^my\/listings\/\d+$/],
   ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew|relaunch|move)$/],
+  ["POST", /^my\/listings\/\d+\/duplicate$/],
   ["GET", /^my\/listings\/\d+\/analytics$/],
   // Chat (Phase 4):
   ["GET", /^conversations$/],

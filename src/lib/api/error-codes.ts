@@ -54,6 +54,8 @@ export const API_ERROR_CODES = {
   moveForbidden: "move_forbidden",
   /** …it is already there. */
   moveSamePlace: "move_same_place",
+  /** Duplicate to Me of a shop product by someone other than its poster or the owner (403). */
+  duplicateForbidden: "duplicate_forbidden",
   /** …the target shop is not open (also SHOP-3 team errors). */
   shopUnavailable: "shop_unavailable",
 } as const;
@@ -95,6 +97,7 @@ const MESSAGES: Record<ApiErrorCode, { key: string; needsCount: boolean }> = {
   [API_ERROR_CODES.moveNotMember]: { key: "listing.move.errors.notMember", needsCount: false },
   [API_ERROR_CODES.moveForbidden]: { key: "listing.move.errors.forbidden", needsCount: false },
   [API_ERROR_CODES.moveSamePlace]: { key: "listing.move.errors.samePlace", needsCount: false },
+  [API_ERROR_CODES.duplicateForbidden]: { key: "listing.move.errors.duplicateForbidden", needsCount: false },
   [API_ERROR_CODES.shopUnavailable]: { key: "shops.team.errors.shop_unavailable", needsCount: false },
 };
 

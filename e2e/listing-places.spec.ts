@@ -27,12 +27,17 @@ const TWO_SHOPS = [shopEntry(42, "Safi Cosmetics", "active", "owner"), shopEntry
 test.describe("Without a shop", () => {
   test.use({ storageState: BUYER_STATE });
 
-  test("no Move; Duplicate opens the new-listing form prefilled from it", async ({ page }) => {
+  test("no Move; Duplicate copies it as Me (photos included, server-side) and opens the draft", async ({ page }) => {
+    let sent: unknown = null;
+    page.on("request", (req) => {
+      if (req.method() === "POST" && /\/my\/listings\/1\/duplicate$/.test(req.url())) sent = req.postDataJSON();
+    });
     await openKebab(page, 1);
     await expect(page.getByTestId("move-listing")).toHaveCount(0);
     await page.getByTestId("duplicate-listing").click();
-    await expect(page).toHaveURL(/\/listings\/new\?duplicateFrom=1$/, { timeout: 20_000 });
-    await expect(page.getByLabel("Title", { exact: true })).toHaveValue("iPhone 13 Pro", { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/listings\/900\/edit$/, { timeout: 30_000 });
+    expect(sent).toEqual({ shop_id: null });
+    await expect(page.getByText("Copied as a draft, photos included").first()).toBeVisible();
   });
 });
 
@@ -66,7 +71,11 @@ test.describe("With shops", () => {
     expect(sent).toEqual({ shop_id: 42 });
   });
 
-  test("Duplicate asks where; another shop switches who you sell as, then opens the form", async ({ page }) => {
+  test("Duplicate asks where; another shop gets the copy, switches who you sell as, opens the draft", async ({ page }) => {
+    let sent: unknown = null;
+    page.on("request", (req) => {
+      if (req.method() === "POST" && /\/my\/listings\/1\/duplicate$/.test(req.url())) sent = req.postDataJSON();
+    });
     let switchedTo: unknown = "none";
     await page.route("**/api/me/users/me/selling_as", async (route) => {
       switchedTo = route.request().postDataJSON();
@@ -78,7 +87,8 @@ test.describe("With shops", () => {
     await expect(page.getByRole("heading", { name: "Duplicate to…" })).toBeVisible();
     await expect(page.getByTestId("duplicate-to-me")).toHaveText("Here: Me");
     await page.getByTestId("duplicate-to-42").click();
-    await expect(page).toHaveURL(/\/listings\/new\?duplicateFrom=1$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/listings\/900\/edit$/, { timeout: 30_000 });
+    expect(sent).toEqual({ shop_id: 42 });
     expect(switchedTo).toEqual({ shop_id: 42 });
   });
 

@@ -1340,6 +1340,16 @@ function route(req, res, method, path, q, body, raw = "") {
     }
     return send(res, 200, payload);
   }
+  // Duplicate (item 5): a new DRAFT (id 900) with the original's fields and,
+  // in Rails, copies of its photos; in the place asked for.
+  const duplicateMatch = path.match(/^\/my\/listings\/(\d+)\/duplicate$/);
+  if (duplicateMatch && method === "POST") {
+    if (!requireAuth()) return;
+    const v = myListingView(duplicateMatch[1]);
+    const sid = body?.shop_id ?? null;
+    const shop = sid == null ? null : { ...SHOP_42_CARD, id: Number(sid), name: sid == 42 ? SHOP_42_CARD.name : `Shop ${sid}` };
+    return send(res, 201, { listing: { ...v, id: 900, status: "draft", expires_at: null, expired: false, shop } });
+  }
   const myShowMatch = path.match(/^\/my\/listings\/(\d+)$/);
   if (myShowMatch) {
     if (!requireAuth()) return;

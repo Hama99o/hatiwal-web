@@ -8,7 +8,7 @@ import { Store, User as UserIcon } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSellingIdentity } from "@/components/shops/use-selling-identity";
-import { moveMyListing } from "@/lib/api/me";
+import { duplicateMyListing, moveMyListing } from "@/lib/api/me";
 import { apiErrorMessage } from "@/lib/api/error-codes";
 import { hasOpenHold } from "@/lib/stock";
 import type { Listing } from "@/lib/types";
@@ -33,9 +33,10 @@ type PlaceListing = Pick<Listing, "id" | "status" | "sale"> &
  *   shop's owner or the listing's poster (docs/SHOPS.md). Only a draft or a live
  *   listing with no hold. The chats stay where they are (Rails tells and closes
  *   them), so the confirm says so.
- * - **Duplicate**: with a shop, it asks where — here first, then every other
- *   identity; another place switches who they sell as first, then opens the
- *   prefilled `/listings/new?duplicateFrom=<id>`, which posts there.
+ * - **Duplicate**: Rails makes a DRAFT with COPIES of the photos
+ *   (`POST /my/listings/:id/duplicate`) in the place picked — with a shop it
+ *   asks where: here first, then every other identity. Another place also
+ *   switches who they sell as; then the draft opens in the edit form.
  *
  * Returns the two menu actions' availability and handlers, plus `dialogs`, to
  * render once beside the menu.
@@ -77,14 +78,21 @@ export function useListingPlaces(
     return [here, ...all.filter((p) => p !== here)];
   })();
 
-  function openDuplicateForm() {
-    if (listing) router.push(`/listings/new?duplicateFrom=${listing.id}`);
-  }
-
   async function duplicateTo(place: Place) {
+    if (!listing) return;
     setAsking(null);
-    if (place.shopId !== (sellingAs?.id ?? null)) await switchToAsync(place.shopId);
-    openDuplicateForm();
+    setBusy(true);
+    try {
+      const copy = await duplicateMyListing(listing.id, place.shopId);
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      if (place.shopId !== (sellingAs?.id ?? null)) await switchToAsync(place.shopId);
+      toast.success(t("listing.duplicated"));
+      router.push(`/listings/${copy.id}/edit`);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, t) ?? t("common.error"));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function move(place: Place) {
@@ -145,8 +153,8 @@ export function useListingPlaces(
   return {
     canMove: moveTargets.length > 0,
     askMove: () => setAsking("move"),
-    /** With no shop there is nothing to ask: straight to the form. */
-    askDuplicate: () => (shops.length === 0 ? openDuplicateForm() : setAsking("duplicate")),
+    /** With no shop there is nothing to ask: copied as Me, straight to the form. */
+    askDuplicate: () => (shops.length === 0 ? void duplicateTo(me) : setAsking("duplicate")),
     busy,
     dialogs,
   };

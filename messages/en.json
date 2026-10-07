@@ -341,9 +341,11 @@
         "notMovable": "A sold or removed listing can't be moved.",
         "notMember": "You're not on that shop's team.",
         "forbidden": "Only the person who posted it or the shop's owner can move it out of the shop.",
-        "samePlace": "It's already there."
+        "samePlace": "It's already there.",
+        "duplicateForbidden": "Only the person who posted it or the shop's owner can copy it to their own listings."
       }
-    }
+    },
+    "duplicated": "Copied as a draft, photos included"
   },
   "browse": {
     "title": "Bazaar",

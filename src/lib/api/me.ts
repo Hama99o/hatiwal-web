@@ -204,6 +204,18 @@ export async function getMyListing(id: number | string): Promise<Listing> {
 }
 
 /**
+ * Duplicate (item 5): a DRAFT copy with COPIES of the photos, in `shopId`
+ * (null = Me). The clients open it in the edit form.
+ */
+export async function duplicateMyListing(id: number | string, shopId: number | null): Promise<Listing> {
+  const data = await meRequest<{ listing: RawListing }>(`my/listings/${id}/duplicate`, {
+    method: "POST",
+    json: { shop_id: shopId },
+  });
+  return normalizeListing(data.listing);
+}
+
+/**
  * Move to shop (owner, 2026-10-12; item 5): to Me (`shopId` null) or another
  * shop the caller is on. The listing's chats stay with the old identity: Rails
  * tells each one and closes it.
