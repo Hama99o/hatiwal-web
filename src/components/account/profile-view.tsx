@@ -44,11 +44,16 @@ export function ProfileView() {
 
   const name = user.fullName || `${user.firstname} ${user.lastname}`.trim();
   const none = t("profile.noInfo");
-  const stats = [
-    { label: t("profile.stats.active"), value: user.itemsActiveCount ?? 0 },
-    { label: t("profile.stats.sold"), value: user.itemsSoldCount ?? 0 },
-    { label: t("profile.itemsSaved"), value: user.savedItemsCount ?? 0 },
-  ];
+  // Owner, 2026-10-07: no stats in Seller mode (it was unclear whether Sold /
+  // Active were the person's or a shop's numbers). Buyer mode: Bought (when
+  // any) + Saved, same as mobile.
+  const bought = user.boughtCount ?? 0;
+  const stats = user.sellerMode
+    ? []
+    : [
+        ...(bought > 0 ? [{ label: t("profile.itemsBought"), value: bought }] : []),
+        { label: t("profile.itemsSaved"), value: user.savedItemsCount ?? 0 },
+      ];
 
   async function onLogout() {
     await logout();
@@ -115,7 +120,8 @@ export function ProfileView() {
 
       <ModeToggle className="w-full" />
 
-      <div className="grid grid-cols-3 gap-3">
+      {stats.length > 0 && (
+      <div className={stats.length > 1 ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
         {stats.map((s) => (
           <div key={s.label} className="rounded-lg border bg-card p-4 text-center">
             {/* `formatNumber`, not `{s.value}`: these printed raw, so on /ps and
@@ -128,6 +134,7 @@ export function ProfileView() {
           </div>
         ))}
       </div>
+      )}
 
       <div className="space-y-3 rounded-lg border bg-card p-4">
         <h2 className="text-sm font-semibold">{t("profile.info")}</h2>

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
+import { withSessionUser } from "./session-user";
 
 test.describe("Profile (signed in)", () => {
   test.use({ storageState: BUYER_STATE });
@@ -7,10 +8,10 @@ test.describe("Profile (signed in)", () => {
   test("shows the user, stats, and account actions", async ({ page }) => {
     await page.goto("/en/profile");
     await expect(page.getByText("Ahmad Karimi")).toBeVisible();
-    // Stats from /users/me (active 3, sold 1, saved 2).
-    await expect(page.getByText("Active", { exact: true })).toBeVisible();
-    await expect(page.getByText("Sold", { exact: true })).toBeVisible();
-    await expect(page.getByText("Saved Items")).toBeVisible();
+    // The mock viewer is in Seller mode: no stats card there (owner,
+    // 2026-10-07: unclear whether personal or the shop's).
+    await expect(page.getByTestId("profile-stat-value")).toHaveCount(0);
+    await expect(page.getByText("Sold", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Personal Info")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Edit Profile/i }),
@@ -18,6 +19,15 @@ test.describe("Profile (signed in)", () => {
     await expect(
       page.getByRole("button", { name: /Sign Out/i }),
     ).toBeVisible();
+  });
+
+  test("Buyer mode keeps Bought + Saved", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: false, boughtCount: 4 });
+    await page.goto("/en/profile");
+    await expect(page.getByTestId("profile-stat-value")).toHaveCount(2);
+    await expect(page.getByText("Items Bought")).toBeVisible();
+    await expect(page.getByText("Saved Items")).toBeVisible();
+    await expect(page.getByText("Active", { exact: true })).toHaveCount(0);
   });
 
   test("shows your own rating and your reviews (REP815)", async ({ page }) => {

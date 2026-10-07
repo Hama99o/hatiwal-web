@@ -482,6 +482,8 @@ export interface User {
    */
   emailConfirmed?: boolean;
   itemsActiveCount?: number;
+  /** Completed purchases (transactions), shown on the buyer Profile. */
+  boughtCount?: number;
   itemsSoldCount?: number;
   savedItemsCount?: number;
   unreadMessageCount?: number;

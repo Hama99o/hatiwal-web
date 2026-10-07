@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import { withSessionUser } from "./session-user";
 
 /**
  * ONE digit set per locale, in the server HTML and in the browser (regression
@@ -304,6 +305,8 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       page,
     }) => {
       const complaints = watchHydration(page);
+      // Buyer mode: the only mode with stat tiles (owner, 2026-10-07).
+      await withSessionUser(page, { sellerMode: false, boughtCount: 4 });
       await page.goto("/ps/profile");
 
       // The score and the count share one line (and one accessible name), so
@@ -314,7 +317,7 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       await expect(rating).not.toHaveText(LATIN_DIGIT);
 
       const tiles = page.getByTestId("profile-stat-value");
-      await expect(tiles).toHaveCount(3);
+      await expect(tiles).toHaveCount(2);
       for (const tile of await tiles.all()) {
         await expect(tile).toHaveText(ARABIC_INDIC);
         await expect(tile).not.toHaveText(LATIN_DIGIT);
