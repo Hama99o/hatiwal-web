@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { Eye, LogOut, Pencil } from "lucide-react";
+import { ChevronRight, Eye, EyeOff, Heart, History, LogOut, Pencil, ShoppingBag } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -148,33 +148,36 @@ export function ProfileView() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {/* /sellers/[id] is the canonical public profile (/users/[id] redirects
-            to it) — lets you see exactly what buyers see. Hidden while the
-            account is scheduled for deletion: Rails scopes the public profile
-            to `User.publicly_active`, so the page would 404. The restore banner
-            at the top already explains that state. */}
-        {!user.deletionScheduledAt && (
-          <Button asChild variant="secondary" className="col-span-2">
-            <Link href={`/sellers/${user.id}`}>
-              <Eye className="size-4" />
-              {t("profile.viewPublicProfile")}
-            </Link>
-          </Button>
-        )}
-        <Button asChild variant="secondary">
-          <Link href="/saved">{t("saved.title")}</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link href="/recently-viewed">{t("recentlyViewed.title")}</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link href="/settings/hidden-listings">{t("hidden.title")}</Link>
-        </Button>
-        <Button asChild variant="secondary">
-          <Link href="/bazaar">{t("profile.quickActions.browse")}</Link>
-        </Button>
-      </div>
+      {/* Item 9 (owner, 2026-10-12; Mobbin: Viator, Zomato, Vestiaire, see
+          hatiwal-mobile docs/design/PROFILE.md): the shortcuts are ONE grouped
+          list of rows (icon, label, chevron), like mobile, instead of a grid of
+          plain buttons. /sellers/[id] is the canonical public profile; it is
+          hidden while the account is scheduled for deletion (Rails scopes it to
+          `User.publicly_active`, so it would 404). */}
+      <nav aria-label={t("profile.title")} className="divide-y overflow-hidden rounded-lg border bg-card" data-testid="profile-shortcuts">
+        {[
+          ...(!user.deletionScheduledAt
+            ? [{ href: `/sellers/${user.id}`, Icon: Eye, label: t("profile.viewPublicProfile"), id: "public-profile" }]
+            : []),
+          { href: "/saved", Icon: Heart, label: t("saved.title"), id: "saved" },
+          { href: "/recently-viewed", Icon: History, label: t("recentlyViewed.title"), id: "recently-viewed" },
+          { href: "/settings/hidden-listings", Icon: EyeOff, label: t("hidden.title"), id: "hidden" },
+          { href: "/bazaar", Icon: ShoppingBag, label: t("profile.quickActions.browse"), id: "browse" },
+        ].map(({ href, Icon, label, id }) => (
+          <Link
+            key={id}
+            href={href}
+            data-testid={`profile-row-${id}`}
+            className="flex min-h-12 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Icon className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" aria-hidden />
+          </Link>
+        ))}
+      </nav>
 
       {/* The reviews buyers left about you — same component (role tabs, load
           more, skeleton, empty state) as the public seller profile, only the

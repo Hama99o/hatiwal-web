@@ -68,6 +68,25 @@ test.describe("Profile (signed in)", () => {
     await expect(page.getByText("No buyer reviews yet")).toBeVisible();
   });
 
+  // Item 9 (owner, 2026-10-12): the shortcuts are one grouped list of rows.
+  test("the shortcuts are one grouped list of rows, each with an icon and a chevron", async ({ page }) => {
+    await page.goto("/en/profile");
+    const list = page.getByTestId("profile-shortcuts");
+    await expect(list).toBeVisible();
+    for (const id of ["public-profile", "saved", "recently-viewed", "hidden", "browse"]) {
+      await expect(list.getByTestId(`profile-row-${id}`)).toBeVisible();
+    }
+    await expect(list.getByRole("link")).toHaveCount(5);
+    await expect(list.getByRole("link", { name: "Saved", exact: true })).toHaveAttribute("href", "/en/saved");
+  });
+
+  test("RTL (ps): the rows' chevrons point the reading way", async ({ page }) => {
+    await page.goto("/ps/profile");
+    const chevron = page.getByTestId("profile-row-saved").locator("svg").last();
+    // Tailwind v4: rtl:-scale-x-100 is the CSS `scale` property.
+    await expect(chevron).toHaveCSS("scale", /^-1/);
+  });
+
   test("View my public profile opens the seller page (REP815)", async ({
     page,
   }) => {
