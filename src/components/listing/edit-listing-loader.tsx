@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { getMyListing } from "@/lib/api/me";
@@ -18,6 +19,9 @@ export function EditListingLoader({
   categories: Category[];
 }) {
   const t = useTranslations();
+  // "Edit & relaunch" (owner, 2026-10-12): the expired listing's link adds
+  // ?relaunch=1, and saving then also relaunches it.
+  const relaunch = useSearchParams().get("relaunch") === "1";
   const { data, isPending, isError } = useQuery({
     queryKey: ["my-listing", id],
     queryFn: () => getMyListing(id),
@@ -37,5 +41,5 @@ export function EditListingLoader({
       </div>
     );
   }
-  return <ListingForm categories={categories} listing={data} />;
+  return <ListingForm categories={categories} listing={data} relaunch={relaunch} />;
 }

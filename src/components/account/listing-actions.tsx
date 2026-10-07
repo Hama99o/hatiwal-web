@@ -170,7 +170,7 @@ export const LIFECYCLE: Record<
  */
 export function actionsFor(
   listing: Pick<Listing, "expiresAt" | "expired" | "sale"> & { status: string },
-): { primary?: LifecycleAction; secondary: LifecycleAction[] } {
+): { primary?: LifecycleAction; secondary: LifecycleAction[]; relaunch?: boolean } {
   const expired = listingExpiryState(listing).kind === "expired";
   if (listing.status === "draft") return { primary: "publish", secondary: [] };
   if (!isLive(listing)) return { secondary: [] }; // sold — terminal
@@ -186,10 +186,28 @@ export function actionsFor(
   // A lapsed listing's most useful move is Renew — but it is still live, so
   // selling it, releasing its hold and taking it down all stay legal. (Dropping
   // those once stranded expired listings with no way to take them down.)
+  //
+  // Owner, 2026-10-12 (docs/OWNER_ITEMS_2026-10-12.md, item 1): expired is not
+  // deleted. `relaunch` tells the surface to label that Renew "Relaunch" and to
+  // offer "Edit & relaunch" (the edit form with ?relaunch=1) beside it.
   if (expired)
-    return { primary: "renew", secondary: ["sold", ...hold, "unpublish"] };
+    return { primary: "renew", secondary: ["sold", ...hold, "unpublish"], relaunch: true };
 
   return { primary: "sold", secondary: [...hold, "unpublish", "renew"] };
+}
+
+/**
+ * The i18n key (under `listing.`) for an action's button: an expired listing's
+ * Renew reads "Relaunch" — same one-tap +90 days, worded for a listing that
+ * is no longer on the market.
+ */
+export function lifecycleLabel(action: LifecycleAction, relaunch?: boolean): string {
+  return relaunch && action === "renew" ? "relaunch" : LIFECYCLE[action].label;
+}
+
+/** Where "Edit & relaunch" goes: the edit form, which relaunches on save. */
+export function editRelaunchHref(listingId: number): string {
+  return `/listings/${listingId}/edit?relaunch=1`;
 }
 
 /**
@@ -428,8 +446,16 @@ export function useListingLifecycle(
     }
   }
 
-  /** Ask before acting: opens the confirm prompt (or the buyer picker). */
+  /**
+   * Ask before acting: opens the confirm prompt (or the buyer picker). Renew is
+   * the exception (owner, 2026-10-12): ONE tap — +90 days, nothing re-posted,
+   * photos, chats and feed position kept — so there is nothing to confirm.
+   */
   function ask(action: LifecycleAction | "delete") {
+    if (action === "renew") {
+      void runLifecycle("renew");
+      return;
+    }
     setPending(
       action === "delete" ? { kind: "delete" } : { kind: "lifecycle", action },
     );

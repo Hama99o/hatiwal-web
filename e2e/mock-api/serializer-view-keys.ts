@@ -124,13 +124,17 @@ export const SELLER_LIST_VIEW_KEYS = [
   "image_urls",
   "conversations_count",
   "expired",
+  // Edit + relaunch (owner, 2026-10-12): when it may next move to the top.
+  "next_bump_at",
   "category",
   "price_drop_percent",
   "price_dropped_at",
   "sale",
 ] as const;
 
-/** `view :detailed` — the public `GET /listings/:id`. */
+/** `view :detailed` — the public `GET /listings/:id`. `expires_at` is still a
+ *  key, but Rails sends it as null unless the viewer manages the listing
+ *  (owner, 2026-10-12: buyers never see an expiry date). */
 export const DETAILED_VIEW_KEYS = [
   ...BASE_KEYS,
   "description",
@@ -166,6 +170,10 @@ export const DETAILED_VIEW_KEYS = [
 export const OWNER_DETAILED_VIEW_KEYS = [
   ...DETAILED_VIEW_KEYS,
   "sale",
+  // Edit + relaunch (owner, 2026-10-12). `bumped` is non-null only on the
+  // PUT /my/listings/:id/relaunch response.
+  "next_bump_at",
+  "bumped",
 ] as const;
 
 /** `field(:seller)` inside `view :list` — public identity only. */

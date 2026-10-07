@@ -9,7 +9,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Boxes, History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
-import { createListing, updateListing, listingLifecycle } from "@/lib/api/me";
+import { createListing, updateListing, listingLifecycle, relaunchMyListing } from "@/lib/api/me";
 import {
   API_ERROR_CODES,
   apiErrorCode,
@@ -70,9 +70,16 @@ interface NewPhoto {
 export function ListingForm({
   categories,
   listing,
+  relaunch = false,
 }: {
   categories: Category[];
   listing?: Listing;
+  /**
+   * "Edit & relaunch" (owner, 2026-10-12; docs/OWNER_ITEMS_2026-10-12.md item 1):
+   * saving the edit also relaunches the listing — +90 days, and back to the top
+   * of the feed at most once a week (the API decides and says which).
+   */
+  relaunch?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -350,12 +357,23 @@ export function ListingForm({
 
       if (isEdit && listing) {
         await updateListing(listing.id, input, files, removedIds);
+        const relaunched = relaunch ? await relaunchMyListing(listing.id) : null;
         // Drop the cached pre-edit copies so the manage/list views show the
         // saved values immediately (the global 60s staleTime would otherwise
         // serve the stale listing and make the edit look like it failed).
+        // The manage screen keys it by the route param — a STRING id.
         qc.invalidateQueries({ queryKey: ["my-listing", listing.id] });
+        qc.invalidateQueries({ queryKey: ["my-listing", String(listing.id)] });
         qc.invalidateQueries({ queryKey: ["my-listings"] });
-        toast.success(t("listing.form.saved"));
+        if (relaunched) {
+          // A relaunch puts it back in the public feed.
+          qc.invalidateQueries({ queryKey: ["listings"] });
+          toast.success(
+            t(relaunched.bumped ? "listing.relaunchedBumped" : "listing.relaunchedRenewed"),
+          );
+        } else {
+          toast.success(t("listing.form.saved"));
+        }
         router.push(`/my-listings/${listing.id}`);
       } else {
         const created = await createListing(input, files);
@@ -736,7 +754,7 @@ export function ListingForm({
             <>
               <Button type="submit" disabled={submitting}>
                 {submitting && <Loader2 className="size-4 animate-spin" />}
-                {t("common.save")}
+                {relaunch ? t("listing.saveRelaunch") : t("common.save")}
               </Button>
               <Button
                 type="button"

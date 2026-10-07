@@ -223,8 +223,14 @@ export interface Listing {
   /** Feed rows too, but only on a payload fetched WITH a bearer (`:list` +
    *  `viewed_ids:`) — an anonymous fetch always reports false. */
   isViewed?: boolean;
+  /** Owner/shop-team views only: Rails sends null to buyers and guests (owner,
+   *  2026-10-12 — buyers never see an expiry date). */
   expiresAt?: string | null;
   expired?: boolean;
+  /** Owner views: when an edit + relaunch may next move it to the top (null = now). */
+  nextBumpAt?: string | null;
+  /** Only on a relaunch response: whether that relaunch moved it to the top. */
+  bumped?: boolean | null;
   priceDropPercent?: number | null;
   priceDroppedAt?: string | null;
   /**

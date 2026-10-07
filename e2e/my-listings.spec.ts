@@ -120,9 +120,9 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(
       card(page, 1).getByText("Expired", { exact: true }),
     ).toBeVisible();
-    // …so its primary is Renew, and the tabs agree: Expired holds two, Active
-    // has dropped it.
-    await expect(card(page, 1).getByRole("button", { name: "Renew" })).toBeVisible();
+    // …so its primary is Relaunch (= Renew, worded for a lapsed listing), and the
+    // tabs agree: Expired holds two, Active has dropped it.
+    await expect(card(page, 1).getByRole("button", { name: "Relaunch" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Expired (2)" })).toBeVisible();
     await expect(async () => {
       await page.getByRole("tab", { name: /^Active/ }).click();
@@ -147,8 +147,8 @@ test.describe("My Shop (seller dashboard)", () => {
     await expect(
       card(page, 9).getByRole("button", { name: "Mark as Sold" }),
     ).toBeVisible(); // reserved — same primary, no separate ladder
-    // Expired (active, past its run): Renew is the most useful next step.
-    await expect(card(page, 10).getByRole("button", { name: "Renew" })).toBeVisible();
+    // Expired (active, past its run): Relaunch (= Renew) is the most useful next step.
+    await expect(card(page, 10).getByRole("button", { name: "Relaunch" })).toBeVisible();
     // Sold is terminal: no lifecycle button, just the kebab (Edit / Delete).
     await expect(
       card(page, 7).getByRole("button", { name: "Mark as Sold" }),
@@ -267,8 +267,9 @@ test.describe("My Shop (seller dashboard)", () => {
     await openMyShop(page);
     await card(page, 10).getByRole("button", { name: "More options" }).click();
     const menu = page.getByRole("menu");
-    for (const label of ["Mark as Sold", "Unpublish", "Edit", "Delete"]) {
-      await expect(menu.getByRole("menuitem", { name: label })).toBeVisible();
+    // Exact names: "Edit" would otherwise also match "Edit & relaunch".
+    for (const label of ["Mark as Sold", "Edit & relaunch", "Unpublish", "Edit", "Delete"]) {
+      await expect(menu.getByRole("menuitem", { name: label, exact: true })).toBeVisible();
     }
     // "Mark as Reserved" was here. Reserving is not a listing-level action any
     // more — a hold is placed from the chat thread, for a named buyer.

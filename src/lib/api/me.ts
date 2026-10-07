@@ -203,6 +203,18 @@ export async function getMyListing(id: number | string): Promise<Listing> {
   return normalizeListing(data.listing);
 }
 
+/**
+ * Edit + relaunch (owner, 2026-10-12): renew for 90 days AND move back to the
+ * top of the feed if the last move was at least a week ago. `bumped` says
+ * whether this call moved it.
+ */
+export async function relaunchMyListing(id: number | string): Promise<Listing> {
+  const data = await meRequest<{ listing: RawListing }>(`my/listings/${id}/relaunch`, {
+    method: "PUT",
+  });
+  return normalizeListing(data.listing);
+}
+
 export type LifecycleAction =
   | "publish"
   | "unpublish"

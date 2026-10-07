@@ -1,14 +1,18 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { MessageSquare, Pencil, SlidersHorizontal } from "lucide-react";
+import { MessageSquare, Pencil, Rocket, SlidersHorizontal } from "lucide-react";
+import { getMyListing } from "@/lib/api/me";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useIsOwner } from "@/components/auth/owner-gate";
 import {
   LIFECYCLE,
   LifecycleDialogs,
   actionsFor,
+  editRelaunchHref,
+  lifecycleLabel,
   useListingLifecycle,
 } from "@/components/account/listing-actions";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
@@ -111,9 +115,9 @@ const HEADING_LINK =
 export function OwnerListingBar({
   listingId,
   sellerId,
-  status,
-  expiresAt,
-  expired,
+  status: ssrStatus,
+  expiresAt: ssrExpiresAt,
+  expired: ssrExpired,
   conversationsCount,
   className,
 }: {
@@ -144,7 +148,19 @@ export function OwnerListingBar({
     onChanged: () => router.refresh(),
   });
   const { busy, ask } = lifecycle;
+  // Owner, 2026-10-12: buyers never see an expiry date, so the anonymous SSR
+  // payload carries none (`expiresAt: null`). The owner's own copy does — the
+  // same query (and cache) as the manage screen; it also repaints this panel
+  // after a renew, which invalidates that key.
+  const { data: own } = useQuery({
+    queryKey: ["my-listing", String(listingId)],
+    queryFn: () => getMyListing(String(listingId)),
+    enabled: isOwner,
+  });
   if (!isOwner) return null;
+  const status = own?.status ?? ssrStatus;
+  const expiresAt = own ? own.expiresAt : ssrExpiresAt;
+  const expired = own ? own.expired : ssrExpired;
 
   // The panel and its expiry pill must never disagree: an active listing that is
   // past its run is "Expired", full stop — printing "Active" beside it (the old
@@ -165,7 +181,7 @@ export function OwnerListingBar({
   // `actionsFor` derives "lapsed" and "is it held?" from the SAME shared rules as
   // the badges above (it takes the listing, not flags), so the pill and the
   // button always tell the same story — on every seller surface, not just here.
-  const { primary, secondary } = actionsFor({ status, expiresAt, expired });
+  const { primary, secondary, relaunch } = actionsFor({ status, expiresAt, expired });
   const PrimaryIcon = primary ? LIFECYCLE[primary].Icon : null;
   // The amber pill says "Expires tomorrow" / "Expires in 3 days", and the fix is
   // Renew — which for a not-yet-lapsed listing sits in `secondary`, i.e. behind
@@ -243,7 +259,15 @@ export function OwnerListingBar({
               onClick={() => ask(primary)}
             >
               <PrimaryIcon className="size-4" />
-              <span>{t(`listing.${LIFECYCLE[primary].label}`)}</span>
+              <span>{t(`listing.${lifecycleLabel(primary, relaunch)}`)}</span>
+            </Button>
+          )}
+          {relaunch && (
+            <Button asChild variant="outline" className={ROW_BUTTON}>
+              <Link href={editRelaunchHref(listingId)} data-testid="edit-relaunch">
+                <Rocket className="size-4" />
+                <span>{t("listing.editRelaunch")}</span>
+              </Link>
             </Button>
           )}
           {showRenew && (

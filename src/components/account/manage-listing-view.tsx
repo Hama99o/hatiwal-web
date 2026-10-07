@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Pencil,
   Receipt,
+  Rocket,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -19,7 +20,9 @@ import {
   LIFECYCLE,
   LifecycleDialogs,
   actionsFor,
+  editRelaunchHref,
   hasSalesToShow,
+  lifecycleLabel,
   useListingLifecycle,
 } from "./listing-actions";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
@@ -77,7 +80,7 @@ export function ManageListingView({ id }: { id: string }) {
   // The listing itself, so the transition agrees with the <ExpiryBadge> a few
   // lines above it: both read the shared `listingExpiryState` rule (a lapsed
   // `active` listing offers Renew, never "Mark as Sold" beside a red pill).
-  const { primary, secondary } = actionsFor(listing);
+  const { primary, secondary, relaunch } = actionsFor(listing);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -142,7 +145,15 @@ export function ManageListingView({ id }: { id: string }) {
                 disabled={busy}
                 onClick={() => ask(primary)}
               >
-                {t(`listing.${LIFECYCLE[primary].label}`)}
+                {t(`listing.${lifecycleLabel(primary, relaunch)}`)}
+              </Button>
+            )}
+            {relaunch && (
+              <Button asChild variant="outline" className="w-full">
+                <Link href={editRelaunchHref(listing.id)} data-testid="edit-relaunch">
+                  <Rocket className="size-4" />
+                  {t("listing.editRelaunch")}
+                </Link>
               </Button>
             )}
             {secondary.length > 0 && (

@@ -473,6 +473,7 @@ function sellerListView(l) {
     // listing with no chats can be asserted on.
     conversations_count: l.conversations_count ?? 2,
     expired: l.expired ?? false,
+    next_bump_at: null,
     category: catRef(l.category_id),
     price_drop_percent: l.price_drop_percent,
     price_dropped_at: l.price_dropped_at,
@@ -491,7 +492,9 @@ function detailView(l) {
     views_count: l.views_count,
     ...lifecycleFields(l),
     updated_at: l.created_at,
-    expires_at: l.expires_at ?? null,
+    // Like Rails for a guest (the RSC fetch is anonymous): buyers never see an
+    // expiry date (owner, 2026-10-12). `ownerDetailView` puts it back.
+    expires_at: null,
     negotiable: l.negotiable ?? true,
     images: [],
     image_attachments: [],
@@ -517,7 +520,13 @@ function detailView(l) {
 /** `view :owner_detailed` — `include_view :detailed` plus the owner-only sale.
  *  Everything under /my/listings/:id (show, create, update, lifecycle). */
 function ownerDetailView(l) {
-  return { ...detailView(l), sale: saleView(l) };
+  return {
+    ...detailView(l),
+    sale: saleView(l),
+    expires_at: l.expires_at ?? null,
+    next_bump_at: null,
+    bumped: null,
+  };
 }
 
 /** A listing owned by user 1 by id — falls back to a synthesized draft so a
@@ -1283,13 +1292,19 @@ function route(req, res, method, path, q, body, raw = "") {
     if (!requireAuth()) return;
     return send(res, 200, { analytics: analytics() });
   }
-  const lifecycleMatch = path.match(/^\/my\/listings\/(\d+)\/(publish|unpublish|reserve|activate|sold|renew)$/);
+  const lifecycleMatch = path.match(/^\/my\/listings\/(\d+)\/(publish|unpublish|reserve|activate|sold|renew|relaunch)$/);
   if (lifecycleMatch && method === "PUT") {
     if (!requireAuth()) return;
-    const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: "active" };
+    const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: "active", relaunch: "active" };
     const action = lifecycleMatch[2];
     const v = myListingView(lifecycleMatch[1]);
     const payload = { listing: { ...v, status: statusByAction[action] } };
+    // Renew / relaunch: +90 days, no longer expired. A relaunch says whether it
+    // moved the listing to the top (here: always, the first time).
+    if (action === "renew" || action === "relaunch") {
+      Object.assign(payload.listing, { expired: false, expires_at: new Date(Date.now() + 90 * 86_400_000).toISOString() });
+      if (action === "relaunch") payload.listing.bumped = true;
+    }
     // Like Rails: EVERY sale answers with a transaction — the outside-buyer sale
     // included, where `buyer` is null.
     //

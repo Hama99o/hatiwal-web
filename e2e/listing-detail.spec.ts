@@ -609,20 +609,16 @@ test.describe("Listing detail — viewed by its own seller", () => {
     ).toHaveAttribute("href", "/en/my-listings/10");
   });
 
-  test("an expired listing can be renewed from the panel", async ({ page }) => {
+  test("an expired listing can be relaunched from the panel, in one tap", async ({ page }) => {
     // The status the panel could name but not fix: it showed the red "Expired"
     // pill and then offered navigation only, so the owner still had to travel to
-    // /my-listings/10 to do the one thing that mattered.
+    // /my-listings/10 to do the one thing that mattered. Owner, 2026-10-12: it
+    // reads "Relaunch" (= Renew, +90 days) and needs no confirm.
     await page.goto("/en/listings/10");
     const panel = page.getByTestId("owner-listing-bar");
-    await panel.getByRole("button", { name: "Renew" }).click();
-    // The shared confirm copy, the shared mutation, the shared success toast.
-    await expect(page.getByText("Renew this listing?")).toBeVisible();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Renew" })
-      .click();
+    await panel.getByRole("button", { name: "Relaunch" }).click();
     await expect(page.getByText(/renewed/i).first()).toBeVisible();
+    await expect(page.getByText("Renew this listing?")).toHaveCount(0);
   });
 
   test("an expiring listing can be renewed too, not just an expired one", async ({
@@ -643,10 +639,10 @@ test.describe("Listing detail — viewed by its own seller", () => {
       panel.getByRole("button", { name: "Mark as Sold" }),
     ).toBeVisible();
 
+    // One tap (owner, 2026-10-12): nothing re-posted, so nothing to confirm.
     await panel.getByRole("button", { name: "Renew" }).click();
-    await expect(page.getByText("Renew this listing?")).toBeVisible();
-    await page.getByRole("dialog").getByRole("button", { name: "Renew" }).click();
     await expect(page.getByText(/renewed/i).first()).toBeVisible();
+    await expect(page.getByText("Renew this listing?")).toHaveCount(0);
   });
 
   test("a listing with weeks left offers no Renew (it isn't a fix for anything)", async ({

@@ -6,6 +6,7 @@ import {
   MoreVertical,
   Pencil,
   Receipt,
+  Rocket,
   Trash2,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -15,7 +16,9 @@ import {
   LIFECYCLE,
   LifecycleDialogs,
   actionsFor,
+  editRelaunchHref,
   hasSalesToShow,
+  lifecycleLabel,
   useListingLifecycle,
 } from "./listing-actions";
 import { Button } from "@/components/ui/button";
@@ -71,7 +74,7 @@ export function SellerListingActions({
   // The listing itself: the card renders an <ExpiryBadge> right above this
   // footer, and both now derive "lapsed" from the same shared rule — so a card
   // can never show the red "Expired" pill over a primary that isn't Renew.
-  const { primary, secondary } = actionsFor(listing);
+  const { primary, secondary, relaunch } = actionsFor(listing);
 
   return (
     <div className="flex items-center gap-2">
@@ -92,13 +95,13 @@ export function SellerListingActions({
           // announce "Mark as Sold" seven times with nothing to tell them apart
           // (the kebab below carries the title for the same reason).
           aria-label={t("listing.detail.actionFor", {
-            action: t(`listing.${LIFECYCLE[primary].label}`),
+            action: t(`listing.${lifecycleLabel(primary, relaunch)}`),
             title: listing.title,
           })}
           disabled={busy}
           onClick={() => ask(primary)}
         >
-          {t(`listing.${LIFECYCLE[primary].label}`)}
+          {t(`listing.${lifecycleLabel(primary, relaunch)}`)}
         </Button>
       )}
 
@@ -164,6 +167,14 @@ export function SellerListingActions({
               <Link href={`/my-listings/${listing.id}/sales`}>
                 <Receipt className="size-4" />
                 {t("listing.viewSales")}
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {relaunch && (
+            <DropdownMenuItem asChild>
+              <Link href={editRelaunchHref(listing.id)} data-testid="edit-relaunch">
+                <Rocket className="size-4" />
+                {t("listing.editRelaunch")}
               </Link>
             </DropdownMenuItem>
           )}
