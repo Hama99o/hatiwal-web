@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { RequireAuth } from "@/components/auth/require-auth";
-import { ListingForm } from "@/components/listing/listing-form";
+import { NewListingLoader } from "@/components/listing/new-listing-loader";
 import { getCategories } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
 
@@ -25,7 +26,10 @@ export default async function NewListingPage({
   const categories = await safe(getCategories({ revalidate: 600 }), []);
   return (
     <RequireAuth>
-      <ListingForm categories={categories} />
+      {/* The loader reads ?duplicateFrom (useSearchParams). */}
+      <Suspense>
+        <NewListingLoader categories={categories} />
+      </Suspense>
     </RequireAuth>
   );
 }

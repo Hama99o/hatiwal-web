@@ -70,10 +70,17 @@ interface NewPhoto {
 export function ListingForm({
   categories,
   listing,
+  prefill,
   relaunch = false,
 }: {
   categories: Category[];
   listing?: Listing;
+  /**
+   * Duplicate (owner, 2026-10-12; docs/OWNER_ITEMS_2026-10-12.md item 5): a NEW
+   * listing prefilled from this one's text and place — photos are not copied
+   * (mobile does the same). Posted as whoever the user sells as.
+   */
+  prefill?: Listing;
   /**
    * "Edit & relaunch" (owner, 2026-10-12; docs/OWNER_ITEMS_2026-10-12.md item 1):
    * saving the edit also relaunches the listing — +90 days, and back to the top
@@ -86,6 +93,8 @@ export function ListingForm({
   const router = useRouter();
   const qc = useQueryClient();
   const isEdit = Boolean(listing);
+  // What the fields start from: the listing being edited, or the one duplicated.
+  const source = listing ?? prefill;
 
   const [existing, setExisting] = useState(listing?.imageAttachments ?? []);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
@@ -104,8 +113,8 @@ export function ListingForm({
   const [quantityServerError, setQuantityServerError] = useState<string | null>(
     null,
   );
-  const [lat, setLat] = useState<number | null>(listing?.latitude ?? null);
-  const [lng, setLng] = useState<number | null>(listing?.longitude ?? null);
+  const [lat, setLat] = useState<number | null>(source?.latitude ?? null);
+  const [lng, setLng] = useState<number | null>(source?.longitude ?? null);
   const [restorableDraft, setRestorableDraft] = useState<DraftSnapshot | null>(
     null,
   );
@@ -180,16 +189,16 @@ export function ListingForm({
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: listing?.title ?? "",
-      price: listing?.price != null ? String(listing.price) : "",
-      currency: (listing?.currency as (typeof CURRENCIES)[number]) ?? "AFN",
-      categoryId: listing?.categoryId != null ? String(listing.categoryId) : "",
-      condition: listing?.condition ?? "",
-      negotiable: listing?.negotiable ?? true,
-      quantity: listing?.quantity != null && listing.quantity > 1 ? String(listing.quantity) : "",
-      description: listing?.description ?? "",
-      location: listing?.location ?? "",
-      address: listing?.address ?? "",
+      title: source?.title ?? "",
+      price: source?.price != null ? String(source.price) : "",
+      currency: (source?.currency as (typeof CURRENCIES)[number]) ?? "AFN",
+      categoryId: source?.categoryId != null ? String(source.categoryId) : "",
+      condition: source?.condition ?? "",
+      negotiable: source?.negotiable ?? true,
+      quantity: source?.quantity != null && source.quantity > 1 ? String(source.quantity) : "",
+      description: source?.description ?? "",
+      location: source?.location ?? "",
+      address: source?.address ?? "",
     },
   });
 
@@ -200,15 +209,18 @@ export function ListingForm({
   // of a switch that reads "off" over a value of 15 the seller can neither see
   // nor correct.
   const [hasMultipleUnits, setHasMultipleUnits] = useState(
-    listing?.quantity != null && listing.quantity > 1,
+    source?.quantity != null && source.quantity > 1,
   );
   const quantityField = register("quantity");
   const totalPhotos = existing.length + newPhotos.length;
 
   // ── Draft autosave (new listings only — mirrors mobile ListingForm) ────────
   // Offer to restore a previously autosaved draft on first open.
+  // A duplicate starts from its source, not from the autosaved draft (and never
+  // overwrites that draft either — see the next effect).
+  const isDuplicate = Boolean(prefill);
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || isDuplicate) return;
     try {
       const raw = window.localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
@@ -220,12 +232,12 @@ export function ListingForm({
     } catch {
       /* corrupt draft — ignore */
     }
-  }, [isEdit]);
+  }, [isEdit, isDuplicate]);
 
   // Persist the form (debounced 800ms) as the user types. Photos are never
   // persisted — the seller re-adds them after a restore.
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || isDuplicate) return;
     let handle: ReturnType<typeof setTimeout> | null = null;
     const sub = watch((values) => {
       if (handle) clearTimeout(handle);
@@ -250,7 +262,7 @@ export function ListingForm({
       sub.unsubscribe();
       if (handle) clearTimeout(handle);
     };
-  }, [isEdit, watch, lat, lng]);
+  }, [isEdit, isDuplicate, watch, lat, lng]);
 
   const clearDraft = useCallback(() => {
     try {
@@ -377,8 +389,9 @@ export function ListingForm({
         router.push(`/my-listings/${listing.id}`);
       } else {
         const created = await createListing(input, files);
-        // The listing was saved on the server — drop the autosaved draft.
-        clearDraft();
+        // The listing was saved on the server — drop the autosaved draft (a
+        // duplicate never used it, so it keeps the seller's own draft).
+        if (!isDuplicate) clearDraft();
         if (publish) {
           await listingLifecycle(created.id, "publish");
           toast.success(t("listing.form.published"));

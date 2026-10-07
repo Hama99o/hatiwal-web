@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { setRequestLocale } from "next-intl/server";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { EditListingLoader } from "@/components/listing/edit-listing-loader";
@@ -14,7 +15,10 @@ export default async function EditListingPage({
   const categories = await safe(getCategories({ revalidate: 600 }), []);
   return (
     <RequireAuth>
-      <EditListingLoader id={id} categories={categories} />
+      {/* The loader reads ?relaunch (useSearchParams). */}
+      <Suspense>
+        <EditListingLoader id={id} categories={categories} />
+      </Suspense>
     </RequireAuth>
   );
 }

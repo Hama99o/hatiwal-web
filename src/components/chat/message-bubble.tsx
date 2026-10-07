@@ -74,7 +74,9 @@ export function MessageBubble({
     return (
       <div className="my-2 flex justify-center">
         <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-          {m.body}
+          {m.notice?.notice === "listing_moved"
+            ? t("listing.move.notice", { name: m.notice.name ?? "" })
+            : m.body}
         </span>
       </div>
     );

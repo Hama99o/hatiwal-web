@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
+  ArrowLeftRight,
+  Copy,
   Eye,
   Loader2,
   MessageSquare,
@@ -25,6 +27,7 @@ import {
   lifecycleLabel,
   useListingLifecycle,
 } from "./listing-actions";
+import { useListingPlaces } from "./listing-places";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { ListingGallery } from "@/components/listing/listing-gallery";
 import { ListingViewsChart } from "./listing-views-chart";
@@ -61,6 +64,8 @@ export function ManageListingView({ id }: { id: string }) {
     onSaleUndone: () => setReviewTxn(null),
   });
   const { busy, ask } = lifecycle;
+  // Item 5: Move to shop / Duplicate to….
+  const places = useListingPlaces(listing);
 
   if (isPending) {
     return (
@@ -190,6 +195,31 @@ export function ManageListingView({ id }: { id: string }) {
             </Button>
           )}
 
+          <div className="flex flex-wrap gap-2">
+            {places.canMove && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || places.busy}
+                onClick={places.askMove}
+                data-testid="move-listing"
+              >
+                <ArrowLeftRight className="size-4" />
+                {t("listing.move.action")}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={places.askDuplicate}
+              data-testid="duplicate-listing"
+            >
+              <Copy className="size-4" />
+              {t("listing.duplicate")}
+            </Button>
+          </div>
+
           <div className="flex gap-2 border-t pt-4">
             <Button asChild variant="secondary" className="flex-1">
               <Link href={`/listings/${listing.id}/edit`}>
@@ -224,6 +254,7 @@ export function ManageListingView({ id }: { id: string }) {
       <ListingViewsChart id={listing.id} />
 
       <LifecycleDialogs lifecycle={lifecycle} />
+      {places.dialogs}
 
       {reviewTxn && (
         <ReviewPromptDialog

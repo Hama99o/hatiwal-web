@@ -2,6 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import {
+  ArrowLeftRight,
+  Copy,
   MoreHorizontal,
   MoreVertical,
   Pencil,
@@ -21,6 +23,7 @@ import {
   lifecycleLabel,
   useListingLifecycle,
 } from "./listing-actions";
+import { useListingPlaces } from "./listing-places";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -70,6 +73,8 @@ export function SellerListingActions({
     onSaleUndone,
   });
   const { busy, ask } = lifecycle;
+  // Item 5: Move to shop / Duplicate to….
+  const places = useListingPlaces(listing);
 
   // The listing itself: the card renders an <ExpiryBadge> right above this
   // footer, and both now derive "lapsed" from the same shared rule — so a card
@@ -184,6 +189,16 @@ export function SellerListingActions({
               {t("common.edit")}
             </Link>
           </DropdownMenuItem>
+          {places.canMove && (
+            <DropdownMenuItem onSelect={places.askMove} data-testid="move-listing">
+              <ArrowLeftRight className="size-4" />
+              {t("listing.move.action")}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={places.askDuplicate} data-testid="duplicate-listing">
+            <Copy className="size-4" />
+            {t("listing.duplicate")}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
@@ -196,6 +211,7 @@ export function SellerListingActions({
       </DropdownMenu>
 
       <LifecycleDialogs lifecycle={lifecycle} />
+      {places.dialogs}
     </div>
   );
 }

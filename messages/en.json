@@ -324,6 +324,25 @@
       "title": "Sales",
       "empty": "No sales yet",
       "emptyHint": "Sales you record will show up here."
+    },
+    "duplicate": "Duplicate",
+    "duplicateWhere": "Duplicate to…",
+    "duplicateHere": "Here: {name}",
+    "move": {
+      "action": "Move to shop",
+      "title": "Move to…",
+      "confirmTitle": "Move this listing to {name}?",
+      "confirmDescription": "Its chats stay with {here}: each buyer is told it moved and can message the new seller.",
+      "confirm": "Move",
+      "success": "Moved to {name}",
+      "notice": "This listing moved to {name}. Open it again to message {name}.",
+      "errors": {
+        "hasHold": "Release the hold before moving this listing.",
+        "notMovable": "A sold or removed listing can't be moved.",
+        "notMember": "You're not on that shop's team.",
+        "forbidden": "Only the person who posted it or the shop's owner can move it out of the shop.",
+        "samePlace": "It's already there."
+      }
     }
   },
   "browse": {

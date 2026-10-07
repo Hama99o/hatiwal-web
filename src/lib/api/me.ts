@@ -204,6 +204,19 @@ export async function getMyListing(id: number | string): Promise<Listing> {
 }
 
 /**
+ * Move to shop (owner, 2026-10-12; item 5): to Me (`shopId` null) or another
+ * shop the caller is on. The listing's chats stay with the old identity: Rails
+ * tells each one and closes it.
+ */
+export async function moveMyListing(id: number | string, shopId: number | null): Promise<Listing> {
+  const data = await meRequest<{ listing: RawListing }>(`my/listings/${id}/move`, {
+    method: "PUT",
+    json: { shop_id: shopId },
+  });
+  return normalizeListing(data.listing);
+}
+
+/**
  * Edit + relaunch (owner, 2026-10-12): renew for 90 days AND move back to the
  * top of the feed if the last move was at least a week ago. `bumped` says
  * whether this call moved it.

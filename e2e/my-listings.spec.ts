@@ -212,8 +212,9 @@ test.describe("My Shop (seller dashboard)", () => {
     // FOUR. `sold` left this menu by being PROMOTED: it is the card's primary
     // button now, one tap from any live listing. `reserve` left altogether — a
     // hold is placed from the chat thread. Nothing has sold on listing 1, so
-    // there is no "View sales" row either.
-    await expect(items).toHaveCount(4); // unpublish · renew · edit · delete
+    // there is no "View sales" row either. Item 5 added Duplicate (Move to
+    // shop only shows for a user with a shop, which this persona has none of).
+    await expect(items).toHaveCount(5); // unpublish · renew · edit · duplicate · delete
     for (const item of await items.all()) {
       expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(40);
     }

@@ -227,6 +227,8 @@ export interface Listing {
    *  2026-10-12 — buyers never see an expiry date). */
   expiresAt?: string | null;
   expired?: boolean;
+  /** The shop id on My listings rows (`:seller_list` sends `shop_id`, not the card). */
+  shopId?: number | null;
   /** Owner views: when an edit + relaunch may next move it to the top (null = now). */
   nextBumpAt?: string | null;
   /** Only on a relaunch response: whether that relaunch moved it to the top. */
@@ -341,6 +343,12 @@ export type MessageKind =
 export interface Message {
   id: number;
   body: string;
+  /**
+   * A server notice on a `system` message, so each reader sees it in their own
+   * language (`body` is the fallback, in the buyer's). Item 5: "listing_moved"
+   * — the listing went to `name` (a shop, or a person when `shopId` is null).
+   */
+  notice?: { notice: string; shopId?: number | null; name?: string } | null;
   kind: MessageKind;
   readAt: string | null;
   createdAt: string;

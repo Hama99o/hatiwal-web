@@ -31,7 +31,7 @@ const ALLOWED: Array<[string, RegExp]> = [
   // LOC-1: a clue about where the user is (area searched, permitted GPS).
   ["PATCH", /^users\/me\/location_guess$/],
   ["DELETE", /^my\/listings\/\d+$/],
-  ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew|relaunch)$/],
+  ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew|relaunch|move)$/],
   ["GET", /^my\/listings\/\d+\/analytics$/],
   // Chat (Phase 4):
   ["GET", /^conversations$/],

@@ -44,6 +44,18 @@ export const API_ERROR_CODES = {
   blocked: "blocked",
   /** Starting a chat refused: THEY blocked you. */
   blockedBy: "blocked_by",
+  /** Move to shop (item 5), `PUT /my/listings/:id/move`: it has a hold. */
+  moveHasHold: "move_has_hold",
+  /** …it is sold or removed. */
+  moveNotMovable: "move_not_movable",
+  /** …the caller is not on the target shop's team (403). */
+  moveNotMember: "move_not_member",
+  /** …staff taking a product someone else posted out to Me (403). */
+  moveForbidden: "move_forbidden",
+  /** …it is already there. */
+  moveSamePlace: "move_same_place",
+  /** …the target shop is not open (also SHOP-3 team errors). */
+  shopUnavailable: "shop_unavailable",
 } as const;
 
 export type ApiErrorCode =
@@ -77,6 +89,13 @@ const MESSAGES: Record<ApiErrorCode, { key: string; needsCount: boolean }> = {
   // Mobile: chat.json `blockedErrors.*` — the API's own text is English only.
   [API_ERROR_CODES.blocked]: { key: "chat.blockedErrors.blocked", needsCount: false },
   [API_ERROR_CODES.blockedBy]: { key: "chat.blockedErrors.blockedBy", needsCount: false },
+  // Mobile: listing.json `move.errors.*` (item 5).
+  [API_ERROR_CODES.moveHasHold]: { key: "listing.move.errors.hasHold", needsCount: false },
+  [API_ERROR_CODES.moveNotMovable]: { key: "listing.move.errors.notMovable", needsCount: false },
+  [API_ERROR_CODES.moveNotMember]: { key: "listing.move.errors.notMember", needsCount: false },
+  [API_ERROR_CODES.moveForbidden]: { key: "listing.move.errors.forbidden", needsCount: false },
+  [API_ERROR_CODES.moveSamePlace]: { key: "listing.move.errors.samePlace", needsCount: false },
+  [API_ERROR_CODES.shopUnavailable]: { key: "shops.team.errors.shop_unavailable", needsCount: false },
 };
 
 function isKnownCode(code: string | undefined): code is ApiErrorCode {

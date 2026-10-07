@@ -1292,15 +1292,21 @@ function route(req, res, method, path, q, body, raw = "") {
     if (!requireAuth()) return;
     return send(res, 200, { analytics: analytics() });
   }
-  const lifecycleMatch = path.match(/^\/my\/listings\/(\d+)\/(publish|unpublish|reserve|activate|sold|renew|relaunch)$/);
+  const lifecycleMatch = path.match(/^\/my\/listings\/(\d+)\/(publish|unpublish|reserve|activate|sold|renew|relaunch|move)$/);
   if (lifecycleMatch && method === "PUT") {
     if (!requireAuth()) return;
-    const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: "active", relaunch: "active" };
+    const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: "active", relaunch: "active", move: null };
     const action = lifecycleMatch[2];
     const v = myListingView(lifecycleMatch[1]);
     const payload = { listing: { ...v, status: statusByAction[action] } };
     // Renew / relaunch: +90 days, no longer expired. A relaunch says whether it
     // moved the listing to the top (here: always, the first time).
+    // Move to shop (item 5): it keeps its status; `shop` follows `shop_id`.
+    if (action === "move") {
+      payload.listing.status = v.status;
+      const sid = body?.shop_id ?? null;
+      payload.listing.shop = sid == null ? null : { ...SHOP_42_CARD, id: Number(sid), name: sid == 42 ? SHOP_42_CARD.name : `Shop ${sid}` };
+    }
     if (action === "renew" || action === "relaunch") {
       Object.assign(payload.listing, { expired: false, expires_at: new Date(Date.now() + 90 * 86_400_000).toISOString() });
       if (action === "relaunch") payload.listing.bumped = true;
