@@ -5,6 +5,22 @@ import { withSessionUser } from "./session-user";
 test.describe("Profile (signed in)", () => {
   test.use({ storageState: BUYER_STATE });
 
+  // Owner, 2026-10-07: nothing may push the Profile down after its first paint
+  // (the mobile Log out P0). A slow verification answer keeps one skeleton up;
+  // the page appears with its verification card already in place.
+  test("no layout shift: the page waits for its cards' first loads behind one skeleton", async ({ page }) => {
+    await page.route("**/api/me/verification_requests/current*", async (route) => {
+      await new Promise((r) => setTimeout(r, 1500));
+      await route.fallback();
+    });
+    await page.goto("/en/profile");
+    await expect(page.getByTestId("profile-skeleton")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("link", { name: /Edit Profile/i })).toBeVisible({ timeout: 30_000 });
+    // At the moment the content shows, the late card is already there.
+    expect(await page.locator('[data-testid^="verify-card-status-"]').count()).toBe(1);
+    await expect(page.getByTestId("profile-skeleton")).toHaveCount(0);
+  });
+
   test("shows the user, stats, and account actions", async ({ page }) => {
     await page.goto("/en/profile");
     await expect(page.getByText("Ahmad Karimi")).toBeVisible();

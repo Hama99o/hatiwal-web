@@ -60,7 +60,10 @@
   --popover: hsl(222 47% 13%);
   --popover-foreground: hsl(210 40% 98%);
   --primary: hsl(217 91% 60%);
-  --primary-foreground: hsl(0 0% 100%);
+  /* Dark text on the dark-mode blue (design pass 2026-10-07): white on it was
+     3.63:1, under WCAG AA 4.5. Navy (the background) on it is 5.50:1. Darkening
+     the blue instead would have broken it as text: 4.34:1 on the background. */
+  --primary-foreground: hsl(222 84% 5%);
   /* INVERTED, not darkened (see the light value above for both jobs a count pill
      has to do). Darkening to `hsl(217 91% 42%)` won the digits ~6.6:1 but left the
      fill at 3.0:1 against `--background` and 2.6:1 against `--card` — under the

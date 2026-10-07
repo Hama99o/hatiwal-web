@@ -1,7 +1,10 @@
 "use client";
 
 import { SellerNumbersCard } from "./seller-numbers-card";
+import { useEffect, useState } from "react";
+import { useIsFetching, useQueryClient, type Query } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight, Eye, EyeOff, Heart, History, LogOut, Pencil, ShoppingBag } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
@@ -40,6 +43,7 @@ export function ProfileView() {
   const locale = useLocale();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const settled = useFirstLoadSettled();
 
   if (!user) return null;
 
@@ -62,7 +66,12 @@ export function ProfileView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+    <>
+    {!settled && <ProfileSkeleton />}
+    {/* Mounted (so its cards fetch) but hidden until their first loads are in:
+        no card may push the page down after the first paint (owner, 2026-10-07,
+        the same rule as mobile's Profile). */}
+    <div className={settled ? "mx-auto max-w-2xl space-y-6 px-4 py-8" : "hidden"} aria-hidden={!settled}>
       <WarningsBanner />
       <RestoreAccountBanner />
       {/* Unconfirmed email — informs and offers a resend, never blocks, matching the
@@ -211,6 +220,50 @@ export function ProfileView() {
 
       <Separator />
       <DeleteAccountButton />
+    </div>
+    </>
+  );
+}
+
+/** The queries behind the Profile's cards that would otherwise arrive late. */
+const PROFILE_FIRST_LOADS = new Set(["warnings", "pending-reviews", "verification-status", "my-shop-invites", "seller-analytics"]);
+const firstLoad = (q: Query) => PROFILE_FIRST_LOADS.has(String(q.queryKey[0])) && q.state.data === undefined;
+
+/**
+ * True once none of the cards' FIRST loads is in flight (latched: a later
+ * refetch never brings the skeleton back). Checked live after the children's
+ * effects have started their fetches; already-cached data settles at once.
+ * Capped at 8 s so a hung request can never hide the page.
+ */
+function useFirstLoadSettled(): boolean {
+  const qc = useQueryClient();
+  const fetching = useIsFetching({ predicate: firstLoad });
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (settled) return;
+    if (qc.isFetching({ predicate: firstLoad }) === 0) setSettled(true);
+  }, [fetching, settled, qc]);
+  useEffect(() => {
+    const cap = setTimeout(() => setSettled(true), 8000);
+    return () => clearTimeout(cap);
+  }, []);
+  return settled;
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8" data-testid="profile-skeleton" aria-busy="true">
+      <Skeleton className="h-28 w-full rounded-xl" />
+      <div className="flex items-center gap-4">
+        <Skeleton className="size-16 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </div>
+      <Skeleton className="h-12 w-full rounded-full" />
+      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-56 w-full rounded-xl" />
     </div>
   );
 }
