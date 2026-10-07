@@ -43,6 +43,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { readViewerIdFromCookies } from "@/lib/auth/cookies";
 import { availableUnitsOf, hasStockToShow, isLive } from "@/lib/stock";
+import { userTextProps } from "@/lib/text-direction";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -231,7 +232,7 @@ export default async function ListingDetailPage({
                   mobile (a reserved chip slot would grow every card in the grid,
                   including the single-item majority). */}
               <StockBadge listing={listing} />
-              <h1 className="text-pretty text-xl font-bold sm:text-2xl">
+              <h1 className="text-pretty text-xl font-bold sm:text-2xl" {...userTextProps(listing.title)} data-testid="listing-title">
                 {listing.title}
               </h1>
             </div>
@@ -491,7 +492,7 @@ export default async function ListingDetailPage({
               {t("listing.detail.description")}
             </h2>
             <Separator className="my-3" />
-            <p className="whitespace-pre-line text-pretty text-sm leading-relaxed text-foreground">
+            <p className="whitespace-pre-line text-pretty text-sm leading-relaxed text-foreground" {...userTextProps(listing.description)} data-testid="listing-description">
               {listing.description}
             </p>
           </section>

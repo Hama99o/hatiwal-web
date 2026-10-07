@@ -33,6 +33,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { availableUnitsOf, hasStockToShow } from "@/lib/stock";
 import { StockBadge } from "@/components/shared/stock-badge";
+import { userTextProps } from "@/lib/text-direction";
 
 export function ManageListingView({ id }: { id: string }) {
   const t = useTranslations();
@@ -104,7 +105,7 @@ export function ManageListingView({ id }: { id: string }) {
             {/* Owner phrasing ("12 of 15 left"): the seller's question is "how
                 do I know when they're all gone?", not "how many can I buy?". */}
             <StockBadge listing={listing} owner />
-            <h1 className="text-pretty text-xl font-bold sm:text-2xl">
+            <h1 className="text-pretty text-xl font-bold sm:text-2xl" {...userTextProps(listing.title)}>
               {listing.title}
             </h1>
           </div>
@@ -203,7 +204,7 @@ export function ManageListingView({ id }: { id: string }) {
           <h2 className="mb-2 text-lg font-semibold">
             {t("listing.detail.description")}
           </h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-foreground" {...userTextProps(listing.description)}>
             {listing.description}
           </p>
         </section>

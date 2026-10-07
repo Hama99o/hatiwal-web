@@ -14,6 +14,7 @@ import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { hasStockToShow } from "@/lib/stock";
 import type { Listing } from "@/lib/types";
+import { userTextProps } from "@/lib/text-direction";
 
 /** Grid = photo-first card; list = compact horizontal row. */
 export type ListingCardVariant = "grid" | "list";
@@ -201,7 +202,7 @@ export function ListingCard({
                 <FirmPriceBadge negotiable={listing.negotiable} />
               )}
             </div>
-            <p className="line-clamp-2 text-sm font-medium text-foreground">
+            <p className="line-clamp-2 text-sm font-medium text-foreground" {...userTextProps(listing.title)} data-testid="listing-card-title">
               {listing.title}
             </p>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -273,7 +274,7 @@ export function ListingCard({
           {listing.negotiable === false && (
             <FirmPriceBadge negotiable={listing.negotiable} />
           )}
-          <p className="line-clamp-2 text-sm font-medium text-foreground">
+          <p className="line-clamp-2 text-sm font-medium text-foreground" {...userTextProps(listing.title)} data-testid="listing-card-title">
             {listing.title}
           </p>
           {showStatus && (

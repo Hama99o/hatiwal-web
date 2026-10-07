@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { formatRelativeDate } from "@/lib/format";
 import { hasStockToShow, totalUnitsOf } from "@/lib/stock";
 import { SaleRowEditDialog } from "./sale-row-edit-dialog";
+import { userTextProps } from "@/lib/text-direction";
 
 /**
  * The SALES LEDGER for one listing — every unit that left the shelf, who took
@@ -120,7 +121,7 @@ export function ListingSalesView({ id }: { id: string }) {
         <Link href={`/my-listings/${id}`}>
           {/* Mirrored in RTL so "back" always points back. */}
           <ArrowLeft className="size-4 rtl:-scale-x-100" />
-          {listing.title}
+          <span className="min-w-0 truncate" {...userTextProps(listing.title)}>{listing.title}</span>
         </Link>
       </Button>
 

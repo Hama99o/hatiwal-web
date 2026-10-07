@@ -3,6 +3,7 @@ import type { Review } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { StarRating } from "@/components/shared/star-rating";
+import { userTextProps } from "@/lib/text-direction";
 
 /**
  * One review: reviewer (via the shared UserIdentity — never forked), their
@@ -39,7 +40,7 @@ export function ReviewCard({ review }: { review: Review }) {
       </div>
       <StarRating rating={review.rating} className="mt-3" />
       {review.comment ? (
-        <p className="mt-2 text-sm leading-relaxed text-foreground">
+        <p className="mt-2 text-sm leading-relaxed text-foreground" {...userTextProps(review.comment)}>
           {review.comment}
         </p>
       ) : null}

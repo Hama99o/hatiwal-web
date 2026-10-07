@@ -28,6 +28,7 @@ import { SHOP_DAYS, dayOf, hasHours, shopOpenStatus } from "@/lib/shop-hours";
 import { cn } from "@/lib/utils";
 import { ShopVerificationCard } from "./shop-verification-card";
 import { shopCan } from "@/lib/shop-permissions";
+import { userTextProps } from "@/lib/text-direction";
 
 type Tab = "products" | "reviews" | "about";
 
@@ -163,7 +164,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight" data-testid="shop-page-name">
+          <h1 className="text-2xl font-extrabold tracking-tight" data-testid="shop-page-name" {...userTextProps(shop.name)}>
             {shop.name}
           </h1>
           {shop.verified && (
@@ -254,12 +255,12 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
             {shop.description && (
               <section className="space-y-1.5">
                 <h2 className="font-bold">{t("about.description")}</h2>
-                <p dir="auto">{shop.description}</p>
+                <p {...userTextProps(shop.description)} data-testid="shop-page-description">{shop.description}</p>
               </section>
             )}
             <section className="space-y-2">
               <h2 className="font-bold">{t("about.address")}</h2>
-              <p dir="auto">{shop.addressLine}</p>
+              <p {...userTextProps(shop.addressLine)}>{shop.addressLine}</p>
               {Number.isFinite(lat) && Number.isFinite(lng) && <LocationMap lat={lat} lng={lng} className="h-56 rounded-lg" />}
             </section>
             <section className="space-y-2">

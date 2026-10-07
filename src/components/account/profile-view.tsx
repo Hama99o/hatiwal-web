@@ -22,12 +22,14 @@ import { VerificationCard } from "@/components/verify/verification-card";
 import { ShopEntryCard } from "@/components/shops/shop-entry-card";
 import { ShopInvitationsSection } from "@/components/shops/shop-invitations";
 import { ModeToggle } from "./mode-toggle";
+import { textDir } from "@/lib/text-direction";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-end">{value}</span>
+      {/* User text (phone, bio, city): direction from its content. */}
+      <span className="text-end" dir={textDir(value)}>{value}</span>
     </div>
   );
 }

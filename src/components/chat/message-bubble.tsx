@@ -17,6 +17,7 @@ import { HighlightedText } from "@/components/shared/highlighted-text";
 import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/lib/types";
+import { userTextProps } from "@/lib/text-direction";
 
 type RespondKind =
   | "meetup_accepted"
@@ -287,7 +288,7 @@ export function MessageBubble({
             </a>
           )
         ) : (
-          <p className="whitespace-pre-wrap break-words">
+          <p className="whitespace-pre-wrap break-words" {...userTextProps(m.body)} data-testid="message-body">
             {/* Shared with the inbox list search — one <mark> treatment for
                 every search in the app (see shared/highlighted-text.tsx). */}
             <HighlightedText text={m.body} query={highlight} />

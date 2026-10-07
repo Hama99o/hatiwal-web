@@ -279,8 +279,20 @@ const SHOP_42 = {
 };
 const SHOP_LISTING = { id: 9042, title: "Chanel No. 5 (100 ml)", price: 9500, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "brand_new", category_id: 1, seller_id: 2, views_count: 4, created_at: "2026-10-05T11:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Original, sealed.", shop: SHOP_42_CARD };
 
+// User text direction from CONTENT (owner, production, iPhone, ps): a title
+// that STARTS with Latin but carries Pashto must lay out RTL; a pure-English
+// one LTR; a pure-Pashto one RTL. Detail-only (kept out of LISTINGS so no
+// feed count changes). e2e/text-direction.spec.ts.
+const BIDI_BASE = { price: 650, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "brand_new", category_id: 1, seller_id: 2, views_count: 3, created_at: "2026-10-06T10:00:00Z", price_drop_percent: null, price_dropped_at: null };
+const BIDI_LISTINGS = [
+  { ...BIDI_BASE, id: 9201, title: "YIRONGTANG Fruit Vinegar Black Oil Elegant | د عمده او پرچون | 2 × 250ml سپينو ويښتانو د تورولو لپاره", description: "Fruit vinegar black oil. د سپينو ويښتانو د تورولو لپاره، 2 × 250ml." },
+  { ...BIDI_BASE, id: 9202, title: "iPhone 12 Pro 128GB, blue", description: "Battery 89%, no scratches." },
+  { ...BIDI_BASE, id: 9203, title: "د ښځو ګرم کوټ، نوی", description: "ډېر ګرم او نوی کوټ دی." },
+];
+
 function findListing(id) {
   return [
+    ...BIDI_LISTINGS,
     SHOP_LISTING,
     ...LISTINGS,
     EXPIRED_MINE,

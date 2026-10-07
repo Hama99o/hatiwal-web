@@ -17,6 +17,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { hasStockToShow } from "@/lib/stock";
 import { cn } from "@/lib/utils";
+import { userTextProps } from "@/lib/text-direction";
 
 /**
  * Edit ONE recorded sale — quantity, buyer, price — or remove it entirely.
@@ -171,7 +172,7 @@ export function SaleRowEditDialog({
         <h2 id={titleId} className="text-lg font-semibold">
           {t("listing.sale.editSale")}
         </h2>
-        <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground">
+        <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground" {...userTextProps(listing.title)}>
           {listing.title}
         </p>
 

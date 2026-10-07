@@ -57,6 +57,7 @@ import { conversationPreviewText } from "@/lib/conversation-preview";
 import { filterConversations } from "@/lib/filter-conversations";
 import { formatPrice, formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { userTextProps } from "@/lib/text-direction";
 
 type TabMode = "inbox" | "archived";
 
@@ -365,7 +366,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-semibold">
+                          <span className="truncate font-semibold" {...userTextProps(name)}>
                             {/* Highlight the three fields search matches on, so a
                                 filtered row shows WHY it matched — the same
                                 treatment as in-thread message search. */}
@@ -411,13 +412,15 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                             shopFace ? (
                               <ShopChip testId={`conversation-shop-chat-${c.id}`} />
                             ) : (
-                              <span data-testid={`conversation-shop-chat-${c.id}`}>{shopChat.name}</span>
+                              <span data-testid={`conversation-shop-chat-${c.id}`} {...userTextProps(shopChat.name)}>{shopChat.name}</span>
                             )
                           ) : c.listing ? (
-                            <HighlightedText
-                              text={c.listing.title}
-                              query={trimmedTerm}
-                            />
+                            <span {...userTextProps(c.listing.title)} data-testid={`conversation-listing-title-${c.id}`}>
+                              <HighlightedText
+                                text={c.listing.title}
+                                query={trimmedTerm}
+                              />
+                            </span>
                           ) : (
                             t("chat.listingDeleted")
                           )}

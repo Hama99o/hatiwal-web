@@ -63,6 +63,7 @@ import { dayKey } from "@/lib/message-days";
 import { formatDate, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ListingStatus } from "@/lib/types";
+import { userTextProps } from "@/lib/text-direction";
 
 export function ConversationThread({ id }: { id: string }) {
   const t = useTranslations();
@@ -701,7 +702,7 @@ export function ConversationThread({ id }: { id: string }) {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">
+            <p className="truncate text-sm font-medium" {...userTextProps(pinnedListing.title)} data-testid="chat-listing-title">
               {pinnedListing.title}
             </p>
             {pinnedListing.price != null && (

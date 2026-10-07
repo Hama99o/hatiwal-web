@@ -13,6 +13,7 @@ import { getMyListings } from "@/lib/api/me";
 import { moveListingsToShop, type Shop } from "@/lib/api/shops";
 import { useSellingIdentity } from "./use-selling-identity";
 import { shopShareUrl } from "./shop-page-view";
+import { userTextProps } from "@/lib/text-direction";
 
 /**
  * "Your shop is open! 🎉" (docs/SHOPS.md step 8): the checklist, same as mobile:
@@ -58,7 +59,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
                   onChange={(e) => setUnticked((s) => { const n = new Set(s); if (e.target.checked) n.delete(l.id); else n.add(l.id); return n; })}
                   data-testid={`shop-move-${l.id}`}
                 />
-                <span className="truncate" dir="auto">{l.title}</span>
+                <span className="truncate" {...userTextProps(l.title)}>{l.title}</span>
               </label>
             </li>
           ))}

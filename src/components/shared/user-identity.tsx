@@ -5,6 +5,7 @@ import { UserAvatar } from "./user-avatar";
 import { VerifiedBadge } from "./verified-badge";
 import { ShopChip } from "./shop-chip";
 import { cn } from "@/lib/utils";
+import { userTextProps } from "@/lib/text-direction";
 
 interface UserIdentityProps {
   name: string;
@@ -84,7 +85,7 @@ export function UserIdentity({
         {/* min-w-0 here + shrink-0 on badge/chip: the NAME truncates; the
             Shop chip never wraps to "S/ho/p" (design review 1.1.6, P1). */}
         <div className="flex min-w-0 items-center gap-1">
-          <NameTag className="min-w-0 truncate font-semibold text-foreground">
+          <NameTag className="min-w-0 truncate font-semibold text-foreground" {...userTextProps(name)}>
             {name}
           </NameTag>
           {verified && <VerifiedBadge className="shrink-0" />}
