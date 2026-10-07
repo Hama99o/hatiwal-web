@@ -57,6 +57,10 @@ export function SellingAsPill() {
 
   const meName = user.fullName || `${user.firstname} ${user.lastname}`.trim();
   const current = sellingAs?.id ?? null;
+  // Other identities' unread: a DOT, never a number (owner rule, 2026-10-07).
+  // Every count on screen is the CURRENT identity's (+ its Support), so a number
+  // next to "Selling as Me" read as a second, conflicting count. The sheet's
+  // rows still give each identity its own number, next to its name.
   const otherUnread = [null, ...shops.map((s) => s.id)]
     .filter((id) => id !== current)
     .reduce<number>((sum, id) => sum + (unreadFor(id) ?? 0), 0);
@@ -81,7 +85,14 @@ export function SellingAsPill() {
         <UserAvatar variant={sellingAs ? "shop" : "user"} name={sellingAs?.name ?? meName} avatarUrl={sellingAs ? sellingAs.logoUrl : user.avatarUrl} size={24} />
         {t("sellingAs", { name: sellingAs ? sellingAs.name : t("me") })}
         <ChevronDown className="size-3.5 text-muted-foreground" />
-        <UnreadDot count={otherUnread} />
+        {otherUnread > 0 && (
+          <span
+            data-testid="selling-as-other-unread"
+            role="img"
+            aria-label={t("newSellerMessages")}
+            className="size-2.5 rounded-full border-2 border-card bg-destructive"
+          />
+        )}
       </button>
       <Dialog open={open} onClose={() => setOpen(false)} labelledBy={titleId} className="max-w-md">
         <div className="space-y-2 p-5" data-testid="sell-as-sheet">
