@@ -32,7 +32,9 @@ import {
   sendFile,
   sendMessage,
   unblockUser,
+  type SupportMessageContext,
 } from "@/lib/api/chat";
+import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { useConversationCable } from "@/lib/cable";
 import { getMyListing } from "@/lib/api/me";
 import { hasOpenHold, isLive } from "@/lib/stock";
@@ -383,6 +385,13 @@ export function ConversationThread({ id }: { id: string }) {
   // Decided from `kind`, never from `listing == null`, which also means
   // "listing removed" — and a support thread reports `listingDeleted: true`.
   const isSupport = isSupportThread(conversation);
+  // Support: tell the admin which mode / shop this was written from.
+  const { sellingAs } = useSellingIdentity();
+  const supportContext: SupportMessageContext | undefined = !isSupport
+    ? undefined
+    : user?.sellerMode
+      ? sellingAs ? { mode: "seller", shopId: sellingAs.id } : { mode: "seller" }
+      : { mode: "buyer" };
   const other = conversation?.otherParticipant;
   // SHOP-1/2: the buyer talks to the SHOP (name, logo, Shop chip, link to the
   // shop page), never to the owner's personal profile.
@@ -410,7 +419,7 @@ export function ConversationThread({ id }: { id: string }) {
     if (kind === "text" && !body.trim()) return;
     setSending(true);
     try {
-      const m = await sendMessage(cid, body, kind, respondsToId);
+      const m = await sendMessage(cid, body, kind, respondsToId, undefined, supportContext);
       setMessages((prev) =>
         prev.some((x) => x.id === m.id) ? prev : [...prev, m],
       );

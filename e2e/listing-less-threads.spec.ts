@@ -164,6 +164,18 @@ test.describe("Support thread", () => {
     await expect(page.locator('a[href*="/sellers/9000"]')).toHaveCount(0);
   });
 
+  test("a message sent to Support says where it was written from", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: false });
+    await reshapeThread(page, 1, support);
+    await page.goto("/en/conversations/1");
+    await page.getByPlaceholder("Type a message...").fill("Salaam");
+    const [request] = await Promise.all([
+      page.waitForRequest((r) => r.method() === "POST" && /\/conversations\/1\/messages$/.test(r.url())),
+      page.getByRole("button", { name: "Send", exact: true }).click(),
+    ]);
+    expect(request.postDataJSON().context).toEqual({ mode: "buyer" });
+  });
+
   test("the name is localized, never the stored English name (ps)", async ({
     page,
   }) => {

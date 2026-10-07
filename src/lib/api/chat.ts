@@ -145,6 +145,9 @@ export async function getMessages(
   return (d.messages ?? []).slice().reverse();
 }
 
+/** Where a Support message was written from: buyer, seller as Me, or seller as a shop. */
+export type SupportMessageContext = { mode: "buyer" | "seller"; shopId?: number };
+
 export async function sendMessage(
   conversationId: number,
   body: string,
@@ -165,6 +168,11 @@ export async function sendMessage(
    * the API all read.
    */
   offerQuantity?: number,
+  /**
+   * Support thread only (api a7e1d39): where the message is written from, so
+   * the admin can tell (one thread for every mode and shop). Sent only when set.
+   */
+  context?: SupportMessageContext,
 ): Promise<Message> {
   const d = await meRequest<{ message: Message }>(
     `conversations/${conversationId}/messages`,
@@ -175,6 +183,7 @@ export async function sendMessage(
         kind,
         respondsToId,
         ...(offerQuantity != null ? { offerQuantity } : {}),
+        ...(context ? { context } : {}),
       },
     },
   );
