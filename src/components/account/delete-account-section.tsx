@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
@@ -27,8 +28,8 @@ export function RestoreAccountBanner() {
       const updated = await restoreAccount();
       setUser(updated);
       toast.success(t("deleteAccount.restoredToast"));
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(describeApiError(error, t));
     } finally {
       setBusy(false);
     }
