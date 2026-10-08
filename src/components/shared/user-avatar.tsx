@@ -1,3 +1,4 @@
+import { Store } from "lucide-react";
 import { RemoteImage } from "./remote-image";
 import { cn } from "@/lib/utils";
 
@@ -13,8 +14,12 @@ interface UserAvatarProps {
   avatarFallbackUrl?: string | null;
   size?: number;
   className?: string;
-  /** SHOP-1: a shop is a rounded square — its logo, or initials on brand lapis. */
-  variant?: "user" | "shop";
+  /**
+   * SHOP-1: a shop is a rounded square — its logo, or initials on brand lapis.
+   * closed-shop-face: "shopClosed" is the same square, neutral (muted, a store
+   * glyph, never a logo or a person's photo) — a shop that no longer exists.
+   */
+  variant?: "user" | "shop" | "shopClosed";
 }
 
 /**
@@ -31,6 +36,18 @@ export function UserAvatar({
   className,
   variant = "user",
 }: UserAvatarProps) {
+  if (variant === "shopClosed") {
+    return (
+      <span
+        style={{ width: size, height: size, borderRadius: size * 0.24 }}
+        data-testid="shop-closed-avatar"
+        aria-hidden
+        className={cn("inline-flex shrink-0 items-center justify-center bg-muted align-middle text-muted-foreground", className)}
+      >
+        <Store style={{ width: Math.round(size * 0.55), height: Math.round(size * 0.55) }} />
+      </span>
+    );
+  }
   const shop = variant === "shop";
   // Also what a photo that fails to load falls back to (RemoteImage `fallback`).
   const initialsMark = (

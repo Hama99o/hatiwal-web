@@ -393,7 +393,20 @@ export interface Message {
    * `id` is null for the BUYER on a message written as the shop (api c714771):
    * the member's id is the team's only (privacy). Compare it, never navigate by it.
    */
-  sender: { id: number | null; name: string; avatarUrl?: string | null; avatarOriginalUrl?: string | null };
+  sender: {
+    id: number | null;
+    name: string;
+    avatarUrl?: string | null;
+    /** The original photo when `avatarUrl` is the light thumb (lib/api, photo variants). */
+    avatarOriginalUrl?: string | null;
+    /** Written as the shop (SHOP-1): `name` is the shop's. */
+    asShop?: boolean;
+    /**
+     * closed-shop-face (api a3ca16b): written as a shop that has since closed —
+     * `name` is the shop's, `avatarUrl` null. Show the shop + "Closed", never a person.
+     */
+    shopClosed?: boolean;
+  };
   attachmentUrl?: string | null;
   /**
    * For `offer` and `offer_counter` kinds, the server pre-parses the pipe-encoded
@@ -494,6 +507,12 @@ export interface Conversation {
   lastMessageNotice?: Message["notice"];
   unreadCount?: number;
   blockedWithParticipant?: boolean;
+  /**
+   * closed-shop-face (api a3ca16b): this product chat's shop has closed. `shop`
+   * is then null and `otherParticipant` (for the buyer) is the owner personally;
+   * the shop's old messages keep its name (`sender.shopClosed`). Null otherwise.
+   */
+  closedShop?: { name: string; closedAt: string } | null;
 }
 
 /** The signed-in user (camelCase of the Rails `/users/me` `:me` serializer view). */

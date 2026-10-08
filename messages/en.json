@@ -1072,6 +1072,12 @@
       },
       "underReview": "Under review",
       "verified": "Verified ✓"
+    },
+    "closedShop": {
+      "badge": "Closed",
+      "noteSeller": "{shop} has closed — you're now replying as yourself",
+      "noteBuyer": "{shop} has closed — new messages come from the seller personally",
+      "inboxLine": "{shop} · closed"
     }
   },
   "warnings": {

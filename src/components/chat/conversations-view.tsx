@@ -419,6 +419,17 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                             for that one row and took the WHOLE inbox down with
                             it ("Something went wrong"); now the row says what
                             happened, in mobile's words. */}
+                        {/* closed-shop-face: the buyer's title is now the
+                            owner's own name; say which shop it was and that
+                            it closed, so the change of name reads. */}
+                        {!support && c.closedShop && (
+                          <p
+                            className="truncate text-xs text-muted-foreground"
+                            data-testid={`conversation-closed-shop-${c.id}`}
+                          >
+                            {t("chat.closedShop.inboxLine", { shop: c.closedShop.name })}
+                          </p>
+                        )}
                         <p className="truncate text-xs text-muted-foreground">
                           {support ? (
                             t("chat.support.headerNote")
