@@ -1,4 +1,5 @@
 import { MapPin } from "lucide-react";
+import { cardLocation } from "@/lib/provinces";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { RemoteImage } from "./remote-image";
@@ -135,7 +136,7 @@ export function ListingCard({
       {listing.location && (
         <span className="flex min-w-0 items-center gap-1">
           <MapPin className="size-3 shrink-0" />
-          <span className="truncate">{listing.location}</span>
+          <span className="truncate">{cardLocation(listing.location, locale)}</span>
         </span>
       )}
       {listing.createdAt && (
@@ -293,7 +294,7 @@ export function ListingCard({
           {listing.location && (
             <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
               <MapPin className="size-3 shrink-0" />
-              <span className="truncate">{listing.location}</span>
+              <span className="truncate">{cardLocation(listing.location, locale)}</span>
             </span>
           )}
         </div>

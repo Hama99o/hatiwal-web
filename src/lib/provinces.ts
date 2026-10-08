@@ -116,3 +116,34 @@ export function nearestProvince(lat: number, lng: number): Province | null {
   }
   return best;
 }
+
+/**
+ * A listing card's location (parity with mobile `shortLocation`, 12e1bbc): the
+ * geocoded string without parts that repeat an earlier one ("10th District,
+ * Kabul, Kabul District" → "10th District, Kabul"), at most `maxParts`, and a
+ * part that IS a province name in the reader's language ("Kabul" → "کابل" on
+ * /ps and /fa; design QA 1.1.6). Districts and streets stay as geocoded.
+ */
+export function cardLocation(location: string | null | undefined, lang: string, maxParts = 2): string | null {
+  if (!location) return null;
+  const seen = new Set<string>();
+  const kept: string[] = [];
+  for (const part of location.split(/\s*[,،]\s*/).map((p) => p.trim()).filter(Boolean)) {
+    const key = part
+      .toLowerCase()
+      .replace(/\b(district|province)\b/g, "")
+      .replace(/(ولسوالی|ولسوالۍ|ولایت|ناحیه|ناحیې)/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (key && seen.has(key)) continue;
+    seen.add(key);
+    kept.push(part);
+  }
+  const shown = kept.slice(0, maxParts).map((part) => {
+    if (lang === "en") return part;
+    const lower = part.toLowerCase();
+    const province = AFGHAN_PROVINCES.find((p) => p.value.toLowerCase() === lower || p.en.toLowerCase() === lower);
+    return province ? getProvinceName(province, lang) : part;
+  });
+  return shown.join(lang !== "en" ? "، " : ", ") || null;
+}

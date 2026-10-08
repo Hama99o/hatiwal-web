@@ -343,12 +343,20 @@ export function TeamView({ shopId }: { shopId: number }) {
               {!sent.email && (
                 <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-start text-sm" data-testid="invite-url">
                   <span className="min-w-0 flex-1 truncate" dir="ltr">{sent.url}</span>
+                  {/* 44px target (it was the 16px icon alone), and a failed copy
+                      says so instead of "Link copied" (design QA 1.1.6). */}
                   <button
                     type="button"
                     aria-label={t("team.copyLink")}
+                    data-testid="invite-copy-link"
+                    className="-my-2 -me-2 inline-flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-background"
                     onClick={async () => {
-                      await navigator.clipboard?.writeText(sent.url).catch(() => null);
-                      toast.success(t("team.linkCopied"));
+                      try {
+                        await navigator.clipboard.writeText(sent.url);
+                        toast.success(t("team.linkCopied"));
+                      } catch {
+                        toast.error(tc("error"));
+                      }
                     }}
                   >
                     <Copy className="size-4" />

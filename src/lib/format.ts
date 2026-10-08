@@ -57,6 +57,14 @@ export function formatPrice(
  * still goes through this ONE table instead of `toFixed`, which is locale-blind
  * and would put Latin digits beside the locale's own (see `intl-locale-alias`).
  */
+/**
+ * The ASCII digits of an already-formatted string ("08:00") in the locale's
+ * digits ("۰۸:۰۰" on ps / fa), leaving everything else as it is.
+ */
+export function localizeDigits(text: string, locale: string): string {
+  return text.replace(/[0-9]/g, (d) => formatNumber(Number(d), locale, { useGrouping: false }));
+}
+
 export function formatNumber(
   value: number,
   locale: string,

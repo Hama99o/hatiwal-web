@@ -80,7 +80,9 @@ export function VerificationGate({ shopId, children }: { shopId?: number; childr
       <EmptyState
         icon={requested ? Hourglass : BadgeCheck}
         title={title}
-        description={requested ? t("underReview") : undefined}
+        // "Under review" is the title; the body says when we answer (design
+        // review #8: once; design QA 1.1.6 found it twice here).
+        description={requested ? t("card.answerSoon") : undefined}
         action={{ label: tRoot("common.back"), href: forShop ? `/shops/${shopId}` : "/profile" }}
       />
     </div>

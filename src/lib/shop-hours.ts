@@ -1,3 +1,4 @@
+import { localizeDigits } from "./format";
 /**
  * SHOP-1 opening hours (docs/SHOPS.md "When are you open?" + shop page).
  *
@@ -158,14 +159,17 @@ export function shopOpenStatus(
 export function shopOpenText(
   shop: Parameters<typeof shopOpenStatus>[0],
   t: (key: string, values?: Record<string, string | number>) => string,
+  locale = "en",
 ): { open: boolean; text: string } | null {
   const status = shopOpenStatus(shop);
   if (status.state === "unknown") return null;
-  if (status.state === "open") return { open: true, text: t("openUntil", { time: status.until }) };
+  // "08:00" in the reader's digits ("۰۸:۰۰" on /ps and /fa; design QA 1.1.6).
+  const time = (hhmm: string) => localizeDigits(hhmm, locale);
+  if (status.state === "open") return { open: true, text: t("openUntil", { time: time(status.until) }) };
   const text = status.opensAt
     ? status.opensAt.today
-      ? t("opensAt", { time: status.opensAt.time })
-      : t("opensOn", { day: t(`days.${status.opensAt.day}`), time: status.opensAt.time })
+      ? t("opensAt", { time: time(status.opensAt.time) })
+      : t("opensOn", { day: t(`days.${status.opensAt.day}`), time: time(status.opensAt.time) })
     : t("closedNow");
   return { open: false, text };
 }

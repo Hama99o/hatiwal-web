@@ -44,7 +44,7 @@ function OpenLine({ shop }: { shop: Shop }) {
   const t = useTranslations("shops");
   // From the API (Asia/Kabul): the same on the server render and the client,
   // so no hydration mismatch. Same wording as the share text (shopOpenText).
-  const line = shopOpenText(shop, t as never);
+  const line = shopOpenText(shop, t as never, useLocale());
   if (!line) return null;
   const { open, text } = line;
   return (
@@ -135,7 +135,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
     t: t as never,
     locale,
     categoryLabel,
-    openText: shopOpenText(shop, t as never)?.text ?? null,
+    openText: shopOpenText(shop, t as never, locale)?.text ?? null,
   });
 
   return (
@@ -148,7 +148,9 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           <span className="rounded-[22px] border-4 border-background">
             <UserAvatar variant="shop" name={shop.name} avatarUrl={shop.logoUrl} size={80} />
           </span>
-          <div className="flex gap-2">
+          {/* Wraps beside the logo: three member buttons are wider than a phone
+              (design QA 1.1.6: the page scrolled sideways at 390px). */}
+          <div className="flex min-w-0 flex-wrap justify-end gap-2">
             {/* Item 2: this shop's numbers, for every member. */}
             {isMember && (
               <Button asChild variant="outline" data-testid="shop-page-analytics">
