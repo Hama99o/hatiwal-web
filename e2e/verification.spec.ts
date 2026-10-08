@@ -49,6 +49,30 @@ test.describe("Get verified (signed in, eligible)", () => {
     await expect(page.getByTestId("verify-under-review")).toBeVisible();
   });
 
+  // Owner bug, 2026-10-08: a refused application (a 4xx with the server's own,
+  // translated reason) read "Couldn't send. Check your connection".
+  test("a refused application shows the server's reason, never 'check your connection'", async ({ page }) => {
+    const reason = "Only the shop's owner or a manager can apply for its Verified badge.";
+    await page.route("**/api/me/verification_requests", (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({ status: 403, json: { error: reason, code: "verification_owner_only" } })
+        : route.fallback(),
+    );
+    await page.goto("/en/profile/verify");
+    await page.getByTestId("verify-next").click();
+    await page.getByTestId("verify-next").click();
+    await page.getByTestId("verify-next").click();
+    await addPhoto(page);
+    await addPhoto(page);
+    await addPhoto(page);
+    await page.getByTestId("verify-number-input").fill("1234564821");
+    await page.getByTestId("verify-next").click();
+    await page.getByTestId("verify-submit").click();
+    const error = page.getByTestId("verify-submit-error");
+    await expect(error).toHaveText(reason);
+    await expect(error).not.toContainText("connection");
+  });
+
   test("the document number takes letters and digits, 5 to 20, with a digit", async ({ page }) => {
     await page.goto("/en/profile/verify");
     for (let i = 0; i < 3; i++) await page.getByTestId("verify-next").click();

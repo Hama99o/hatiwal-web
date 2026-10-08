@@ -16,6 +16,7 @@ import {
   GONE_LISTING,
   isKnownNoticeAction,
   noticeActionPlan,
+  noticeActionLabelKey,
   type NoticeAction,
 } from "@/lib/notice-action";
 
@@ -36,8 +37,9 @@ export function NoticeActionButton({ action }: { action: NoticeAction | null | u
   const [pending, setPending] = useState(false);
   if (!isKnownNoticeAction(action)) return null;
 
-  const label =
-    action.labelKey && t.has(action.labelKey) ? t(action.labelKey) : t("chat.noticeAction.open");
+  // Relabelled for the state NOW: "Under review" / "Verified ✓".
+  const labelKey = noticeActionLabelKey(action);
+  const label = labelKey && t.has(labelKey) ? t(labelKey) : t("chat.noticeAction.open");
 
   const open = async () => {
     const plan = noticeActionPlan(action, {

@@ -223,7 +223,9 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
         </div>
 
         {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
-        {isMember && <ShopVerificationCard shopId={shop.id} readOnly={!canVerify} />}
+        {/* The owner and managers only; staff never see it (owner, 2026-10-08).
+            The ✓ on the shop itself stays public. */}
+        {canVerify && <ShopVerificationCard shopId={shop.id} />}
 
         <div role="tablist" className="flex rounded-lg bg-muted p-1">
           {(["products", "reviews", "about"] as const).map((key) => (

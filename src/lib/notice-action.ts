@@ -15,7 +15,22 @@ export interface NoticeAction {
     shopId?: number | null;
     listingId?: number;
     subject?: "me" | "shop";
+    /**
+     * open_verification: the subject's CURRENT state, sent by the API each time
+     * the thread is read (api 1279c62): an old "Try again" must not reopen the
+     * flow while a request is under review or the badge is granted.
+     */
+    state?: "none" | "requested" | "verified" | "rejected" | "revoked";
   };
+}
+
+/** The button's label key for the action as it stands NOW (mobile noticeActionLabelKey). */
+export function noticeActionLabelKey(action: NoticeAction): string | undefined {
+  if (action.type === "open_verification") {
+    if (action.params?.state === "requested") return "chat.noticeAction.underReview";
+    if (action.params?.state === "verified") return "chat.noticeAction.verified";
+  }
+  return action.labelKey;
 }
 
 export const NOTICE_ACTION_TYPES: readonly NoticeActionType[] = [
@@ -75,8 +90,13 @@ export function noticeActionPlan(action: NoticeAction | null | undefined, ctx: N
       return asShop(`/shops/${shopId}`);
     case "open_team":
       return asShop(`/shops/${shopId}/team`);
-    case "open_verification":
-      return p.subject === "shop" ? asShop(`/shops/${shopId}/verify`) : { kind: "open", path: "/profile/verify", sellerMode: false };
+    case "open_verification": {
+      // Under review or verified NOW: the status (shop page / Profile), never
+      // the apply flow (owner bug, 2026-10-08).
+      const settled = p.state === "requested" || p.state === "verified";
+      if (p.subject === "shop") return asShop(settled ? `/shops/${shopId}` : `/shops/${shopId}/verify`);
+      return { kind: "open", path: settled ? "/profile" : "/profile/verify", sellerMode: false };
+    }
     case "open_listing": {
       const listingId = asId(p.listingId);
       if (listingId == null) return { kind: "none" };

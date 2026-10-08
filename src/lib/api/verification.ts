@@ -40,6 +40,8 @@ export interface VerificationStatus {
   /** The badge came off because the name changed after approval: "verify again". */
   nameChanged: boolean;
   request: VerificationRequestSummary | null;
+  /** May THIS viewer apply? false for a shop's staff. Absent (older API) = true. */
+  canApply: boolean;
 }
 
 export interface VerificationApplication {
@@ -60,7 +62,7 @@ export const VERIFICATION_QK = ["verification-status"] as const;
 
 function toStatus(d: { verificationStatus: VerificationStatus }): VerificationStatus {
   const s = d.verificationStatus;
-  return { ...s, missing: s.missing ?? [], nameChanged: s.nameChanged ?? false, request: s.request ?? null };
+  return { ...s, missing: s.missing ?? [], nameChanged: s.nameChanged ?? false, request: s.request ?? null, canApply: s.canApply ?? true };
 }
 
 export async function getVerificationStatus(subject: VerificationSubject = "me"): Promise<VerificationStatus> {

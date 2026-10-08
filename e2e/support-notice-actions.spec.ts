@@ -123,6 +123,30 @@ test.describe("Tappable Support notices", () => {
     await expect(page).toHaveURL(/\/en\/profile\/verify$/);
   });
 
+  // Owner bug, 2026-10-08: an old "Try again" reopened the flow while a
+  // request was under review. The API sends the state NOW (params.state).
+  test("verification under review NOW: 'Under review', opening the Profile, not the flow", async ({ page }) => {
+    await supportThreadWith(page, [
+      notice(1, "Your verification was not approved.", {
+        type: "open_verification", label_key: "chat.noticeAction.tryVerificationAgain", params: { subject: "me", state: "requested" },
+      }),
+    ]);
+    await page.goto("/en/conversations/1");
+    await expect(page.getByRole("button", { name: /Try verification again/ })).toHaveCount(0);
+    await page.getByRole("button", { name: /Under review/ }).click();
+    await expect(page).toHaveURL(/\/en\/profile$/);
+  });
+
+  test("verified NOW: 'Verified ✓'", async ({ page }) => {
+    await supportThreadWith(page, [
+      notice(1, "Your verification was not approved.", {
+        type: "open_verification", label_key: "chat.noticeAction.tryVerificationAgain", params: { subject: "me", state: "verified" },
+      }),
+    ]);
+    await page.goto("/en/conversations/1");
+    await expect(page.getByRole("button", { name: /Verified ✓/ })).toBeVisible();
+  });
+
   test("no button without an action, for an unknown type, or on the viewer's own message", async ({ page }) => {
     await supportThreadWith(page, [
       notice(1, "Welcome to Hatiwal.", null),

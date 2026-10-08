@@ -26,6 +26,31 @@ async function serveStatus(page: Page, subject: string, status: Record<string, u
   );
 }
 
+// Owner, 2026-10-08: the apply flow starts only when applying is possible NOW.
+test.describe("The apply page checks the state first", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("under review: the status, no form", async ({ page }) => {
+    await serveStatus(page, "me", { status: "requested", request: request({ status: "requested", decided_at: null }) });
+    await page.goto("/en/profile/verify");
+    await expect(page.getByTestId("verify-gate-requested")).toContainText("Under review");
+    await expect(page.getByTestId("verify-next")).toHaveCount(0);
+  });
+
+  test("verified: the status, no form", async ({ page }) => {
+    await serveStatus(page, "me", { status: "verified", verified_since: "2026-10-01T00:00:00Z" });
+    await page.goto("/en/profile/verify");
+    await expect(page.getByTestId("verify-gate-verified")).toContainText("Verified ✓");
+    await expect(page.getByTestId("verify-next")).toHaveCount(0);
+  });
+
+  test("rejected before: the flow", async ({ page }) => {
+    await serveStatus(page, "me", { status: "rejected", request: request() });
+    await page.goto("/en/profile/verify");
+    await expect(page.getByTestId("verify-next")).toBeVisible({ timeout: 30_000 });
+  });
+});
+
 test.describe("Your verification card (Profile)", () => {
   test.use({ storageState: BUYER_STATE });
 
@@ -74,10 +99,13 @@ test.describe("Your verification card (Profile)", () => {
     await expect(page.getByTestId("verify-start")).toHaveCount(0);
   });
 
-  test("the name changed after approval: 'verify again'", async ({ page }) => {
+  // Owner decision, 2026-10-08: once verified, editing never drops the badge,
+  // so there is no "Your name changed — verify again" card any more (even if
+  // an older API still sent name_changed).
+  test("no 'verify again' wording, whatever name_changed says", async ({ page }) => {
     await serveStatus(page, "me", { status: "none", name_changed: true });
     await page.goto("/en/profile");
-    await expect(page.getByTestId("verify-card-status-none")).toHaveText("Your name changed — verify again");
+    await expect(page.getByTestId("verify-card-status-none")).not.toHaveText(/verify again/i);
   });
 });
 

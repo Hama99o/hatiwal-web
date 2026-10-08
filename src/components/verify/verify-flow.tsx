@@ -306,6 +306,7 @@ export function PhotoStep({
 export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
   const forShop = typeof shopId === "number";
   const t = useTranslations("verify");
+  const tRoot = useTranslations();
   const router = useRouter();
   const qc = useQueryClient();
   const { user, setUser } = useAuth();
@@ -323,7 +324,13 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
   const [touchedNumber, setTouchedNumber] = useState(false);
   const [photos, setPhotos] = useState<Record<PhotoKey, Blob | null>>({ front: null, back: null, selfie: null, proof: null });
   const [touchedName, setTouchedName] = useState(false);
-  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [errorKey, setErrorKeyState] = useState<string | null>(null);
+  // A server's own (translated) words, shown as is.
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const setErrorKey = (key: string | null) => {
+    setErrorKeyState(key);
+    setErrorText(null);
+  };
   const [done, setDone] = useState(false);
   const [restored, setRestored] = useState(false);
 
@@ -391,6 +398,10 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
       if (err instanceof ApiError && err.code === EMAIL_UNCONFIRMED) return markEmailUnconfirmed(user, setUser);
       if (err instanceof ApiError && err.status === 429) setErrorKey("review.tooMany");
       else if (err instanceof ApiError && err.code === "verification_already_requested") setErrorKey("review.alreadyRequested");
+      // The server ANSWERED: say what it said (the API translates these into
+      // the reader's language), never "check your connection" (owner bug,
+      // 2026-10-08). The connection text only when there was no answer.
+      else if (err instanceof ApiError) setErrorText(err.errors[0] || tRoot("common.error"));
       else setErrorKey("review.failed");
       qc.invalidateQueries({ queryKey });
     },
@@ -621,13 +632,13 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
           {block(t("review.name"), <p className="font-semibold" dir="auto">{nameOnDocument}</p>, "name", "name")}
           {forShop && photos.proof && block(t("shop.proofTitle"), <ReviewThumb blob={photos.proof} />, "proof", "proof")}
           <LockLine />
-          {errorKey && (
+          {(errorText || errorKey) && (
             <p className="text-sm text-destructive" role="alert" data-testid={tid("submit-error")}>
-              {t(errorKey)}
+              {errorText ?? t(errorKey as string)}
             </p>
           )}
           <Button className="w-full" onClick={() => submit.mutate()} disabled={submit.isPending || !complete} data-testid={tid("submit")}>
-            {submit.isPending ? t("photo.sendingPlain") : errorKey ? t("tryAgain") : t("review.submit")}
+            {submit.isPending ? t("photo.sendingPlain") : errorText || errorKey ? t("tryAgain") : t("review.submit")}
           </Button>
         </div>
       );

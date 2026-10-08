@@ -168,7 +168,7 @@ export function VerificationCard() {
             </span>
           </div>
           <h2 className="flex-1 text-base font-bold" data-testid="verify-card-status-none">
-            {data.nameChanged ? t("card.nameChanged") : t("title")}
+            {t("title")}
           </h2>
         </div>
         <ul className="space-y-2">

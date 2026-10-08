@@ -201,12 +201,23 @@ test.describe("d8 review: the fixes, each reproduced", () => {
       await expect(page.getByTestId("join-error-invite_email_unconfirmed")).toContainText("Confirm your email first");
     });
 
-    test("staff opening the shop's edit / verify pages by URL are told it's the owner's", async ({ page }) => {
+    test("staff opening the shop's edit page by URL are told it's the owner's", async ({ page }) => {
       await asMember(page, "staff");
       await page.goto("/en/shops/42/edit");
       await expect(page.getByTestId("owner-only")).toContainText("Only the shop's owner can do that");
+    });
+
+    // Owner, 2026-10-08: staff have NO access to the shop's verification —
+    // no card on the shop page, and the verify URL lands back on the shop.
+    test("staff never see the verification: no card, and the verify URL goes back to the shop", async ({ page }) => {
+      await asMember(page, "staff");
+      await page.goto("/en/shops/42");
+      await expect(page.getByTestId("shop-page")).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByTestId("shop-verify-card")).toHaveCount(0);
       await page.goto("/en/shops/42/verify");
-      await expect(page.getByTestId("owner-only")).toBeVisible();
+      await expect(page).toHaveURL(/\/en\/shops\/42$/, { timeout: 30_000 });
+      await expect(page.getByTestId("owner-only")).toHaveCount(0);
+      await expect(page.getByTestId("verify-step-why")).toHaveCount(0);
     });
 
     test("cancelling an invite asks first, and calls DELETE only after confirming", async ({ page }) => {
@@ -296,14 +307,16 @@ test.describe("Manager, change role, transfer (1.1.6)", () => {
     await expect(page.getByTestId("team-leave")).toBeVisible();
   });
 
-  test("a manager edits the shop but the Verified application stays the owner's", async ({ page }) => {
+  // Owner decision, 2026-10-08: a manager may apply too (their own e-Tazkira).
+  test("a manager edits the shop and may apply for its Verified badge", async ({ page }) => {
     await asMember(page, "manager");
     await page.goto("/en/shops/42");
     await expect(page.getByTestId("shop-page-edit")).toBeVisible();
     await page.goto("/en/shops/42/edit");
     await expect(page.getByTestId("owner-only")).toHaveCount(0);
     await page.goto("/en/shops/42/verify");
-    await expect(page.getByTestId("owner-only")).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/shops\/42\/verify$/);
+    await expect(page.getByTestId("owner-only")).toHaveCount(0);
   });
 
   test("transfer asks first; then the caller is a Manager (no more owner-only actions)", async ({ page }) => {

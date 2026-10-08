@@ -1053,7 +1053,9 @@
       "gone": {
         "invite": "This invitation has expired or was already answered.",
         "listing": "This listing is no longer yours to manage."
-      }
+      },
+      "underReview": "Under review",
+      "verified": "Verified ✓"
     }
   },
   "warnings": {
@@ -1214,7 +1216,6 @@
       "keep": "Keep it",
       "loadError": "Couldn't load your verification status.",
       "photosSent": "{count, plural, one {# photo sent} other {# photos sent}}",
-      "nameChanged": "Your name changed — verify again",
       "answerSoon": "We usually answer within 2 days.",
       "photosDeleted": "Your photos were deleted after the check, as promised."
     },

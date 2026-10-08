@@ -24,7 +24,9 @@ const MATRIX: Record<ShopAction, ShopMemberRole[]> = {
   changeRole: ["owner"],
   transfer: ["owner"],
   closeShop: ["owner"],
-  applyVerified: ["owner"],
+  // Owner decision, 2026-10-08: the owner or a manager applies, with their own
+  // e-Tazkira. Staff never see the card or the page.
+  applyVerified: ["owner", "manager"],
   // The owner transfers first.
   leave: ["manager", "staff"],
 };
