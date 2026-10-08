@@ -14,7 +14,6 @@ import {
   Receipt,
   Rocket,
   Trash2,
-  TriangleAlert,
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { getMyListing } from "@/lib/api/me";
@@ -36,7 +35,7 @@ import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
 import { ExpiryBadge } from "@/components/shared/expiry-badge";
-import { EmptyState } from "@/components/shared/empty-state";
+import { QueryErrorState } from "@/components/shared/query-error-state";
 import { Button } from "@/components/ui/button";
 import { availableUnitsOf, hasStockToShow } from "@/lib/stock";
 import { StockBadge } from "@/components/shared/stock-badge";
@@ -49,6 +48,8 @@ export function ManageListingView({ id }: { id: string }) {
     data: listing,
     isPending,
     isError,
+    error,
+    refetch,
   } = useQuery({ queryKey: ["my-listing", id], queryFn: () => getMyListing(id) });
 
   // After a sale with a buyer, prompt the seller to review them right away.
@@ -77,8 +78,14 @@ export function ManageListingView({ id }: { id: string }) {
   }
   if (isError || !listing) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <EmptyState icon={TriangleAlert} title={t("common.error")} />
+      <div className="mx-auto max-w-2xl px-4 py-12" data-testid="manage-listing-error">
+        <QueryErrorState
+          error={error}
+          onRetry={() => void refetch()}
+          notFoundTitle={t("listing.detail.unavailableNotice")}
+          backHref="/my-listings"
+          backLabel={t("listing.myListings")}
+        />
       </div>
     );
   }

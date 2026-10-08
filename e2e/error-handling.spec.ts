@@ -575,3 +575,29 @@ test.describe("Resource pages: 404 says 'no longer available', with the way back
     await expect(page.getByTestId("shop-unavailable")).toContainText(ps.common.noLongerAvailable);
   });
 });
+
+test.describe("Seller's own listing views (client-loaded)", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("manage page 404 (deleted meanwhile) → 'no longer available' + back to My Listings", async ({ page }) => {
+    await force(page, "**/api/me/my/listings/1", { status: 404, json: { error: "Not found" } }, { method: "GET" });
+    await page.goto("/en/my-listings/1");
+    await expect(page.getByTestId("manage-listing-error")).toContainText(en.listing.detail.unavailableNotice, { timeout: 15_000 });
+    await page.getByRole("link", { name: en.listing.myListings }).click();
+    await expect(page).toHaveURL(/\/en\/my-listings$/);
+  });
+
+  test("manage page 500 → 'something went wrong' + Retry, never 'connection'", async ({ page }) => {
+    await force(page, "**/api/me/my/listings/1", { status: 500 }, { method: "GET" });
+    await page.goto("/en/my-listings/1");
+    await expect(page.getByTestId("manage-listing-error")).toContainText(en.common.errorTitle, { timeout: 15_000 });
+    await expect(page.getByRole("button", { name: en.common.retry })).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+
+  test("edit page 404 → 'no longer available', not a bare 'Error'", async ({ page }) => {
+    await force(page, "**/api/me/my/listings/1", { status: 404, json: { error: "Not found" } }, { method: "GET" });
+    await page.goto("/en/listings/1/edit");
+    await expect(page.getByTestId("edit-listing-error")).toContainText(en.listing.detail.unavailableNotice, { timeout: 15_000 });
+  });
+});
