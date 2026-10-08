@@ -141,9 +141,10 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
     getNextPageParam: (last) => last.pagination.nextPage ?? undefined,
   });
 
-  // Owner, 2026-10-12: Support is per identity. The server pins THIS view's
-  // Support thread first (the person's in Buying / Selling as Me, the shop's
-  // when a shop is selected) and never another's, so the list is used as is.
+  // Owner, 2026-10-12: Support is per identity. The server lists THIS view's
+  // Support thread (the person's in Buying / Selling as Me, the shop's when a
+  // shop is selected) and never another's, so the list is used as is. Since
+  // 2026-10-08 it is not pinned: it sorts by its last message like any chat.
   const conversations = useMemo<Conversation[]>(
     () => (query.data?.pages ?? []).flatMap((page) => page.items),
     [query.data],

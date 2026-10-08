@@ -5,7 +5,11 @@ import { useEffect, useState } from "react";
 import { useIsFetching, useQueryClient, type Query } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight, Eye, EyeOff, Heart, History, LogOut, Pencil, ShoppingBag } from "lucide-react";
+import { ChevronRight, Eye, EyeOff, Heart, History, LifeBuoy, Loader2, LogOut, Pencil, ShoppingBag } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { openSupportConversation } from "@/lib/api/chat";
+import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -191,6 +195,7 @@ export function ProfileView() {
             <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" aria-hidden />
           </Link>
         ))}
+        <ContactSupportRow />
       </nav>
 
       {/* The reviews buyers left about you — same component (role tabs, load
@@ -222,6 +227,47 @@ export function ProfileView() {
       <DeleteAccountButton />
     </div>
     </>
+  );
+}
+
+/**
+ * Owner, 2026-10-08: Profile → "Contact support", in both modes, like mobile.
+ * Opens THIS identity's Support thread directly (the person's own; selling as
+ * a shop, that shop's), even when it was archived: the API revives it. A
+ * failure says so, with Retry, instead of a dead click.
+ */
+function ContactSupportRow() {
+  const t = useTranslations();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { sellingAs } = useSellingIdentity();
+  const shopId = user?.sellerMode ? sellingAs?.id : undefined;
+  const open = useMutation({
+    mutationFn: () => openSupportConversation(shopId),
+    onSuccess: (c) => router.push(`/conversations/${c.id}`),
+    onError: () =>
+      toast.error(t("chat.support.openError"), {
+        action: { label: t("common.retry"), onClick: () => open.mutate() },
+      }),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => !open.isPending && open.mutate()}
+      disabled={open.isPending}
+      data-testid="profile-row-contact-support"
+      className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none disabled:opacity-70"
+    >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <LifeBuoy className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{t("profile.quickActions.contactSupport")}</span>
+      {open.isPending ? (
+        <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+      ) : (
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" aria-hidden />
+      )}
+    </button>
   );
 }
 

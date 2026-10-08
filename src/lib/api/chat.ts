@@ -263,6 +263,17 @@ export async function archiveConversation(id: number): Promise<void> {
   await meRequest(`conversations/${id}/archive`, { method: "PUT" });
 }
 
+/**
+ * Open (or create) a Hatiwal Support thread: the person's own, or with
+ * `shopId` that shop's (members only). Idempotent, and it brings back a thread
+ * the user archived. Mirrors mobile's `conversationsAPI.openSupportConversation`.
+ */
+export async function openSupportConversation(shopId?: number): Promise<Conversation> {
+  const query = shopId ? `?shop_id=${shopId}` : "";
+  const d = await meRequest<{ conversation: Conversation }>(`support_conversation${query}`, { method: "POST" });
+  return d.conversation;
+}
+
 /** Unarchive a conversation — restores it to the default inbox. */
 export async function unarchiveConversation(id: number): Promise<void> {
   await meRequest(`conversations/${id}/unarchive`, { method: "PUT" });

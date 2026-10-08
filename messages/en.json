@@ -497,7 +497,8 @@
       "messages": "Messages",
       "reviews": "Ratings & Reviews",
       "browse": "Bazaar",
-      "saved": "Saved Items"
+      "saved": "Saved Items",
+      "contactSupport": "Contact support"
     },
     "recentActivity": "Recent Activity",
     "recentListings": "Your Active Listings",
@@ -841,7 +842,8 @@
     "listingDeleted": "This listing has been removed",
     "support": {
       "name": "Hatiwal Support",
-      "headerNote": "Official messages from the Hatiwal team"
+      "headerNote": "Official messages from the Hatiwal team",
+      "openError": "Couldn't open Support. Check your connection and try again."
     },
     "unreadCount": "{count, plural, one {# unread message} other {# unread messages}}",
     "noMessages": "No messages yet",
