@@ -23,6 +23,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
+  blockShop,
   blockUser,
   deleteMessage,
   getConversation,
@@ -33,6 +34,7 @@ import {
   markRead,
   sendFile,
   sendMessage,
+  unblockShop,
   unblockUser,
   type SupportMessageContext,
 } from "@/lib/api/chat";
@@ -71,6 +73,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ListingStatus } from "@/lib/types";
 import { userTextProps } from "@/lib/text-direction";
+import { isShopFace, profileHrefFor } from "@/lib/identity";
 
 export function ConversationThread({ id }: { id: string }) {
   const t = useTranslations();
@@ -145,7 +148,9 @@ export function ConversationThread({ id }: { id: string }) {
     // person in the thread, by definition — offering a list containing them
     // would be asking the seller to identify someone they are mid-conversation
     // with. This is the whole reason chat is the shortest real path to a sale.
-    preselectedBuyer: convQ.data?.otherParticipant
+    // A buyer is always a person with an id; a shop face (id null, privacy-b)
+    // is only ever the OTHER side for a buyer, who never sells from here.
+    preselectedBuyer: convQ.data?.otherParticipant?.id != null
       ? {
           id: convQ.data.otherParticipant.id,
           name: convQ.data.otherParticipant.name,
@@ -159,14 +164,19 @@ export function ConversationThread({ id }: { id: string }) {
   });
   // The seller (listing owner) is the one who can counter a buyer's offer, sell
   // from the thread, and place or release a hold.
-  // Edge pass 1.1.6: in a shop chat every MEMBER is the seller side (the API
-  // lets the whole team manage the shop's products), never the chat's own
-  // buyer — not only the owner whose id is `seller.id`.
+  //
+  // privacy-b: on a shop's chat "the seller" is the shop's whole team. The team
+  // still receives the owner's id, but a manager or staff member is not the
+  // owner — so membership of the thread's shop counts too (never for the
+  // thread's buyer, who may also run a shop of their own).
+  const threadShopId =
+    convQ.data?.shop?.id ?? convQ.data?.seller?.shopId ?? null;
   const isSeller =
     (convQ.data?.seller?.id != null && convQ.data.seller.id === me) ||
-    (convQ.data?.shop?.id != null &&
-      convQ.data?.buyer?.id !== me &&
-      !!user?.shops?.some((s) => s.id === convQ.data?.shop?.id));
+    (threadShopId != null &&
+      convQ.data?.viewerRole !== "buyer" &&
+      (me == null || convQ.data?.buyer?.id !== me) &&
+      (user?.shops ?? []).some((s) => s.id === threadShopId));
   /**
    * The seller's OWN view of the pinned listing — fetched only for the seller,
    * only while the listing is live.
@@ -422,6 +432,15 @@ export function ConversationThread({ id }: { id: string }) {
     (conversation.viewerRole === "buyer" || (user != null && conversation.buyer?.id === user.id))
       ? conversation.shop
       : null;
+  /**
+   * privacy-b: when the other side is a SHOP, block and report the shop by its
+   * id (POST/DELETE /shops/:id/block, reportable_type "Shop") — the buyer no
+   * longer receives the owner's personal id (`otherParticipant.id` is null).
+   * A personal chat keeps the person path.
+   */
+  const otherShopId =
+    shopFace?.id ?? (isShopFace(other) ? (other?.shopId ?? null) : null);
+  const otherUserId = otherShopId == null ? (other?.id ?? null) : null;
   // Seller side (seller or team member): Seller mode + the chat's identity.
   const { sellerSide, shopName: replyingShop } = useSellerSideEntry(conversation, !!isSupport);
   const closed = conversation?.status === "closed";
@@ -554,13 +573,19 @@ export function ConversationThread({ id }: { id: string }) {
     blockingRef.current = true;
     try {
       if (blocked) {
-        if (other) await unblockUser(other.id);
+        if (otherShopId != null) await unblockShop(otherShopId);
+        else if (otherUserId != null) await unblockUser(otherUserId);
         setBlocked(false);
-        toast.success(t("chat.block.unblockSuccess"));
+        toast.success(
+          t(otherShopId != null ? "chat.block.shopUnblockSuccess" : "chat.block.unblockSuccess"),
+        );
       } else {
-        if (other) await blockUser(other.id);
+        if (otherShopId != null) await blockShop(otherShopId);
+        else if (otherUserId != null) await blockUser(otherUserId);
         setBlocked(true);
-        toast.success(t("chat.block.blockSuccess"));
+        toast.success(
+          t(otherShopId != null ? "chat.block.shopBlockSuccess" : "chat.block.blockSuccess"),
+        );
       }
       // The blocked-users list is the shared source of truth for "have I blocked
       // this person" — the setting page renders it and ReportButton asks it
@@ -657,7 +682,7 @@ export function ConversationThread({ id }: { id: string }) {
             avatarUrl={other.avatarUrl} avatarFallbackUrl={other.avatarOriginalUrl}
             verified={other.verified}
             subtitle={other.city}
-            href={`/sellers/${other.id}`}
+            href={profileHrefFor(other)}
             size={40}
             className="min-w-0 flex-1"
           />
@@ -671,10 +696,10 @@ export function ConversationThread({ id }: { id: string }) {
         >
           <Search className="size-5" />
         </Button>
-        {other && !isSupport && (
+        {!isSupport && (otherShopId ?? otherUserId) != null && (
           <ReportButton
-            reportableType="User"
-            reportableId={other.id}
+            reportableType={otherShopId != null ? "Shop" : "User"}
+            reportableId={(otherShopId ?? otherUserId) as number}
             className="size-10 shrink-0 justify-center gap-0 rounded-md hover:bg-accent [&>span]:sr-only"
             // Flip this header's own shield the moment the report→block
             // follow-up succeeds, without waiting for the refetch it triggers.
@@ -686,12 +711,17 @@ export function ConversationThread({ id }: { id: string }) {
             onBlocked={() => setBlocked(true)}
           />
         )}
-        {!isSupport && (
+        {!isSupport && (otherShopId ?? otherUserId) != null && (
           <Button
             variant="ghost"
             size="icon"
             className={blocked ? "text-destructive" : ""}
-            aria-label={t(blocked ? "chat.block.unblockUser" : "chat.block.blockUser")}
+            data-testid="chat-block-toggle"
+            aria-label={t(
+              otherShopId != null
+                ? blocked ? "chat.block.unblockShop" : "chat.block.blockShop"
+                : blocked ? "chat.block.unblockUser" : "chat.block.blockUser",
+            )}
             onClick={() => setConfirmBlock(true)}
           >
             {blocked ? (
@@ -1171,9 +1201,21 @@ export function ConversationThread({ id }: { id: string }) {
 
       <ConfirmDialog
         open={confirmBlock}
-        title={t(blocked ? "chat.block.unblockUser" : "chat.block.blockConfirmTitle")}
-        description={blocked ? undefined : t("chat.block.blockConfirmDescription")}
-        confirmLabel={t(blocked ? "chat.block.unblockUser" : "chat.block.blockUser")}
+        title={t(
+          otherShopId != null
+            ? blocked ? "chat.block.unblockShop" : "chat.block.blockShopConfirmTitle"
+            : blocked ? "chat.block.unblockUser" : "chat.block.blockConfirmTitle",
+        )}
+        description={
+          blocked
+            ? undefined
+            : t(otherShopId != null ? "chat.block.blockShopConfirmDescription" : "chat.block.blockConfirmDescription")
+        }
+        confirmLabel={t(
+          otherShopId != null
+            ? blocked ? "chat.block.unblockShop" : "chat.block.blockShop"
+            : blocked ? "chat.block.unblockUser" : "chat.block.blockUser",
+        )}
         cancelLabel={t("common.cancel")}
         destructive={!blocked}
         onConfirm={toggleBlock}

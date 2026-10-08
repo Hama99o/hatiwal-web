@@ -20,6 +20,7 @@ export function SellerPhoneReveal({
   whatsappNumber,
   location,
   sellerId,
+  ownerShopId,
 }: {
   phone?: string | null;
   /** The seller's separate WhatsApp number. The WhatsApp row prefers it and
@@ -28,7 +29,9 @@ export function SellerPhoneReveal({
   /** The listing's location, used ONLY to pick the dial code for a number
    *  written in national form ("0300…"). Not rendered. */
   location?: string | null;
-  sellerId?: number;
+  sellerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -36,7 +39,7 @@ export function SellerPhoneReveal({
   const { status } = useAuth();
   // Shared owner rule (`useIsOwner`) — the same test every owner-gated control
   // on the listing page uses, so "is this mine?" is decided in exactly one place.
-  const isOwner = useIsOwner(sellerId);
+  const isOwner = useIsOwner(sellerId, ownerShopId);
   const [revealed, setRevealed] = useState(false);
 
   if (!phone) return null;

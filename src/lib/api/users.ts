@@ -1,6 +1,7 @@
 import { ApiError, apiGet } from "./client";
 import { getListing, getListings } from "./listings";
 import type { Listing, SellerSummary } from "../types";
+import { isShopFace } from "../identity";
 
 /**
  * Seller profile for the PUBLIC (guest) web page.
@@ -25,9 +26,11 @@ export async function getPublicSeller(
     { revalidate: opts.revalidate },
   );
 
+  // privacy-b: never fall back to a SHOP's face (`asShop`, id null) — that is
+  // the shop's name and logo, not this person's.
   const seller =
     result.items.find((l) => l.seller?.id === Number(userId))?.seller ??
-    result.items[0]?.seller ??
+    result.items.find((l) => l.seller && !isShopFace(l.seller))?.seller ??
     null;
 
   // The listings index (`:list` view) seller sub-object is intentionally lean —
@@ -135,7 +138,7 @@ async function enrichSellerResponseRate(
   if (listingId == null) return seller;
   try {
     const detail = await getListing(listingId, { revalidate });
-    if (detail.seller?.id === seller.id) {
+    if (detail.seller?.id != null && detail.seller.id === seller.id) {
       return {
         ...seller,
         responseRatePercent: detail.seller.responseRatePercent,

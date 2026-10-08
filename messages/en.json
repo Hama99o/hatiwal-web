@@ -606,7 +606,10 @@
       "confirmCta": "Yes, block them",
       "cancel": "Not now",
       "success": "User blocked successfully.",
-      "error": "Could not block user. Please try again."
+      "error": "Could not block user. Please try again.",
+      "titleShop": "Block this shop?",
+      "bodyShop": "Do you also want to block this shop so it can't contact you or see your listings?",
+      "successShop": "Shop blocked successfully."
     },
     "status": {
       "pending": "Pending",
@@ -982,7 +985,13 @@
       "unblockSuccess": "User unblocked.",
       "blockFailed": "Could not block user. Try again.",
       "unblockFailed": "Could not unblock user. Try again.",
-      "messagingUnavailable": "You can't message this user."
+      "messagingUnavailable": "You can't message this user.",
+      "blockShop": "Block shop",
+      "unblockShop": "Unblock shop",
+      "blockShopConfirmTitle": "Block this shop?",
+      "blockShopConfirmDescription": "The shop won't be able to message you and you won't see its listings.",
+      "shopBlockSuccess": "Shop blocked.",
+      "shopUnblockSuccess": "Shop unblocked."
     },
     "message": {
       "deleted": "This message was deleted",

@@ -90,6 +90,7 @@ export function SaveButton({
   listingId,
   initialSaved,
   ownerId,
+  ownerShopId,
   variant = "overlay",
   className,
 }: {
@@ -102,7 +103,9 @@ export function SaveButton({
    */
   initialSaved?: boolean;
   /** The listing's seller id — the heart hides on your own listing. */
-  ownerId?: number;
+  ownerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   /**
    * `overlay` = round icon floating on a photo; `detail` = full-width labeled
    * button; `bar` = icon button with outline chrome, for a solid toolbar row
@@ -116,7 +119,7 @@ export function SaveButton({
   const router = useRouter();
   const loginHref = useLoginHref();
   const { status, user, probeTimedOut } = useAuth();
-  const isOwner = useIsOwner(ownerId);
+  const isOwner = useIsOwner(ownerId, ownerShopId);
   // What the SERVER already knew about this viewer (see `useServerViewerId`).
   // `null` = the request carried no session at all, which the browser cannot
   // contradict, so a guest's heart is knowable from the first paint instead of

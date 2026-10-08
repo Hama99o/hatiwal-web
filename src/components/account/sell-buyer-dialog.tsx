@@ -220,7 +220,8 @@ export function SellBuyerDialog({
             <>
               {(conversations ?? []).map((c) => {
                 const buyer = c.buyer ?? c.otherParticipant;
-                if (!buyer) return null;
+                // A buyer is a person; a shop face (id null, privacy-b) is never one.
+                if (!buyer || buyer.id == null) return null;
                 const isSel = selected === buyer.id;
                 return (
                   <button

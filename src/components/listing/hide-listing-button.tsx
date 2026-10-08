@@ -17,13 +17,16 @@ import { hideListing } from "@/lib/api/hidden-listings";
 export function HideListingButton({
   listingId,
   ownerId,
+  ownerShopId,
 }: {
   listingId: number;
-  ownerId?: number;
+  ownerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
 }) {
   const t = useTranslations("hidden");
   const { status } = useAuth();
-  const isOwner = useIsOwner(ownerId);
+  const isOwner = useIsOwner(ownerId, ownerShopId);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);

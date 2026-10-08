@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { RAILS_SERVER_BASE } from "@/lib/env";
+import { RAILS_SERVER_BASE, RAILS_CLIENT_HEADERS } from "@/lib/env";
 import { deviseRequestHeaders } from "@/lib/auth/devise";
 import { clearTokenCookies, readTokensFromCookies } from "@/lib/auth/cookies";
 import { isSameOrigin } from "@/lib/auth/origin";
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   }
   const res = await fetch(`${RAILS_SERVER_BASE}/auth`, {
     method: "DELETE",
-    headers: { Accept: "application/json", ...deviseRequestHeaders(tokens) },
+    headers: { Accept: "application/json", ...RAILS_CLIENT_HEADERS, ...deviseRequestHeaders(tokens) },
     cache: "no-store",
   }).catch(() => null);
 

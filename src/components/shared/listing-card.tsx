@@ -124,6 +124,7 @@ export function ListingCard({
       listingId={listing.id}
       initialSaved={listing.isSaved}
       ownerId={listing.seller?.id}
+      ownerShopId={listing.shop?.id ?? listing.seller?.shopId ?? listing.shopId}
       className={cn(
         // Kept at the SaveButton's 40px default (touch-target minimum) in both
         // variants — only the inset shifts for the smaller list thumbnail.

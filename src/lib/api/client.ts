@@ -1,5 +1,5 @@
 import { convertKeysToCamel } from "./case";
-import { PROXY_BASE, RAILS_SERVER_BASE, rewriteRailsHost } from "../env";
+import { PROXY_BASE, RAILS_SERVER_BASE, rewriteRailsHost, RAILS_CLIENT_HEADERS } from "../env";
 
 /**
  * Isomorphic API access to the Rails backend.
@@ -122,7 +122,7 @@ export async function apiGet<T>(
   const url = `${apiBase()}/${path}${buildQuery(params)}`;
 
   const init: RequestInit & { next?: { revalidate: number } } = {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...RAILS_CLIENT_HEADERS },
   };
   if (typeof window === "undefined" && revalidate !== undefined) {
     init.next = { revalidate };

@@ -1,8 +1,10 @@
 import { meRequest } from "./me";
 
 // Mirrors the mobile reports contract (src/api/reports.ts) so a report filed
-// from the web is identical to one from the app. Polymorphic: a Listing or User.
-export type ReportableType = "Listing" | "User";
+// from the web is identical to one from the app. Polymorphic: a Listing, a User
+// or (privacy-b, api c178ae9) a Shop — reported by its shop id, so a shop chat
+// never needs the owner's personal id. Never from the shop's own team.
+export type ReportableType = "Listing" | "User" | "Shop";
 
 export type ReportReason =
   | "spam"

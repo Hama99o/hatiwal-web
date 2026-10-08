@@ -116,10 +116,31 @@ export function useServerViewerId(): number | null | undefined {
  * facing UI must render for a visitor immediately and only disappear if the
  * session turns out to be the owner's. Guests are never owners.
  */
-export function useIsOwner(ownerId?: number | null): boolean {
+export function useIsOwner(
+  ownerId?: number | null,
+  /**
+   * privacy-b: the SHOP the thing belongs to (`listing.shop.id` / a shop face's
+   * `shopId`). For anyone outside the shop's team the API now sends the shop's
+   * face with `id: null`, and every public payload on this site is fetched
+   * anonymously — so on a shop listing `ownerId` is null for EVERYONE here,
+   * owner included. "Is this mine?" then means "am I on this shop's team?",
+   * answered from the signed-in user's `shops` (owner, manager or staff).
+   *
+   * The SSR viewer hint carries a user id only, never memberships, so a shop
+   * member still resolves in the browser (a loading viewer is not an owner).
+   */
+  ownerShopId?: number | null,
+): boolean {
   const { status, user } = useAuth();
   const serverViewerId = useServerViewerId();
   const ownerShop = useContext(OwnerShopContext);
+  if (
+    ownerShopId != null &&
+    status === "authed" &&
+    (user?.shops ?? []).some((s) => s.id === ownerShopId)
+  ) {
+    return true;
+  }
   if (ownerId == null) return false;
   // A shop's thing is every member's (see ViewerIdProvider `ownerShop`).
   if (
@@ -148,11 +169,14 @@ export function useIsOwner(ownerId?: number | null): boolean {
  */
 export function HideForOwner({
   ownerId,
+  ownerShopId,
   children,
 }: {
   /** Owner of the content. Null/undefined → nobody is the owner, always shown. */
   ownerId?: number | null;
+  /** The shop the content belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   children: ReactNode;
 }) {
-  return useIsOwner(ownerId) ? null : <>{children}</>;
+  return useIsOwner(ownerId, ownerShopId) ? null : <>{children}</>;
 }

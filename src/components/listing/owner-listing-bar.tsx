@@ -115,6 +115,7 @@ const HEADING_LINK =
 export function OwnerListingBar({
   listingId,
   sellerId,
+  ownerShopId,
   status: ssrStatus,
   expiresAt: ssrExpiresAt,
   expired: ssrExpired,
@@ -123,7 +124,9 @@ export function OwnerListingBar({
 }: {
   listingId: number;
   /** The listing's seller. Undefined (seller not on the payload) → never owner. */
-  sellerId?: number;
+  sellerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   status: ListingStatus;
   expiresAt?: string | null;
   expired?: boolean;
@@ -134,7 +137,7 @@ export function OwnerListingBar({
   const t = useTranslations();
   const router = useRouter();
   const noticeId = useId();
-  const isOwner = useIsOwner(sellerId);
+  const isOwner = useIsOwner(sellerId, ownerShopId);
   // A sale that identified a real buyer invites the seller to rate them (REV2),
   // exactly as on the manage screen. Held here rather than inside the dialogs so
   // it outlives the transition that produced it.

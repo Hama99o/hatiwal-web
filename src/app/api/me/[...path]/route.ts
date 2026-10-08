@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { RAILS_SERVER_BASE, rewriteRailsHost } from "@/lib/env";
+import { RAILS_SERVER_BASE, rewriteRailsHost, RAILS_CLIENT_HEADERS } from "@/lib/env";
 import { deviseRequestHeaders, tokensFromResponse } from "@/lib/auth/devise";
 import { readTokensFromCookies, writeTokenCookies } from "@/lib/auth/cookies";
 import { isSameOrigin } from "@/lib/auth/origin";
@@ -54,6 +54,10 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^blocks$/],
   ["POST", /^users\/\d+\/block$/],
   ["DELETE", /^users\/\d+\/block$/],
+  // privacy-b: block / unblock a SHOP (its owner underneath) by shop id — the
+  // buyer never has the owner's personal id any more. ALLOW-LISTED, or 403.
+  ["POST", /^shops\/\d+\/block$/],
+  ["DELETE", /^shops\/\d+\/block$/],
   // Reports (report a listing or user; list your own submitted reports):
   ["POST", /^reports$/],
   ["GET", /^reports$/],
@@ -160,7 +164,7 @@ async function handle(
   const target = `${RAILS_SERVER_BASE}/${joined}${req.nextUrl.search}`;
 
   const headers: Record<string, string> = {
-    Accept: "application/json",
+    Accept: "application/json", ...RAILS_CLIENT_HEADERS,
     ...deviseRequestHeaders(tokens),
   };
   const init: RequestInit = { method: req.method, headers, cache: "no-store" };

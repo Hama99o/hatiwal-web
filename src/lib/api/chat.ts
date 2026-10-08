@@ -307,3 +307,17 @@ export async function blockUser(userId: number): Promise<void> {
 export async function unblockUser(userId: number): Promise<void> {
   await meRequest(`users/${userId}/block`, { method: "DELETE" });
 }
+
+/**
+ * privacy-b (api c178ae9): block / unblock a SHOP by its id — its owner
+ * underneath, without the web ever holding the owner's personal id. 204 both
+ * ways; 403 for a member of the shop, 404 for a closed shop. A block made this
+ * way comes back from `GET /blocks` as an `asShop` row with `id: null`.
+ */
+export async function blockShop(shopId: number): Promise<void> {
+  await meRequest(`shops/${shopId}/block`, { method: "POST" });
+}
+
+export async function unblockShop(shopId: number): Promise<void> {
+  await meRequest(`shops/${shopId}/block`, { method: "DELETE" });
+}

@@ -58,6 +58,7 @@ export function UnavailableActions({
   currency,
   similarPrices,
   sellerId,
+  sellerShopId,
   sellerName,
   locale,
   className,
@@ -77,6 +78,8 @@ export function UnavailableActions({
   similarPrices: ReadonlyArray<number | null | undefined>;
   /** Null/undefined when the seller isn't on the payload → seller CTA omitted. */
   sellerId?: number | null;
+  /** privacy-b: a SHOP listing's shop — its shelf is the shop page, never `/sellers/null`. */
+  sellerShopId?: number | null;
   sellerName?: string | null;
   /** Active locale — used to name the category in the CTA label. */
   locale: string;
@@ -108,7 +111,12 @@ export function UnavailableActions({
         })}`
       : null;
 
-  const sellerHref = sellerId != null ? `/sellers/${sellerId}` : null;
+  const sellerHref =
+    sellerShopId != null
+      ? `/shops/${sellerShopId}`
+      : sellerId != null
+        ? `/sellers/${sellerId}`
+        : null;
   // With no category CTA the seller's shelf IS the recovery path, so it takes
   // the primary weight instead of reading like an afterthought.
   const sellerIsPrimary = !similarHref;

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { RAILS_SERVER_BASE, rewriteRailsHost } from "@/lib/env";
+import { RAILS_SERVER_BASE, rewriteRailsHost, RAILS_CLIENT_HEADERS } from "@/lib/env";
 
 /**
  * Thin same-origin proxy: /api/proxy/<path>?<query> → <RAILS>/<path>?<query>.
@@ -16,7 +16,7 @@ export async function GET(
 
   try {
     const upstream = await fetch(target, {
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...RAILS_CLIENT_HEADERS },
       cache: "no-store",
     });
     const body = rewriteRailsHost(await upstream.text());

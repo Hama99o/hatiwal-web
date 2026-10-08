@@ -74,6 +74,9 @@ export default async function SellerPage({ params }: { params: Params }) {
     readViewerIdFromCookies(),
   ]);
   if (!seller) notFound();
+  // The route's id is this person's id; `seller.id` is typed nullable only
+  // because a SHOP's face carries none (privacy-b) — never the case here.
+  const sellerId = seller.id ?? Number(id);
   const memberSince = formatMonthYear(seller.memberSinceAt, locale);
 
   return (
@@ -132,13 +135,13 @@ export default async function SellerPage({ params }: { params: Params }) {
               shareTitle={seller.name}
               text={t("seller.share.body", { name: seller.name })}
             />
-            <ReportButton reportableType="User" reportableId={seller.id} />
+            <ReportButton reportableType="User" reportableId={sellerId} />
           </div>
           {/* "This seller is away until…" sets a buyer's reply-time expectation.
               Shown to the seller themselves it is the site describing them in the
               third person, so it is owner-gated here exactly as on the listing
               page; they see their own away state as `profile.away.youAreAway`. */}
-          <HideForOwner ownerId={seller.id}>
+          <HideForOwner ownerId={sellerId}>
             <AwayBanner
               awayUntil={seller.sellerAwayUntil}
               className="w-full justify-center text-start"
@@ -146,9 +149,9 @@ export default async function SellerPage({ params }: { params: Params }) {
           </HideForOwner>
         </div>
 
-        <SellerListingsTabs sellerId={seller.id} activeListings={listings} />
+        <SellerListingsTabs sellerId={sellerId} activeListings={listings} />
 
-        <ReviewsSection sellerId={seller.id} />
+        <ReviewsSection sellerId={sellerId} />
       </div>
     </ViewerIdProvider>
   );
