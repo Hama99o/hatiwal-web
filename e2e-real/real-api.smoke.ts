@@ -28,14 +28,30 @@ function rails(code: string): string {
   );
 }
 
+// One real sign-in per person, then their session cookies are reused: the
+// API rate-limits sign_in per IP (429 after a dozen in a couple of minutes).
+const sessions = new Map<string, Awaited<ReturnType<import("@playwright/test").BrowserContext["cookies"]>>>();
+
 async function signIn(page: Page, who: string, locale = "en") {
+  // Returning users: onboarding seen, and the one-time "Sell as…" question
+  // (users with a shop) already answered — keyed by user id; the smoke seed's
+  // users are the first few ids of its fresh DB.
+  await page.addInitScript(() => {
+    window.localStorage.setItem("hatiwal.onboarded", "1");
+    for (let id = 1; id <= 10; id++) window.localStorage.setItem(`hatiwal.sell-as-asked-${id}`, "1");
+  });
   await page.context().clearCookies();
+  const saved = sessions.get(who);
+  if (saved) {
+    await page.context().addCookies(saved);
+    return;
+  }
   await page.goto(`/${locale}/login`);
   await page.locator('input[type="email"]').fill(`smoke_${who}@hatiwal.test`);
   await page.locator('input[type="password"]').fill(PASSWORD);
   await page.locator('button[type="submit"]').click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 60_000 });
-  await page.evaluate(() => window.localStorage.setItem("hatiwal.onboarded", "1"));
+  sessions.set(who, await page.context().cookies());
 }
 
 test.describe.configure({ mode: "serial" });
@@ -85,8 +101,8 @@ test("expiry: Expired holds the lapsed ones (a held one too); Relaunch renews; a
 
   // The real API's refusal shape for a deleted listing (no UI reaches it).
   const res = await page.request.put(`/api/me/my/listings/${IDS.removed}/renew`);
-  expect([403, 404]).toContain(res.status());
-  if (res.status() === 403) expect((await res.json()).code).toBe("listing_removed");
+  expect(res.status()).toBe(403);
+  expect((await res.json()).code).toBe("listing_removed");
 });
 
 test("move and duplicate", async ({ page }) => {
@@ -136,6 +152,11 @@ test("messages: the buyer sees the shop (never Sami); the team sees who replied"
 
 test("Support: archived, then a new word from Support brings it back", async ({ page }) => {
   await signIn(page, "owner");
+  // Support is per identity: the PERSON's thread is in "Selling as Me" (an
+  // earlier step left the owner selling as the shop, whose inbox shows the
+  // shop's Support thread instead).
+  const asMe = await page.request.patch("/api/me/users/me/selling_as", { data: { shop_id: null } });
+  expect(asMe.ok()).toBe(true);
   await page.goto("/en/conversations");
   await expect(page.locator(`a[href$="/conversations/${IDS.support}"]`)).toHaveCount(0);
   rails(`u = User.find_by!(email: "smoke_owner@hatiwal.test"); puts Admin::SendMessage.reply(admin: AdminUser.first, user: u, body: "We looked at your question.").call`);
