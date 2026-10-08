@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PostedByLine } from "@/components/shared/posted-by-line";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
@@ -116,6 +117,7 @@ export function ManageListingView({ id }: { id: string }) {
             <h1 className="text-pretty text-xl font-bold sm:text-2xl" {...userTextProps(listing.title)}>
               {listing.title}
             </h1>
+            <PostedByLine postedBy={listing.postedBy} testId="my-listing-posted-by" />
           </div>
 
           {/* Two counts on one line, so it is the row where a digit-set

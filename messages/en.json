@@ -345,7 +345,9 @@
         "duplicateForbidden": "Only the person who posted it or the shop's owner can copy it to their own listings."
       }
     },
-    "duplicated": "Copied as a draft, photos included"
+    "duplicated": "Copied as a draft, photos included",
+    "postedBy": "Posted by {name}",
+    "postedByYou": "Posted by you"
   },
   "browse": {
     "title": "Bazaar",
@@ -704,7 +706,16 @@
       "relaunchAllTitle": "{count, plural, one {Relaunch # expired listing?} other {Relaunch # expired listings?}}",
       "relaunchAllBody": "Each one is live again for 90 days, with its photos and chats. Nothing is re-posted.",
       "relaunchedAll": "{count, plural, one {# listing is live again} other {# listings are live again}}",
-      "openListings": "Open My listings"
+      "openListings": "Open My listings",
+      "team": {
+        "title": "Team",
+        "posted": "Posted",
+        "active": "Active",
+        "expired": "Expired",
+        "sold": "Sold",
+        "you": "You",
+        "other": "Unknown or former member"
+      }
     }
   },
   "auth": {

@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatNumber } from "@/lib/format";
 import { useSellerAnalytics } from "./use-seller-analytics";
+import { TeamBreakdown } from "./team-breakdown";
 
 type Tab = "active" | "expired" | "sold" | "all";
 
@@ -150,6 +151,11 @@ export function SellerAnalyticsView() {
               </div>
             </div>
           </section>
+
+          {/* A shop: who on the team did what (owner, 2026-10-08). */}
+          {data.team && data.team.length > 0 ? (
+            <TeamBreakdown team={data.team} unattributed={data.teamUnattributed} meId={user?.id} />
+          ) : null}
 
           <ConfirmDialog
             open={confirming}

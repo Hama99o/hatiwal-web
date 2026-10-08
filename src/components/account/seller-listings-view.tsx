@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PostedByLine } from "@/components/shared/posted-by-line";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
@@ -216,6 +217,9 @@ export function SellerListingsView() {
           // to detail). No "reserve" — a hold is placed from the chat thread, for
           // the person it is for.
           footerFor={(l) => (
+            <>
+            {/* A shop product: who on the team posted it (owner, 2026-10-08). */}
+            <PostedByLine postedBy={l.postedBy} testId="seller-card-posted-by" />
             <SellerListingActions
               listing={l}
               onSaleRecorded={setReviewTxn}
@@ -224,6 +228,7 @@ export function SellerListingsView() {
               // open offers the seller a rating that would 404 on submit.
               onSaleUndone={() => setReviewTxn(null)}
             />
+            </>
           )}
         />
       )}

@@ -18,6 +18,23 @@ export interface SellerAnalytics {
   unitsSold: number;
   views: number;
   chats: number;
+  /** A shop's numbers per team member (owner, 2026-10-08); null for Me. */
+  team?: TeamMemberNumbers[] | null;
+  /** Former members' products + sales recorded before `recorded_by` existed. */
+  teamUnattributed?: TeamNumbers | null;
+}
+
+export interface TeamNumbers {
+  posted: number;
+  active: number;
+  expired: number;
+  /** Sales this member RECORDED (marked sold). */
+  sold: number;
+}
+
+export interface TeamMemberNumbers extends TeamNumbers {
+  user: { id: number; name: string; avatarUrl: string | null };
+  role: "owner" | "manager" | "staff";
 }
 
 export const sellerAnalyticsKey = (shopId: number | null) => ["seller-analytics", shopId ?? "me"] as const;

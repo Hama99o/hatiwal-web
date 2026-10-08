@@ -281,6 +281,11 @@ export interface Listing {
    * sold. Null when there is neither.
    */
   sale?: ListingSale | null;
+  /**
+   * Owner, 2026-10-08: on a SHOP product, which team member posted it. Only on
+   * member-scoped payloads (my/listings); buyers never get it.
+   */
+  postedBy?: { id: number; name: string } | null;
   createdAt: string;
   updatedAt?: string;
   seller: SellerSummary | null;
