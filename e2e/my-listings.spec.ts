@@ -583,7 +583,8 @@ test.describe("My Shop (seller dashboard)", () => {
     const confirm = page.getByRole("dialog");
     await confirm.getByRole("button", { name: "Unpublish" }).click();
     await expect(
-      page.locator("[data-sonner-toast]").getByText("Error", { exact: true }),
+      // errsweep: a 500 says "Something went wrong" (it used to read just "Error").
+      page.locator("[data-sonner-toast]").getByText("Something went wrong. Please try again.", { exact: true }),
     ).toBeVisible();
     // The prompt stays open so the seller can retry, and nothing about the card
     // changed — it still offers the same primary action for an active listing.

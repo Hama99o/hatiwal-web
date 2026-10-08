@@ -120,7 +120,7 @@ test.describe("Conversation thread", () => {
     await input.fill("Is it still available?");
     await input.press("Enter");
     await input.press("Enter");
-    await expect(page.getByRole("button", { name: en.chat.send })).toBeDisabled();
+    await expect(page.getByRole("button", { name: en.chat.send, exact: true })).toBeDisabled();
     gate.release();
     await expect(input).toHaveValue("");
     expect(gate.hits()).toBe(1);
@@ -583,7 +583,7 @@ test.describe("Seller's own listing views (client-loaded)", () => {
     await force(page, "**/api/me/my/listings/1", { status: 404, json: { error: "Not found" } }, { method: "GET" });
     await page.goto("/en/my-listings/1");
     await expect(page.getByTestId("manage-listing-error")).toContainText(en.listing.detail.unavailableNotice, { timeout: 15_000 });
-    await page.getByRole("link", { name: en.listing.myListings }).click();
+    await page.getByTestId("manage-listing-error").getByRole("link", { name: en.listing.myListings }).click();
     await expect(page).toHaveURL(/\/en\/my-listings$/);
   });
 
