@@ -28,32 +28,30 @@ const PHOTO_B = path.join(__dirname, "fixtures", "photo-b.png");
 test.describe("avatar upload", () => {
   test.use({ storageState: BUYER_STATE });
 
-  test("picking an image shows it, and the form can still be saved", async ({ page }) => {
-    // The real route (profile-view.tsx links to /profile/edit). Hunting a link
-    // by the name /edit/i found nothing and the test SKIPPED — green in the
-    // summary, asserting nothing.
+  // Owner, 2026-10-08: a picked photo is only a preview; Save (in the top bar)
+  // uploads it, BEFORE the fields. Nothing is sent at pick time.
+  test("picking an image previews it; Save uploads it, then the fields", async ({ page }) => {
     await page.goto("/en/profile/edit");
     await page.waitForLoadState("networkidle");
+
+    const puts: string[] = [];
+    page.on("request", (r) => {
+      if (r.method() === "PUT" && /\/api\/me\/users\/me$/.test(r.url())) {
+        puts.push((r.headers()["content-type"] ?? "").includes("multipart") ? "avatar" : "fields");
+      }
+    });
 
     const input = page.locator('input[type="file"]').first();
     await expect(input, "the profile form has no file input at all").toHaveCount(1);
     await input.setInputFiles(PHOTO_A);
 
-    // THE ACK HERE IS A TOAST, not a local preview — I asserted the wrong thing
-    // first and it failed on a working feature. `onPickAvatar` does not build a
-    // blob URL: it uploads straight away (`await updateAvatar(file)`), stores the
-    // returned user and calls `toast.success(t("profile.edit.photoUpdated"))`, so
-    // the avatar ends up on a SERVER url and no blob:/data: image ever exists.
-    await expect(
-      page.getByText("Photo updated"),
-      "no 'Photo updated' toast after picking an image — the upload did not " +
-        "complete, so the change handler either did not fire or the request failed",
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('img[src^="blob:"]').first(), "no local preview of the picked photo").toBeVisible();
+    await page.waitForTimeout(500);
+    expect(puts, "the photo was uploaded at pick time; it must wait for Save").toEqual([]);
 
-    // And the form must remain submittable: a half-applied upload that disables
-    // Save is its own bug.
-    const save = page.getByRole("button", { name: /save/i }).first();
-    await expect(save).toBeEnabled();
+    await page.getByTestId("edit-profile-save").click();
+    await expect(page).toHaveURL(/\/en\/profile$/, { timeout: 30_000 });
+    expect(puts).toEqual(["avatar", "fields"]);
   });
 });
 

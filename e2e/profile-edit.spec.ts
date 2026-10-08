@@ -16,7 +16,7 @@ test.describe("Edit profile", () => {
   test("validates a required field", async ({ page }) => {
     await page.goto("/en/profile/edit");
     await page.getByLabel(/First Name/i).fill("");
-    await page.getByRole("button", { name: /Save Changes/i }).click();
+    await page.getByTestId("edit-profile-save").click();
     await expect(page.getByText(/First name is required/i)).toBeVisible();
     // Stayed on the edit screen.
     await expect(page).toHaveURL(/\/profile\/edit/);
@@ -25,7 +25,7 @@ test.describe("Edit profile", () => {
   test("saving changes returns to the profile", async ({ page }) => {
     await page.goto("/en/profile/edit");
     await page.getByLabel(/First Name/i).fill("Ahmadullah");
-    await page.getByRole("button", { name: /Save Changes/i }).click();
+    await page.getByTestId("edit-profile-save").click();
     await expect(page).toHaveURL(/\/profile\/?$/, { timeout: 20_000 });
   });
 });

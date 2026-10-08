@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,9 +26,18 @@ export function EditProfileForm() {
   const router = useRouter();
   const { user, setUser } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  // Owner, 2026-10-08: a picked photo is only a PREVIEW; Save uploads it (first,
+  // then the fields), like every other field on this page. Same as mobile.
+  const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingAvatar) return setPreviewUrl(null);
+    const url = URL.createObjectURL(pendingAvatar);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingAvatar]);
 
-  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+  function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-picking the same file
     if (!file) return;
@@ -36,16 +45,7 @@ export function EditProfileForm() {
       toast.error(t("profile.edit.photoTooLarge"));
       return;
     }
-    setUploadingAvatar(true);
-    try {
-      const updated = await updateAvatar(file);
-      setUser(updated);
-      toast.success(t("profile.edit.photoUpdated"));
-    } catch {
-      toast.error(t("profile.edit.photoError"));
-    } finally {
-      setUploadingAvatar(false);
-    }
+    setPendingAvatar(file);
   }
 
   const displayName =
@@ -125,6 +125,14 @@ export function EditProfileForm() {
     } else if (!away) {
       payload.awayUntil = null;
     }
+    if (pendingAvatar) {
+      try {
+        setUser(await updateAvatar(pendingAvatar));
+      } catch {
+        toast.error(t("profile.edit.photoError"));
+        return; // nothing else saved: the form and the photo stay as they are
+      }
+    }
     try {
       const updated = await updateProfile(payload);
       setUser(updated);
@@ -137,21 +145,24 @@ export function EditProfileForm() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t("profile.edit.title")}</h1>
+      {/* Top bar (owner, 2026-10-08): the title and Save, always in reach. Sticks
+          right under the site header (64px + border; + the 52px search row below md). */}
+      <div className="sticky top-[117px] z-30 -mx-4 mb-6 flex items-center justify-between gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:top-[65px]">
+        <h1 className="min-w-0 truncate text-xl font-bold sm:text-2xl">{t("profile.edit.title")}</h1>
+        <Button type="submit" form="edit-profile-form" disabled={isSubmitting} data-testid="edit-profile-save">
+          {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+          {t("common.save")}
+        </Button>
+      </div>
 
       {/* Avatar */}
       <div className="mb-6 flex items-center gap-4">
         <div className="relative">
           <UserAvatar
             name={displayName}
-            avatarUrl={user?.avatarUrl}
+            avatarUrl={previewUrl ?? user?.avatarUrl}
             size={72}
           />
-          {uploadingAvatar && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
-              <Loader2 className="size-5 animate-spin text-white" />
-            </div>
-          )}
         </div>
         <div>
           <input
@@ -165,8 +176,8 @@ export function EditProfileForm() {
             type="button"
             variant="outline"
             size="sm"
-            disabled={uploadingAvatar}
             onClick={() => fileRef.current?.click()}
+            data-testid="edit-profile-photo"
           >
             <Camera className="size-4" />
             {t("profile.edit.changePhoto")}
@@ -174,7 +185,7 @@ export function EditProfileForm() {
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-5" noValidate>
+      <form id="edit-profile-form" onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="grid grid-cols-2 gap-3">
           <Field
             label={t("profile.edit.fields.firstname")}
@@ -323,19 +334,14 @@ export function EditProfileForm() {
           )}
         </div>
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={isSubmitting} className="flex-1">
-            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-            {t("profile.edit.saveButton")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/profile")}
-          >
-            {t("common.cancel")}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => router.push("/profile")}
+        >
+          {t("common.cancel")}
+        </Button>
       </form>
     </div>
   );

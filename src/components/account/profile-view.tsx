@@ -105,10 +105,11 @@ export function ProfileView() {
             </Link>
           }
         />
-        <Button asChild variant="outline" size="sm">
-          <Link href="/profile/edit">
-            <Pencil className="size-4" />
-            {t("profile.editProfile")}
+        {/* Owner, 2026-10-08: a plain pencil by the photo (no text, no border),
+            like mobile; Settings keeps its own Edit. */}
+        <Button asChild variant="ghost" size="icon" className="size-10 shrink-0 text-muted-foreground">
+          <Link href="/profile/edit" aria-label={t("profile.editProfile")} title={t("profile.editProfile")}>
+            <Pencil className="size-5" />
           </Link>
         </Button>
       </div>
