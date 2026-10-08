@@ -78,4 +78,11 @@ test.describe("1.1.6 design QA", () => {
     await expect(page.getByText("We usually answer within 2 days.")).toBeVisible({ timeout: 45_000 });
     expect(((await page.locator("main").innerText()).match(/Under review/g) ?? []).length).toBe(1);
   });
+
+  test("ps: dates use the Afghan month names (میزان), never the Iranian short ones (مهر)", async ({ page }) => {
+    await page.goto("/ps/sellers/1");
+    const banner = page.getByText(/غایب/).first();
+    await expect(banner).toBeVisible({ timeout: 45_000 });
+    expect(await page.locator("main").innerText()).not.toMatch(/مهر|آبان|شهریور|فروردین|اردیبهشت|خرداد|تیر|مرداد|آذر|دی |بهمن|اسفند/);
+  });
 });

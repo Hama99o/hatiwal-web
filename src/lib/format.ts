@@ -116,9 +116,13 @@ export function formatDate(
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
   try {
-    return new Intl.DateTimeFormat(INTL_TAG[locale] ?? "en-US", {
+    const tag = INTL_TAG[locale] ?? "en-US";
+    return new Intl.DateTimeFormat(tag, {
       year: "numeric",
-      month: "short",
+      // fa-AF has no Dari abbreviations: its SHORT month falls back to the
+      // Iranian names ("۲۳ مهر ۱۴۰۵") while LONG gives the Afghan ones ("۲۳
+      // میزان ۱۴۰۵") — mixed on one page (design QA 1.1.6). Long for ps / fa.
+      month: tag === "fa-AF" ? "long" : "short",
       day: "numeric",
     }).format(date);
   } catch {
