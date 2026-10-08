@@ -27,6 +27,22 @@ export function isSupportThread(
  * both sides. Decided from `shopChat` (like `kind` for Support), never from
  * `listing == null`: the API reports such a chat as listing null + deleted.
  */
+/**
+ * The chat's shop is not open, so the API refuses new messages (422
+ * shop_unavailable) and the history stays readable — mirrors the API's
+ * Conversation#shut_by_shop? (api 83c6e15) and mobile af9b2b26: a "Message
+ * shop" chat whenever its shop is not active; a product chat while its shop is
+ * suspended or pending (a closed shop's product chats are the owner's, open).
+ */
+export function shopChatShut(
+  conversation: Pick<Conversation, "kind" | "shop" | "shopChat" | "listing" | "listingDeleted"> | null | undefined,
+): boolean {
+  const status = conversation?.shop?.status;
+  if (!conversation || !status || isSupportThread(conversation)) return false;
+  if (isShopChat(conversation)) return status !== "active";
+  return status === "suspended" || status === "pending";
+}
+
 export function isShopChat(
   conversation: Pick<Conversation, "kind" | "shop" | "shopChat" | "listing" | "listingDeleted"> | null | undefined,
 ): boolean {

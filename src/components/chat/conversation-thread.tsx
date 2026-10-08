@@ -27,6 +27,7 @@ import {
   getConversation,
   getMessages,
   isShopChat,
+  shopChatShut,
   isSupportThread,
   markRead,
   sendFile,
@@ -409,9 +410,10 @@ export function ConversationThread({ id }: { id: string }) {
   // SHOP-2: a "Message shop" chat has no product, so it takes plain messages
   // only (text / photo / document): no offers, no meetups, no product phrases.
   const plainShopChat = isShopChat(conversation);
-  // ...and once its shop is suspended or closed the history stays readable but
-  // the API refuses new messages (422 shop_unavailable): no composer then.
-  const shopUnavailable = plainShopChat && !!conversation?.shop?.status && conversation.shop.status !== "active";
+  // ...and once its shop is not open the history stays readable but the API
+  // refuses new messages (422 shop_unavailable): no composer then. A product
+  // chat too, while its shop is suspended (shopChatShut, api 83c6e15).
+  const shopUnavailable = shopChatShut(conversation);
 
   async function send(
     body: string,

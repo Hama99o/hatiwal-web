@@ -131,6 +131,26 @@ test.describe("SHOP-2 (several shops, Message shop)", () => {
     await expect(page.getByPlaceholder("Type a message...")).toHaveCount(0);
   });
 
+  // Edge pass 1.1.6 (d0): a PRODUCT chat with a suspended shop is shut too (api
+  // 83c6e15, Conversation#shut_by_shop?) — not only a "Message shop" chat.
+  test("a suspended shop's PRODUCT chat keeps its history but has no composer", async ({ page }) => {
+    await page.route("**/api/me/conversations/420", async (route) => {
+      const res = await route.fetch();
+      const json = await res.json();
+      json.conversation.shop_chat = false;
+      json.conversation.listing_deleted = false;
+      json.conversation.listing = {
+        id: 9042, title: "Chanel No. 5 (100 ml)", price: 9500, currency: "AFN", status: "active",
+        thumbnail_url: null, location: "Kabul", seller_id: 2,
+      };
+      json.conversation.shop = { ...json.conversation.shop, status: "suspended" };
+      await route.fulfill({ response: res, json });
+    });
+    await page.goto("/en/conversations/420");
+    await expect(page.getByTestId("composer-unavailable")).toHaveText("This shop is not open on Hatiwal right now.");
+    await expect(page.getByPlaceholder("Type a message...")).toHaveCount(0);
+  });
+
   test("blocked by the shop's owner → the refusal in the reader's language, no chat", async ({ page }) => {
     await page.route("**/api/me/shops/42/conversations", (route) =>
       route.fulfill({ status: 422, json: { errors: ["you have been blocked by this user"], code: "blocked_by" } }),
