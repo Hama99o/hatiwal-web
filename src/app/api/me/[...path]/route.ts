@@ -1,11 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { RAILS_SERVER_BASE, rewriteRailsHost } from "@/lib/env";
 import { deviseRequestHeaders, tokensFromResponse } from "@/lib/auth/devise";
-import {
-  clearTokenCookies,
-  readTokensFromCookies,
-  writeTokenCookies,
-} from "@/lib/auth/cookies";
+import { readTokensFromCookies, writeTokenCookies } from "@/lib/auth/cookies";
 import { isSameOrigin } from "@/lib/auth/origin";
 
 /**
@@ -196,9 +192,25 @@ async function handle(
     },
   });
 
+  // The browser applies this response's Set-Cookie to its CURRENT jar, which
+  // may already hold a newer session than the one this request was sent as
+  // (signed out and in again while it was in flight). So (edge pass 1.1.6, d0;
+  // mobile b46bf832):
+  //  - write back only a REAL rotation of this session (Rails echoes the
+  //    request's own token otherwise, and an old echo would put the old
+  //    session back);
+  //  - never clear on a 401: it proves only that THIS request's tokens are
+  //    dead. /api/auth/session, probed on every page load, reads the current
+  //    jar and clears it when that session is dead.
   const rotated = tokensFromResponse(upstream);
-  if (rotated) writeTokenCookies(out, rotated);
-  else if (upstream.status === 401) clearTokenCookies(out);
+  if (
+    rotated &&
+    rotated.client === tokens.client &&
+    rotated.uid === tokens.uid &&
+    rotated.accessToken !== tokens.accessToken
+  ) {
+    writeTokenCookies(out, rotated);
+  }
   return out;
 }
 
