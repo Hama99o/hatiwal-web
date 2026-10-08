@@ -1,29 +1,22 @@
 "use client";
 
-import { SellerNumbersCard } from "./seller-numbers-card";
 import { useEffect, useState } from "react";
 import { useIsFetching, useQueryClient, type Query } from "@tanstack/react-query";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight, Eye, EyeOff, Heart, History, LifeBuoy, Loader2, LogOut, Pencil, ShoppingBag } from "lucide-react";
+import { ChevronRight, History, LifeBuoy, Loader2, Lock, LogOut, Pencil, Settings, type LucideIcon } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { openSupportConversation } from "@/lib/api/chat";
 import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { Link, useRouter } from "@/i18n/navigation";
-import { formatNumber } from "@/lib/format";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ConfirmEmailBanner } from "@/components/account/confirm-email-banner";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { RatingDisplay } from "@/components/shared/rating-display";
-import { ReviewsSection } from "@/components/seller/reviews-section";
 import { AwayBanner } from "@/components/shared/away-banner";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  DeleteAccountButton,
-  RestoreAccountBanner,
-} from "./delete-account-section";
+import { RestoreAccountBanner } from "./delete-account-section";
 import { WarningsBanner } from "./warnings-banner";
 import { PendingReviewsNudge } from "./pending-reviews-nudge";
 import { VerificationCard } from "@/components/verify/verification-card";
@@ -32,7 +25,7 @@ import { ShopInvitationsSection } from "@/components/shops/shop-invitations";
 import { ModeToggle } from "./mode-toggle";
 import { textDir } from "@/lib/text-direction";
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 text-sm">
       <span className="text-muted-foreground">{label}</span>
@@ -44,7 +37,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export function ProfileView() {
   const t = useTranslations();
-  const locale = useLocale();
   const { user, logout } = useAuth();
   const router = useRouter();
   const settled = useFirstLoadSettled();
@@ -52,17 +44,6 @@ export function ProfileView() {
   if (!user) return null;
 
   const name = user.fullName || `${user.firstname} ${user.lastname}`.trim();
-  const none = t("profile.noInfo");
-  // Owner, 2026-10-07: no stats in Seller mode (it was unclear whether Sold /
-  // Active were the person's or a shop's numbers). Buyer mode: Bought (when
-  // any) + Saved, same as mobile.
-  const bought = user.boughtCount ?? 0;
-  const stats = user.sellerMode
-    ? []
-    : [
-        ...(bought > 0 ? [{ label: t("profile.itemsBought"), value: bought }] : []),
-        { label: t("profile.itemsSaved"), value: user.savedItemsCount ?? 0 },
-      ];
 
   async function onLogout() {
     await logout();
@@ -106,8 +87,8 @@ export function ProfileView() {
              your own profile. Falls back to a neutral "No reviews yet" for a
              brand-new account, and jumps to the list (mobile taps through). */
           meta={
-            <a
-              href="#my-reviews"
+            <Link
+              href="/profile/activity#my-reviews"
               /* min-h-10 + padding: the rating text alone is only ~20px tall,
                  well under a thumb-sized target. Negative margins keep the
                  enlarged box optically aligned with the name above it. */
@@ -121,7 +102,7 @@ export function ProfileView() {
                   count with the destination. This adds the destination *after*
                   them instead, so a screen reader announces all three. */}
               <span className="sr-only">{t("reviews.myReviewsTitle")}</span>
-            </a>
+            </Link>
           }
         />
         <Button asChild variant="outline" size="sm">
@@ -134,99 +115,56 @@ export function ProfileView() {
 
       <ModeToggle className="w-full" />
 
-      {/* Item 2 (owner, 2026-10-12): Seller mode gets its numbers back, labelled
-          with whose they are (Me / the shop sold as), opening /analytics. */}
-      {user.sellerMode && <SellerNumbersCard />}
+      <ProfileHubNav />
 
-      {stats.length > 0 && (
-      <div className={stats.length > 1 ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-lg border bg-card p-4 text-center">
-            {/* `formatNumber`, not `{s.value}`: these printed raw, so on /ps and
-                /fa three Latin tile numbers sat under an Arabic-Indic review
-                count on the same screen (see `e2e/i18n-digits.spec.ts`). */}
-            <div className="text-xl font-bold" data-testid="profile-stat-value">
-              {formatNumber(s.value, locale)}
-            </div>
-            <div className="text-xs text-muted-foreground">{s.label}</div>
-          </div>
-        ))}
-      </div>
-      )}
-
-      <div className="space-y-3 rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold">{t("profile.info")}</h2>
-        <Separator />
-        <InfoRow label={t("profile.edit.fields.phone")} value={user.phone || none} />
-        <InfoRow label={t("profile.edit.fields.bio")} value={user.bio || none} />
-        <InfoRow label={t("profile.edit.fields.city")} value={user.city || none} />
-        <InfoRow
-          label={t("profile.edit.fields.province")}
-          value={user.province || none}
-        />
-      </div>
-
-      {/* Item 9 (owner, 2026-10-12; Mobbin: Viator, Zomato, Vestiaire, see
-          hatiwal-mobile docs/design/PROFILE.md): the shortcuts are ONE grouped
-          list of rows (icon, label, chevron), like mobile, instead of a grid of
-          plain buttons. /sellers/[id] is the canonical public profile; it is
-          hidden while the account is scheduled for deletion (Rails scopes it to
-          `User.publicly_active`, so it would 404). */}
-      <nav aria-label={t("profile.title")} className="divide-y overflow-hidden rounded-lg border bg-card" data-testid="profile-shortcuts">
-        {[
-          ...(!user.deletionScheduledAt
-            ? [{ href: `/sellers/${user.id}`, Icon: Eye, label: t("profile.viewPublicProfile"), id: "public-profile" }]
-            : []),
-          { href: "/saved", Icon: Heart, label: t("saved.title"), id: "saved" },
-          { href: "/recently-viewed", Icon: History, label: t("recentlyViewed.title"), id: "recently-viewed" },
-          { href: "/settings/hidden-listings", Icon: EyeOff, label: t("hidden.title"), id: "hidden" },
-          { href: "/bazaar", Icon: ShoppingBag, label: t("profile.quickActions.browse"), id: "browse" },
-        ].map(({ href, Icon, label, id }) => (
-          <Link
-            key={id}
-            href={href}
-            data-testid={`profile-row-${id}`}
-            className="flex min-h-12 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
-          >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Icon className="size-4" />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" aria-hidden />
-          </Link>
-        ))}
-        <ContactSupportRow />
-      </nav>
-
-      {/* The reviews buyers left about you — same component (role tabs, load
-          more, skeleton, empty state) as the public seller profile, only the
-          heading differs. `getUserReviews` is public (plain `User.find`, no
-          publicly_active gate), so your own id always works. The score isn't
-          repeated here; it sits under your name above.
-          tabIndex={-1}: browsers only move focus to an in-page anchor target
-          when it is focusable, so without it the rating link scrolls but leaves
-          a keyboard user's focus stranded at the top of the page. */}
-      <div id="my-reviews" tabIndex={-1} className="scroll-mt-24 focus:outline-none">
-        <ReviewsSection
-          sellerId={user.id}
-          title={t("reviews.myReviewsTitle")}
-          headingSize="sm"
-        />
-      </div>
-
+      {/* Log out ALONE at the bottom, after a clear gap (owner, 2026-10-08:
+          Delete account no longer sits next to it — it is on Privacy & account). */}
       <Button
         variant="ghost"
-        className="w-full text-destructive hover:text-destructive"
+        className="mt-6 w-full text-muted-foreground"
         onClick={onLogout}
+        data-testid="sign-out-button"
       >
         <LogOut className="size-4" />
         {t("profile.logout")}
       </Button>
 
-      <Separator />
-      <DeleteAccountButton />
     </div>
     </>
+  );
+}
+
+/** One navigation row of the Profile's grouped lists: icon, label, chevron. */
+export function ProfileRowLink({ href, Icon, label, id }: { href: string; Icon: LucideIcon; label: string; id: string }) {
+  return (
+    <Link
+      href={href}
+      data-testid={`profile-row-${id}`}
+      className="flex min-h-12 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
+    >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" aria-hidden />
+    </Link>
+  );
+}
+
+/**
+ * The hub (owner, 2026-10-08, approved structure; mobile docs/design/
+ * PROFILE_HUB.md): under the cards, FOUR rows — Activity, Help & support,
+ * Privacy & account (Delete account inside), Settings — then Log out alone.
+ */
+function ProfileHubNav() {
+  const t = useTranslations();
+  return (
+    <nav aria-label={t("profile.title")} className="divide-y overflow-hidden rounded-lg border bg-card" data-testid="profile-hub">
+      <ProfileRowLink href="/profile/activity" Icon={History} label={t("profile.hub.activity")} id="activity" />
+      <ProfileRowLink href="/profile/help" Icon={LifeBuoy} label={t("profile.hub.help")} id="help" />
+      <ProfileRowLink href="/profile/privacy-account" Icon={Lock} label={t("profile.hub.privacyAccount")} id="privacy-account" />
+      <ProfileRowLink href="/profile/settings" Icon={Settings} label={t("profile.hub.settings")} id="settings" />
+    </nav>
   );
 }
 
@@ -236,7 +174,7 @@ export function ProfileView() {
  * a shop, that shop's), even when it was archived: the API revives it. A
  * failure says so, with Retry, instead of a dead click.
  */
-function ContactSupportRow() {
+export function ContactSupportRow() {
   const t = useTranslations();
   const router = useRouter();
   const { user } = useAuth();

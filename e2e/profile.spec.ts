@@ -21,28 +21,68 @@ test.describe("Profile (signed in)", () => {
     await expect(page.getByTestId("profile-skeleton")).toHaveCount(0);
   });
 
-  test("shows the user, stats, and account actions", async ({ page }) => {
+  // Owner, 2026-10-08 (approved structure): the Profile is a hub. Under the
+  // cards, FOUR rows, then Log out alone; Delete account is NOT on it.
+  test("the hub: four rows, Log out alone, nothing moved out left behind", async ({ page }) => {
     await page.goto("/en/profile");
     await expect(page.getByText("Ahmad Karimi")).toBeVisible();
-    // The mock viewer is in Seller mode: no unlabelled stats card there (owner,
-    // 2026-10-07: unclear whether personal or the shop's). Its numbers live in
-    // the card that SAYS whose they are (item 2, 2026-10-12) — and only there.
+    const hub = page.getByTestId("profile-hub");
+    await expect(hub.getByRole("link")).toHaveText(["Activity", "Help & support", "Privacy & account", "Settings"]);
+    await expect(page.getByRole("link", { name: /Edit Profile/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Sign Out/i })).toBeVisible();
+    for (const gone of ["profile-seller-numbers", "profile-shortcuts", "profile-delete-account", "profile-row-contact-support"]) {
+      await expect(page.getByTestId(gone)).toHaveCount(0);
+    }
+    await expect(page.getByRole("button", { name: "Delete my account" })).toHaveCount(0);
+    await expect(page.getByText("Personal Info")).toHaveCount(0);
+  });
+
+  test("each hub row opens its page", async ({ page }) => {
+    for (const [id, heading] of [
+      ["activity", "Activity"], ["help", "Help & support"], ["privacy-account", "Privacy & account"], ["settings", "Settings"],
+    ]) {
+      await page.goto("/en/profile");
+      await page.getByTestId(`profile-row-${id}`).click();
+      await expect(page).toHaveURL(new RegExp(`/en/profile/${id}$`));
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+    }
+  });
+
+  test("Activity (Seller mode): the labelled numbers card, no unlabelled stats", async ({ page }) => {
+    await page.goto("/en/profile/activity");
+    // The mock viewer is in Seller mode: no unlabelled stats card (owner,
+    // 2026-10-07). Its numbers live in the card that SAYS whose they are.
+    await expect(page.getByTestId("profile-seller-numbers-title")).toHaveText("Numbers · Me", { timeout: 30_000 });
     await expect(page.getByTestId("profile-stat-value")).toHaveCount(0);
-    await expect(page.getByTestId("profile-seller-numbers-title")).toHaveText("Numbers · Me");
-    await expect(page.getByText("Sold", { exact: true })).toHaveCount(1);
     await expect(page.getByTestId("profile-seller-numbers").getByText("Sold", { exact: true })).toBeVisible();
+  });
+
+  test("Privacy & account: the policy rows, then Delete account on its own", async ({ page }) => {
+    await page.goto("/en/profile/privacy-account");
+    for (const id of ["blocked-users", "my-reports", "privacy-policy"]) {
+      await expect(page.getByTestId(`profile-row-${id}`)).toBeVisible();
+    }
+    const del = page.getByTestId("profile-delete-account");
+    await del.getByRole("button", { name: "Delete my account" }).click();
+    await expect(page.getByRole("alertdialog").or(page.getByRole("dialog"))).toContainText("Delete account?");
+  });
+
+  test("Settings: personal info with Edit, appearance and language", async ({ page }) => {
+    await page.goto("/en/profile/settings");
     await expect(page.getByText("Personal Info")).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /Edit Profile/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /Sign Out/i }),
-    ).toBeVisible();
+    await expect(page.getByTestId("profile-settings-page").getByRole("link", { name: /Edit Profile/i })).toBeVisible();
+    await expect(page.getByText("Appearance")).toBeVisible();
+    await expect(page.getByText("Language", { exact: true })).toBeVisible();
+  });
+
+  test("Help & support: Contact support", async ({ page }) => {
+    await page.goto("/en/profile/help");
+    await expect(page.getByTestId("profile-row-contact-support")).toBeVisible();
   });
 
   test("Buyer mode keeps Bought + Saved", async ({ page }) => {
     await withSessionUser(page, { sellerMode: false, boughtCount: 4 });
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/activity");
     await expect(page.getByTestId("profile-stat-value")).toHaveCount(2);
     await expect(page.getByText("Items Bought")).toBeVisible();
     await expect(page.getByText("Saved Items")).toBeVisible();
@@ -73,6 +113,10 @@ test.describe("Profile (signed in)", () => {
     const box = await ratingLink.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(40);
 
+    // It opens the Activity page's list (Profile hub, 2026-10-08).
+    await ratingLink.click();
+    await expect(page).toHaveURL(/\/en\/profile\/activity#my-reviews$/);
+
     // "My reviews" (not the public "Ratings & Reviews" heading) + the list.
     await expect(
       page.getByRole("heading", { name: "My reviews" }),
@@ -89,7 +133,7 @@ test.describe("Profile (signed in)", () => {
 
   // Item 9 (owner, 2026-10-12): the shortcuts are one grouped list of rows.
   test("the shortcuts are one grouped list of rows, each with an icon and a chevron", async ({ page }) => {
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/activity");
     const list = page.getByTestId("profile-shortcuts");
     await expect(list).toBeVisible();
     for (const id of ["public-profile", "saved", "recently-viewed", "hidden", "browse"]) {
@@ -100,7 +144,7 @@ test.describe("Profile (signed in)", () => {
   });
 
   test("RTL (ps): the rows' chevrons point the reading way", async ({ page }) => {
-    await page.goto("/ps/profile");
+    await page.goto("/ps/profile/activity");
     const chevron = page.getByTestId("profile-row-saved").locator("svg").last();
     // Tailwind v4: rtl:-scale-x-100 is the CSS `scale` property.
     await expect(chevron).toHaveCSS("scale", /^-1/);
@@ -109,7 +153,7 @@ test.describe("Profile (signed in)", () => {
   test("View my public profile opens the seller page (REP815)", async ({
     page,
   }) => {
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/activity");
     await page
       .getByRole("link", { name: /View my public profile/i })
       .click();
@@ -132,7 +176,7 @@ test.describe("Profile (signed in)", () => {
       await route.fulfill({ response, json: data });
     });
 
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/activity");
     await expect(
       page.getByRole("heading", { name: "My reviews" }),
     ).toBeVisible();
@@ -158,11 +202,13 @@ test.describe("Profile — brand-new account (no reviews)", () => {
     page,
   }) => {
     await page.goto("/en/profile");
+    // Neutral label under your name, on the Profile.
+    await expect(page.getByText("No reviews yet")).toHaveCount(1, { timeout: 30_000 });
+    // The list (Activity page) names the role instead of repeating it.
+    await page.goto("/en/profile/activity");
     await expect(
       page.getByRole("heading", { name: "My reviews" }),
     ).toBeVisible();
-    // Neutral label under your name — said once, never repeated by the section.
-    await expect(page.getByText("No reviews yet")).toHaveCount(1);
     // …and the list's own empty state names the role instead of repeating it.
     await expect(page.getByText("No seller reviews yet")).toBeVisible();
     await expect(page.getByText("NaN")).toHaveCount(0);

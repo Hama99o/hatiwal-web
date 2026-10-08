@@ -3,7 +3,7 @@ import { BUYER_STATE } from "./auth-paths";
 import { shopEntry, withSessionUser } from "./session-user";
 
 /*
- * Owner, 2026-10-08: Profile → "Contact support" (both modes, like mobile)
+ * Owner, 2026-10-08: Profile → Help & support → "Contact support" (both modes, like mobile)
  * opens THIS identity's Support thread directly — the person's own, or the
  * shop's when selling as a shop — even when it was archived (the API's
  * POST /support_conversation revives it). A failure is a toast with Retry,
@@ -30,7 +30,7 @@ test.describe("Profile → Contact support", () => {
 
   test("opens the person's own Support thread", async ({ page }) => {
     const calls = await stubOpenSupport(page);
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/help");
 
     const row = page.getByTestId("profile-row-contact-support");
     await expect(row).toHaveText(/Contact support/);
@@ -48,7 +48,7 @@ test.describe("Profile → Contact support", () => {
       sellingAsShop: shopEntry(42, "Safi Cosmetics"),
     });
     const calls = await stubOpenSupport(page);
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/help");
 
     await page.getByTestId("profile-row-contact-support").click();
 
@@ -58,16 +58,16 @@ test.describe("Profile → Contact support", () => {
 
   test("a failure says so and stays on Profile", async ({ page }) => {
     await stubOpenSupport(page, 500);
-    await page.goto("/en/profile");
+    await page.goto("/en/profile/help");
 
     await page.getByTestId("profile-row-contact-support").click();
 
     await expect(page.getByText("Couldn't open Support. Check your connection and try again.")).toBeVisible();
-    await expect(page).toHaveURL(/\/en\/profile$/);
+    await expect(page).toHaveURL(/\/en\/profile\/help$/);
   });
 
   test("in Pashto the row reads in Pashto", async ({ page }) => {
-    await page.goto("/ps/profile");
+    await page.goto("/ps/profile/help");
     await expect(page.getByTestId("profile-row-contact-support")).toHaveText(/له ملاتړ سره اړیکه/);
   });
 });

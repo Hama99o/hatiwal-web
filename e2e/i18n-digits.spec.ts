@@ -311,13 +311,16 @@ test.describe("Locale digits (no hydration mismatch)", () => {
 
       // The score and the count share one line (and one accessible name), so
       // this single assertion is what makes two digit systems impossible there.
-      const rating = page.locator('a[href="#my-reviews"]');
+      // Profile hub (owner, 2026-10-08): it links to the Activity page's list.
+      const rating = page.locator('a[href$="/profile/activity#my-reviews"]');
       await expect(rating).toBeVisible({ timeout: 60_000 });
       await expect(rating).toHaveText(ARABIC_INDIC);
       await expect(rating).not.toHaveText(LATIN_DIGIT);
 
+      // The stat tiles live on the Activity page now.
+      await page.goto("/ps/profile/activity");
       const tiles = page.getByTestId("profile-stat-value");
-      await expect(tiles).toHaveCount(2);
+      await expect(tiles).toHaveCount(2, { timeout: 60_000 });
       for (const tile of await tiles.all()) {
         await expect(tile).toHaveText(ARABIC_INDIC);
         await expect(tile).not.toHaveText(LATIN_DIGIT);

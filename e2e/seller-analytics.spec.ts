@@ -13,8 +13,9 @@ import ps from "../messages/ps.json";
 test.describe("Seller numbers", () => {
   test.use({ storageState: BUYER_STATE });
 
-  test("Profile (Seller mode): the card says whose numbers they are, and opens the page", async ({ page }) => {
-    await page.goto("/en/profile");
+  // Profile hub (owner, 2026-10-08): the numbers card is on the Activity page.
+  test("Activity (Seller mode): the card says whose numbers they are, and opens the page", async ({ page }) => {
+    await page.goto("/en/profile/activity");
     const card = page.getByTestId("profile-seller-numbers");
     await expect(card).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("profile-seller-numbers-title")).toHaveText("Numbers · Me");

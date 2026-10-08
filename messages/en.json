@@ -559,7 +559,14 @@
       "untilLabel": "Away until",
       "youAreAway": "You're marked away until {date} — buyers see the away notice"
     },
-    "modeToggleLabel": "Buyer or seller mode"
+    "modeToggleLabel": "Buyer or seller mode",
+    "hub": {
+      "activity": "Activity",
+      "help": "Help & support",
+      "privacyAccount": "Privacy & account",
+      "settings": "Settings",
+      "deleteAccountHint": "Deletes your account and everything in it. You have 30 days to restore it by signing back in."
+    }
   },
   "report": {
     "title": "Report",
@@ -787,7 +794,7 @@
     "title": "Delete your Hatiwal account",
     "intro": "You can permanently delete your Hatiwal account and personal data at any time.",
     "inAppTitle": "Delete from the app",
-    "step1": "Open Hatiwal and go to your Profile.",
+    "step1": "Open Hatiwal, go to your Profile, then “Privacy & account”.",
     "step2": "Tap “Delete account” and confirm.",
     "step3": "Your account is hidden right away and permanently deleted after 30 days. Log back in within 30 days to restore it.",
     "whatHappensTitle": "What gets deleted",
