@@ -53,6 +53,17 @@ test("Change email opens Edit profile", async ({ page }) => {
   await page.waitForURL("**/en/profile/edit");
 });
 
+// Owner, 2026-10-08: the gate offered only Resend / Change email — no way back.
+test("the gate has a Back link to Profile, mirrored in RTL", async ({ page }) => {
+  await withSessionUser(page, { emailConfirmed: false });
+  await page.goto("/ps/shops/new");
+  const arrow = page.getByTestId("email-confirm-gate-back").locator("svg");
+  await expect(arrow).toHaveCSS("scale", /^-1/);
+  await page.goto("/en/shops/new");
+  await page.getByTestId("email-confirm-gate-back").click();
+  await page.waitForURL("**/en/profile");
+});
+
 test("a confirmed account sees the forms", async ({ page }) => {
   await withSessionUser(page, { emailConfirmed: true });
   await page.goto("/en/shops/new");

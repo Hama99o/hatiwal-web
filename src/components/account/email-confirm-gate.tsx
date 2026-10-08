@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Loader2, MailCheck } from "lucide-react";
+import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -26,6 +26,7 @@ export const EMAIL_UNCONFIRMED = "email_unconfirmed";
  */
 export function EmailConfirmGate({ reason, children }: { reason: "shop" | "verify"; children: React.ReactNode }) {
   const t = useTranslations("auth.confirmEmail");
+  const tc = useTranslations("common");
   const { user, refresh } = useAuth();
   const blocked = !!user && user.emailConfirmed === false;
   const [cooldown, setCooldown] = useState(0);
@@ -67,7 +68,16 @@ export function EmailConfirmGate({ reason, children }: { reason: "shop" | "verif
   };
 
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-16 text-center" data-testid="email-confirm-gate">
+    <div className="mx-auto max-w-md px-4 pt-4" data-testid="email-confirm-gate">
+    {/* A way back (owner, 2026-10-08: the mobile gate had none; same here, the
+        page only offered Resend / Change email). Both entries start on Profile. */}
+    <Button asChild variant="ghost" size="sm" className="-ms-2">
+      <Link href="/profile" data-testid="email-confirm-gate-back">
+        <ArrowLeft className="size-4 rtl:-scale-x-100" />
+        {tc("back")}
+      </Link>
+    </Button>
+    <div className="flex flex-col items-center gap-4 pb-16 pt-8 text-center">
       <span className="flex size-18 items-center justify-center rounded-full bg-primary/10">
         <MailCheck className="size-8 text-primary" />
       </span>
@@ -82,6 +92,7 @@ export function EmailConfirmGate({ reason, children }: { reason: "shop" | "verif
       <Button asChild variant="outline" className="w-full" data-testid="email-confirm-gate-change">
         <Link href="/profile/edit">{t("changeEmail")}</Link>
       </Button>
+    </div>
     </div>
   );
 }
