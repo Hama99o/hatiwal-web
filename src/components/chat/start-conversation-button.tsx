@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog } from "@/components/ui/dialog";
 import { OfferQuickChips } from "@/components/shared/offer-quick-chips";
 import { QuantityStepper } from "@/components/shared/quantity-stepper";
-import { apiErrorMessage } from "@/lib/api/error-codes";
+import { apiErrorCode, describeApiError } from "@/lib/api/error-codes";
 import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
 
 /**
@@ -319,7 +319,9 @@ export function StartConversationButton({
       const c = await startConversation(listingId, intro);
       return c.id;
     } catch (e) {
-      if ((e as { status?: number }).status === 422) {
+      // A 422 WITHOUT a code is "you already have this chat"; a coded one
+      // (blocked / blocked_by) is a refusal to show, not a thread to look for.
+      if ((e as { status?: number }).status === 422 && !apiErrorCode(e)) {
         // Newest first, so the one this buyer already has about this listing is
         // on page 1 — no need to page through.
         const existing = await getConversations(listingId);
@@ -340,7 +342,8 @@ export function StartConversationButton({
       router.push(`/conversations/${id}`);
     } catch (error) {
       // A block is said in the reader's language (codes blocked / blocked_by).
-      toast.error(apiErrorMessage(error, t) ?? t("chat.thread.startFailed"));
+      // Offline / 429 (new chats are throttled) / a block — each in words.
+      toast.error(describeApiError(error, t, { fallbackKey: "chat.thread.startFailed" }));
       setBusy(false);
     }
   }
@@ -372,8 +375,10 @@ export function StartConversationButton({
       // The count IS known here — it is the cap the stepper was using — so the
       // "only N left" refusal renders in full rather than degrading.
       toast.error(
-        apiErrorMessage(error, t, { count: availableUnits }) ??
-          t("chat.thread.startFailed"),
+        describeApiError(error, t, {
+          count: availableUnits,
+          fallbackKey: "chat.thread.startFailed",
+        }),
       );
       setBusy(false);
     }

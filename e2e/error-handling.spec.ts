@@ -162,3 +162,99 @@ test.describe("Conversation thread", () => {
     await expect(page.getByText(CONNECTION)).toHaveCount(0);
   });
 });
+
+test.describe("Start a chat / Message shop / Report", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  async function openComposerOnListing2(page: Page) {
+    await page.goto("/en/listings/2");
+    const cta = page.getByRole("button", { name: en.listing.detail.contactSeller });
+    await expect(async () => {
+      await cta.click();
+      await expect(page.getByPlaceholder("Ask about this item...")).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
+    await page.getByPlaceholder("Ask about this item...").fill("Still available?");
+  }
+
+  test("start chat 429 → too many attempts, stays on the listing", async ({ page }) => {
+    await force(page, "**/api/me/listings/2/conversations", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await openComposerOnListing2(page);
+    await page.getByRole("button", { name: "Send Message" }).click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/listings\/2$/);
+  });
+
+  test("start chat offline → check your connection", async ({ page }) => {
+    await force(page, "**/api/me/listings/2/conversations", "offline", { method: "POST" });
+    await openComposerOnListing2(page);
+    await page.getByRole("button", { name: "Send Message" }).click();
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+  });
+
+  test("start chat 422 blocked → the block sentence (no 'existing thread' lookup)", async ({ page }) => {
+    await force(page, "**/api/me/listings/2/conversations", { status: 422, json: { error: "x", code: "blocked" } }, { method: "POST" });
+    await openComposerOnListing2(page);
+    await page.getByRole("button", { name: "Send Message" }).click();
+    await expect(page.getByText(en.chat.blockedErrors.blocked)).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/listings\/2$/);
+  });
+
+  test("Message shop offline → check your connection", async ({ page }) => {
+    await force(page, "**/api/me/shops/42/conversations", "offline", { method: "POST" });
+    await page.goto("/en/shops/42");
+    await page.getByTestId("shop-message").click();
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+  });
+
+  test("Message shop 429 → its 'too many new chats' sentence", async ({ page }) => {
+    await force(page, "**/api/me/shops/42/conversations", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await page.goto("/en/shops/42");
+    await page.getByTestId("shop-message").click();
+    await expect(page.getByText(en.shops.messageErrors.tooMany)).toBeVisible();
+  });
+
+  async function reportSeller2(page: Page) {
+    await page.goto("/en/sellers/2");
+    await expect(page.getByRole("button", { name: "Ahmad Karimi" })).toBeVisible({ timeout: 15_000 });
+    const trigger = page.getByRole("button", { name: "Report", exact: true });
+    await expect(async () => {
+      await trigger.click();
+      await expect(page.getByText("Why are you reporting this?")).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Fraud or scam" }).click();
+  }
+
+  test("report 429 → too many attempts (not 'could not submit')", async ({ page }) => {
+    await force(page, "**/api/me/reports", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await reportSeller2(page);
+    await page.getByRole("button", { name: "Submit Report" }).click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+  });
+
+  test("report offline → check your connection", async ({ page }) => {
+    await force(page, "**/api/me/reports", "offline", { method: "POST" });
+    await reportSeller2(page);
+    await page.getByRole("button", { name: "Submit Report" }).click();
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+  });
+
+  test("report: double click files ONE report (disabled while in flight)", async ({ page }) => {
+    const gate = await hold(page, "**/api/me/reports");
+    await reportSeller2(page);
+    const submit = page.getByRole("button", { name: "Submit Report" });
+    await submit.dblclick();
+    await expect(page.getByRole("button", { name: en.report.submitting })).toBeDisabled();
+    gate.release();
+    await expect(page.getByText(en.report.success)).toBeVisible();
+    expect(gate.hits()).toBe(1);
+  });
+
+  test("block after report 500 → the block error, never 'connection'", async ({ page }) => {
+    await force(page, /\/api\/me\/users\/2\/block$/, { status: 500 }, { method: "POST" });
+    await reportSeller2(page);
+    await page.getByRole("button", { name: "Submit Report" }).click();
+    await page.getByRole("button", { name: en.report.block.confirmCta }).click();
+    await expect(page.getByText(en.report.block.error)).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+});

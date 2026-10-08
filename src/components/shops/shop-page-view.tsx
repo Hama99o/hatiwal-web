@@ -9,7 +9,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useLoginHref } from "@/components/auth/login-href";
 import { ApiError } from "@/lib/api/client";
 import { messageShop } from "@/lib/api/chat";
-import { apiErrorMessage } from "@/lib/api/error-codes";
+import { apiErrorMessage, isNetworkFailure } from "@/lib/api/error-codes";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
@@ -87,6 +87,11 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
       router.push(`/conversations/${conversation.id}`);
     },
     onError: (err) => {
+      // No answer at all is the only "check your connection".
+      if (isNetworkFailure(err)) {
+        toast.error(tRoot("common.offline"));
+        return;
+      }
       const status = err instanceof ApiError ? err.status : 0;
       const code = err instanceof ApiError ? err.code : undefined;
       // Blocked either way is a 422 with the same server message as starting a
