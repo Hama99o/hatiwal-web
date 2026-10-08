@@ -367,7 +367,11 @@ export interface Message {
   readAt: string | null;
   createdAt: string;
   respondsToId: number | null;
-  sender: { id: number; name: string; avatarUrl?: string | null };
+  /**
+   * `id` is null for the BUYER on a message written as the shop (api c714771):
+   * the member's id is the team's only (privacy). Compare it, never navigate by it.
+   */
+  sender: { id: number | null; name: string; avatarUrl?: string | null };
   attachmentUrl?: string | null;
   /**
    * For `offer` and `offer_counter` kinds, the server pre-parses the pipe-encoded

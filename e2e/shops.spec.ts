@@ -151,6 +151,27 @@ test.describe("SHOP-2 (several shops, Message shop)", () => {
     await expect(page.getByPlaceholder("Type a message...")).toHaveCount(0);
   });
 
+  // P0 privacy (api c714771, d0): a message written as the shop reaches the
+  // buyer with sender.id null. It renders on the shop's side, never the buyer's.
+  test("a shop message without a member id sits on the shop's side for the buyer", async ({ page }) => {
+    await page.route(/\/api\/me\/conversations\/420\/messages/, async (route) => {
+      const res = await route.fetch();
+      const json = await res.json();
+      json.messages = [
+        { id: 99001, kind: "text", body: "Yes, we have it in blue", read_at: null, created_at: "2026-10-08T10:00:00Z",
+          deleted: false, deleted_at: null, responds_to_id: null,
+          sender: { id: null, name: "Safi Cosmetics", avatar_url: null, as_shop: true } },
+        ...(json.messages ?? []),
+      ];
+      await route.fulfill({ response: res, json });
+    });
+    await page.goto("/en/conversations/420");
+    const bubble = page.getByText("Yes, we have it in blue");
+    await expect(bubble).toBeVisible();
+    await expect(page.locator("div.justify-start", { has: bubble }).first()).toBeVisible();
+    await expect(page.locator("div.justify-end", { has: bubble })).toHaveCount(0);
+  });
+
   test("blocked by the shop's owner → the refusal in the reader's language, no chat", async ({ page }) => {
     await page.route("**/api/me/shops/42/conversations", (route) =>
       route.fulfill({ status: 422, json: { errors: ["you have been blocked by this user"], code: "blocked_by" } }),
