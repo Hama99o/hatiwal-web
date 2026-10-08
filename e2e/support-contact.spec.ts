@@ -62,7 +62,7 @@ test.describe("Profile → Contact support", () => {
 
     await page.getByTestId("profile-row-contact-support").click();
 
-    await expect(page.getByText("Couldn't open Support. Check your connection and try again.")).toBeVisible();
+    await expect(page.getByText("Couldn't open Support. Please try again.")).toBeVisible();
     await expect(page).toHaveURL(/\/en\/profile\/help$/);
   });
 

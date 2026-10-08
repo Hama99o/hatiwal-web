@@ -130,7 +130,11 @@ export async function apiGet<T>(
 
   const res = await fetch(url, init);
   if (!res.ok) {
-    throw new ApiError(res.status, `GET ${path} failed (${res.status})`);
+    // Keep Rails' reason and `code` (e.g. a public invite's 404/410, a 429's
+    // `rate_limited`), exactly as the authed path does — a bare status could
+    // only ever be explained as "something went wrong".
+    const { errors, code, details } = await readApiError(res);
+    throw new ApiError(res.status, `GET ${path} failed (${res.status})`, errors, code, details);
   }
   const text = await res.text();
   const json: unknown = text ? parseOrExplain(text, path, res) : null;

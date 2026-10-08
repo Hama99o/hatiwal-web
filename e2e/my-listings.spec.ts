@@ -790,7 +790,7 @@ test.describe("My Shop (seller dashboard)", () => {
       timeout: 30_000,
     });
     await expect(
-      page.getByText(/Check your connection and try again/),
+      page.getByText("We couldn't load this. Please try again."),
     ).toBeVisible();
     // A transport error must never be phrased as an empty shop: the count line is
     // gated on real data (`isPending` is false in the error state, and the list

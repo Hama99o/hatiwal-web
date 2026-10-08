@@ -148,3 +148,74 @@ export function apiErrorMessage(
 export function isReviewedSaleRefusal(error: unknown): boolean {
   return apiErrorCode(error) === API_ERROR_CODES.saleHasReview;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * The error SWEEP rules (1.1.6, 2026-10-08) — what the reader is told, per answer.
+ *
+ *  - no answer at all (fetch threw, or our proxy's 502 `upstream_failed`:
+ *    Rails was unreachable)                     → "check your connection" — ONLY then
+ *  - 429 `rate_limited`                         → "too many attempts, try later"
+ *  - a `code` this app knows                    → its translated sentence
+ *  - a `code` it does not know + `error` text   → the server's own text
+ *  - anything else (500, a bare 4xx)            → the surface's own generic
+ *                                                 sentence, else "something went
+ *                                                 wrong, try again"
+ *
+ * "Check your connection" on an answered request is the owner bug this exists
+ * to end: the server DID answer, so the reader's connection is fine.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** The body our own proxies send when Rails could not be reached. */
+export const UPSTREAM_FAILED = "upstream_failed";
+
+/**
+ * True when the request never got an answer from Rails: the browser's fetch
+ * rejected (offline, DNS, connection reset — a `TypeError` in every browser),
+ * or one of our proxies answered 502 `upstream_failed` because IT could not
+ * reach Rails. Other TypeErrors (a bug in our own code) are not this.
+ */
+export function isNetworkFailure(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return (
+      error.status === 502 &&
+      (error.code === UPSTREAM_FAILED || error.errors[0] === UPSTREAM_FAILED)
+    );
+  }
+  if (!(error instanceof TypeError)) return false;
+  // Chrome "Failed to fetch", Firefox "NetworkError when attempting to fetch
+  // resource.", Safari "Load failed".
+  return /fetch|network|load failed/i.test(error.message);
+}
+
+/** 429 — the API's per-action throttle (`{ error: "rate_limited", message }`). */
+export function isRateLimited(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 429;
+}
+
+/** 404 — the thing is gone (deleted, never existed, or no longer visible to me). */
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
+/**
+ * The ONE sentence for a failed request, following the sweep rules above.
+ * Always returns a string, so a call site is a one-liner:
+ *
+ *   toast.error(describeApiError(err, t, { fallbackKey: "report.errors.generic" }))
+ *
+ * `fallbackKey` is the surface's own generic sentence (it must not say "check
+ * your connection" — that case is handled here). `count` feeds the codes whose
+ * message names a number (see `apiErrorMessage`).
+ */
+export function describeApiError(
+  error: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
+  opts: { count?: number; fallbackKey?: string } = {},
+): string {
+  if (isNetworkFailure(error)) return t("common.offline");
+  if (isRateLimited(error)) return t("common.tooManyAttempts");
+  const coded = apiErrorMessage(error, t, { count: opts.count });
+  if (coded) return coded;
+  if (error instanceof ApiError && error.code && error.errors[0]) return error.errors[0];
+  return t(opts.fallbackKey ?? "common.somethingWrong");
+}
