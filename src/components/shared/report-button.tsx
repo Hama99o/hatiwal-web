@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Flag, Loader2 } from "lucide-react";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/api/reports";
 import { blockUser, getBlockedUsers } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
+import { describeApiError, isNetworkFailure, isRateLimited } from "@/lib/api/error-codes";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
@@ -137,6 +138,7 @@ export function ReportButton({
   // that is what gives the block a single place to invalidate from, so no other
   // screen keeps serving a 60s-stale "not blocked" for someone the viewer just
   // blocked.
+  const inFlight = useRef(false);
   const reportM = useMutation({
     mutationFn: (input: { reason: ReportReason; description?: string }) =>
       createReport({ reportableType, reportableId, ...input }),
@@ -151,6 +153,12 @@ export function ReportButton({
       if (isUserReport && !alreadyBlocked) setBlockPromptOpen(true);
     },
     onError: (err) => {
+      // No answer / 429 (reports are throttled): said as such, not as a
+      // refused report.
+      if (isNetworkFailure(err) || isRateLimited(err)) {
+        toast.error(describeApiError(err, t));
+        return;
+      }
       const { key, raw } = reportFailure(err);
       toast.error(raw ?? t(key));
     },
@@ -168,10 +176,10 @@ export function ReportButton({
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["conversation"] });
     },
-    onError: () => {
+    onError: (err) => {
       // The report itself already succeeded and stands — a failed block never
       // rolls it back. Keep the prompt open so they can retry.
-      toast.error(t("report.block.error"));
+      toast.error(describeApiError(err, t, { fallbackKey: "report.block.error" }));
     },
   });
 
@@ -223,7 +231,15 @@ export function ReportButton({
       toast.error(t("report.reasonRequired"));
       return;
     }
-    reportM.mutate({ reason, description: note.trim() || undefined });
+    // Never two reports from one dialog. A ref, not `reportM.isPending`: a
+    // double click's second event runs before the re-render that flips
+    // isPending, so the state check let a second report through.
+    if (inFlight.current) return;
+    inFlight.current = true;
+    reportM.mutate(
+      { reason, description: note.trim() || undefined },
+      { onSettled: () => { inFlight.current = false; } },
+    );
   }
 
   const busy = reportM.isPending;

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { openSupportConversation } from "@/lib/api/chat";
+import { describeApiError } from "@/lib/api/error-codes";
 import { Logomark } from "@/components/layout/logo";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 
@@ -22,8 +23,8 @@ export function SupportEntryRow({ shopId }: { shopId?: number }) {
   const open = useMutation({
     mutationFn: () => openSupportConversation(shopId),
     onSuccess: (c) => router.push(`/conversations/${c.id}`),
-    onError: () =>
-      toast.error(t("chat.support.openError"), {
+    onError: (err) =>
+      toast.error(describeApiError(err, t, { fallbackKey: "chat.support.openError" }), {
         action: { label: t("common.retry"), onClick: () => open.mutate() },
       }),
   });

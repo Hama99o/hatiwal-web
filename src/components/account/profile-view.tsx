@@ -8,6 +8,7 @@ import { ChevronRight, History, LifeBuoy, Loader2, Lock, LogOut, Pencil, Setting
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { openSupportConversation } from "@/lib/api/chat";
+import { describeApiError } from "@/lib/api/error-codes";
 import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -184,8 +185,8 @@ export function ContactSupportRow() {
   const open = useMutation({
     mutationFn: () => openSupportConversation(shopId),
     onSuccess: (c) => router.push(`/conversations/${c.id}`),
-    onError: () =>
-      toast.error(t("chat.support.openError"), {
+    onError: (err) =>
+      toast.error(describeApiError(err, t, { fallbackKey: "chat.support.openError" }), {
         action: { label: t("common.retry"), onClick: () => open.mutate() },
       }),
   });

@@ -1,4 +1,5 @@
 import { ApiError, readApiError } from "./client";
+import { describeApiError } from "./error-codes";
 import { convertKeysToCamel } from "./case";
 import { PROXY_BASE } from "@/lib/env";
 import { meRequest } from "./me";
@@ -179,4 +180,19 @@ export function teamErrorCode(err: unknown): TeamErrorCode | null {
 export function teamErrorKey(err: unknown): string | null {
   const code = teamErrorCode(err);
   return code ? `team.errors.${code}` : null;
+}
+
+/**
+ * The one sentence for a failed team action: its team code's sentence when it
+ * has one, else the sweep rules (offline → "check your connection", 429 →
+ * "too many attempts", 500 → the team's generic "something went wrong").
+ * `t` is a ROOT translator.
+ */
+export function teamErrorMessage(
+  err: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  const key = teamErrorKey(err);
+  if (key) return t(`shops.${key}`);
+  return describeApiError(err, t, { fallbackKey: "shops.team.errors.generic" });
 }

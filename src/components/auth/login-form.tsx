@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import Script from "next/script";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useAuth } from "@/components/auth/auth-provider";
+import { authFailureKey, useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -78,7 +78,7 @@ function GoogleSignInButton() {
         if (res.ok) {
           router.replace(currentNextDest());
         } else {
-          setGoogleError(t("auth.googleSignInFailed"));
+          setGoogleError(t(authFailureKey(res.error) ?? "auth.googleSignInFailed"));
         }
       },
     });
@@ -155,7 +155,8 @@ export function LoginForm() {
         : "";
       setFormError(`${t(`auth.blocked.${key}`)}${reason}`);
     } else {
-      setFormError(t("auth.loginError"));
+      // Offline / 429 / a server failure are not "check your email and password".
+      setFormError(t(authFailureKey(res.error) ?? "auth.loginError"));
     }
   });
 

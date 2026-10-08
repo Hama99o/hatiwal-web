@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { RAILS_SERVER_BASE } from "@/lib/env";
+import { railsFetch } from "@/lib/auth/upstream";
 import { isSameOrigin } from "@/lib/auth/origin";
 
 export async function POST(req: Request) {
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   if (!token || !password)
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
 
-  const res = await fetch(`${RAILS_SERVER_BASE}/auth/password`, {
+  const { res, failure } = await railsFetch(`${RAILS_SERVER_BASE}/auth/password`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -22,6 +23,7 @@ export async function POST(req: Request) {
     }),
     cache: "no-store",
   });
+  if (failure) return failure;
 
   if (!res.ok)
     return NextResponse.json({ error: "invalid_token" }, { status: 400 });

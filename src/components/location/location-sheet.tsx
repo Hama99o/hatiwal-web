@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { LocationMap } from "@/components/map/location-map";
 import { useAuth } from "@/components/auth/auth-provider";
 import { updateProfile } from "@/lib/api/me";
+import { describeApiError } from "@/lib/api/error-codes";
 import { AFGHAN_PROVINCES, getProvinceName, nearestProvince } from "@/lib/provinces";
 import { isInServiceArea } from "@/lib/service-area";
 import { cn } from "@/lib/utils";
@@ -230,7 +231,7 @@ export function LocationSheet({
 
         {saveM.isError && (
           <p role="alert" className="text-sm text-destructive">
-            {t("location.saveError")}
+            {describeApiError(saveM.error, t, { fallbackKey: "location.saveError" })}
           </p>
         )}
         <div className="flex justify-end gap-2">

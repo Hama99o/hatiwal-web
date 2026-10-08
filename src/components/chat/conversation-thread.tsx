@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   CalendarPlus,
+  MessageSquareOff,
   CircleSlash,
   Loader2,
   Paperclip,
@@ -39,7 +40,8 @@ import { useConversationCable } from "@/lib/cable";
 import { getMyListing } from "@/lib/api/me";
 import { hasOpenHold, isLive } from "@/lib/stock";
 import { agreedOfferTerms } from "@/lib/agreed-offer";
-import { apiErrorMessage } from "@/lib/api/error-codes";
+import { describeApiError, isNotFound } from "@/lib/api/error-codes";
+import { EmptyState } from "@/components/shared/empty-state";
 import type { Message, Transaction } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ReportButton } from "@/components/shared/report-button";
@@ -101,6 +103,11 @@ export function ConversationThread({ id }: { id: string }) {
     clearDraft,
   } = useComposerDraft(draftEnabled ? cid : null);
   const [sending, setSending] = useState(false);
+  // Synchronous in-flight guard: `sending` disables the button, but Enter on the
+  // input submits the form again before React re-renders — two identical
+  // messages. The ref closes that window (error sweep, 1.1.6).
+  const sendingRef = useRef(false);
+  const blockingRef = useRef(false);
   const [blocked, setBlocked] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -426,7 +433,9 @@ export function ConversationThread({ id }: { id: string }) {
     kind: Message["kind"] = "text",
     respondsToId?: number,
   ) {
-    if (kind === "text" && !body.trim()) return;
+    if (kind === "text" && !body.trim()) return false;
+    if (sendingRef.current) return false;
+    sendingRef.current = true;
     setSending(true);
     try {
       const m = await sendMessage(cid, body, kind, respondsToId, undefined, supportContext);
@@ -439,9 +448,14 @@ export function ConversationThread({ id }: { id: string }) {
         clearDraft();
         setInput("");
       }
-    } catch {
-      toast.error(t("chat.thread.sendFailed"));
+      return true;
+    } catch (error) {
+      // offline / 429 / a coded refusal (blocked, shop_unavailable…) each in
+      // their own words; a 500 is the generic "failed to send".
+      toast.error(describeApiError(error, t, { fallbackKey: "chat.thread.sendFailed" }));
+      return false;
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   }
@@ -457,17 +471,18 @@ export function ConversationThread({ id }: { id: string }) {
       setMessages((prev) =>
         prev.some((x) => x.id === m.id) ? prev : [...prev, m],
       );
-    } catch {
-      toast.error(t("chat.thread.sendFailed"));
+    } catch (error) {
+      toast.error(describeApiError(error, t, { fallbackKey: "chat.thread.sendFailed" }));
     } finally {
       setUploading(false);
     }
   }
 
-  function proposeMeetup() {
+  async function proposeMeetup() {
     if (!place.trim()) return toast.error(t("chat.meetup.placeRequired"));
     if (!time.trim()) return toast.error(t("chat.meetup.timeRequired"));
-    send(`${place.trim()} | ${time.trim()}`, "meetup_proposal");
+    // "Sent!" only once it IS sent — it used to show alongside the failure toast.
+    if (!(await send(`${place.trim()} | ${time.trim()}`, "meetup_proposal"))) return;
     setMeetupOpen(false);
     setPlace("");
     setTime("");
@@ -518,9 +533,10 @@ export function ConversationThread({ id }: { id: string }) {
       // Localized from the server's `code` where there is one (e.g. the counter
       // asks for more units than remain) — never its English prose.
       toast.error(
-        apiErrorMessage(error, t, {
+        describeApiError(error, t, {
           count: convQ.data?.listing?.availableUnits,
-        }) ?? t("chat.thread.sendFailed"),
+          fallbackKey: "chat.thread.sendFailed",
+        }),
       );
     } finally {
       setSendingCounter(false);
@@ -529,6 +545,8 @@ export function ConversationThread({ id }: { id: string }) {
 
   async function toggleBlock() {
     setConfirmBlock(false);
+    if (blockingRef.current) return;
+    blockingRef.current = true;
     try {
       if (blocked) {
         if (other) await unblockUser(other.id);
@@ -544,8 +562,14 @@ export function ConversationThread({ id }: { id: string }) {
       // whether to offer its block follow-up. Left stale for its 60s window it
       // would offer to block someone this header just blocked.
       qc.invalidateQueries({ queryKey: ["blocked-users"] });
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(
+        describeApiError(error, t, {
+          fallbackKey: blocked ? "chat.block.unblockFailed" : "chat.block.blockFailed",
+        }),
+      );
+    } finally {
+      blockingRef.current = false;
     }
   }
 
@@ -556,13 +580,37 @@ export function ConversationThread({ id }: { id: string }) {
       </div>
     );
   }
+  // Deleted (or never mine): say so, with the way back — not a bare
+  // "could not load" with no exit (error sweep, 1.1.6).
+  if (isNotFound(convQ.error) || isNotFound(msgsQ.error)) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-12" data-testid="conversation-not-found">
+        <EmptyState
+          icon={MessageSquareOff}
+          title={t("chat.thread.notFound")}
+          action={{ label: t("chat.thread.backToMessages"), href: "/conversations" }}
+        />
+      </div>
+    );
+  }
   // Gate on the messages query too: if the conversation loads but messages fail,
   // rendering an empty thread would read as "no messages yet" (a false empty)
   // rather than a load error.
   if (convQ.isError || msgsQ.isError || !conversation) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12 text-center text-muted-foreground">
-        {t("chat.thread.loadFailed")}
+      <div className="mx-auto max-w-2xl px-4 py-12">
+        <EmptyState
+          icon={MessageSquareOff}
+          title={t("chat.thread.loadFailed")}
+          description={t("common.errorDescription")}
+          action={{
+            label: t("common.retry"),
+            onClick: () => {
+              void convQ.refetch();
+              void msgsQ.refetch();
+            },
+          }}
+        />
       </div>
     );
   }

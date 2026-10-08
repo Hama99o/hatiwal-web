@@ -27,7 +27,13 @@ export default function Error({
         <TriangleAlert className="size-7" />
       </div>
       <h1 className="text-xl font-bold">{t("errorTitle")}</h1>
-      <p className="text-sm text-muted-foreground">{t("errorDescription")}</p>
+      {/* "Check your connection" only when there is none; a server failure is
+          not the reader's connection (error sweep, 1.1.6). */}
+      <p className="text-sm text-muted-foreground">
+        {typeof navigator !== "undefined" && navigator.onLine === false
+          ? t("offline")
+          : t("errorDescription")}
+      </p>
       <Button onClick={reset}>{t("retry")}</Button>
     </div>
   );

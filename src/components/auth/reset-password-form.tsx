@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useAuth } from "@/components/auth/auth-provider";
+import { authFailureKey, useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -77,7 +77,7 @@ export function ResetPasswordForm({ token }: Props) {
     if (res.ok) {
       setSuccess(true);
     } else {
-      setFormError(t("auth.resetPasswordError"));
+      setFormError(t(authFailureKey(res.error) ?? "auth.resetPasswordError"));
     }
   });
 

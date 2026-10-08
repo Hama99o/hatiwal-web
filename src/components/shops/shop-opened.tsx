@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightLeft, Check, CheckCircle2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ import { userTextProps } from "@/lib/text-direction";
  */
 export function ShopOpened({ shop }: { shop: Shop }) {
   const t = useTranslations("shops");
+  const tRoot = useTranslations();
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
@@ -45,7 +47,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
       setMoving(false);
       setMoved(true);
     },
-    onError: () => toast.error(t("form.review.failed")),
+    onError: (err) => toast.error(describeApiError(err, tRoot, { fallbackKey: "shops.form.review.failed" })),
   });
 
   if (moving) {

@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { ShoppingBag, Store } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/navigation";
@@ -48,8 +49,8 @@ export function ModeToggle({ className }: { className?: string }) {
       const updated = await setSellerMode(value);
       setUser(updated);
       router.push(value ? "/my-listings" : "/bazaar");
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(describeApiError(error, t));
     } finally {
       setBusy(false);
     }

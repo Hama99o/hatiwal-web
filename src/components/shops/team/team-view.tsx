@@ -29,7 +29,7 @@ import {
   resendShopInvite,
   transferShop,
   teamErrorCode,
-  teamErrorKey,
+  teamErrorMessage,
   type ShopInvite,
   type ShopMember,
 } from "@/lib/api/shop-team";
@@ -46,6 +46,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function TeamView({ shopId }: { shopId: number }) {
   const t = useTranslations("shops");
   const tc = useTranslations("common");
+  const tRoot = useTranslations();
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
@@ -69,7 +70,7 @@ export function TeamView({ shopId }: { shopId: number }) {
   const pending = (invites ?? []).filter((i) => i.status === "pending");
 
   const failed = (err: unknown) => {
-    toast.error(t(teamErrorKey(err) ?? "team.errors.generic"));
+    toast.error(teamErrorMessage(err, tRoot));
     // Refused because MY role changed meanwhile (made Staff, removed, the shop
     // handed over; edge-case pass 2026-10-08): reload who I am here, so the
     // buttons I may no longer use go away instead of failing again.

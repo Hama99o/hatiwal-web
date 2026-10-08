@@ -28,9 +28,8 @@ export async function GET(
       },
     });
   } catch {
-    return NextResponse.json(
-      { errors: ["Upstream request failed"] },
-      { status: 502 },
-    );
+    // Same body as the authed proxy (/api/me): the client reads 502
+    // `upstream_failed` as "Rails was unreachable" → "check your connection".
+    return NextResponse.json({ error: "upstream_failed" }, { status: 502 });
   }
 }

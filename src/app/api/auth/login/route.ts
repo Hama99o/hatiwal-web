@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { RAILS_SERVER_BASE } from "@/lib/env";
+import { railsFetch } from "@/lib/auth/upstream";
 import { tokensFromResponse } from "@/lib/auth/devise";
 import { writeTokenCookies } from "@/lib/auth/cookies";
 import { isSameOrigin } from "@/lib/auth/origin";
@@ -16,12 +17,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing_credentials" }, { status: 400 });
   }
 
-  const res = await fetch(`${RAILS_SERVER_BASE}/auth/sign_in`, {
+  // 429 / 5xx / unreachable are NOT "wrong password" (see railsFetch).
+  const { res, failure } = await railsFetch(`${RAILS_SERVER_BASE}/auth/sign_in`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ email, password }),
     cache: "no-store",
   });
+  if (failure) return failure;
 
   if (!res.ok) {
     // Distinguish a blocked/suspended account (Rails 403 with a status+reason)

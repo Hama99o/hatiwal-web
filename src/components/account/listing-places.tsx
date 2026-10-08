@@ -9,7 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSellingIdentity } from "@/components/shops/use-selling-identity";
 import { duplicateMyListing, moveMyListing } from "@/lib/api/me";
-import { apiErrorMessage } from "@/lib/api/error-codes";
+import { describeApiError } from "@/lib/api/error-codes";
 import { hasOpenHold } from "@/lib/stock";
 import type { Listing } from "@/lib/types";
 import { Dialog } from "@/components/ui/dialog";
@@ -89,7 +89,7 @@ export function useListingPlaces(
       toast.success(t("listing.duplicated"));
       router.push(`/listings/${copy.id}/edit`);
     } catch (error) {
-      toast.error(apiErrorMessage(error, t) ?? t("common.error"));
+      toast.error(describeApiError(error, t));
     } finally {
       setBusy(false);
     }
@@ -108,7 +108,7 @@ export function useListingPlaces(
       setConfirming(null);
       opts.onChanged?.();
     } catch (error) {
-      toast.error(apiErrorMessage(error, t) ?? t("common.error"));
+      toast.error(describeApiError(error, t));
     } finally {
       setBusy(false);
     }

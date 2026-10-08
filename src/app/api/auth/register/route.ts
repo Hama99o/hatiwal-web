@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { RAILS_SERVER_BASE } from "@/lib/env";
+import { railsFetch } from "@/lib/auth/upstream";
 import { tokensFromResponse } from "@/lib/auth/devise";
 import { writeTokenCookies } from "@/lib/auth/cookies";
 import { isSameOrigin } from "@/lib/auth/origin";
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
 
-  const res = await fetch(`${RAILS_SERVER_BASE}/auth`, {
+  const { res, failure } = await railsFetch(`${RAILS_SERVER_BASE}/auth`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
     }),
     cache: "no-store",
   });
+  if (failure) return failure;
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

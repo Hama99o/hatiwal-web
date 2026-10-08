@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { ApiError } from "@/lib/api/client";
 import { OnboardingModal } from "@/components/account/onboarding-modal";
 import { AppPromptSheet } from "@/components/shared/app-prompt";
 import { installIntlNumberLocaleAlias } from "@/i18n/intl-locale-alias";
@@ -25,7 +26,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 60_000,
             refetchOnWindowFocus: true,
-            retry: 1,
+            // One retry for a blip (5xx, no answer) — never for a 4xx: a 404 or
+            // 403 will not change on a second ask, and retrying it only holds
+            // the spinner up longer before the "no longer available" state.
+            retry: (failureCount, error) =>
+              failureCount < 1 &&
+              !(error instanceof ApiError && error.status >= 400 && error.status < 500),
           },
         },
       }),

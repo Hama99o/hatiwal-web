@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, Check, ChevronRight, Circle, Hourglass, IdCard, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -220,7 +221,8 @@ function ResendEmailButton({ email }: { email: string }) {
     mutationFn: () => resendConfirmation(email),
     onSuccess: () => toast.success(t("auth.confirmEmail.sent")),
     // Never silent: they would wait for a mail that is not coming.
-    onError: () => toast.error(t("auth.confirmEmail.failed")),
+    onError: (error) =>
+      toast.error(describeApiError(error, t, { fallbackKey: "auth.confirmEmail.failed" })),
   });
   return (
     <Button

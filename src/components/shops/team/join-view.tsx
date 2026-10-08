@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, CircleSlash, PartyPopper, Store, WifiOff } from "lucide-react";
+import { Check, CircleSlash, PartyPopper, Store, TriangleAlert, WifiOff } from "lucide-react";
+import { describeApiError, isNetworkFailure } from "@/lib/api/error-codes";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
@@ -19,7 +20,7 @@ import {
   getPublicInvite,
   JOIN_PAGE_CODES,
   teamErrorCode,
-  teamErrorKey,
+  teamErrorMessage,
   type TeamErrorCode,
 } from "@/lib/api/shop-team";
 import { useSellingIdentity } from "@/components/shops/use-selling-identity";
@@ -40,6 +41,7 @@ const STATUS_CODE: Record<string, TeamErrorCode> = {
  */
 export function JoinView({ token }: { token: string }) {
   const t = useTranslations("shops");
+  const tRoot = useTranslations();
   const router = useRouter();
   const qc = useQueryClient();
   const { user, status, setUser } = useAuth();
@@ -67,7 +69,7 @@ export function JoinView({ token }: { token: string }) {
     onError: (err) => {
       const code = teamErrorCode(err);
       if (code && JOIN_PAGE_CODES.includes(code)) setRefusal(code);
-      else toast.error(t(teamErrorKey(err) ?? "team.errors.generic"));
+      else toast.error(teamErrorMessage(err, tRoot));
     },
   });
   const decline = useMutation({
@@ -76,7 +78,7 @@ export function JoinView({ token }: { token: string }) {
       toast.success(t("team.join.declined"));
       router.push("/bazaar");
     },
-    onError: (err) => toast.error(t(teamErrorKey(err) ?? "team.errors.generic")),
+    onError: (err) => toast.error(teamErrorMessage(err, tRoot)),
   });
 
   const shell = (children: React.ReactNode) => <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-12 text-center">{children}</div>;
@@ -97,8 +99,17 @@ export function JoinView({ token }: { token: string }) {
   if (error && !teamErrorCode(error) && httpStatus !== 404 && httpStatus !== 410) {
     return shell(
       <div className="flex flex-col items-center gap-4" data-testid="join-load-error">
-        <WifiOff className="size-9 text-muted-foreground" />
+        {/* The no-signal icon and "check your connection" only when there was
+            no answer; a 429 / 500 says what it is. */}
+        {isNetworkFailure(error) ? (
+          <WifiOff className="size-9 text-muted-foreground" />
+        ) : (
+          <TriangleAlert className="size-9 text-muted-foreground" />
+        )}
         <h1 className="text-lg font-bold">{t("team.join.loadError")}</h1>
+        <p className="text-sm text-muted-foreground" data-testid="join-load-error-reason">
+          {describeApiError(error, tRoot, { fallbackKey: "common.errorDescription" })}
+        </p>
         <Button onClick={() => refetch()} disabled={isRefetching} data-testid="join-retry">
           {t("states.retry")}
         </Button>

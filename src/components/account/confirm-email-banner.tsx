@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { MailWarning, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { resendConfirmation } from "@/lib/api/me";
@@ -41,10 +42,11 @@ export function ConfirmEmailBanner({
     try {
       await resendConfirmation(email!);
       toast.success(t("auth.confirmEmail.sent"));
-    } catch {
+    } catch (error) {
       // Never fail silently here: the user would wait for a mail that is not
-      // coming, with no reason to try again.
-      toast.error(t("auth.confirmEmail.failed"));
+      // coming, with no reason to try again. (Resends are throttled: a 429
+      // says so.)
+      toast.error(describeApiError(error, t, { fallbackKey: "auth.confirmEmail.failed" }));
     } finally {
       setSending(false);
     }

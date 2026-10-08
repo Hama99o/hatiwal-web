@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Loader2, UserX } from "lucide-react";
 import { getConversations } from "@/lib/api/chat";
 import { correctMySale, voidMySale } from "@/lib/api/me";
-import { apiErrorMessage, isReviewedSaleRefusal } from "@/lib/api/error-codes";
+import { describeApiError, isReviewedSaleRefusal } from "@/lib/api/error-codes";
 import type { Listing, Transaction } from "@/lib/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { UserIdentity } from "@/components/shared/user-identity";
@@ -116,8 +116,9 @@ export function SaleRowEditDialog({
       // leaving it on screen would show a buyer who is not the buyer of record.
       setNewBuyerId(undefined);
     }
-    // Only `sale_has_review` can reach here, and it needs no count.
-    setError(apiErrorMessage(err, t) ?? t("common.error"));
+    // `sale_has_review` needs no count; offline / 429 / a 500 are said as such
+    // (the fallback used to be `common.error`, which reads just "Error").
+    setError(describeApiError(err, t));
   }
 
   async function save() {

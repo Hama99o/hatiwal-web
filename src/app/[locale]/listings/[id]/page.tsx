@@ -7,7 +7,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListing, getSimilarListings } from "@/lib/api/listings";
 import { localizedAlternates } from "@/lib/seo";
 import { categoryName } from "@/lib/api/categories";
-import { safe } from "@/lib/api/safe";
+import { safe, unlessNotFound } from "@/lib/api/safe";
 import { formatPrice, formatRelativeDate } from "@/lib/format";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -96,8 +96,10 @@ export default async function ListingDetailPage({
   // during SSR instead of after the browser's session probe: the seller of this
   // item gets their own panel in the FIRST paint, rather than watching "Message
   // Seller", the save heart and the buyer safety tips flash past first.
+  // 404 → the "no longer available" page; a 500 / Rails down → the error
+  // boundary with Retry, never "404".
   const [listing, viewerId] = await Promise.all([
-    safe(getListing(id), null),
+    unlessNotFound(getListing(id), null),
     readViewerIdFromCookies(),
   ]);
   if (!listing) notFound();

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { RAILS_SERVER_BASE } from "@/lib/env";
+import { railsFetch } from "@/lib/auth/upstream";
 import { isSameOrigin } from "@/lib/auth/origin";
 import { writeTokenCookies } from "@/lib/auth/cookies";
 import { fetchMe } from "@/lib/auth/server";
@@ -13,12 +14,13 @@ export async function POST(req: Request) {
   if (!idToken)
     return NextResponse.json({ error: "missing_token" }, { status: 400 });
 
-  const res = await fetch(`${RAILS_SERVER_BASE}/auth/google`, {
+  const { res, failure } = await railsFetch(`${RAILS_SERVER_BASE}/auth/google`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ id_token: idToken }),
     cache: "no-store",
   });
+  if (failure) return failure;
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

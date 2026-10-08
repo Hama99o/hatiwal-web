@@ -66,9 +66,11 @@ test.describe("Conversation thread", () => {
     await expect(page.getByText("Listing marked as sold")).toBeVisible();
   });
 
-  test("an unknown conversation shows the load error", async ({ page }) => {
+  test("an unknown conversation (404) says it is no longer available, with the way back", async ({ page }) => {
     await page.goto("/en/conversations/99999");
-    await expect(page.getByText("Could not load messages.")).toBeVisible();
+    await expect(page.getByText("This conversation is no longer available.")).toBeVisible();
+    await page.getByRole("link", { name: "Back to messages" }).click();
+    await expect(page).toHaveURL(/\/en\/conversations$/);
   });
 
   // Regression: blocking used to leave the composer fully enabled.

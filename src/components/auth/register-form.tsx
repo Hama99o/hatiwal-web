@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
-import { useAuth } from "@/components/auth/auth-provider";
+import { authFailureKey, useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
 import { isInviteToken } from "@/lib/api/shop-team";
 import { Field } from "@/components/ui/field";
@@ -72,9 +72,10 @@ export function RegisterForm() {
     });
     // On success the redirect effect fires (status → "authed").
     if (!res.ok) {
+      const shared = authFailureKey(res.error);
       const full = res.errors?.full_messages;
       setFormError(
-        full && full.length ? full.join(". ") : t("auth.registerError"),
+        shared ? t(shared) : full && full.length ? full.join(". ") : t("auth.registerError"),
       );
     }
   });

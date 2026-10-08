@@ -26,7 +26,7 @@
     "loading": "Loading...",
     "error": "Error",
     "errorTitle": "Something went wrong",
-    "errorDescription": "We couldn't load the data. Check your connection and try again.",
+    "errorDescription": "We couldn't load this. Please try again.",
     "success": "Success",
     "confirmDelete": "Confirm Delete",
     "confirmDeleteDescription": "This action cannot be undone.",
@@ -72,7 +72,11 @@
     "undo": "Undo",
     "quantity": "Quantity",
     "decreaseQuantity": "Decrease quantity",
-    "increaseQuantity": "Increase quantity"
+    "increaseQuantity": "Increase quantity",
+    "offline": "No connection. Check your internet and try again.",
+    "tooManyAttempts": "Too many attempts. Please wait a little and try again later.",
+    "somethingWrong": "Something went wrong. Please try again.",
+    "noLongerAvailable": "This is no longer available."
   },
   "listing": {
     "create": "Create Listing",
@@ -870,7 +874,7 @@
     "support": {
       "name": "Hatiwal Support",
       "headerNote": "Official messages from the Hatiwal team",
-      "openError": "Couldn't open Support. Check your connection and try again.",
+      "openError": "Couldn't open Support. Please try again.",
       "entrySubtitle": "Questions or a problem? Message our team"
     },
     "unreadCount": "{count, plural, one {# unread message} other {# unread messages}}",
@@ -903,7 +907,9 @@
       "delivered": "Delivered",
       "emptyTitle": "No messages yet",
       "emptyDescription": "Send a message to start the conversation.",
-      "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker"
+      "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker",
+      "notFound": "This conversation is no longer available.",
+      "backToMessages": "Back to messages"
     },
     "meetup": {
       "title": "Propose a Meetup",
@@ -1320,7 +1326,7 @@
       "edit": "Edit",
       "submit": "Send request",
       "sending": "Sending… {percent, number}%",
-      "failed": "Couldn't send. Check your connection and try again.",
+      "failed": "Couldn't send. Please try again.",
       "alreadyRequested": "You already have a request under review.",
       "tooMany": "You've tried 3 times today. Please try again tomorrow."
     },
@@ -1503,7 +1509,7 @@
         "title": "Check and open",
         "submit": "Open my shop",
         "save": "Save changes",
-        "failed": "Couldn't save. Check your connection and try again.",
+        "failed": "Couldn't save. Please try again.",
         "basics": "Name and category",
         "place": "Location",
         "hours": "Opening hours",

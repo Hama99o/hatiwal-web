@@ -2,6 +2,7 @@
 
 import { Heart, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import {
   useMutation,
   useQuery,
@@ -178,9 +179,11 @@ export function SaveButton({
       // Only this listing's entry, so a rollback can't undo another heart's flip.
       return { previous: previous[listingId] };
     },
-    onError: (_err, wasSaved, ctx) => {
+    onError: (err, wasSaved, ctx) => {
       writeFlip(queryClient, flipsKey, listingId, ctx?.previous);
-      toast.error(t(wasSaved ? "saved.unsaveError" : "saved.saveError"));
+      toast.error(
+        describeApiError(err, t, { fallbackKey: wasSaved ? "saved.unsaveError" : "saved.saveError" }),
+      );
     },
     onSuccess: async (_data, wasSaved) => {
       // `invalidateQueries` resolves once the refetch has landed, so we can hand
