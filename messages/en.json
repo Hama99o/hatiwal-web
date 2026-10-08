@@ -342,7 +342,8 @@
         "notMember": "You're not on that shop's team.",
         "forbidden": "Only the person who posted it or the shop's owner can move it out of the shop.",
         "samePlace": "It's already there.",
-        "duplicateForbidden": "Only the person who posted it or the shop's owner can copy it to their own listings."
+        "duplicateForbidden": "Only the person who posted it or the shop's owner can copy it to their own listings.",
+        "removed": "This listing was deleted, so it can't be renewed or copied."
       }
     },
     "duplicated": "Copied as a draft, photos included",

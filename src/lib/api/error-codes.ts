@@ -58,6 +58,10 @@ export const API_ERROR_CODES = {
   duplicateForbidden: "duplicate_forbidden",
   /** …the target shop is not open (also SHOP-3 team errors). */
   shopUnavailable: "shop_unavailable",
+  /** Renew / relaunch of a deleted (or taken-down) listing (403). Edge-case pass 2026-10-08. */
+  listingRemoved: "listing_removed",
+  /** Duplicate of a deleted (or taken-down) listing (422). */
+  duplicateRemoved: "duplicate_removed",
 } as const;
 
 export type ApiErrorCode =
@@ -99,6 +103,8 @@ const MESSAGES: Record<ApiErrorCode, { key: string; needsCount: boolean }> = {
   [API_ERROR_CODES.moveSamePlace]: { key: "listing.move.errors.samePlace", needsCount: false },
   [API_ERROR_CODES.duplicateForbidden]: { key: "listing.move.errors.duplicateForbidden", needsCount: false },
   [API_ERROR_CODES.shopUnavailable]: { key: "shops.team.errors.shop_unavailable", needsCount: false },
+  [API_ERROR_CODES.listingRemoved]: { key: "listing.move.errors.removed", needsCount: false },
+  [API_ERROR_CODES.duplicateRemoved]: { key: "listing.move.errors.removed", needsCount: false },
 };
 
 function isKnownCode(code: string | undefined): code is ApiErrorCode {

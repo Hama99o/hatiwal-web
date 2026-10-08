@@ -68,7 +68,18 @@ export function TeamView({ shopId }: { shopId: number }) {
   const { data: invites } = useQuery({ queryKey: ["shop-invites", shopId], queryFn: () => getShopInvites(shopId), enabled: canInvite });
   const pending = (invites ?? []).filter((i) => i.status === "pending");
 
-  const failed = (err: unknown) => toast.error(t(teamErrorKey(err) ?? "team.errors.generic"));
+  const failed = (err: unknown) => {
+    toast.error(t(teamErrorKey(err) ?? "team.errors.generic"));
+    // Refused because MY role changed meanwhile (made Staff, removed, the shop
+    // handed over; edge-case pass 2026-10-08): reload who I am here, so the
+    // buttons I may no longer use go away instead of failing again.
+    const code = teamErrorCode(err);
+    if (code === "forbidden" || code === "not_a_member") {
+      qc.invalidateQueries({ queryKey: ["shop", shopId] });
+      qc.invalidateQueries({ queryKey: ["shop-members", shopId] });
+      qc.invalidateQueries({ queryKey: ["shop-invites", shopId] });
+    }
+  };
   const reload = () => {
     qc.invalidateQueries({ queryKey: ["shop-members", shopId] });
     qc.invalidateQueries({ queryKey: ["shop-invites", shopId] });
