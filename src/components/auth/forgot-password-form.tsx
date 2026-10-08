@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useAuth } from "@/components/auth/auth-provider";
+import { authFailureKey, useAuth } from "@/components/auth/auth-provider";
 import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ export function ForgotPasswordForm() {
   const t = useTranslations();
   const { forgotPassword } = useAuth();
   const [sent, setSent] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const schema = z.object({
     email: z.string().email(t("auth.emailInvalid")),
@@ -33,7 +34,14 @@ export function ForgotPasswordForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await forgotPassword(values.email);
+    setFormError(null);
+    const res = await forgotPassword(values.email);
+    // "Link sent" only when the request reached Rails; offline / 429 / a server
+    // failure say so (nothing about whether the address exists).
+    if (!res.ok) {
+      setFormError(t(authFailureKey(res.error) ?? "common.somethingWrong"));
+      return;
+    }
     setSent(true);
   });
 
@@ -59,6 +67,14 @@ export function ForgotPasswordForm() {
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
+          {formError && (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {formError}
+            </p>
+          )}
           <Field
             label={t("auth.email")}
             htmlFor="email"

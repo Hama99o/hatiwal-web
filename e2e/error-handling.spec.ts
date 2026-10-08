@@ -359,3 +359,62 @@ test.describe("Selling: create / publish / lifecycle / duplicate", () => {
     await expect(page).toHaveURL(/\/en\/my-listings$/);
   });
 });
+
+test.describe("Auth forms (guest)", () => {
+  async function signIn(page: Page) {
+    await page.goto("/en/login");
+    await page.getByLabel(/Email/i).fill("buyer@hatiwal.test");
+    await page.getByLabel(/Password/i).fill("Password123!");
+    await page.getByRole("button", { name: /Sign In/i }).click();
+  }
+
+  test("sign in 429 → too many attempts, not 'check your email and password'", async ({ page }) => {
+    await force(page, "**/api/auth/login", { status: 429, json: { error: "rate_limited" } });
+    await signIn(page);
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+    await expect(page.getByText(en.auth.loginError)).toHaveCount(0);
+  });
+
+  test("sign in offline → check your connection", async ({ page }) => {
+    await force(page, "**/api/auth/login", "offline");
+    await signIn(page);
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+  });
+
+  test("sign in, Rails 5xx → something went wrong", async ({ page }) => {
+    await force(page, "**/api/auth/login", { status: 500, json: { error: "server_error" } });
+    await signIn(page);
+    await expect(page.getByText(SOMETHING_WRONG)).toBeVisible();
+    await expect(page.getByText(en.auth.loginError)).toHaveCount(0);
+  });
+
+  test("sign up 429 → too many attempts", async ({ page }) => {
+    await force(page, "**/api/auth/register", { status: 429, json: { error: "rate_limited" } });
+    await page.goto("/en/signup");
+    await page.locator("#firstname").fill("Sara");
+    await page.locator("#lastname").fill("Ahmadi");
+    await page.locator("#email").fill("sara@example.com");
+    await page.locator("#password").fill("Password123!");
+    await page.locator("#passwordConfirmation").fill("Password123!");
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+  });
+
+  test("forgot password 429 → too many attempts, NOT 'link sent'", async ({ page }) => {
+    await force(page, "**/api/auth/forgot-password", { status: 429, json: { error: "rate_limited" } });
+    await page.goto("/en/forgot-password");
+    await page.locator("#email").fill("sara@example.com");
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+    await expect(page.getByText(en.auth.resetLinkSent)).toHaveCount(0);
+  });
+
+  test("ps: sign in 429 in Pashto", async ({ page }) => {
+    await force(page, "**/api/auth/login", { status: 429, json: { error: "rate_limited" } });
+    await page.goto("/ps/login");
+    await page.locator("#email").fill("buyer@hatiwal.test");
+    await page.locator("#password").fill("Password123!");
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.getByText(ps.common.tooManyAttempts)).toBeVisible();
+  });
+});

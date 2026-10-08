@@ -56,11 +56,11 @@ interface AuthContextValue {
   }>;
   register: (
     input: RegisterInput,
-  ) => Promise<{ ok: boolean; errors?: Record<string, string[]> }>;
+  ) => Promise<{ ok: boolean; error?: string; errors?: Record<string, string[]> }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   setUser: (user: User) => void;
-  forgotPassword: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ ok: boolean; error?: string }>;
   resetPassword: (
     token: string,
     password: string,
@@ -75,6 +75,21 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** `error` of an auth call that got no answer at all (the browser's fetch threw). */
+export const NETWORK_ERROR = "network";
+
+/**
+ * The sentence for an auth call's `error` when it is one of the answers every
+ * auth form shares — no answer, throttled (429), server broken — else `null`
+ * and the form says its own thing ("check your email and password"…).
+ */
+export function authFailureKey(error: string | undefined): string | null {
+  if (error === NETWORK_ERROR || error === "upstream_failed") return "common.offline";
+  if (error === "rate_limited") return "common.tooManyAttempts";
+  if (error === "server_error") return "common.somethingWrong";
+  return null;
+}
 
 /**
  * Backoff before each retry of the session probe, in ms — 1.5s, 3s, 4.5s, i.e.
@@ -201,7 +216,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
-    });
+    }).catch(() => null);
+    // No answer at all → the form says "check your connection".
+    if (!res) return { ok: false, error: NETWORK_ERROR };
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return {
@@ -225,10 +242,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
-    });
+    }).catch(() => null);
+    if (!res) return { ok: false, error: NETWORK_ERROR };
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      return { ok: false, errors: data?.errors ?? undefined };
+      return { ok: false, error: data?.error, errors: data?.errors ?? undefined };
     }
     const data = await res.json();
     clearCacheForIdentityChange();
@@ -257,11 +275,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearCacheForIdentityChange]);
 
   const forgotPassword = useCallback(async (email: string) => {
-    await fetch("/api/auth/forgot-password", {
+    const res = await fetch("/api/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
-    });
+    }).catch(() => null);
+    if (!res) return { ok: false, error: NETWORK_ERROR };
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, error: data?.error };
+    }
+    return { ok: true };
   }, []);
 
   const resetPassword = useCallback(
@@ -274,8 +298,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password, passwordConfirmation }),
-      });
-      if (!res.ok) return { ok: false, error: "invalid_token" };
+      }).catch(() => null);
+      if (!res) return { ok: false, error: NETWORK_ERROR };
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { ok: false, error: data?.error ?? "invalid_token" };
+      }
       return { ok: true };
     },
     [],
@@ -286,7 +314,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken }),
-    });
+    }).catch(() => null);
+    if (!res) return { ok: false, error: NETWORK_ERROR };
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return {
