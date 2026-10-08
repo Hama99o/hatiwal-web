@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
@@ -27,6 +28,7 @@ export const EMAIL_UNCONFIRMED = "email_unconfirmed";
 export function EmailConfirmGate({ reason, children }: { reason: "shop" | "verify"; children: React.ReactNode }) {
   const t = useTranslations("auth.confirmEmail");
   const tc = useTranslations("common");
+  const tRoot = useTranslations();
   const { user, refresh } = useAuth();
   const blocked = !!user && user.emailConfirmed === false;
   const [cooldown, setCooldown] = useState(0);
@@ -60,8 +62,9 @@ export function EmailConfirmGate({ reason, children }: { reason: "shop" | "verif
       await resendConfirmation(user.email);
       toast.success(t("sent"));
       setCooldown(RESEND_COOLDOWN_S);
-    } catch {
-      toast.error(t("failed"));
+    } catch (error) {
+      // Resends are throttled: a 429 says "too many", no answer "connection".
+      toast.error(describeApiError(error, tRoot, { fallbackKey: "auth.confirmEmail.failed" }));
     } finally {
       setSending(false);
     }

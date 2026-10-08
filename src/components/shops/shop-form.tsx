@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/error-codes";
 import { EMAIL_UNCONFIRMED, markEmailUnconfirmed } from "@/components/account/email-confirm-gate";
 import { categoryName, getCategories } from "@/lib/api/categories";
 import { createShop, getMyShop, updateShop, type Shop, type ShopInput } from "@/lib/api/shops";
@@ -140,6 +141,9 @@ export function ShopForm({ shopId }: { shopId?: number }) {
   const [ready, setReady] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  // Any other failure, already a sentence (offline / 429 / a coded refusal / generic).
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const tRoot = useTranslations();
   // SHOP-2: the same shop as one of yours (same name within 200 m, or the same address).
   const [duplicateId, setDuplicateId] = useState<number | null>(null);
   const [opened, setOpened] = useState<Shop | null>(null);
@@ -214,6 +218,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
     },
     onMutate: () => {
       setErrorKey(null);
+      setErrorText(null);
       setDuplicateId(null);
     },
     onSuccess: async (saved) => {
@@ -237,15 +242,12 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       if (code === EMAIL_UNCONFIRMED) return markEmailUnconfirmed(user, setUser);
       const dup = err instanceof ApiError ? err.details.duplicate_shop_id : undefined;
       setDuplicateId(code === "shop_duplicate" && typeof dup === "number" ? dup : null);
-      setErrorKey(
-        code === "shop_duplicate"
-          ? "form.review.duplicate"
-          : err instanceof ApiError && err.status === 429
-            ? "form.review.tooMany"
-            : code === "outside_service_area"
-              ? "form.location.outside"
-              : "form.review.failed",
-      );
+      if (code === "shop_duplicate") setErrorKey("form.review.duplicate");
+      else if (err instanceof ApiError && err.status === 429) setErrorKey("form.review.tooMany");
+      else if (code === "outside_service_area") setErrorKey("form.location.outside");
+      // Everything else: "check your connection" ONLY with no answer; a 500 is
+      // "couldn't save, try again"; an unmapped code is the server's sentence.
+      else setErrorText(describeApiError(err, tRoot, { fallbackKey: "shops.form.review.failed" }));
     },
   });
 
@@ -468,7 +470,11 @@ export function ShopForm({ shopId }: { shopId?: number }) {
           {block("place", t("form.review.place"), draft.addressLine || notAdded, "location")}
           {block("hours", t("form.review.hours"), hoursLabel, "hours")}
           {block("contact", t("form.review.contact"), draft.phone || notAdded, "contact")}
-          {errorKey && <p className="text-sm text-destructive" role="alert">{t(errorKey)}</p>}
+          {(errorKey || errorText) && (
+            <p className="text-sm text-destructive" role="alert">
+              {errorKey ? t(errorKey) : errorText}
+            </p>
+          )}
           {duplicateId && duplicateId !== shopId && (
             <Button asChild variant="outline" className="w-full" data-testid="shop-form-open-duplicate">
               <Link href={`/shops/${duplicateId}`}>{t("form.review.openDuplicate")}</Link>

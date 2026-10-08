@@ -25,6 +25,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/error-codes";
 import { EMAIL_UNCONFIRMED, markEmailUnconfirmed } from "@/components/account/email-confirm-gate";
 import {
   applyForVerification,
@@ -401,8 +402,10 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
       // The server ANSWERED: say what it said (the API translates these into
       // the reader's language), never "check your connection" (owner bug,
       // 2026-10-08). The connection text only when there was no answer.
-      else if (err instanceof ApiError) setErrorText(err.errors[0] || tRoot("common.error"));
-      else setErrorKey("review.failed");
+      // A 5xx (or our proxy's 502 upstream_failed, Rails unreachable) is not a
+      // reason: it used to print "upstream_failed" or just "Error".
+      else if (err instanceof ApiError && err.status < 500 && err.errors[0]) setErrorText(err.errors[0]);
+      else setErrorText(describeApiError(err, tRoot, { fallbackKey: "verify.review.failed" }));
       qc.invalidateQueries({ queryKey });
     },
   });

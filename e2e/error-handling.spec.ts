@@ -418,3 +418,76 @@ test.describe("Auth forms (guest)", () => {
     await expect(page.getByText(ps.common.tooManyAttempts)).toBeVisible();
   });
 });
+
+test.describe("Shop create / verification apply", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  /** Resume a finished shop draft at "Check and open" (same trick as shops.spec). */
+  async function shopDraftAtReview(page: Page) {
+    await page.goto("/en/profile");
+    await page.evaluate(() =>
+      window.localStorage.setItem(
+        "hatiwal.shop-draft",
+        JSON.stringify({
+          userId: 1, step: "review", name: "Kabul Phones", description: "", categoryId: 1,
+          latitude: 34.55, longitude: 69.2, addressLine: "Shar-e Naw, Kabul",
+          hoursPreset: null, hours: {}, phone: "", phonePublic: false,
+        }),
+      ),
+    );
+    await page.goto("/en/shops/new");
+  }
+
+  test("shop create 500 → 'couldn't save, try again', never 'connection'", async ({ page }) => {
+    await force(page, "**/api/me/shops", { status: 500 }, { method: "POST" });
+    await shopDraftAtReview(page);
+    await page.getByTestId("shop-form-open").click();
+    await expect(page.getByText(en.shops.form.review.failed)).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+
+  test("shop create offline → check your connection", async ({ page }) => {
+    await force(page, "**/api/me/shops", "offline", { method: "POST" });
+    await shopDraftAtReview(page);
+    await page.getByTestId("shop-form-open").click();
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+  });
+
+  test("shop create 429 → its 'opened many shops today' sentence", async ({ page }) => {
+    await force(page, "**/api/me/shops", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await shopDraftAtReview(page);
+    await page.getByTestId("shop-form-open").click();
+    await expect(page.getByText(en.shops.form.review.tooMany)).toBeVisible();
+  });
+
+  async function submitVerification(page: Page) {
+    await page.goto("/en/profile/verify");
+    for (let i = 0; i < 3; i++) await page.getByTestId("verify-next").click();
+    for (let i = 0; i < 3; i++) {
+      await page.getByTestId("verify-photo-input").setInputFiles("e2e/fixtures/photo-a.png");
+      await expect(page.getByTestId("verify-photo-preview")).toBeVisible();
+      await page.getByTestId("verify-photo-use").click();
+    }
+    await page.getByTestId("verify-number-input").fill("1234564821");
+    await page.getByTestId("verify-next").click();
+    await page.getByTestId("verify-submit").click();
+  }
+
+  test("verification 500 → 'couldn't send', not 'Error' / 'connection'", async ({ page }) => {
+    await force(page, "**/api/me/verification_requests", { status: 500 }, { method: "POST" });
+    await submitVerification(page);
+    await expect(page.getByTestId("verify-submit-error")).toHaveText(en.verify.review.failed);
+  });
+
+  test("verification 502 upstream_failed → check your connection (not the word 'upstream_failed')", async ({ page }) => {
+    await force(page, "**/api/me/verification_requests", { status: 502, json: { error: "upstream_failed" } }, { method: "POST" });
+    await submitVerification(page);
+    await expect(page.getByTestId("verify-submit-error")).toHaveText(OFFLINE);
+  });
+
+  test("verification 429 → its 'tried 3 times today' sentence", async ({ page }) => {
+    await force(page, "**/api/me/verification_requests", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await submitVerification(page);
+    await expect(page.getByText(en.verify.review.tooMany)).toBeVisible();
+  });
+});
