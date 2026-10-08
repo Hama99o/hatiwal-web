@@ -54,6 +54,24 @@ export function ViewerIdProvider({
 const OwnerShopContext = createContext<{ ownerId: number | null | undefined; shopId: number | null | undefined } | null>(null);
 
 /**
+ * Sets (or, with `ownerShop={null}`, CLEARS) the shop context for a subtree.
+ * The context belongs to the listing on screen only: wrap anything that shows
+ * OTHER listings — the cross-sell rails — in `<OwnerShopScope ownerShop={null}>`,
+ * or a member would count as the owner of every listing that shares the
+ * owner's id (the owner's personal ones, another shop of theirs). Review of
+ * b01ea19 (dd, 2026-10-08).
+ */
+export function OwnerShopScope({
+  ownerShop,
+  children,
+}: {
+  ownerShop: { ownerId: number | null | undefined; shopId: number | null | undefined } | null;
+  children: ReactNode;
+}) {
+  return <OwnerShopContext.Provider value={ownerShop}>{children}</OwnerShopContext.Provider>;
+}
+
+/**
  * What the SERVER already knew about this viewer's session, if the page said.
  *
  * The browser cannot answer "who is this?" until `/api/auth/session` resolves,

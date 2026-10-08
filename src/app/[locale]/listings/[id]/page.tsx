@@ -29,7 +29,7 @@ import { SafetyTips } from "@/components/shared/safety-tips";
 import { SellerPhoneReveal } from "@/components/listing/seller-phone-reveal";
 import { UnavailableActions } from "@/components/listing/unavailable-actions";
 import { OwnerListingBar } from "@/components/listing/owner-listing-bar";
-import { HideForOwner, ViewerIdProvider } from "@/components/auth/owner-gate";
+import { HideForOwner, OwnerShopScope, ViewerIdProvider } from "@/components/auth/owner-gate";
 import { HideListingButton } from "@/components/listing/hide-listing-button";
 import { ListingActionBar } from "@/components/listing/listing-action-bar";
 import { ListingGallery } from "@/components/listing/listing-gallery";
@@ -526,15 +526,18 @@ export default async function ListingDetailPage({
             ones). The browse feed and the category hubs have exactly the same gap;
             closing it belongs in the fetch layer, once, for all of them — not in
             this rail at the cost of an authed round-trip per page view. */}
-        <Suspense fallback={<CrossSellRailsSkeleton className="mt-12" />}>
-          <CrossSellRails
-            className="mt-12"
-            listingId={listing.id}
-            sellerId={sellerId}
-            categorySlug={listing.category?.slug}
-            isLive={isLiveListing}
-          />
-        </Suspense>
+        {/* OTHER listings: the shop context of this one does not apply there. */}
+        <OwnerShopScope ownerShop={null}>
+          <Suspense fallback={<CrossSellRailsSkeleton className="mt-12" />}>
+            <CrossSellRails
+              className="mt-12"
+              listingId={listing.id}
+              sellerId={sellerId}
+              categorySlug={listing.category?.slug}
+              isLive={isLiveListing}
+            />
+          </Suspense>
+        </OwnerShopScope>
 
         {/* Sticky buyer CTA for phones/tablets — reuses the very same
             StartConversationButton + SaveButton as the inline block above, so the

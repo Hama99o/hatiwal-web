@@ -25,3 +25,21 @@ test.describe("A shop's staff manage its listing", () => {
     await expect(page.getByTestId("owner-listing-bar")).toHaveCount(0);
   });
 });
+
+// Review of b01ea19 (dd, 2026-10-08): the shop context belongs to THIS listing
+// only. A member is not the owner of the shop owner's OTHER listings in the
+// cross-sell rails (the owner's personal ones share the owner's id): they keep
+// their buyer controls there (the save heart).
+test.describe("A shop member on the cross-sell rails", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("staff of shop 42 can still save the owner's personal listing in 'More from this seller'", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "staff")] });
+    await page.goto("/en/listings/9042");
+    await expect(page.getByTestId("owner-listing-bar")).toBeVisible({ timeout: 45_000 });
+    const ownersPersonalCard = page.locator("a[href='/en/listings/2']").first();
+    await ownersPersonalCard.scrollIntoViewIfNeeded();
+    await expect(ownersPersonalCard).toBeVisible({ timeout: 20_000 });
+    await expect(ownersPersonalCard.getByRole("button")).toHaveCount(1);
+  });
+});
