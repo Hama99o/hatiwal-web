@@ -26,7 +26,8 @@ export interface Shop extends ShopCard {
   phone: string | null;
   listingsCount: number;
   verifiedAt: string | null;
-  owner: { id: number; name: string };
+  /** Members only (api 9d153d0): the public shop page never names its owner. */
+  owner?: { id: number; name: string };
   shareUrl: string | null;
   avgRating: number | null;
   reviewCount: number;
