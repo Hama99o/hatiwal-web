@@ -63,11 +63,18 @@ test.describe("Publish → the soft 'Get verified' line", () => {
       if (json.user) Object.assign(json.user, { verified: false, itemsActiveCount: 0, items_active_count: 0 });
       await route.fulfill({ response: res, json });
     });
+    // Publish needs a map pin: picking a place suggestion sets it (geocoder stubbed).
+    await page.route(/nominatim\.openstreetmap\.org\/(search|reverse)/, (route) =>
+      route.fulfill({ json: /\/reverse/.test(route.request().url())
+        ? { display_name: "Kabul, Afghanistan", address: { city: "Kabul" } }
+        : [{ lat: "34.5553", lon: "69.2075", display_name: "Kabul, Afghanistan" }] }),
+    );
     await page.goto("/en/listings/new");
     await page.getByLabel("Title", { exact: true }).fill("Vintage Radio");
     await page.getByLabel("Price", { exact: true }).fill("2500");
     await page.getByLabel("Category", { exact: true }).selectOption({ label: "Vehicles" });
     await page.getByLabel("Location", { exact: true }).fill("Kabul");
+    await page.getByRole("option", { name: /Kabul, Afghanistan/ }).click();
     await page.locator('input[type="file"]').first().setInputFiles(path.join(__dirname, "fixtures", "photo-a.png"));
     await page.getByRole("button", { name: "Publish" }).click();
 
