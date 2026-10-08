@@ -106,6 +106,9 @@ test("#8 + #9: requested — 'Under review' once, what happens next; Cancel is a
   const card = page.getByTestId("verify-card");
   await expect(card.getByTestId("verify-card-answer-soon")).toHaveText("We usually answer within 2 days.");
   expect(((await card.innerText()).match(/Under review/g) ?? []).length).toBe(1);
+  // Wait for it before measuring: boundingBox() does not wait, and returned
+  // null under load (full run 2026-10-08; passed solo).
+  await expect(card.getByTestId("verify-cancel")).toBeVisible();
   const btn = (await card.getByTestId("verify-cancel").boundingBox())!;
   const text = (await card.getByTestId("verify-card-answer-soon").boundingBox())!;
   expect(btn.height).toBeGreaterThanOrEqual(44);

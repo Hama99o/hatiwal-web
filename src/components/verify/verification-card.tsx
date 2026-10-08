@@ -11,6 +11,8 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
+import { resendConfirmation } from "@/lib/api/me";
 import {
   cancelVerification,
   getVerificationStatus,
@@ -153,6 +155,9 @@ export function VerificationCard() {
             <Link href="/profile/edit">{tp("edit.title")}</Link>
           </Button>
         )}
+        {/* An unconfirmed email gets its own fix in place, as on mobile
+            (verify-resend-email; parity sweep 2026-10-08). */}
+        {data.missing.includes("email_confirmed") && user.email && <ResendEmailButton email={user.email} />}
       </>
     );
   } else {
@@ -206,5 +211,26 @@ export function VerificationCard() {
         </p>
       )}
     </section>
+  );
+}
+
+function ResendEmailButton({ email }: { email: string }) {
+  const t = useTranslations();
+  const resend = useMutation({
+    mutationFn: () => resendConfirmation(email),
+    onSuccess: () => toast.success(t("auth.confirmEmail.sent")),
+    // Never silent: they would wait for a mail that is not coming.
+    onError: () => toast.error(t("auth.confirmEmail.failed")),
+  });
+  return (
+    <Button
+      variant="outline"
+      className="w-full"
+      disabled={resend.isPending}
+      onClick={() => resend.mutate()}
+      data-testid="verify-resend-email"
+    >
+      {resend.isPending ? t("auth.confirmEmail.sending") : t("auth.confirmEmail.resend")}
+    </Button>
   );
 }

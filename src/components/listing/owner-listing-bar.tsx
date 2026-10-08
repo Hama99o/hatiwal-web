@@ -190,7 +190,9 @@ export function OwnerListingBar({
   // the PRIMARY once the listing has actually lapsed — that is `actionsFor`'s
   // call, and this must not second-guess it, hence the `secondary` membership
   // test rather than a status test).
-  const showRenew = expiry.kind === "soon" && secondary.includes("renew");
+  // Within a week of the end (the pill itself only turns amber at 3 days).
+  const showRenew =
+    (expiry.kind === "soon" || (expiry.kind === "later" && expiry.days <= 7)) && secondary.includes("renew");
   const RenewIcon = LIFECYCLE.renew.Icon;
 
   return (

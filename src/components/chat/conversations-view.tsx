@@ -43,6 +43,7 @@ import { CountBadge } from "@/components/shared/count-badge";
 import { HighlightedText } from "@/components/shared/highlighted-text";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SupportEntryRow } from "./support-entry-row";
 import { SearchField } from "@/components/shared/search-field";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,14 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
   // list never looks stale for 400ms. It matches on the same three things the
   // server does: counterpart name, listing title, and the message preview.
   const trimmedTerm = term.trim();
+  // The permanent Support entry (mobile SupportEntryRow), on the plain inbox
+  // only, until this identity's Support thread is in view. Past page 1 the
+  // thread may simply be further down (Support sorts by its last message), so
+  // the entry stays away then too — never two Support rows.
+  const supportShopId =
+    identityScope?.role === "selling" && typeof identityScope.shopId === "number" ? identityScope.shopId : undefined;
+  const showSupportEntry =
+    !listingId && !archived && !trimmedTerm && query.isSuccess && !query.hasNextPage && !conversations.some(isSupportThread);
   const hasTerm = trimmedTerm.length > 0;
   const rows = useMemo(
     () => filterConversations(conversations, term, t, formatCurrency),
@@ -286,6 +295,8 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
           data-testid="conversations-search"
         />
       )}
+
+      {showSupportEntry && <SupportEntryRow shopId={supportShopId} />}
 
       {query.isError ? (
         <EmptyState

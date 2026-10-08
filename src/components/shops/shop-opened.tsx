@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightLeft, Check, CheckCircle2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,9 @@ import { getMyListings } from "@/lib/api/me";
 import { moveListingsToShop, type Shop } from "@/lib/api/shops";
 import { useSellingIdentity } from "./use-selling-identity";
 import { shopShareUrl } from "./shop-page-view";
+import { shopShareText } from "@/lib/shop-share";
+import { shopOpenText } from "@/lib/shop-hours";
+import { categoryName } from "@/lib/api/categories";
 import { userTextProps } from "@/lib/text-direction";
 
 /**
@@ -22,6 +25,7 @@ import { userTextProps } from "@/lib/text-direction";
  */
 export function ShopOpened({ shop }: { shop: Shop }) {
   const t = useTranslations("shops");
+  const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
   const { switchToAsync } = useSellingIdentity();
@@ -92,7 +96,21 @@ export function ShopOpened({ shop }: { shop: Shop }) {
         {moved ? <Check className="size-5 text-success" /> : <ArrowRightLeft className="size-5 text-primary" />} {t("form.done.moveListings")}
       </button>
       <div data-testid="shop-opened-share">
-        <ShareButton shareTitle={shop.name} text={t("share.body", { name: shop.name })} url={shopShareUrl(shop)} label={t("form.done.share")} className="w-full" testId="shop-opened-share-button" />
+        {/* The shop page's full share text (title, category · place, hours,
+            rating, products), as mobile's ShopOpenedScreen (parity sweep 2026-10-08). */}
+        <ShareButton
+          shareTitle={shop.name}
+          text={shopShareText(shop, {
+            t: t as never,
+            locale,
+            categoryLabel: shop.category ? categoryName(shop.category, locale) : null,
+            openText: shopOpenText(shop, t as never)?.text ?? null,
+          })}
+          url={shopShareUrl(shop)}
+          label={t("form.done.share")}
+          className="w-full"
+          testId="shop-opened-share-button"
+        />
       </div>
       <Button asChild variant="outline" className="w-full" data-testid="shop-opened-view">
         <Link href={`/shops/${shop.id}`}>{t("form.done.view")}</Link>

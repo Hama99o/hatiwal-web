@@ -10,6 +10,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, Eye, EyeOff, FileText, Flag, Heart, History, ShieldOff, ShoppingBag } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
+import { getProvinceByValue, getProvinceName } from "@/lib/provinces";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ReviewsSection } from "@/components/seller/reviews-section";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import { Separator } from "@/components/ui/separator";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SellerNumbersCard } from "./seller-numbers-card";
+import { ShareButton } from "@/components/shared/share-button";
+import { PUBLIC_SITE } from "@/components/shops/shop-page-view";
 import { DeleteAccountButton } from "./delete-account-section";
 import { ContactSupportRow, InfoRow, ProfileRowLink } from "./profile-view";
 
@@ -89,6 +92,19 @@ export function ProfileActivityView() {
         <ProfileRowLink href="/bazaar" Icon={ShoppingBag} label={t("profile.quickActions.browse")} id="browse" />
       </nav>
 
+      {/* "Share my profile" (mobile profile-share-mine; parity sweep 2026-10-08):
+          the public profile's link with the same text the seller page shares. */}
+      {!user.deletionScheduledAt && (
+        <ShareButton
+          shareTitle={`${user.firstname} ${user.lastname}`.trim()}
+          text={t("seller.share.body", { name: `${user.firstname} ${user.lastname}`.trim() })}
+          url={`${PUBLIC_SITE}/${locale}/sellers/${user.id}`}
+          label={t("profile.quickActions.shareMyProfile")}
+          testId="profile-share-mine"
+          className="w-full"
+        />
+      )}
+
       {/* The reviews buyers left about you — same component as the public seller
           profile. tabIndex={-1} so the rating link's #my-reviews moves focus. */}
       <div id="my-reviews" tabIndex={-1} className="scroll-mt-24 focus:outline-none">
@@ -131,8 +147,14 @@ export function ProfilePrivacyAccountView() {
   );
 }
 
+function provinceLabel(value: string | null | undefined, locale: string): string {
+  const p = getProvinceByValue(value);
+  return p ? getProvinceName(p, locale) : (value ?? "");
+}
+
 export function ProfileSettingsView() {
   const t = useTranslations();
+  const locale = useLocale();
   const { user } = useAuth();
   if (!user) return null;
   const none = t("profile.noInfo");
@@ -149,7 +171,9 @@ export function ProfileSettingsView() {
         <InfoRow label={t("profile.edit.fields.phone")} value={user.phone || none} />
         <InfoRow label={t("profile.edit.fields.bio")} value={user.bio || none} />
         <InfoRow label={t("profile.edit.fields.city")} value={user.city || none} />
-        <InfoRow label={t("profile.edit.fields.province")} value={user.province || none} />
+        {/* In the reader's language, as the location bar shows it ("Herat" read
+            as Latin on /ps and /fa; parity sweep 2026-10-08). */}
+        <InfoRow label={t("profile.edit.fields.province")} value={provinceLabel(user.province, locale) || none} />
       </div>
 
       <div className="space-y-3 rounded-lg border bg-card p-4">

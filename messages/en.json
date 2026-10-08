@@ -501,7 +501,8 @@
       "reviews": "Ratings & Reviews",
       "browse": "Bazaar",
       "saved": "Saved Items",
-      "contactSupport": "Contact support"
+      "contactSupport": "Contact support",
+      "shareMyProfile": "Share my profile"
     },
     "recentActivity": "Recent Activity",
     "recentListings": "Your Active Listings",
@@ -869,7 +870,8 @@
     "support": {
       "name": "Hatiwal Support",
       "headerNote": "Official messages from the Hatiwal team",
-      "openError": "Couldn't open Support. Check your connection and try again."
+      "openError": "Couldn't open Support. Check your connection and try again.",
+      "entrySubtitle": "Questions or a problem? Message our team"
     },
     "unreadCount": "{count, plural, one {# unread message} other {# unread messages}}",
     "noMessages": "No messages yet",

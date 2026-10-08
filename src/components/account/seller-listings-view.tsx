@@ -14,7 +14,7 @@ import {
   ListingGridSkeleton,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
-import { listingExpiryState } from "@/components/shared/expiry-badge";
+import { isListingLapsed } from "@/components/shared/expiry-badge";
 import { isLive } from "@/lib/stock";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { SegmentedControl } from "@/components/shared/segmented-control";
@@ -62,7 +62,8 @@ function matchesTab(
   tab: Tab,
 ): boolean {
   if (tab === "all") return true;
-  const lapsed = listingExpiryState(l).kind === "expired";
+  // Reserved included: the server's Expired filter is `live` + past expiry.
+  const lapsed = isListingLapsed(l);
   if (tab === "expired") return lapsed;
   // LIVE, not `status === "active"`: both `active` and `reserved` are on the
   // market and belong in this tab. Testing the raw status left every held

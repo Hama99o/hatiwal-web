@@ -1223,7 +1223,7 @@ function route(req, res, method, path, q, body, raw = "") {
   if (path === "/verification_requests/current" && method === "GET") {
     if (!requireAuth()) return;
     return send(res, 200, {
-      verification_status: { status: "none", verified_since: null, missing: empty ? ["avatar"] : [], reason: null, name_changed: false, request: null },
+      verification_status: { status: "none", verified_since: null, missing: empty ? ["avatar"] : [], reason: null, name_changed: false, request: null, can_apply: true },
     });
   }
   if (path === "/verification_requests" && method === "POST") {
@@ -1304,7 +1304,7 @@ function route(req, res, method, path, q, body, raw = "") {
   }
   if (path === "/my/listings" && method === "POST") {
     if (!requireAuth()) return;
-    return send(res, 200, { listing: myListingView(1001) }); // created draft
+    return send(res, 201, { listing: myListingView(1001) }); // created draft (Rails: 201)
   }
   const analyticsMatch = path.match(/^\/my\/listings\/(\d+)\/analytics$/);
   if (analyticsMatch && method === "GET") {
@@ -1314,10 +1314,15 @@ function route(req, res, method, path, q, body, raw = "") {
   const lifecycleMatch = path.match(/^\/my\/listings\/(\d+)\/(publish|unpublish|reserve|activate|sold|renew|relaunch|move)$/);
   if (lifecycleMatch && method === "PUT") {
     if (!requireAuth()) return;
-    const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: "active", relaunch: "active", move: null };
+    // Renew / relaunch keep the status (a held listing stays reserved), as Rails
+    // does; only a live one may renew (ListingPolicy#renew?) — else a bare 403.
+    const statusByAction = { publish: "active", unpublish: "draft", reserve: "reserved", activate: "active", sold: "sold", renew: null, relaunch: null, move: null };
     const action = lifecycleMatch[2];
     const v = myListingView(lifecycleMatch[1]);
-    const payload = { listing: { ...v, status: statusByAction[action] } };
+    if ((action === "renew" || action === "relaunch") && !["active", "reserved"].includes(v.status)) {
+      return send(res, 403, { error: "Forbidden" });
+    }
+    const payload = { listing: { ...v, status: statusByAction[action] ?? v.status } };
     // Renew / relaunch: +90 days, no longer expired. A relaunch says whether it
     // moved the listing to the top (here: always, the first time).
     // Move to shop (item 5): it keeps its status; `shop` follows `shop_id`.
@@ -1418,7 +1423,24 @@ function route(req, res, method, path, q, body, raw = "") {
     // Rails paginates this index (paginate_blue, 20/page) and the web client
     // pages through meta.pagination.next_page.
     const { slice, pagination } = paginate(convs, q.get("page[number]"), q.get("page[size]"));
-    return send(res, 200, { conversations: slice, meta: { pagination } });
+    // Rails sends `kind` and `viewer_role` on every row (ConversationSerializer).
+    const rows = slice.map((c) => ({ kind: "listing", viewer_role: c.buyer?.id === 1 ? "buyer" : "seller", ...c }));
+    return send(res, 200, { conversations: rows, meta: { pagination } });
+  }
+  // Contact support (POST /support_conversation, ?shop_id= for a shop's own
+  // thread): finds or creates THIS identity's Support thread; 200 + :detailed.
+  if (path === "/support_conversation" && method === "POST") {
+    if (!requireAuth()) return;
+    const shopId = q.get("shop_id") ?? body?.shop_id ?? null;
+    return send(res, 200, {
+      conversation: {
+        id: shopId ? 991 : 990, kind: "support", status: "open", viewer_role: "buyer",
+        listing: null, listing_deleted: true, shop_id: shopId ? Number(shopId) : null,
+        other_participant: { id: 999, name: "Hatiwal Support", city: null, verified: true, avatar_url: null },
+        unread_count: 0, last_message_body: null, last_message_kind: null, last_message_at: null,
+        created_at: "2026-10-08T10:00:00Z", blocked_with_participant: false,
+      },
+    });
   }
   // SHOP-3: the team of shop 42 (stateless). Members: the owner (Umair, 2)
   // and one staff member (Ali, 7); one pending link invite. Public invites by

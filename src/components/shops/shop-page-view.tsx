@@ -33,7 +33,7 @@ import { userTextProps } from "@/lib/text-direction";
 
 type Tab = "products" | "reviews" | "about";
 
-const PUBLIC_SITE = "https://hatiwal.com";
+export const PUBLIC_SITE = "https://hatiwal.com";
 
 /** "Share my shop" link: always https://hatiwal.com/s/<id> (docs/SHOPS.md). */
 export function shopShareUrl(shop: Pick<Shop, "id" | "shareUrl">): string {

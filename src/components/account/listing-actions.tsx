@@ -21,7 +21,7 @@ import {
   type LifecycleResult,
 } from "@/lib/api/me";
 import type { Listing, Transaction } from "@/lib/types";
-import { listingExpiryState } from "@/components/shared/expiry-badge";
+import { isListingLapsed } from "@/components/shared/expiry-badge";
 import { hasOpenHold, hasSoldSome, isLive } from "@/lib/stock";
 import { apiErrorMessage } from "@/lib/api/error-codes";
 import {
@@ -153,12 +153,9 @@ export const LIFECYCLE: Record<
  * listing that has no buyer attached to it. `activate` remains, as the inverse:
  * "Release hold".
  *
- * The SECONDARY set still lacks **Duplicate**, which mobile offers on every
- * status including sold (its relist path). Web has no `?duplicateFrom=` on
- * `/listings/new`, and this brain only speaks `PUT /my/listings/:id/<action>`
- * transitions, so it cannot simply be added to the table. Consequence: a sold
- * listing gives a web seller Edit + Delete and no one-tap relist. Unchanged by
- * this pass, and still the one place web offers a seller less than mobile.
+ * **Duplicate** is not in this table: it is not a `PUT /my/listings/:id/<action>`
+ * transition but `POST …/duplicate`, offered from the listing's ⋯ menu on every
+ * status, sold included (`listing-places.tsx`, item 5).
  *
  * Takes the LISTING (status, expiry fields, and its owner-only `sale`), not
  * pre-computed flags, so every surface derives "has it lapsed?" and "is it held?"
@@ -171,7 +168,8 @@ export const LIFECYCLE: Record<
 export function actionsFor(
   listing: Pick<Listing, "expiresAt" | "expired" | "sale"> & { status: string },
 ): { primary?: LifecycleAction; secondary: LifecycleAction[]; relaunch?: boolean } {
-  const expired = listingExpiryState(listing).kind === "expired";
+  // Lapsed = LIVE and past its run, reserved included (isListingLapsed).
+  const expired = isListingLapsed(listing);
   if (listing.status === "draft") return { primary: "publish", secondary: [] };
   if (!isLive(listing)) return { secondary: [] }; // sold — terminal
 
