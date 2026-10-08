@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
+import { describeApiError } from "@/lib/api/error-codes";
 import { Bookmark, BookmarkPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -64,13 +65,13 @@ export function SavedSearches({
       toast.success(t("browse.savedSearchCreated"));
       qc.invalidateQueries({ queryKey: ["saved-searches"] });
     },
-    onError: () => toast.error(t("common.error")),
+    onError: (error) => toast.error(describeApiError(error, t)),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteSavedSearch(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
-    onError: () => toast.error(t("common.error")),
+    onError: (error) => toast.error(describeApiError(error, t)),
   });
 
   // Running a search with new matches resets its counter (mobile parity).
