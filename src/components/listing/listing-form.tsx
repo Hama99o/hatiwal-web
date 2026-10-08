@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Boxes, History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
 import { createListing, updateListing, listingLifecycle, relaunchMyListing } from "@/lib/api/me";
 import {
   API_ERROR_CODES,
@@ -85,6 +86,7 @@ export function ListingForm({
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
+  const { user: me } = useAuth();
   const isEdit = Boolean(listing);
 
   const [existing, setExisting] = useState(listing?.imageAttachments ?? []);
@@ -381,7 +383,20 @@ export function ListingForm({
         clearDraft();
         if (publish) {
           await listingLifecycle(created.id, "publish");
-          toast.success(t("listing.form.published"));
+          // VER-1 (parity with the app's PublishSuccessSheet): a soft line after
+          // a FIRST listing, never a popup, never blocking — not verified yet and
+          // at most this one live listing (the cached count may not include it).
+          const verifyNudge = !!me && !me.verified && (me.itemsActiveCount ?? 0) <= 1;
+          toast.success(
+            t("listing.form.published"),
+            verifyNudge
+              ? {
+                  description: t("verify.nudge"),
+                  action: { label: t("verify.cta"), onClick: () => router.push("/profile/verify") },
+                  duration: 10_000,
+                }
+              : undefined,
+          );
         } else {
           toast.success(t("listing.form.savedDraft"));
         }
