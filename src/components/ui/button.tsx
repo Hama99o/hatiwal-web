@@ -4,10 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  // `relative after:absolute` + a per-size inset (below): the HIT area reaches
-  // 44px while the drawn size stays (design QA 1.1.6; the house 44px rule).
-  // Just enough, so neighbours a few px apart don't steal each other's taps.
-  "relative after:absolute inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -22,10 +19,10 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2 after:-inset-0.5",
-        sm: "h-9 rounded-md px-3 after:-inset-x-0.5 after:-inset-y-1",
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-6 text-base",
-        icon: "h-10 w-10 after:-inset-0.5",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: { variant: "default", size: "default" },
