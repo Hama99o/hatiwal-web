@@ -89,3 +89,76 @@ test.describe("Support: open the thread", () => {
     await expect(page.getByText(ps.common.tooManyAttempts)).toBeVisible();
   });
 });
+
+test.describe("Conversation thread", () => {
+  test.use({ storageState: BUYER_STATE });
+  const SEND = "**/api/me/conversations/1/messages";
+
+  test("404 → 'no longer available' with a way back, not a spinner", async ({ page }) => {
+    await force(page, "**/api/me/conversations/1", { status: 404, json: { error: "Not found" } }, { method: "GET" });
+    await page.goto("/en/conversations/1");
+    await expect(page.getByTestId("conversation-not-found")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(en.chat.thread.notFound)).toBeVisible();
+    await page.getByRole("link", { name: en.chat.thread.backToMessages }).click();
+    await expect(page).toHaveURL(/\/en\/conversations$/);
+  });
+
+  test("500 on load → error state with Retry, never 'connection'", async ({ page }) => {
+    await force(page, "**/api/me/conversations/1", { status: 500 }, { method: "GET" });
+    await page.goto("/en/conversations/1");
+    await expect(page.getByText(en.chat.thread.loadFailed)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: en.common.retry })).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+
+  test("send: Enter twice while in flight sends ONE message", async ({ page }) => {
+    const gate = await hold(page, SEND);
+    await page.goto("/en/conversations/1");
+    const input = page.getByPlaceholder(en.chat.messagePlaceholder);
+    await input.fill("Is it still available?");
+    await input.press("Enter");
+    await input.press("Enter");
+    await expect(page.getByRole("button", { name: en.chat.send })).toBeDisabled();
+    gate.release();
+    await expect(input).toHaveValue("");
+    expect(gate.hits()).toBe(1);
+  });
+
+  test("send offline → check your connection; the draft is kept", async ({ page }) => {
+    await force(page, SEND, "offline", { method: "POST" });
+    await page.goto("/en/conversations/1");
+    const input = page.getByPlaceholder(en.chat.messagePlaceholder);
+    await input.fill("Hello");
+    await input.press("Enter");
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+    await expect(input).toHaveValue("Hello");
+  });
+
+  test("send 429 → too many attempts", async ({ page }) => {
+    await force(page, SEND, { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await page.goto("/en/conversations/1");
+    const input = page.getByPlaceholder(en.chat.messagePlaceholder);
+    await input.fill("Hello");
+    await input.press("Enter");
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+  });
+
+  test("send 422 blocked_by → the translated block sentence", async ({ page }) => {
+    await force(page, SEND, { status: 422, json: { error: "x", code: "blocked_by" } }, { method: "POST" });
+    await page.goto("/en/conversations/1");
+    const input = page.getByPlaceholder(en.chat.messagePlaceholder);
+    await input.fill("Hello");
+    await input.press("Enter");
+    await expect(page.getByText(en.chat.blockedErrors.blockedBy)).toBeVisible();
+  });
+
+  test("send 500 → 'failed to send', never 'connection'", async ({ page }) => {
+    await force(page, SEND, { status: 500 }, { method: "POST" });
+    await page.goto("/en/conversations/1");
+    const input = page.getByPlaceholder(en.chat.messagePlaceholder);
+    await input.fill("Hello");
+    await input.press("Enter");
+    await expect(page.getByText(en.chat.thread.sendFailed)).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+});
