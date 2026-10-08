@@ -11,7 +11,7 @@
     "saved": "Location saved",
     "saveError": "Could not save your location. Please try again.",
     "yourArea": "your area",
-    "outsideServiceArea": "Hatiwal is for Afghanistan, Pakistan and Iran. We'll show items near Kabul.",
+    "outsideServiceArea": "This place is outside the areas Hatiwal serves. We'll show items near Kabul.",
     "nearYou": "Near you",
     "allAfghanistan": "All Afghanistan"
   },
@@ -1250,7 +1250,7 @@
         "tazkira": "Afghanistan · paper",
         "e_tazkira": "Afghanistan · card",
         "cnic": "Pakistan",
-        "kart_melli": "Iran",
+        "kart_melli": "National ID card",
         "passport": "Any country"
       }
     },
