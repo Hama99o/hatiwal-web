@@ -1,3 +1,4 @@
+import path from "node:path";
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
 import en from "../messages/en.json";
@@ -256,5 +257,105 @@ test.describe("Start a chat / Message shop / Report", () => {
     await page.getByRole("button", { name: en.report.block.confirmCta }).click();
     await expect(page.getByText(en.report.block.error)).toBeVisible();
     await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+});
+
+test.describe("Selling: create / publish / lifecycle / duplicate", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  async function fillNewListing(page: Page, withPin: boolean) {
+    if (withPin) {
+      await page.route(/nominatim\.openstreetmap\.org\/(search|reverse)/, (route) =>
+        route.fulfill({ json: /\/reverse/.test(route.request().url())
+          ? { display_name: "Kabul, Afghanistan", address: { city: "Kabul" } }
+          : [{ lat: "34.5553", lon: "69.2075", display_name: "Kabul, Afghanistan" }] }),
+      );
+    }
+    await page.goto("/en/listings/new");
+    await page.getByLabel("Title", { exact: true }).fill("Vintage Radio");
+    await page.getByLabel("Price", { exact: true }).fill("2500");
+    await page.getByLabel("Category", { exact: true }).selectOption({ label: "Vehicles" });
+    await page.getByLabel("Location", { exact: true }).fill("Kabul");
+    if (withPin) {
+      await page.getByRole("option", { name: /Kabul, Afghanistan/ }).click();
+      await page.locator('input[type="file"]').first().setInputFiles(path.join(__dirname, "fixtures", "photo-a.png"));
+    }
+  }
+
+  test("create 429 → too many attempts; the form keeps what was typed", async ({ page }) => {
+    await force(page, "**/api/me/my/listings", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await fillNewListing(page, false);
+    await page.getByRole("button", { name: "Save Draft" }).click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+    await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Vintage Radio");
+  });
+
+  test("create 500 → 'failed to save', never 'connection'", async ({ page }) => {
+    await force(page, "**/api/me/my/listings", { status: 500 }, { method: "POST" });
+    await fillNewListing(page, false);
+    await page.getByRole("button", { name: "Save Draft" }).click();
+    await expect(page.getByText(en.listing.form.saveError)).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+
+  test("Save Draft double click creates ONE listing", async ({ page }) => {
+    const gate = await hold(page, "**/api/me/my/listings");
+    await fillNewListing(page, false);
+    await page.getByRole("button", { name: "Save Draft" }).dblclick();
+    gate.release();
+    await expect(page).toHaveURL(/\/my-listings\/1001/, { timeout: 20_000 });
+    expect(gate.hits()).toBe(1);
+  });
+
+  test("created but publish refused → taken to the draft (no second create on retry)", async ({ page }) => {
+    const publishes = await force(page, "**/api/me/my/listings/1001/publish", { status: 500 }, { method: "PUT" });
+    let creates = 0;
+    page.on("request", (r) => {
+      if (r.method() === "POST" && new URL(r.url()).pathname === "/api/me/my/listings") creates += 1;
+    });
+    await fillNewListing(page, true);
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page.getByText(en.listing.form.publishError)).toBeVisible();
+    await expect(page).toHaveURL(/\/my-listings\/1001/, { timeout: 20_000 });
+    expect(publishes()).toBe(1);
+    expect(creates).toBe(1);
+  });
+
+  test("Relaunch (renew, one tap) double click → ONE request", async ({ page }) => {
+    const gate = await hold(page, "**/api/me/my/listings/10/renew", "PUT");
+    await page.goto("/en/my-listings/10");
+    await page.getByRole("button", { name: en.listing.relaunch }).dblclick();
+    gate.release();
+    await expect(page.getByText(/renewed|relaunched/i).first()).toBeVisible({ timeout: 15_000 });
+    expect(gate.hits()).toBe(1);
+  });
+
+  test("renew 500 → 'something went wrong' (was just 'Error')", async ({ page }) => {
+    await force(page, "**/api/me/my/listings/10/renew", { status: 500 }, { method: "PUT" });
+    await page.goto("/en/my-listings/10");
+    await page.getByRole("button", { name: en.listing.relaunch }).click();
+    await expect(page.getByText(SOMETHING_WRONG)).toBeVisible();
+    await expect(page.getByText(CONNECTION)).toHaveCount(0);
+  });
+
+  test("mark sold offline → check your connection; the prompt stays to retry", async ({ page }) => {
+    await force(page, "**/api/me/my/listings/1/sold", "offline", { method: "PUT" });
+    await page.goto("/en/my-listings/1");
+    await page.getByRole("button", { name: "Mark as Sold" }).first().click();
+    await page.getByRole("button", { name: /Sold to someone not on Hatiwal/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Confirm sold" }).click();
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  test("duplicate 429 → too many attempts, no draft opened", async ({ page }) => {
+    await force(page, "**/api/me/my/listings/1/duplicate", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await page.goto("/en/my-listings");
+    const card = page.locator('a[href="/en/my-listings/1"]').locator("..");
+    await expect(card).toBeVisible({ timeout: 60_000 });
+    await card.getByRole("button", { name: /More options/ }).click();
+    await page.getByTestId("duplicate-listing").click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/my-listings$/);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import {
   API_ERROR_CODES,
   apiErrorCode,
   apiErrorMessage,
+  describeApiError,
 } from "@/lib/api/error-codes";
 import { heldUnitsOf, soldUnitsOf } from "@/lib/stock";
 import { categoryName } from "@/lib/api/categories";
@@ -93,6 +94,10 @@ export function ListingForm({
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [newPhotos, setNewPhotos] = useState<NewPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Synchronous twin of `submitting`: react-hook-form validates asynchronously
+  // before calling save(), so a double click reaches save() twice while the
+  // buttons still look enabled — two listings (error sweep, 1.1.6).
+  const submittingRef = useRef(false);
   /**
    * The one save failure a seller has to ACT on, in their own language: they
    * lowered the quantity below what is already sold or held.
@@ -315,6 +320,7 @@ export function ListingForm({
   }
 
   async function save(values: Values, publish: boolean) {
+    if (submittingRef.current) return;
     // PUBLISHING requires a real point, not just text.
     //
     // `LocationSearch`'s `onTextChange` sets the location STRING on every
@@ -335,6 +341,7 @@ export function ListingForm({
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     // Last attempt's refusal is about last attempt's number.
     setQuantityServerError(null);
@@ -382,7 +389,17 @@ export function ListingForm({
         // The listing was saved on the server — drop the autosaved draft.
         clearDraft();
         if (publish) {
-          await listingLifecycle(created.id, "publish");
+          try {
+            await listingLifecycle(created.id, "publish");
+          } catch (error) {
+            // The listing EXISTS (as a draft) — staying on this form would let
+            // the next Publish create it a second time. Go to it, say why the
+            // publish did not happen; Publish is one tap from there.
+            toast.error(describeApiError(error, t, { fallbackKey: "listing.form.publishError" }));
+            qc.invalidateQueries({ queryKey: ["my-listings"] });
+            router.push(`/my-listings/${created.id}`);
+            return;
+          }
           // VER-1 (parity with the app's PublishSuccessSheet): a soft line after
           // a FIRST listing, never a popup, never blocking — not verified yet and
           // at most this one live listing (the cached count may not include it).
@@ -413,17 +430,27 @@ export function ListingForm({
         code === API_ERROR_CODES.quantityBelowHeldUnits
           ? heldUnitsOf(listing)
           : soldUnitsOf(listing);
-      const explained = apiErrorMessage(error, t, { count });
+      const explained =
+        code === API_ERROR_CODES.quantityBelowSoldUnits ||
+        code === API_ERROR_CODES.quantityBelowHeldUnits
+          ? apiErrorMessage(error, t, { count })
+          : null;
       if (explained) {
         // Inline, under the field the seller has to change. No toast: a toast
         // over a long form does not say WHICH input is wrong, and this one is
         // actionable rather than transient.
         setQuantityServerError(explained);
       } else {
+        // Offline / 429 (creating is throttled) / any other coded refusal
+        // (listing_removed, shop_unavailable…) in words — and only the quantity
+        // refusals above go under the field.
         toast.error(
-          publish ? t("listing.form.publishError") : t("listing.form.saveError"),
+          describeApiError(error, t, {
+            fallbackKey: publish ? "listing.form.publishError" : "listing.form.saveError",
+          }),
         );
       }
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }

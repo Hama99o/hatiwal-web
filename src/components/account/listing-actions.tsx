@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ import {
 import type { Listing, Transaction } from "@/lib/types";
 import { isListingLapsed } from "@/components/shared/expiry-badge";
 import { hasOpenHold, hasSoldSome, isLive } from "@/lib/stock";
-import { apiErrorMessage } from "@/lib/api/error-codes";
+import { describeApiError } from "@/lib/api/error-codes";
 import {
   SellBuyerDialog,
   type PreselectedBuyer,
@@ -341,6 +341,9 @@ export function useListingLifecycle(
   const t = useTranslations();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  // Synchronous twin of `busy`: Renew is ONE tap with no prompt, so a double
+  // click reached the API twice before `busy` re-rendered the button disabled.
+  const busyRef = useRef(false);
   const [pending, setPending] = useState<PendingAction>(null);
 
   function invalidate(flags: { deleted?: boolean } = {}) {
@@ -380,7 +383,9 @@ export function useListingLifecycle(
     // the number). `apiErrorMessage` answers null for anything it cannot render
     // properly, so an unexpected one degrades to the generic message rather than
     // to a broken sentence.
-    toast.error(apiErrorMessage(error, t) ?? t("common.error"));
+    // Offline / 429 / known code / generic — see describeApiError. (The
+    // fallback used to be `common.error`, which reads just "Error".)
+    toast.error(describeApiError(error, t));
   }
 
   /**
@@ -406,6 +411,8 @@ export function useListingLifecycle(
     action: LifecycleAction,
     saleOpts?: { buyerId?: number; finalPrice?: number; quantity?: number },
   ): Promise<LifecycleResult | null> {
+    if (busyRef.current) return null;
+    busyRef.current = true;
     setBusy(true);
     try {
       const result = await listingLifecycle(listingId, action, saleOpts);
@@ -440,6 +447,7 @@ export function useListingLifecycle(
       toastFailure(error);
       return null;
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
@@ -468,6 +476,8 @@ export function useListingLifecycle(
   async function confirmPending() {
     if (!pending) return;
     if (pending.kind === "delete") {
+      if (busyRef.current) return;
+      busyRef.current = true;
       setBusy(true);
       try {
         await deleteMyListing(listingId);
@@ -479,6 +489,7 @@ export function useListingLifecycle(
         // Leave the prompt open (with the error toast) so it can be retried.
         toastFailure(error);
       } finally {
+        busyRef.current = false;
         setBusy(false);
       }
       return;
