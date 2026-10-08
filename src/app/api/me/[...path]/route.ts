@@ -34,6 +34,11 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^my\/listings\/relaunch_expired$/],
   ["GET", /^my\/listings\/\d+\/analytics$/],
   // Chat (Phase 4):
+  // Contact support / the inbox's Support entry (find-or-create THIS identity's
+  // thread, ?shop_id= for a shop). Missing until 2026-10-08: every "Contact
+  // support" on the web answered 403 here, hidden by e2e that stubbed the call
+  // in the browser (found by the parity sweep, against the mock API).
+  ["POST", /^support_conversation$/],
   ["GET", /^conversations$/],
   ["GET", /^conversations\/\d+$/],
   ["DELETE", /^conversations\/\d+$/],

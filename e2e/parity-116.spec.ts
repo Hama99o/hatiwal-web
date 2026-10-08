@@ -53,9 +53,11 @@ test.describe("The inbox's Support entry", () => {
     await expect(entry).toBeVisible({ timeout: 45_000 });
     await expect(entry).toContainText("Hatiwal Support");
     await expect(entry).toContainText("Questions or a problem? Message our team");
-    const post = page.waitForRequest((r) => r.url().includes("/support_conversation") && r.method() === "POST");
+    // Through the REAL web proxy (no page.route): it must be allow-listed, or
+    // every "Contact support" on the web 403s (it did until 2026-10-08).
+    const post = page.waitForResponse((r) => r.url().includes("/support_conversation") && r.request().method() === "POST");
     await entry.click();
-    await post;
+    expect((await post).status()).toBe(200);
     await expect(page).toHaveURL(/\/en\/conversations\/990$/, { timeout: 30_000 });
   });
 
