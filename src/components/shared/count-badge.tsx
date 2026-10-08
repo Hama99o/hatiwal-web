@@ -6,11 +6,11 @@ import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
- * Counts past this are shown as "9+" (localized): a 3-digit pill blows out the
- * row it sits in, and past a handful the exact number stops changing the
- * decision ("open your chats").
+ * Counts past this are shown as "99+" (localized), the same cap as mobile's
+ * CountBadge (owner, 2026-10-08). It was 9: "9+" hid whether 10 or 80 buyers
+ * were waiting, and a 3-digit pill still fits now that it is a real pill.
  */
-const DEFAULT_MAX = 9;
+const DEFAULT_MAX = 99;
 
 /**
  * THE count pill — every "how many are waiting on you" number in the app.
@@ -59,8 +59,11 @@ export function CountBadge({
         variant="count"
         aria-hidden
         data-testid="count-badge"
+        // A PILL (owner, 2026-10-08: Persian "۳۸" clipped in a circle): min
+        // width = height, room on both sides, a line height that fits Noto
+        // Sans Arabic digits without clipping their tops and tails.
         className={cn(
-          "shrink-0 justify-center px-1.5 font-semibold",
+          "h-5 min-w-5 shrink-0 justify-center px-1.5 text-[11px] font-semibold leading-5",
           className,
         )}
       >

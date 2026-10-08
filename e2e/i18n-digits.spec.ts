@@ -257,7 +257,7 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       expect(complaints).toEqual([]);
     });
 
-    // Past the cap the pill shows "9+", which is a NUMBER plus a sign — so the
+    // Past the cap (99 since 2026-10-08, same as mobile) the pill shows "99+", which is a NUMBER plus a sign — so the
     // digit has to be formatted for the locale and the "+" has to come from the
     // catalog (`common.countOverflow`), not be concatenated in JSX where an RTL
     // locale cannot move it.
@@ -270,13 +270,13 @@ test.describe("Locale digits (no hydration mismatch)", () => {
       await page.route("**/api/auth/session", async (route) => {
         const response = await route.fetch();
         const body = await response.json();
-        if (body.user) body.user.unreadMessageCount = 12;
+        if (body.user) body.user.unreadMessageCount = 120;
         await route.fulfill({ response, json: body });
       });
       await page.goto("/ps/my-listings");
       const pill = page.locator("header").getByTestId("count-badge");
       await expect(pill).toBeVisible({ timeout: 60_000 });
-      await expect(pill).toHaveText("۹+");
+      await expect(pill).toHaveText("۹۹+");
       await expect(pill).not.toHaveText(LATIN_DIGIT);
       expect(complaints).toEqual([]);
     });

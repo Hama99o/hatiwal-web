@@ -80,9 +80,11 @@ export function AuthNav() {
               showed a Latin "2" beside Arabic-Indic digits everywhere else.
               No `label`: an sr-only sibling could never win against the
               aria-label above, which carries the number instead. */}
+          {/* On the icon's top END corner, growing outward so the digits
+              never cover the glyph (owner, 2026-10-08); `start-1/2` mirrors in RTL. */}
           <CountBadge
             count={unread}
-            className="absolute end-0.5 top-0.5 min-w-4 px-1 py-0 leading-4"
+            className="absolute -top-1 start-1/2 py-0 ring-2 ring-background"
           />
         </Link>
       </Button>

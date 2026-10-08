@@ -8,18 +8,15 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { CountBadge } from "@/components/shared/count-badge";
 import { sellAsAsk, useSellingIdentity } from "./use-selling-identity";
 import { InvitationRows } from "./shop-invitations";
 
 const askedKey = (userId: number) => `hatiwal.sell-as-asked-${userId}`;
 
+// The shared count pill (localized digits, 99+), not a private copy.
 function UnreadDot({ count }: { count: number | null }) {
-  if (!count) return null;
-  return (
-    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold text-destructive-foreground">
-      {count > 99 ? "99+" : count}
-    </span>
-  );
+  return <CountBadge count={count} className="bg-destructive text-destructive-foreground" />;
 }
 
 /**
