@@ -10,7 +10,7 @@ import {
   acceptShopInvite,
   declineShopInvite,
   getMyShopInvites,
-  teamErrorKey,
+  teamErrorMessage,
   type MyShopInvite,
 } from "@/lib/api/shop-team";
 
@@ -27,6 +27,7 @@ const FOCUS_REFRESH_MS = 30_000;
  */
 export function useShopInvitations() {
   const t = useTranslations("shops");
+  const tRoot = useTranslations();
   const qc = useQueryClient();
   const { user, setUser, refresh } = useAuth();
   const count = user?.pendingShopInvitesCount ?? 0;
@@ -88,7 +89,7 @@ export function useShopInvitations() {
     onError: (err) => {
       settle();
       refresh().catch(() => undefined);
-      toast.error(t(teamErrorKey(err) ?? "team.errors.generic"));
+      toast.error(teamErrorMessage(err, tRoot));
     },
   });
 
@@ -101,7 +102,7 @@ export function useShopInvitations() {
     },
     onError: (err) => {
       settle();
-      toast.error(t(teamErrorKey(err) ?? "team.errors.generic"));
+      toast.error(teamErrorMessage(err, tRoot));
     },
   });
 

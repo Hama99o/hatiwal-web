@@ -1,6 +1,7 @@
 import path from "node:path";
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
+import { shopEntry, withSessionUser } from "./session-user";
 import en from "../messages/en.json";
 import ps from "../messages/ps.json";
 
@@ -489,5 +490,59 @@ test.describe("Shop create / verification apply", () => {
     await force(page, "**/api/me/verification_requests", { status: 429, json: RATE_LIMITED }, { method: "POST" });
     await submitVerification(page);
     await expect(page.getByText(en.verify.review.tooMany)).toBeVisible();
+  });
+});
+
+test.describe("Shop team + invite page", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  async function asOwnerOf42(page: Page) {
+    await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
+    await page.route("**/api/me/shops/42", async (route) => {
+      if (route.request().method() !== "GET") return route.continue();
+      const res = await route.fetch();
+      const json = await res.json();
+      json.shop = { ...json.shop, role: "owner" };
+      await route.fulfill({ response: res, json });
+    });
+  }
+
+  test("invite create 429 (rate_limited, no team code) → too many attempts", async ({ page }) => {
+    await asOwnerOf42(page);
+    await force(page, "**/api/me/shops/42/invites", { status: 429, json: RATE_LIMITED }, { method: "POST" });
+    await page.goto("/en/shops/42/team");
+    await page.getByTestId("team-invite").click();
+    await page.getByTestId("invite-share-link").click();
+    await expect(page.getByText(TOO_MANY)).toBeVisible();
+  });
+
+  test("invite create offline → check your connection (was 'Something went wrong')", async ({ page }) => {
+    await asOwnerOf42(page);
+    await force(page, "**/api/me/shops/42/invites", "offline", { method: "POST" });
+    await page.goto("/en/shops/42/team");
+    await page.getByTestId("team-invite").click();
+    await page.getByTestId("invite-share-link").click();
+    await expect(page.getByText(OFFLINE)).toBeVisible();
+  });
+
+  test("invite page 404 → 'expired' state with a way to the Bazaar, never a spinner", async ({ page }) => {
+    await force(page, "**/api/proxy/shop_invites/qa-gone", { status: 404, json: { error: "Not found" } });
+    await page.goto("/en/join/qa-gone");
+    await expect(page.getByTestId("join-error-invite_expired")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("join-error-action").click();
+    await expect(page).toHaveURL(/\/en\/bazaar/);
+  });
+
+  test("invite page 429 → retry state that says 'too many', not 'connection'", async ({ page }) => {
+    await force(page, "**/api/proxy/shop_invites/qa-team-link", { status: 429, json: RATE_LIMITED });
+    await page.goto("/en/join/qa-team-link");
+    await expect(page.getByTestId("join-load-error-reason")).toHaveText(TOO_MANY, { timeout: 15_000 });
+    await expect(page.getByTestId("join-retry")).toBeVisible();
+  });
+
+  test("invite page offline → check your connection + Retry", async ({ page }) => {
+    await force(page, "**/api/proxy/shop_invites/qa-team-link", "offline");
+    await page.goto("/en/join/qa-team-link");
+    await expect(page.getByTestId("join-load-error-reason")).toHaveText(OFFLINE, { timeout: 30_000 });
   });
 });
