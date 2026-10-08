@@ -79,6 +79,42 @@ test.describe("1.1.6 design QA", () => {
     expect(((await page.locator("main").innerText()).match(/Under review/g) ?? []).length).toBe(1);
   });
 
+  test("an expired listing's own page: the Expired pill, never 'Active' beside it", async ({ page }) => {
+    await page.goto("/en/my-listings/10");
+    await expect(page.getByText("Expired", { exact: true }).first()).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator("main").getByText("Active", { exact: true })).toHaveCount(0);
+  });
+
+  // Touch targets (design QA 1.1.6): the shared Button is 40px (36 for `sm`) and
+  // the segmented tabs 40; their HIT area must reach 44px without the visual size
+  // changing.
+  test("44px tap targets: header icons, the hub toggle tabs, a card's menu, the gate's Back", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    // The tap area = the drawn box grown by its ::after hit area (negative
+    // insets), measured (hit-testing at sub-pixel edges between neighbours a
+    // few px apart is unreliable in Chromium).
+    const hits44 = async (locator: import("@playwright/test").Locator, what: string) => {
+      const area = await locator.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const a = getComputedStyle(el, "::after");
+        const px = (v: string) => (a.position === "absolute" && v.endsWith("px") ? Math.max(0, -parseFloat(v)) : 0);
+        return { w: r.width + px(a.left) + px(a.right), h: r.height + px(a.top) + px(a.bottom), drawn: `${Math.round(r.width)}x${Math.round(r.height)}` };
+      });
+      expect(area.w >= 44 && area.h >= 44, `${what} (${area.drawn}) has a tap area of ${area.w}x${area.h}, under 44px`).toBe(true);
+    };
+    await page.goto("/en/profile");
+    await expect(page.locator('a[href$="/profile/activity"]').first()).toBeVisible({ timeout: 45_000 });
+    await hits44(page.getByRole("button", { name: /Toggle theme/i }).first(), "theme toggle");
+    await hits44(page.getByRole("tab").first(), "Buyer/Seller tab");
+    await page.goto("/en/my-listings");
+    const kebab = page.getByRole("button", { name: /More options/ }).first();
+    await expect(kebab).toBeVisible({ timeout: 45_000 });
+    await hits44(kebab, "card menu");
+  });
+});
+
+// A guest: the seller's own profile words the away banner differently.
+test.describe("1.1.6 design QA (guest)", () => {
   test("ps: dates use the Afghan month names (میزان), never the Iranian short ones (مهر)", async ({ page }) => {
     await page.goto("/ps/sellers/1");
     const banner = page.getByText(/غایب/).first();

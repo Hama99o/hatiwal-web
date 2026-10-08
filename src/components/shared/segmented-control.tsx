@@ -79,7 +79,9 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(opt.value)}
             title={iconOnly ? opt.label : undefined}
             className={cn(
-              "inline-flex items-center justify-center gap-1.5 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60",
+              // 40px drawn, 44px to a finger: the hit area reaches into the
+              // track's 4px padding (design QA 1.1.6).
+              "relative after:absolute after:inset-x-0 after:-inset-y-0.5 inline-flex items-center justify-center gap-1.5 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60",
               iconOnly ? "size-11" : "min-h-10 px-4",
               fullWidth && "flex-1",
               active

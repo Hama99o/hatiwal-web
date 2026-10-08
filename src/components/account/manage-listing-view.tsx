@@ -34,7 +34,7 @@ import { ListingViewsChart } from "./listing-views-chart";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
-import { ExpiryBadge } from "@/components/shared/expiry-badge";
+import { ExpiryBadge, isListingLapsed } from "@/components/shared/expiry-badge";
 import { QueryErrorState } from "@/components/shared/query-error-state";
 import { Button } from "@/components/ui/button";
 import { availableUnitsOf, hasStockToShow } from "@/lib/stock";
@@ -102,7 +102,9 @@ export function ManageListingView({ id }: { id: string }) {
 
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={listing.status} />
+            {/* Never "Active" beside "Expired" (design QA 1.1.6; the owner bar's
+                rule): a lapsed active listing shows the Expired pill only. */}
+            {!(listing.status === "active" && isListingLapsed(listing)) && <StatusBadge status={listing.status} />}
             <ExpiryBadge
               status={listing.status}
               expiresAt={listing.expiresAt}

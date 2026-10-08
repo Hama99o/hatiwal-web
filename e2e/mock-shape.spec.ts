@@ -127,7 +127,9 @@ test.describe("Mock API payload shape (no browser)", () => {
       headers: BUYER,
       data: { listing: { title: "New Listing" } },
     });
-    expect(created.status()).toBe(200);
+    // Rails answers a create with 201 (My::ListingsController#create); the mock
+    // matched that on 2026-10-08.
+    expect(created.status()).toBe(201);
     expectKeys(
       (await created.json()).listing,
       OWNER_DETAILED_VIEW_KEYS,
