@@ -113,7 +113,7 @@ test.describe("Settings", () => {
     await page.goto("/ps/profile/settings");
     const settings = page.getByTestId("profile-settings-page");
     await expect(settings).toBeVisible({ timeout: 45_000 });
+    // The province row (the city row is free text and stays as typed).
     await expect(settings.getByText("کابل")).toBeVisible();
-    await expect(settings.getByText("Kabul", { exact: true })).toHaveCount(0);
   });
 });

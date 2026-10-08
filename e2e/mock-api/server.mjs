@@ -531,6 +531,20 @@ function ownerDetailView(l) {
 
 /** A listing owned by user 1 by id — falls back to a synthesized draft so a
  * freshly-created listing (POST → redirect → detail) always renders. */
+// A Support thread (kind "support"): 990 the person's, 991 shop 42's. What
+// POST /support_conversation answers, and what GET /conversations/:id opens.
+function supportThread(shopId) {
+  return {
+    id: shopId ? 991 : 990, kind: "support", status: "open", viewer_role: "buyer",
+    listing: null, listing_deleted: true, shop_id: shopId ? Number(shopId) : null,
+    other_participant: { id: 999, name: "Hatiwal Support", city: null, verified: true, avatar_url: null },
+    buyer: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+    seller: { id: 999, name: "Hatiwal Support", city: null, avatar_url: null },
+    unread_count: 0, last_message_body: null, last_message_kind: null, last_message_at: null,
+    created_at: "2026-10-08T10:00:00Z", blocked_with_participant: false,
+  };
+}
+
 function myListingView(id) {
   const found = findListing(id);
   if (found) return ownerDetailView(found);
@@ -1432,15 +1446,7 @@ function route(req, res, method, path, q, body, raw = "") {
   if (path === "/support_conversation" && method === "POST") {
     if (!requireAuth()) return;
     const shopId = q.get("shop_id") ?? body?.shop_id ?? null;
-    return send(res, 200, {
-      conversation: {
-        id: shopId ? 991 : 990, kind: "support", status: "open", viewer_role: "buyer",
-        listing: null, listing_deleted: true, shop_id: shopId ? Number(shopId) : null,
-        other_participant: { id: 999, name: "Hatiwal Support", city: null, verified: true, avatar_url: null },
-        unread_count: 0, last_message_body: null, last_message_kind: null, last_message_at: null,
-        created_at: "2026-10-08T10:00:00Z", blocked_with_participant: false,
-      },
-    });
+    return send(res, 200, { conversation: supportThread(shopId) });
   }
   // SHOP-3: the team of shop 42 (stateless). Members: the owner (Umair, 2)
   // and one staff member (Ali, 7); one pending link invite. Public invites by
@@ -1579,7 +1585,8 @@ function route(req, res, method, path, q, body, raw = "") {
   if (convMatch) {
     if (!requireAuth()) return;
     // Archived threads are still openable, so resolve against both partitions.
-    const conv = ALL_CONVERSATIONS.find((c) => String(c.id) === convMatch[1]);
+    const conv = ALL_CONVERSATIONS.find((c) => String(c.id) === convMatch[1]) ??
+      (convMatch[1] === "990" ? supportThread(null) : convMatch[1] === "991" ? supportThread(42) : undefined);
     if (method === "GET") return conv ? send(res, 200, { conversation: conv }) : send(res, 404, { error: "Conversation not found" });
     if (method === "DELETE") return send(res, 204);
   }
