@@ -150,8 +150,14 @@ export function ConversationThread({ id }: { id: string }) {
   });
   // The seller (listing owner) is the one who can counter a buyer's offer, sell
   // from the thread, and place or release a hold.
+  // Edge pass 1.1.6: in a shop chat every MEMBER is the seller side (the API
+  // lets the whole team manage the shop's products), never the chat's own
+  // buyer — not only the owner whose id is `seller.id`.
   const isSeller =
-    convQ.data?.seller?.id != null && convQ.data.seller.id === me;
+    (convQ.data?.seller?.id != null && convQ.data.seller.id === me) ||
+    (convQ.data?.shop?.id != null &&
+      convQ.data?.buyer?.id !== me &&
+      !!user?.shops?.some((s) => s.id === convQ.data?.shop?.id));
   /**
    * The seller's OWN view of the pinned listing — fetched only for the seller,
    * only while the listing is live.

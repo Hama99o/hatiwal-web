@@ -165,7 +165,10 @@ export default async function ListingDetailPage({
   // sold/reserved listing, and for the seller's own listing — and static padding
   // gave all three a strip of dead space above the footer.
   return (
-    <ViewerIdProvider viewerId={viewerId}>
+    <ViewerIdProvider
+      viewerId={viewerId}
+      ownerShop={listing.shop ? { ownerId: listing.seller?.id, shopId: listing.shop.id } : null}
+    >
       <div className="mx-auto max-w-6xl px-4 py-6">
         <script
           type="application/ld+json"

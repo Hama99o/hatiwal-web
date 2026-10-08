@@ -30,17 +30,28 @@ const ServerViewerIdContext = createContext<number | null | undefined>(
  */
 export function ViewerIdProvider({
   viewerId,
+  ownerShop,
   children,
 }: {
   viewerId: number | null;
+  /**
+   * The thing on screen belongs to a SHOP (edge pass 1.1.6): every member of
+   * it is its owner — the API lets the whole team manage a shop's products —
+   * not only the person whose id is `ownerId` (the shop's owner). Applies only
+   * to gates asked about that same `ownerId`, so other listings on the page
+   * (rails, cards) are unaffected.
+   */
+  ownerShop?: { ownerId: number | null | undefined; shopId: number | null | undefined } | null;
   children: ReactNode;
 }) {
   return (
     <ServerViewerIdContext.Provider value={viewerId}>
-      {children}
+      <OwnerShopContext.Provider value={ownerShop ?? null}>{children}</OwnerShopContext.Provider>
     </ServerViewerIdContext.Provider>
   );
 }
+
+const OwnerShopContext = createContext<{ ownerId: number | null | undefined; shopId: number | null | undefined } | null>(null);
 
 /**
  * What the SERVER already knew about this viewer's session, if the page said.
@@ -90,7 +101,17 @@ export function useServerViewerId(): number | null | undefined {
 export function useIsOwner(ownerId?: number | null): boolean {
   const { status, user } = useAuth();
   const serverViewerId = useServerViewerId();
+  const ownerShop = useContext(OwnerShopContext);
   if (ownerId == null) return false;
+  // A shop's thing is every member's (see ViewerIdProvider `ownerShop`).
+  if (
+    status === "authed" &&
+    ownerShop?.shopId != null &&
+    ownerShop.ownerId === ownerId &&
+    !!user?.shops?.some((s) => s.id === ownerShop.shopId)
+  ) {
+    return true;
+  }
   // No hint (`undefined`) can never equal a numeric owner id, so a page without
   // a provider still falls back to "a loading viewer is not an owner".
   if (status === "loading") return serverViewerId === ownerId;
