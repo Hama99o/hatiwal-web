@@ -37,9 +37,51 @@ test.describe("Share my shop: links", () => {
 
   test("the share button shares https, never hatiwal://", async ({ page }) => {
     await page.goto(`/en/shops/${SHOP_ID}`);
-    const link = await page.getByTestId("shop-share").getAttribute("data-share-url");
+    const link = await page.getByTestId("shop-share-button").getAttribute("data-share-url");
     expect(link).toBe(`https://hatiwal.com/s/${SHOP_ID}`);
     expect(link).not.toContain("hatiwal://");
+  });
+
+  // Owner, 2026-10-08: ONE share button (the small icon is gone), for buyers
+  // too, and the share carries the shop's details in the reader's language.
+  test("one share button, and its text has the details", async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __shared: unknown[] }).__shared = [];
+      Object.defineProperty(navigator, "share", {
+        configurable: true,
+        value: (data: unknown) => {
+          (window as unknown as { __shared: unknown[] }).__shared.push(data);
+          return Promise.resolve();
+        },
+      });
+    });
+    await page.goto(`/en/shops/${SHOP_ID}`);
+    await expect(page.getByTestId("shop-page")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("shop-share")).toHaveCount(0);
+    const button = page.getByTestId("shop-share-button");
+    await expect(button).toHaveCount(1);
+    await button.click();
+    const shared = await page.evaluate(() => (window as unknown as { __shared: { text: string; url: string }[] }).__shared);
+    expect(shared).toHaveLength(1);
+    const lines = shared[0].text.split("\n");
+    expect(lines[0]).toBe(`${SHOP_NAME} ✓ Verified`);
+    expect(lines[1]).toMatch(/· Kabul$/);
+    expect(shared[0].text).toMatch(/1 product$/m);
+    expect(shared[0].url).toBe(`https://hatiwal.com/s/${SHOP_ID}`);
+  });
+
+  test("the link preview carries the details (title ✓, description, absolute image, large card)", async ({ page }) => {
+    await page.goto(`/en/shops/${SHOP_ID}`);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", `${SHOP_NAME} ✓ Verified`);
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute("content", /Kabul · 1 product/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /^https?:\/\//);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", /summary/);
+  });
+
+  test("Pashto: the preview is in Pashto, with Pashto digits", async ({ page }) => {
+    await page.goto(`/ps/shops/${SHOP_ID}`);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", `${SHOP_NAME} ✓ تایید شوی`);
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute("content", /۱ توکی/);
   });
 });
 

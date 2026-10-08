@@ -1369,7 +1369,11 @@
       "body": "په هټیوال کې {name} وګورئ 🏪",
       "button": "زما دوکان شریک کړئ",
       "copy": "لینک کاپي کړئ",
-      "copied": "لینک کاپي شو"
+      "copied": "لینک کاپي شو",
+      "verified": "تایید شوی",
+      "rating": "★ {rating} · {count, plural, one {{display} نظر} other {{display} نظرونه}}",
+      "products": "{count, plural, one {{display} توکی} other {{display} توکي}}",
+      "buttonOther": "دا هټۍ شریکه کړئ"
     },
     "edit": "دوکان سمول",
     "sellAs": "د چا په نوم پلورئ",

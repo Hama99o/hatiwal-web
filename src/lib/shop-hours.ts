@@ -149,3 +149,23 @@ export function shopOpenStatus(
   if (shop.openNow !== undefined) return openStatusFromServer(shop.openNow, shop.nextChangeAt ?? null, now, shop.timeZone);
   return openStatus(shop.hours, now);
 }
+
+/**
+ * "Open now · until 20:00" / "Opens at 08:00" / "Opens Sat 08:00" / "Closed
+ * now", translated (a `shops`-namespace t) — or null when no hours were given.
+ * One wording for the page's line and the share text (owner, 2026-10-08).
+ */
+export function shopOpenText(
+  shop: Parameters<typeof shopOpenStatus>[0],
+  t: (key: string, values?: Record<string, string | number>) => string,
+): { open: boolean; text: string } | null {
+  const status = shopOpenStatus(shop);
+  if (status.state === "unknown") return null;
+  if (status.state === "open") return { open: true, text: t("openUntil", { time: status.until }) };
+  const text = status.opensAt
+    ? status.opensAt.today
+      ? t("opensAt", { time: status.opensAt.time })
+      : t("opensOn", { day: t(`days.${status.opensAt.day}`), time: status.opensAt.time })
+    : t("closedNow");
+  return { open: false, text };
+}

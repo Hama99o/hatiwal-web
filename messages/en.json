@@ -1369,7 +1369,11 @@
       "body": "Visit {name} on Hatiwal 🏪",
       "button": "Share my shop",
       "copy": "Copy link",
-      "copied": "Link copied"
+      "copied": "Link copied",
+      "verified": "Verified",
+      "rating": "★ {rating} · {count, plural, one {{display} review} other {{display} reviews}}",
+      "products": "{count, plural, one {{display} product} other {{display} products}}",
+      "buttonOther": "Share this shop"
     },
     "edit": "Edit shop",
     "sellAs": "Sell as",

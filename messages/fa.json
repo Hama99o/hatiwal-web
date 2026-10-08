@@ -1369,7 +1369,11 @@
       "body": "{name} را در هتیوال ببینید 🏪",
       "button": "اشتراک دوکان من",
       "copy": "کپی لینک",
-      "copied": "لینک کپی شد"
+      "copied": "لینک کپی شد",
+      "verified": "تأییدشده",
+      "rating": "★ {rating} · {display} نظر",
+      "products": "{display} محصول",
+      "buttonOther": "اشتراک‌گذاری این فروشگاه"
     },
     "edit": "ویرایش دوکان",
     "sellAs": "فروش به نام",

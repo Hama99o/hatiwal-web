@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/client";
 import { getShop, type Shop } from "@/lib/api/shops";
 import { categoryName } from "@/lib/api/categories";
 import { SHOP_DAYS } from "@/lib/shop-hours";
+import { shopShareDescription, shopShareTitle } from "@/lib/shop-share";
 import { ShopPageView } from "@/components/shops/shop-page-view";
 
 // SHOP-1 shop page (docs/SHOPS.md "The shop page", "Share my shop"). Server-
@@ -35,20 +36,30 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const shop = await loadShop(id).catch(() => null);
   const t = await getTranslations({ locale, namespace: "shops" });
   if (!shop) return { title: t("badge") };
-  const description = [categoryLabel(shop, locale), shop.city ?? shop.province].filter(Boolean).join(" · ");
+  // The link preview carries the shop's details (owner, 2026-10-08): title =
+  // name (+ ✓ Verified), description = category · city · products · rating,
+  // image = the cover (a wide card in WhatsApp / Telegram), else the logo. The
+  // image URL is absolute: Active Storage sends one, and the site card falls
+  // back through metadataBase.
+  const description = shopShareDescription(shop, { t: t as never, locale, categoryLabel: categoryLabel(shop, locale) });
+  const title = shopShareTitle(shop, t as never);
+  const image = shop.coverUrl ?? shop.logoUrl ?? "/opengraph-image.png";
   return {
-    title: shop.name,
+    title,
     description,
     alternates: localizedAlternates(locale, `/shops/${id}`),
     itunes: smartAppBanner({ kind: "shop", id }),
     openGraph: {
       // The short link people share (always https, docs/SHOPS.md "Share my shop").
       url: shop.shareUrl && /^https:\/\//i.test(shop.shareUrl) ? shop.shareUrl : `https://hatiwal.com/s/${shop.id}`,
-      title: shop.name,
+      title,
       description,
-      images: [shop.logoUrl ?? shop.coverUrl ?? "/opengraph-image.png"],
+      images: [{ url: image, alt: shop.name }],
       type: "website",
+      siteName: "Hatiwal",
+      locale,
     },
+    twitter: { card: shop.coverUrl ? "summary_large_image" : "summary", title, description, images: [image] },
   };
 }
 

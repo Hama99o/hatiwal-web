@@ -1369,7 +1369,11 @@
       "body": "ہتیوال پر {name} دیکھیں 🏪",
       "button": "میری دکان شیئر کریں",
       "copy": "لنک کاپی کریں",
-      "copied": "لنک کاپی ہو گیا"
+      "copied": "لنک کاپی ہو گیا",
+      "verified": "تصدیق شدہ",
+      "rating": "★ {rating} · {count, plural, one {{display} جائزہ} other {{display} جائزے}}",
+      "products": "{count, plural, one {{display} پروڈکٹ} other {{display} مصنوعات}}",
+      "buttonOther": "یہ دکان شیئر کریں"
     },
     "edit": "دکان میں ترمیم",
     "sellAs": "بطور فروخت کریں",

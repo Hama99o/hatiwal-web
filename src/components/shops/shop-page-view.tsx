@@ -24,7 +24,8 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 import { getListings } from "@/lib/api/listings";
 import type { Shop } from "@/lib/api/shops";
-import { SHOP_DAYS, dayOf, hasHours, shopOpenStatus } from "@/lib/shop-hours";
+import { SHOP_DAYS, dayOf, hasHours, shopOpenText } from "@/lib/shop-hours";
+import { shopShareText } from "@/lib/shop-share";
 import { cn } from "@/lib/utils";
 import { ShopVerificationCard } from "./shop-verification-card";
 import { shopCan } from "@/lib/shop-permissions";
@@ -42,18 +43,10 @@ export function shopShareUrl(shop: Pick<Shop, "id" | "shareUrl">): string {
 function OpenLine({ shop }: { shop: Shop }) {
   const t = useTranslations("shops");
   // From the API (Asia/Kabul): the same on the server render and the client,
-  // so no hydration mismatch.
-  const status = shopOpenStatus(shop);
-  if (status.state === "unknown") return null;
-  const open = status.state === "open";
-  const text =
-    status.state === "open"
-      ? t("openUntil", { time: status.until })
-      : status.opensAt
-        ? status.opensAt.today
-          ? t("opensAt", { time: status.opensAt.time })
-          : t("opensOn", { day: t(`days.${status.opensAt.day}`), time: status.opensAt.time })
-        : t("closedNow");
+  // so no hydration mismatch. Same wording as the share text (shopOpenText).
+  const line = shopOpenText(shop, t as never);
+  if (!line) return null;
+  const { open, text } = line;
   return (
     <p className={cn("flex items-center gap-1.5 text-sm font-semibold", open ? "text-success" : "text-muted-foreground")} data-testid="shop-open-status">
       <span className={cn("size-2 rounded-full", open ? "bg-success" : "bg-destructive")} aria-hidden />
@@ -131,9 +124,14 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
   const directions = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const subtitle = [categoryLabel, shop.city ?? shop.province].filter(Boolean).join(" · ");
   const today = dayOf(new Date());
-  const share = (
-    <ShareButton shareTitle={shop.name} text={t("share.body", { name: shop.name })} url={shopShareUrl(shop)} testId="shop-share" />
-  );
+  // The share carries the shop's details in the reader's language (owner,
+  // 2026-10-08), the same lines as mobile's buildShopShareText.
+  const shareText = shopShareText(shop, {
+    t: t as never,
+    locale,
+    categoryLabel,
+    openText: shopOpenText(shop, t as never)?.text ?? null,
+  });
 
   return (
     <div className="mx-auto max-w-5xl pb-12" data-testid="shop-page">
@@ -168,7 +166,6 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
                 </Link>
               </Button>
             )}
-            {share}
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -212,16 +209,17 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
               </a>
             </Button>
           )}
-          {isMember && (
-            <ShareButton
-              shareTitle={shop.name}
-              text={t("share.body", { name: shop.name })}
-              url={shopShareUrl(shop)}
-              label={t("share.button")}
-              variant="default"
-              testId="shop-share-button"
-            />
-          )}
+          {/* The ONE share button (owner, 2026-10-08: the small icon beside the
+              header buttons is gone). For everyone: members share "my shop",
+              buyers "this shop". */}
+          <ShareButton
+            shareTitle={shop.name}
+            text={shareText}
+            url={shopShareUrl(shop)}
+            label={isMember ? t("share.button") : t("share.buttonOther")}
+            variant="default"
+            testId="shop-share-button"
+          />
         </div>
 
         {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
