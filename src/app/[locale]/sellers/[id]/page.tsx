@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
 import { localizedAlternates } from "@/lib/seo";
-import { formatNumber } from "@/lib/format";
+import { formatMonthYear, formatNumber } from "@/lib/format";
 import { safe } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
@@ -72,6 +72,7 @@ export default async function SellerPage({ params }: { params: Params }) {
     readViewerIdFromCookies(),
   ]);
   if (!seller) notFound();
+  const memberSince = formatMonthYear(seller.memberSinceAt, locale);
 
   return (
     <ViewerIdProvider viewerId={viewerId}>
@@ -100,16 +101,26 @@ export default async function SellerPage({ params }: { params: Params }) {
             size="lg"
           />
           <LastActiveLabel label={seller.lastActiveLabel} className="justify-center" />
-          <div className="text-sm">
-            {/* Through `formatNumber`: the rating and review count directly above
-                are locale-formatted, so a raw `{totalCount}` printed a Latin
-                digit beside Arabic-Indic ones on /ps and /fa. */}
-            <span className="block text-2xl font-bold text-foreground">
-              {formatNumber(totalCount, locale)}
-            </span>
-            <span className="text-muted-foreground">
-              {t("seller.activeListings")}
-            </span>
+          {/* The stats row, as on the app (ProfileHeader): active listings +
+              the month they joined, both in the reader's digits and calendar. */}
+          <div className="flex items-stretch justify-center divide-x divide-border text-sm rtl:divide-x-reverse" data-testid="seller-stats">
+            <div className="px-6" data-testid="seller-stat-listings">
+              {/* Through `formatNumber`: the rating and review count directly above
+                  are locale-formatted, so a raw `{totalCount}` printed a Latin
+                  digit beside Arabic-Indic ones on /ps and /fa. */}
+              <span className="block text-2xl font-bold text-foreground">
+                {formatNumber(totalCount, locale)}
+              </span>
+              <span className="text-muted-foreground">
+                {t("seller.activeListings")}
+              </span>
+            </div>
+            {memberSince ? (
+              <div className="px-6" data-testid="seller-stat-joined">
+                <span className="block text-lg font-bold leading-8 text-foreground">{memberSince}</span>
+                <span className="text-muted-foreground">{t("profile.userProfile.joined")}</span>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
             {/* Share / copy-link for the public profile (mirrors mobile) — its

@@ -52,6 +52,8 @@ export interface SellerSummary {
   responseRatePercent?: number | null;
   responseTimeLabel?: string | null;
   lastActiveLabel?: "today" | "this_week" | "this_month" | null;
+  /** The month the person joined, "2025-10-01" (public_profile, api f1fac84). */
+  memberSinceAt?: string | null;
   /**
    * Away mode (mobile W628/W713). Present on the listing `:detailed` view seller
    * sub-object, and only when the seller is CURRENTLY away (a future datetime).

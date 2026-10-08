@@ -976,6 +976,9 @@ function route(req, res, method, path, q, body, raw = "") {
         ...s,
         avg_rating: s.id === 1 ? 4.7 : null,
         review_count: s.id === 1 ? 3 : 0,
+        // api f1fac84: the month joined, as a date the client formats.
+        member_since: "October 2025",
+        member_since_at: "2025-10-01",
       },
     });
   }

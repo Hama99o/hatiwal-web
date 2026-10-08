@@ -70,6 +70,7 @@ interface PublicProfileUser {
   awayUntil?: string | null;
   avgRating?: number | null;
   reviewCount?: number;
+  memberSinceAt?: string | null;
 }
 
 // Build a full seller summary straight from public_profile (guest-readable) for
@@ -97,15 +98,16 @@ async function buildSellerFromPublicProfile(
       sellerAwayUntil: user.awayUntil,
       avgRating: user.avgRating,
       reviewCount: user.reviewCount,
+      memberSinceAt: user.memberSinceAt,
     };
   } catch {
     return null;
   }
 }
 
-// Rating summary lives on the public-profile `:public` view (guest-readable),
-// not on the listings-index seller sub-object. Non-fatal: on failure the
-// profile simply renders without a rating badge.
+// Rating summary (and the month joined) live on the public-profile `:public`
+// view (guest-readable), not on the listings-index seller sub-object.
+// Non-fatal: on failure the profile simply renders without them.
 async function enrichSellerRating(
   seller: SellerSummary,
   userId: number | string,
@@ -113,9 +115,9 @@ async function enrichSellerRating(
 ): Promise<SellerSummary> {
   try {
     const { user } = await apiGet<{
-      user: { avgRating?: number | null; reviewCount?: number };
+      user: { avgRating?: number | null; reviewCount?: number; memberSinceAt?: string | null };
     }>(`users/${userId}/public_profile`, { revalidate });
-    return { ...seller, avgRating: user.avgRating, reviewCount: user.reviewCount };
+    return { ...seller, avgRating: user.avgRating, reviewCount: user.reviewCount, memberSinceAt: user.memberSinceAt };
   } catch {
     return seller;
   }

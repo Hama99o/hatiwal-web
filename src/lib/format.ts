@@ -72,6 +72,30 @@ export function formatNumber(
 }
 
 /**
+ * Month + year (e.g. "October 2025", "۱۴۰۴ میزان") of a date-only ISO string —
+ * a public profile's "Joined" (api `member_since_at`). Read and formatted in UTC
+ * so a browser west of UTC never shows the previous month. Mirrors mobile's
+ * `useLocalization().formatMonthYear`. "" for a missing/invalid date.
+ */
+export function formatMonthYear(
+  isoDate: string | null | undefined,
+  locale: string,
+): string {
+  if (!isoDate) return "";
+  const date = new Date(isoDate.length === 10 ? `${isoDate}T00:00:00Z` : isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(INTL_TAG[locale] ?? "en-US", {
+      year: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Absolute, locale-aware calendar date (e.g. "Jul 4, 2026"). Used where an exact
  * day matters — e.g. the seller "away until <date>" banner. Returns "" for a
  * missing/invalid date so callers can guard on emptiness.
