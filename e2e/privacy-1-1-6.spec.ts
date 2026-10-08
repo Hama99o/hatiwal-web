@@ -40,3 +40,16 @@ test("the team and shop-chat facts read in en", async ({ page }) => {
   await expect(body).toContainText("Only Hatiwal's own reviewers can see your photos and number (never a shop's team)");
   await expect(body).not.toContainText("private between the two people in a conversation");
 });
+
+// Edge pass 1.1.6 (d0, 2026-10-08): the text follows what the code does now —
+// a closed shop's chats continue under the owner's own name; an account
+// deletion removes the shop page only when it is final; a member's products
+// stay with the shop when they delete their account; Support messages push.
+test("closing a shop, deleting an account, and Support pushes read as built (en)", async ({ page }) => {
+  await page.goto("/en/privacy");
+  const body = page.locator("main, body").first();
+  await expect(body).toContainText("chats about its products continue with you personally, under your own name");
+  await expect(body).toContainText("its page is removed when the deletion becomes final, after 30 days");
+  await expect(body).toContainText("when they leave, are removed or delete their account");
+  await expect(body).toContainText("and messages from Hatiwal Support");
+});
