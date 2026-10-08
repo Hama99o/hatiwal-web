@@ -160,3 +160,26 @@ test.describe("Selling as, with several shops (SHOP-2)", () => {
     await expect(page.getByTestId("sell-as-option-shop-44")).toHaveCount(0);
   });
 });
+
+// Edge pass 1.1.6 (d0): the gate decides on the server's answer NOW. Profile
+// cached the card as "rejected" (staleTime 60 s); a request was sent since
+// (e.g. from the app). Tapping "Try again" must show the status, not the form.
+test.describe("The apply page never trusts a cached status", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  test("cached 'rejected', under review NOW: the status, no form", async ({ page }) => {
+    let now: Record<string, unknown> = { status: "rejected", request: request() };
+    await page.route(/\/api\/me\/verification_requests\/current\?subject=me$/, (route) =>
+      route.fulfill({
+        json: { verification_status: { verified_since: null, missing: [], reason: null, name_changed: false, request: null, can_apply: true, ...now } },
+      }),
+    );
+    await page.goto("/en/profile");
+    await expect(page.getByTestId("verify-start")).toHaveText("Try again");
+
+    now = { status: "requested", request: request({ status: "requested", decided_at: null }) };
+    await page.getByTestId("verify-start").click(); // client-side: the cache comes along
+    await expect(page.getByTestId("verify-gate-requested")).toContainText("Under review");
+    await expect(page.getByTestId("verify-next")).toHaveCount(0);
+  });
+});

@@ -40,18 +40,27 @@ export function VerificationGate({ shopId, children }: { shopId?: number; childr
   const tRoot = useTranslations();
   const locale = useLocale();
   const router = useRouter();
-  const { data } = useQuery({
+  const { data, isFetchedAfterMount, isError } = useQuery({
     queryKey: forShop ? shopVerificationQK(shopId) : VERIFICATION_QK,
     queryFn: () => getVerificationStatus(forShop ? `shop:${shopId}` : "me"),
+    // Ask the server on every visit, whatever the global staleTime.
+    refetchOnMount: "always",
   });
+  // The server's answer NOW, never a status cached on an earlier page (edge
+  // pass 1.1.6, d0: a request sent since, or this member made Staff since).
+  // Unreachable: the cached answer, else the flow — never a blank page; the
+  // API still refuses a submit it should not take. (Mobile 072fc533/62996634.)
   const decided = useRef<{ decision: Decision; status: VerificationStatus } | null>(null);
-  if (data && !decided.current) decided.current = { decision: decideVerificationGate(data), status: data };
+  if (data && (isFetchedAfterMount || isError) && !decided.current) {
+    decided.current = { decision: decideVerificationGate(data), status: data };
+  }
   const gate = decided.current;
 
   useEffect(() => {
     if (gate?.decision === "denied" && forShop) router.replace(`/shops/${shopId}`);
   }, [gate?.decision, forShop, router, shopId]);
 
+  if (!gate && isError) return <>{children}</>;
   if (!gate || gate.decision === "denied") return <div className="min-h-[50vh]" data-testid="verify-gate-checking" />;
   if (gate.decision === "flow") return <>{children}</>;
 
