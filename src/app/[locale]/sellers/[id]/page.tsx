@@ -5,7 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
 import { localizedAlternates } from "@/lib/seo";
 import { formatMonthYear, formatNumber } from "@/lib/format";
-import { safe } from "@/lib/api/safe";
+import { safe, unlessNotFound } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ResponseRateBadge } from "@/components/shared/response-rate-badge";
 import { AwayBanner } from "@/components/shared/away-banner";
@@ -67,8 +67,9 @@ export default async function SellerPage({ params }: { params: Params }) {
   // already force-dynamic). It lets the owner-gated blocks below resolve during
   // SSR, so a seller opening their own profile never sees a frame of the
   // buyer-facing version of it first.
+  // 404 → not-found; a 500 / Rails down → the error boundary (Retry).
   const [{ seller, listings, totalCount }, viewerId] = await Promise.all([
-    safe(getPublicSeller(id), EMPTY_SELLER),
+    unlessNotFound(getPublicSeller(id), EMPTY_SELLER),
     readViewerIdFromCookies(),
   ]);
   if (!seller) notFound();

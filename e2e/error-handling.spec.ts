@@ -546,3 +546,32 @@ test.describe("Shop team + invite page", () => {
     await expect(page.getByTestId("join-load-error-reason")).toHaveText(OFFLINE, { timeout: 30_000 });
   });
 });
+
+test.describe("Resource pages: 404 says 'no longer available', with the way back", () => {
+  // Server-rendered: the mock API itself answers 404 for these ids.
+  test("listing", async ({ page }) => {
+    const resp = await page.goto("/en/listings/99999");
+    expect(resp?.status()).toBe(404);
+    await expect(page.getByTestId("listing-unavailable")).toContainText(en.listing.detail.unavailableNotice);
+    await page.getByTestId("listing-unavailable").getByRole("link").click();
+    await expect(page).toHaveURL(/\/en\/bazaar/);
+  });
+
+  test("shop", async ({ page }) => {
+    const resp = await page.goto("/en/shops/999");
+    expect(resp?.status()).toBe(404);
+    await expect(page.getByTestId("shop-unavailable")).toContainText(en.common.noLongerAvailable);
+    await expect(page.getByTestId("shop-unavailable").getByRole("link")).toHaveAttribute("href", "/en/bazaar");
+  });
+
+  test("seller profile", async ({ page }) => {
+    const resp = await page.goto("/en/sellers/99999");
+    expect(resp?.status()).toBe(404);
+    await expect(page.getByTestId("seller-unavailable")).toContainText(en.common.noLongerAvailable);
+  });
+
+  test("ps: shop 404 in Pashto", async ({ page }) => {
+    await page.goto("/ps/shops/999");
+    await expect(page.getByTestId("shop-unavailable")).toContainText(ps.common.noLongerAvailable);
+  });
+});

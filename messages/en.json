@@ -75,7 +75,8 @@
     "increaseQuantity": "Increase quantity",
     "offline": "No connection. Check your internet and try again.",
     "tooManyAttempts": "Too many attempts. Please wait a little and try again later.",
-    "somethingWrong": "Something went wrong. Please try again."
+    "somethingWrong": "Something went wrong. Please try again.",
+    "noLongerAvailable": "This is no longer available."
   },
   "listing": {
     "create": "Create Listing",

@@ -1,4 +1,4 @@
-import { apiGet } from "./client";
+import { ApiError, apiGet } from "./client";
 import { getListing, getListings } from "./listings";
 import type { Listing, SellerSummary } from "../types";
 
@@ -100,8 +100,11 @@ async function buildSellerFromPublicProfile(
       reviewCount: user.reviewCount,
       memberSinceAt: user.memberSinceAt,
     };
-  } catch {
-    return null;
+  } catch (e) {
+    // Only "no such person" is a missing profile; a 500 is a failure the page
+    // reports (error boundary + Retry), not a 404.
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
   }
 }
 
