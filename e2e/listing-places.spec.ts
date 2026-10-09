@@ -35,9 +35,12 @@ test.describe("Without a shop", () => {
     await openKebab(page, 1);
     await expect(page.getByTestId("move-listing")).toHaveCount(0);
     await page.getByTestId("duplicate-listing").click();
+    // The toast fires as the copy is made, BEFORE the edit page opens; a toast
+    // lives ~4 s, and the first visit to the edit page compiles cold under
+    // `next dev` for longer than that. Check it while it is on screen, then the URL.
+    await expect(page.getByText("Copied as a draft, photos included").first()).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveURL(/\/listings\/900\/edit$/, { timeout: 30_000 });
     expect(sent).toEqual({ shop_id: null });
-    await expect(page.getByText("Copied as a draft, photos included").first()).toBeVisible();
   });
 });
 
