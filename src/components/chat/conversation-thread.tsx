@@ -150,6 +150,7 @@ export function ConversationThread({ id }: { id: string }) {
           id: convQ.data.otherParticipant.id,
           name: convQ.data.otherParticipant.name,
           avatarUrl: convQ.data.otherParticipant.avatarUrl,
+          avatarOriginalUrl: convQ.data.otherParticipant.avatarOriginalUrl,
           verified: convQ.data.otherParticipant.verified,
         }
       : null,

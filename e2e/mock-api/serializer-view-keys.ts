@@ -90,6 +90,9 @@ export const LIST_VIEW_KEYS = [
   "negotiable",
   "thumbnail_url",
   "image_urls",
+  // 1.1.6 photo variants (api 62e1ecc): one per photo, in image_urls' order.
+  "image_thumb_urls",
+  "image_medium_urls",
   "is_viewed",
   "is_saved",
   "seller",
@@ -122,6 +125,9 @@ export const SELLER_LIST_VIEW_KEYS = [
   "shop_id",
   "thumbnail_url",
   "image_urls",
+  // 1.1.6 photo variants (api 62e1ecc): one per photo, in image_urls' order.
+  "image_thumb_urls",
+  "image_medium_urls",
   "conversations_count",
   "expired",
   // Edit + relaunch (owner, 2026-10-12): when it may next move to the top.
@@ -149,6 +155,8 @@ export const DETAILED_VIEW_KEYS = [
   "expires_at",
   "negotiable",
   "images",
+  "image_thumb_urls",
+  "image_medium_urls",
   "image_attachments",
   "thumbnail_url",
   "expired",
@@ -183,6 +191,8 @@ export const LIST_SELLER_KEYS = [
   "city",
   "verified",
   "avatar_url",
+  // 1.1.6 photo variants: the 256px avatar (api 62e1ecc).
+  "avatar_thumb_url",
 ] as const;
 
 /** `field(:seller)` inside `view :detailed` — identity plus the trust block
@@ -203,6 +213,7 @@ export const DETAILED_SELLER_KEYS = [
   "whatsapp_number",
   "verified",
   "avatar_url",
+  "avatar_thumb_url",
   "avg_rating",
   "review_count",
   "response_rate_percent",

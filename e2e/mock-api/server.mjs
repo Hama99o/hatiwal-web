@@ -428,7 +428,7 @@ function detailedSeller(l) {
     // in Rails, and the detail payload is fetched by an RSC (a guest), so both
     // are always null here.
     id: u.id, name: u.name, city: u.city, phone: null, whatsapp_number: null, verified: u.verified,
-    avatar_url: u.avatar_url,
+    avatar_url: u.avatar_url, avatar_thumb_url: u.avatar_thumb_url ?? null,
     avg_rating: trust.avg_rating, review_count: trust.review_count,
     response_rate_percent: u.response_rate_percent,
     response_time_label: u.response_time_label,
@@ -466,7 +466,10 @@ function saleView(l) {
 const MEDIA = `http://localhost:${PORT}/media`;
 function photoFields(l, originalsKey = "image_urls") {
   const n = l.photos || l.originalsOnly || 0;
-  if (!n) return {};
+  // The api always sends the variant arrays (empty without photos); an OLDER
+  // api's shape is modelled by `originalsOnly`: arrays that do not line up with
+  // the originals, which the client must ignore (normalizeListing).
+  if (!n) return { image_thumb_urls: [], image_medium_urls: [] };
   // `photoDims` names each photo's ORIGINAL size (default 1600x1200); a variant
   // is that size fitted in the api's box (PublicImageUrl::SIZES: thumb 640 on
   // the SHORT side / 1600 long, medium 1440x1440; thumbnail_url 600x600),
@@ -482,7 +485,7 @@ function photoFields(l, originalsKey = "image_urls") {
     return `${MEDIA}/${l.id}-${size}-${i}-${w}x${h}.png`;
   });
   const out = { [originalsKey]: urls("original"), thumbnail_url: urls("thumbnail")[0] };
-  if (l.photos) Object.assign(out, { image_thumb_urls: urls("thumb"), image_medium_urls: urls("medium") });
+  Object.assign(out, l.photos ? { image_thumb_urls: urls("thumb"), image_medium_urls: urls("medium") } : { image_thumb_urls: [], image_medium_urls: [] });
   return out;
 }
 

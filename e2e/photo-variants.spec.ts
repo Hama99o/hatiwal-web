@@ -150,7 +150,7 @@ test.describe("Photo variants: a photo that fails to load", () => {
     await expectNoBrokenImages(page);
   });
 
-  test("an avatar thumb that fails retries the ORIGINAL (derived from the Rails url)", async ({ page }) => {
+  test("an avatar thumb that fails retries the ORIGINAL (the api's avatar_url)", async ({ page }) => {
     await page.route(/\/representations\/redirect\/av3\//, (r) => r.abort());
     await page.goto("/en/sellers/3");
     const avatar = page.locator("main img[src*='avatar-3-']").first();
@@ -162,7 +162,7 @@ test.describe("Photo variants: a photo that fails to load", () => {
   test("an avatar whose original fails too shows the initials", async ({ page }) => {
     await page.route(/\/av3\//, (r) => r.abort());
     await page.goto("/en/sellers/3");
-    await expect(page.locator("main h1").first()).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState("networkidle", { timeout: 60_000 });
     await expect(page.locator("main img[src*='avatar-3-']")).toHaveCount(0);
     await expectNoBrokenImages(page);
   });

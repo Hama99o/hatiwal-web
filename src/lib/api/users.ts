@@ -91,6 +91,7 @@ async function buildSellerFromPublicProfile(
       city: user.province ?? user.city ?? null,
       verified: user.verified,
       avatarUrl: user.avatarUrl,
+      avatarOriginalUrl: user.avatarOriginalUrl,
       responseRatePercent: user.responseRatePercent,
       responseTimeLabel: user.responseTimeLabel,
       lastActiveLabel: user.lastActiveLabel,
