@@ -65,10 +65,11 @@ test("the approved shop sentence and the photo copies sentence (en), with no tra
   await expect(page.getByTestId("privacy-translation-note")).toHaveCount(0);
 });
 
+// ur carries the same translated note, but Urdu is hidden on the site (owner,
+// 2026-10-05; HIDDEN_LOCALES): /ur/privacy redirects to the English page.
 for (const [locale, note] of [
   ["ps", "دا یوه ژباړه ده."],
   ["fa", "این یک ترجمه است."],
-  ["ur", "یہ ایک ترجمہ ہے۔"],
 ] as const) {
   test(`${locale}: says it is a translation and links to the English text`, async ({ page }) => {
     await page.goto(`/${locale}/privacy`);
@@ -77,3 +78,9 @@ for (const [locale, note] of [
     await expect(n.locator("a")).toHaveAttribute("href", "/en/privacy");
   });
 }
+
+test("ur is hidden on the site: /ur/privacy shows the English page, with no note", async ({ page }) => {
+  await page.goto("/ur/privacy");
+  await expect(page).toHaveURL(/\/en\/privacy$/);
+  await expect(page.getByTestId("privacy-translation-note")).toHaveCount(0);
+});

@@ -849,7 +849,9 @@
     "choicesTitle": "Your choices and controls",
     "choicesBody": "Location, camera and notification permissions are controlled from your device settings. You can edit or delete any listing at any time. Block a user from their profile or from inside a conversation — this hides their listings from you and yours from them. Report a listing or user if it violates community rules. Set Seller Away mode from your profile to pause new enquiries temporarily. Archive or delete conversations from your chat list. Delete your account permanently from Profile then Delete account.",
     "contactTitle": "Contact us",
-    "contactBody": "For privacy questions, data requests, or to request account deletion without the app, email us at {email}."
+    "contactBody": "For privacy questions, data requests, or to request account deletion without the app, email us at {email}.",
+    "translationNote": "This is a translation. If anything differs, the English version applies.",
+    "translationNoteLink": "English version"
   },
   "chat": {
     "title": "Messages",
