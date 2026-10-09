@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * The 1.1.6 privacy policy (DRAFT until the owner approves): the three new
+ * The 1.1.6 privacy policy (approved by the owner, 2026-10-09): the three new
  * sections render in Pashto, right-to-left, with the brand spelled هټیوال and
  * the facts that match what 1.1.6 ships (e-Tazkira only, a shop's proof of
  * business, photos deleted after 90 days, the number kept encrypted, buyers see
@@ -48,8 +48,32 @@ test("the team and shop-chat facts read in en", async ({ page }) => {
 test("closing a shop, deleting an account, and Support pushes read as built (en)", async ({ page }) => {
   await page.goto("/en/privacy");
   const body = page.locator("main, body").first();
-  await expect(body).toContainText("chats about its products continue with you personally, under your own name");
+  await expect(body).toContainText("What your team wrote as the shop stays under the shop's name; new messages in its chats come from you personally, under your own name.");
+  await expect(body).not.toContainText("chats about its products continue with you personally");
   await expect(body).toContainText("its page is removed when the deletion becomes final, after 30 days");
   await expect(body).toContainText("when they leave, are removed or delete their account");
   await expect(body).toContainText("and messages from Hatiwal Support");
 });
+
+// Owner, 2026-10-09: the approved 1.1.6 wording, and option B for translations.
+test("the approved shop sentence and the photo copies sentence (en), with no translation note", async ({ page }) => {
+  await page.goto("/en/privacy");
+  const body = page.locator("main, body").first();
+  await expect(body).toContainText("In chats with your shop, buyers see the shop's name and logo, not your personal details.");
+  await expect(body).not.toContainText("never your personal name, photo or city");
+  await expect(body).toContainText("We keep smaller copies of your photos so the app loads quickly.");
+  await expect(page.getByTestId("privacy-translation-note")).toHaveCount(0);
+});
+
+for (const [locale, note] of [
+  ["ps", "دا یوه ژباړه ده."],
+  ["fa", "این یک ترجمه است."],
+  ["ur", "یہ ایک ترجمہ ہے۔"],
+] as const) {
+  test(`${locale}: says it is a translation and links to the English text`, async ({ page }) => {
+    await page.goto(`/${locale}/privacy`);
+    const n = page.getByTestId("privacy-translation-note");
+    await expect(n).toContainText(note);
+    await expect(n.locator("a")).toHaveAttribute("href", "/en/privacy");
+  });
+}
