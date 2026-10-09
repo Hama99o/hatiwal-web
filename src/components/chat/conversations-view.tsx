@@ -58,6 +58,7 @@ import { conversationPreviewText } from "@/lib/conversation-preview";
 import { filterConversations } from "@/lib/filter-conversations";
 import { formatPrice, formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { isShopFace } from "@/lib/identity";
 import { userTextProps } from "@/lib/text-direction";
 
 type TabMode = "inbox" | "archived";
@@ -357,7 +358,9 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                 // SHOP-1/2: the BUYER talks to the shop (name, logo), never the
                 // owner's personal name; a listing-less "Message shop" chat
                 // leads with the shop on both sides.
-                const shopFace = !support && c.viewerRole === "buyer" ? (c.shop ?? null) : null;
+                // privacy-b: an `asShop` counterpart (id null) is a shop face too.
+                const shopFace =
+                  !support && (c.viewerRole === "buyer" || isShopFace(who)) ? (c.shop ?? null) : null;
                 const shopChat = isShopChat(c) ? (c.shop ?? null) : null;
                 const name = support
                   ? t("chat.support.name")

@@ -49,3 +49,11 @@ export function rewriteRailsHost(text: string): string {
   }
   return text.split(INTERNAL_RAILS_ORIGIN).join(PUBLIC_RAILS_ORIGIN);
 }
+
+/**
+ * Sent on EVERY request to Rails (privacy-b). It marks the web as a "new" client,
+ * so the API hides a shop owner's personal id behind the shop's face
+ * (`seller.id: null` + `shop_id` + `as_shop`) for anyone outside the shop's team.
+ * Without it the API treats us as a legacy client and keeps leaking the owner id.
+ */
+export const RAILS_CLIENT_HEADERS = { "X-App-Platform": "web" } as const;

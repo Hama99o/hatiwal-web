@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { RAILS_SERVER_BASE } from "@/lib/env";
+import { RAILS_SERVER_BASE, RAILS_CLIENT_HEADERS } from "@/lib/env";
 import { railsFetch } from "@/lib/auth/upstream";
 import { tokensFromResponse } from "@/lib/auth/devise";
 import { writeTokenCookies } from "@/lib/auth/cookies";
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const { res, failure } = await railsFetch(`${RAILS_SERVER_BASE}/auth`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...RAILS_CLIENT_HEADERS },
     body: JSON.stringify({
       email,
       password,

@@ -44,6 +44,7 @@ import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
 export function StartConversationButton({
   listingId,
   sellerId,
+  ownerShopId,
   price,
   perUnit = false,
   currency,
@@ -57,7 +58,9 @@ export function StartConversationButton({
   /** SHOP-1: the listing was posted as a shop → the CTA reads "Message shop". */
   isShop?: boolean;
   listingId: number;
-  sellerId?: number;
+  sellerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   price?: number | null;
   /**
    * Multi-quantity: the reference price above the offer input is PER UNIT
@@ -107,7 +110,7 @@ export function StartConversationButton({
   // Shared owner rule (`useIsOwner`) — the same test <OwnerListingBar>,
   // <SaveButton>, <SafetyTips> and the sticky bar use, so a seller can never see
   // a "message yourself" CTA through one entry point but not another.
-  const isOwner = useIsOwner(sellerId);
+  const isOwner = useIsOwner(sellerId, ownerShopId);
   const [open, setOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
   // 1.1.7 (mobile parity): on a multi-unit listing the message FOLLOWS the

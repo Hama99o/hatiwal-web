@@ -407,9 +407,52 @@ function lifecycleFields(l) {
 /** `field(:seller)` inside `view :list` — five public identity keys and no more.
  *  The response-rate / away / rating signals belong to the `:detailed` seller
  *  block (see `detailedSeller`); a feed row has never carried them. */
-function listSeller(l) {
+function listSeller(l, { team = false } = {}) {
   const u = SELLERS[l.seller_id];
-  return { id: u.id, name: u.name, city: u.city, verified: u.verified, avatar_url: u.avatar_url, avatar_thumb_url: u.avatar_thumb_url ?? null };
+  return asShopFace(l.shop, { id: u.id, name: u.name, city: u.city, verified: u.verified, avatar_url: u.avatar_url, avatar_thumb_url: u.avatar_thumb_url ?? null }, { team });
+}
+
+// ── privacy-b (api c178ae9): a shop's FACE ─────────────────────────────────
+// For a NEW client (`X-App-Platform: web`, or X-App-Version >= 1.1.7) anyone
+// outside the shop's team gets the shop's face in place of the owner's person:
+// `id: null` + `shop_id` + `as_shop: true`, under the shop's name and logo. The
+// team keeps the owner's id; a legacy client (no header) keeps the old payload.
+// No mock persona is on shop 42's team (the owner is user 2), so only the
+// owner-scoped views (`team: true`) keep the person.
+//
+// Set once per request at the top of `route()` — the router is synchronous,
+// so it can never leak into another request.
+let CLIENT_IS_NEW = false;
+
+function clientIsNew(req) {
+  if (String(req.headers["x-app-platform"] ?? "").toLowerCase() === "web") return true;
+  const v = String(req.headers["x-app-version"] ?? "").split(".").map((n) => Number(n) || 0);
+  const [a = 0, b = 0, c = 0] = v;
+  return a > 1 || (a === 1 && (b > 1 || (b === 1 && c >= 7)));
+}
+
+function asShopFace(shop, person, { team = false } = {}) {
+  if (!shop || !CLIENT_IS_NEW || team) return person;
+  return {
+    ...person,
+    id: null,
+    name: shop.name,
+    city: shop.city ?? null,
+    verified: Boolean(shop.verified),
+    avatar_url: shop.logo_url ?? null,
+    shop_id: shop.id,
+    as_shop: true,
+  };
+}
+
+/** A conversation as THIS caller sees it: the shop's face on the buyer's side. */
+function convView(c) {
+  if (!c.shop || c.viewer_role !== "buyer") return c;
+  return {
+    ...c,
+    other_participant: asShopFace(c.shop, c.other_participant),
+    seller: asShopFace(c.shop, c.seller),
+  };
 }
 
 /** The trust summary the `:detailed` seller block adds (UserSerializer-derived
@@ -426,10 +469,10 @@ const SELLER_TRUST = {
  *  authenticated non-owner, and the detail payload is fetched by an RSC (i.e. as
  *  a guest), so it is always null here. `seller_away_until` is a key on every
  *  seller — null unless they are CURRENTLY away. */
-function detailedSeller(l) {
+function detailedSeller(l, { team = false } = {}) {
   const u = SELLERS[l.seller_id];
   const trust = SELLER_TRUST[l.seller_id];
-  return {
+  return asShopFace(l.shop, {
     // Both contact fields ride the same `show_phone_publicly` + may_contact gate
     // in Rails, and the detail payload is fetched by an RSC (a guest), so both
     // are always null here.
@@ -441,7 +484,7 @@ function detailedSeller(l) {
     last_active_label: trust.last_active_label,
     seller_is_away: Boolean(u.seller_away_until),
     seller_away_until: u.seller_away_until ?? null,
-  };
+  }, { team });
 }
 
 /** `SALE_FIELD` — the owner-only buyer block shared by `:seller_list` and
@@ -561,7 +604,7 @@ function sellerListView(l) {
 }
 
 /** `view :detailed` — the public GET /listings/:id. */
-function detailView(l) {
+function detailView(l, { team = false } = {}) {
   return {
     ...baseFields(l),
     description: l.description,
@@ -588,7 +631,7 @@ function detailView(l) {
     is_saved: false,
     is_viewed: false,
     shop: l.shop ?? null,
-    seller: detailedSeller(l),
+    seller: detailedSeller(l, { team }),
     category: catRef(l.category_id),
     price_dropped_at: l.price_dropped_at,
     price_drop_percent: l.price_drop_percent,
@@ -601,7 +644,8 @@ function detailView(l) {
  *  Everything under /my/listings/:id (show, create, update, lifecycle). */
 function ownerDetailView(l) {
   return {
-    ...detailView(l),
+    // The owner (the shop's team, for a shop listing) keeps the person.
+    ...detailView(l, { team: true }),
     sale: saleView(l),
     expires_at: l.expires_at ?? null,
     next_bump_at: null,
@@ -1020,6 +1064,7 @@ function route(req, res, method, path, q, body, raw = "") {
   // because /listings is a PUBLIC endpoint that Rails nonetheless personalises
   // when a bearer happens to be attached — the same request, two payloads.
   const who = persona(req);
+  CLIENT_IS_NEW = clientIsNew(req);
 
   // ── Auth (unauthenticated) ──────────────────────────────────────────────
   if (method === "POST" && path === "/auth/sign_in") {
@@ -1556,7 +1601,7 @@ function route(req, res, method, path, q, body, raw = "") {
     // pages through meta.pagination.next_page.
     const { slice, pagination } = paginate(convs, q.get("page[number]"), q.get("page[size]"));
     // Rails sends `kind` and `viewer_role` on every row (ConversationSerializer).
-    const rows = slice.map((c) => ({ kind: "listing", viewer_role: c.buyer?.id === 1 ? "buyer" : "seller", ...c }));
+    const rows = slice.map((c) => convView({ kind: "listing", viewer_role: c.buyer?.id === 1 ? "buyer" : "seller", ...c }));
     return send(res, 200, { conversations: rows, meta: { pagination } });
   }
   // Contact support (POST /support_conversation, ?shop_id= for a shop's own
@@ -1705,7 +1750,7 @@ function route(req, res, method, path, q, body, raw = "") {
     // Archived threads are still openable, so resolve against both partitions.
     const conv = ALL_CONVERSATIONS.find((c) => String(c.id) === convMatch[1]) ??
       (convMatch[1] === "990" ? supportThread(null) : convMatch[1] === "991" ? supportThread(42) : undefined);
-    if (method === "GET") return conv ? send(res, 200, { conversation: conv }) : send(res, 404, { error: "Conversation not found" });
+    if (method === "GET") return conv ? send(res, 200, { conversation: convView(conv) }) : send(res, 404, { error: "Conversation not found" });
     if (method === "DELETE") return send(res, 204);
   }
 
@@ -1720,9 +1765,30 @@ function route(req, res, method, path, q, body, raw = "") {
     return send(res, 200, { ok: true });
   }
 
-  // Reports
+  // privacy-b: block / unblock a SHOP (its owner underneath) by shop id. 204
+  // both ways; 404 for a shop that does not exist (or is closed). The full
+  // persona is never on shop 42's team, so the member 403 is not reachable here.
+  //
+  // STATELESS on purpose, like every other write in this mock: the suite runs
+  // fullyParallel against ONE server, so a shop row that appeared in GET /blocks
+  // after one spec's block would land in another spec's blocked-users list
+  // (blocked-users.spec.ts asserts a single Unblock button). A spec that needs
+  // the row after a block adds it with page.route — see e2e/privacy-b.spec.ts.
+  const shopBlockMatch = path.match(/^\/shops\/(\d+)\/block$/);
+  if (shopBlockMatch && (method === "POST" || method === "DELETE")) {
+    if (!requireAuth()) return;
+    if (shopBlockMatch[1] !== "42") return send(res, 404, { error: "Not found" });
+    return send(res, 204);
+  }
+
+  // Reports — Listing, User, and (privacy-b) Shop; anything else is 422
+  // unknown_reportable_type like Rails.
   if (path === "/reports" && method === "POST") {
     if (!requireAuth()) return;
+    const type = body?.report?.reportable_type;
+    if (type && !["Listing", "User", "Shop"].includes(type)) {
+      return send(res, 422, { error: "Unknown reportable type", code: "unknown_reportable_type" });
+    }
     return send(res, 201, { report: { id: 1, status: "pending" } });
   }
 

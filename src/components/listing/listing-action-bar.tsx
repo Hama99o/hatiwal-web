@@ -78,6 +78,7 @@ const FOCUSABLE =
 export function ListingActionBar({
   listingId,
   sellerId,
+  ownerShopId,
   status,
   price,
   currency,
@@ -90,7 +91,9 @@ export function ListingActionBar({
   isShop?: boolean;
   listingId: number;
   /** The listing's seller — the bar hides on your own listing. */
-  sellerId?: number;
+  sellerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   status: ListingStatus;
   price: number | null;
   currency?: string | null;
@@ -105,7 +108,7 @@ export function ListingActionBar({
   priceAnchorId?: string;
 }) {
   const t = useTranslations();
-  const isOwner = useIsOwner(sellerId);
+  const isOwner = useIsOwner(sellerId, ownerShopId);
   const [compact, setCompact] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -296,6 +299,7 @@ export function ListingActionBar({
           <StartConversationButton
             listingId={listingId}
             sellerId={sellerId}
+            ownerShopId={ownerShopId}
             price={price}
             currency={currency}
             layout="bar"
@@ -310,6 +314,7 @@ export function ListingActionBar({
             listingId={listingId}
             initialSaved={initialSaved}
             ownerId={sellerId}
+            ownerShopId={ownerShopId}
             variant="bar"
           />
         </div>

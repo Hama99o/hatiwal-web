@@ -45,6 +45,7 @@ import { Separator } from "@/components/ui/separator";
 import { readViewerIdFromCookies } from "@/lib/auth/cookies";
 import { availableUnitsOf, hasStockToShow, isLive } from "@/lib/stock";
 import { userTextProps } from "@/lib/text-direction";
+import { profileHrefFor } from "@/lib/identity";
 
 // Fresh per request so signed image URLs are valid on load (see home page note).
 export const dynamic = "force-dynamic";
@@ -105,7 +106,16 @@ export default async function ListingDetailPage({
   ]);
   if (!listing) notFound();
 
-  const sellerId = listing.seller?.id;
+  /**
+   * privacy-b: a SHOP listing's seller is the shop's face — `id: null` for anyone
+   * outside the team, and this SSR fetch is anonymous, so it is null for the shop
+   * owner too. Ownership of a shop listing is therefore membership of its shop
+   * (`ownerShopId`, resolved against the signed-in user's `shops`); every
+   * owner-gated control below takes both.
+   */
+  const sellerId = listing.seller?.id ?? undefined;
+  const sellerShopId =
+    listing.shop?.id ?? listing.seller?.shopId ?? listing.shopId ?? null;
   /**
    * LIVE, not "active" — the single most important line on this page.
    *
@@ -277,7 +287,8 @@ export default async function ListingDetailPage({
                 down with nothing to bring it back into reach. */}
             <OwnerListingBar
               listingId={listing.id}
-              sellerId={listing.seller?.id}
+              sellerId={sellerId}
+              ownerShopId={sellerShopId}
               status={listing.status}
               expiresAt={listing.expiresAt}
               expired={listing.expired}
@@ -363,7 +374,7 @@ export default async function ListingDetailPage({
                     avatarUrl={listing.seller.avatarUrl} avatarFallbackUrl={listing.seller.avatarOriginalUrl}
                     verified={listing.seller.verified}
                     subtitle={listing.seller.city}
-                    href={`/sellers/${listing.seller.id}`}
+                    href={profileHrefFor(listing.seller)}
                     size={48}
                   />
                 )}
@@ -387,7 +398,7 @@ export default async function ListingDetailPage({
                     sellerIsAway` in `ListingDetail.tsx`). The seller sees their
                     own away state where they set it: their profile, via
                     `profile.away.youAreAway`. */}
-                <HideForOwner ownerId={listing.seller.id}>
+                <HideForOwner ownerId={sellerId} ownerShopId={sellerShopId}>
                   <AwayBanner
                     awayUntil={listing.seller.sellerAwayUntil}
                     className="mt-3"
@@ -416,14 +427,15 @@ export default async function ListingDetailPage({
                 importantly <UnavailableActions> — stay Server Components on this
                 SEO landing page, and the SSR viewer hint means the owner never
                 gets a frame of buyer UI. */}
-            <HideForOwner ownerId={listing.seller?.id}>
+            <HideForOwner ownerId={sellerId} ownerShopId={sellerShopId}>
               <div id="listing-actions" className="space-y-5">
                 {isLiveListing ? (
                   <div className="space-y-2">
                     <StartConversationButton
                       isShop={!!listing.shop}
                       listingId={listing.id}
-                      sellerId={listing.seller?.id}
+                      sellerId={sellerId}
+                      ownerShopId={sellerShopId}
                       price={listing.price}
                       perUnit={hasStockToShow(listing)}
                       currency={listing.currency}
@@ -445,7 +457,8 @@ export default async function ListingDetailPage({
                       phone={listing.seller?.phone}
                       whatsappNumber={listing.seller?.whatsappNumber}
                       location={listing.location}
-                      sellerId={listing.seller?.id}
+                      sellerId={sellerId}
+                      ownerShopId={sellerShopId}
                     />
                   </div>
                 ) : (
@@ -467,8 +480,9 @@ export default async function ListingDetailPage({
                     price={listing.price}
                     currency={listing.currency}
                     similarPrices={similarStock.map((l) => l.price)}
-                    sellerId={listing.seller?.id}
-                    sellerName={listing.seller?.name}
+                    sellerId={sellerId}
+                    sellerShopId={sellerShopId}
+                    sellerName={listing.shop?.name ?? listing.seller?.name}
                     locale={locale}
                   />
                   </div>
@@ -476,7 +490,8 @@ export default async function ListingDetailPage({
                 <SaveButton
                   listingId={listing.id}
                   initialSaved={listing.isSaved}
-                  ownerId={listing.seller?.id}
+                  ownerId={sellerId}
+                  ownerShopId={sellerShopId}
                   variant="detail"
                 />
               </div>
@@ -486,10 +501,11 @@ export default async function ListingDetailPage({
                 interested" hides the listing from the buyer's feed. Both are buyer
                 affordances, so both take `ownerId` and hide on your own listing. */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1 empty:hidden empty:pt-0">
-              <SafetyTips ownerId={listing.seller?.id} />
+              <SafetyTips ownerId={sellerId} ownerShopId={sellerShopId} />
               <HideListingButton
                 listingId={listing.id}
-                ownerId={listing.seller?.id}
+                ownerId={sellerId}
+                ownerShopId={sellerShopId}
               />
             </div>
 
@@ -516,7 +532,8 @@ export default async function ListingDetailPage({
           <ReportButton
             reportableType="Listing"
             reportableId={listing.id}
-            ownerId={listing.seller?.id}
+            ownerId={sellerId}
+            ownerShopId={sellerShopId}
             className="-ms-2"
           />
         </div>
@@ -540,6 +557,7 @@ export default async function ListingDetailPage({
               className="mt-12"
               listingId={listing.id}
               sellerId={sellerId}
+              shopId={sellerShopId}
               categorySlug={listing.category?.slug}
               isLive={isLiveListing}
             />
@@ -552,6 +570,7 @@ export default async function ListingDetailPage({
         <ListingActionBar
           listingId={listing.id}
           sellerId={sellerId}
+          ownerShopId={sellerShopId}
           status={listing.status}
           price={listing.price}
           currency={listing.currency}

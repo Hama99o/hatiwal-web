@@ -5,7 +5,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { ShieldOff } from "lucide-react";
 import { toast } from "sonner";
-import { getBlockedUsers, unblockUser } from "@/lib/api/chat";
+import { getBlockedUsers, unblockShop, unblockUser } from "@/lib/api/chat";
+import { isShopFace } from "@/lib/identity";
+import type { ConversationParticipant } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -18,18 +20,35 @@ export function BlockedUsersView() {
     queryKey: ["blocked-users"],
     queryFn: getBlockedUsers,
   });
-  const [busyId, setBusyId] = useState<number | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  async function unblock(userId: number) {
-    setBusyId(userId);
+  /**
+   * privacy-b: a block made via a SHOP comes back as `{ id: null, shopId,
+   * asShop: true }` — the owner's personal id is never sent — and is undone with
+   * DELETE /shops/:shopId/block. A person row keeps the user path. Keyed per
+   * kind, since a shop id and a user id can be the same number.
+   */
+  function rowKey(u: ConversationParticipant): string | null {
+    if (isShopFace(u)) return u.shopId != null ? `shop-${u.shopId}` : null;
+    return u.id != null ? `user-${u.id}` : null;
+  }
+
+  async function unblock(u: ConversationParticipant) {
+    const key = rowKey(u);
+    if (!key) return;
+    const shop = isShopFace(u);
+    setBusyKey(key);
     try {
-      await unblockUser(userId);
-      toast.success(t("chat.block.unblockSuccess"));
+      if (shop) await unblockShop(u.shopId as number);
+      else await unblockUser(u.id as number);
+      toast.success(t(shop ? "chat.block.shopUnblockSuccess" : "chat.block.unblockSuccess"));
       qc.invalidateQueries({ queryKey: ["blocked-users"] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["conversation"] });
     } catch {
       toast.error(t("chat.block.unblockFailed"));
     } finally {
-      setBusyId(null);
+      setBusyKey(null);
     }
   }
 
@@ -55,24 +74,36 @@ export function BlockedUsersView() {
         />
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
-          {data.map((u) => (
-            <li key={u.id} className="flex items-center justify-between gap-3 p-3">
-              <UserIdentity
-                name={u.name}
-                avatarUrl={u.avatarUrl} avatarFallbackUrl={u.avatarOriginalUrl}
-                subtitle={u.city}
-                size={40}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busyId === u.id}
-                onClick={() => unblock(u.id)}
+          {data.map((u, i) => {
+            const key = rowKey(u);
+            const shop = isShopFace(u);
+            return (
+              <li
+                key={key ?? `row-${i}`}
+                className="flex items-center justify-between gap-3 p-3"
+                data-testid={shop ? "blocked-shop-row" : "blocked-user-row"}
               >
-                {t("chat.block.unblockUser")}
-              </Button>
-            </li>
-          ))}
+                {/* Not linked: an unblocked profile is one tap away from the
+                    chat anyway, and a shop row must never become /sellers/null. */}
+                <UserIdentity
+                  name={u.name}
+                  avatarUrl={u.avatarUrl} avatarFallbackUrl={u.avatarOriginalUrl}
+                  verified={u.verified}
+                  subtitle={u.city}
+                  variant={shop ? "shop" : "default"}
+                  size={40}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={key == null || busyKey === key}
+                  onClick={() => unblock(u)}
+                >
+                  {t(shop ? "chat.block.unblockShop" : "chat.block.unblockUser")}
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

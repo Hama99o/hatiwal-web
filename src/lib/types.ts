@@ -33,7 +33,16 @@ export type ListingSort =
   | "nearest";
 
 export interface SellerSummary {
-  id: number;
+  /**
+   * privacy-b (api c178ae9): on a SHOP's face, anyone outside the shop's team
+   * gets `id: null` plus `shopId` + `asShop: true` — the owner's personal id is
+   * never sent to buyers. The team still gets the owner's user id. Never build a
+   * `/sellers/${id}` link or an owner check from `id` alone: use
+   * `profileHrefFor` / `isShopFace` (lib/identity.ts).
+   */
+  id: number | null;
+  shopId?: number | null;
+  asShop?: boolean;
   name: string;
   city: string | null;
   verified?: boolean;
@@ -438,7 +447,18 @@ export interface Message {
 }
 
 export interface ConversationParticipant {
-  id: number;
+  /**
+   * privacy-b (api c178ae9): on a SHOP's face, anyone outside the shop's team
+   * gets `id: null` plus `shopId` + `asShop: true` — the owner's personal id is
+   * never sent to buyers. The team still gets the owner's user id. Never build a
+   * `/sellers/${id}` link or an owner check from `id` alone: use
+   * `profileHrefFor` / `isShopFace` (lib/identity.ts).
+   */
+  id: number | null;
+  shopId?: number | null;
+  asShop?: boolean;
+  /** GET /blocks rows only. */
+  blocked?: boolean;
   name: string;
   city?: string | null;
   verified?: boolean;

@@ -1,5 +1,5 @@
 import { convertKeysToCamel } from "../api/case";
-import { RAILS_SERVER_BASE, rewriteRailsHost } from "../env";
+import { RAILS_SERVER_BASE, rewriteRailsHost, RAILS_CLIENT_HEADERS } from "../env";
 import type { User } from "../types";
 import {
   deviseRequestHeaders,
@@ -31,7 +31,7 @@ export async function fetchMe(tokens: DeviseTokens): Promise<FetchMeResult> {
   let res: Response;
   try {
     res = await fetch(`${RAILS_SERVER_BASE}/users/me`, {
-      headers: { Accept: "application/json", ...deviseRequestHeaders(tokens) },
+      headers: { Accept: "application/json", ...RAILS_CLIENT_HEADERS, ...deviseRequestHeaders(tokens) },
       cache: "no-store",
     });
   } catch {

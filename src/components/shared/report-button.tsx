@@ -14,7 +14,7 @@ import {
   type ReportableType,
   type ReportReason,
 } from "@/lib/api/reports";
-import { blockUser, getBlockedUsers } from "@/lib/api/chat";
+import { blockShop, blockUser, getBlockedUsers } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
 import { describeApiError, isNetworkFailure, isRateLimited } from "@/lib/api/error-codes";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { unsettledProps, useQueuedTap } from "@/lib/unsettled";
 import { cn } from "@/lib/utils";
+import { isShopFace } from "@/lib/identity";
 
 const REASONS: ReportReason[] = [
   "spam",
@@ -83,13 +84,16 @@ export function ReportButton({
   reportableType,
   reportableId,
   ownerId,
+  ownerShopId,
   className,
   onBlocked,
 }: {
   reportableType: ReportableType;
   reportableId: number;
   /** Owner of the reported thing — used to hide the button on your own content. */
-  ownerId?: number;
+  ownerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   className?: string;
   /**
    * Called after a successful block from the follow-up prompt, so a host that
@@ -109,6 +113,7 @@ export function ReportButton({
   // Same shared owner rule as every other owner-gated control (`useIsOwner`).
   const isOwner = useIsOwner(
     reportableType === "User" ? reportableId : ownerId,
+    reportableType === "Shop" ? reportableId : ownerShopId,
   );
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReason | null>(null);
@@ -124,14 +129,20 @@ export function ReportButton({
   // follow-up. Not settled yet (or failed) means "not blocked": over-offering is
   // recoverable and `POST /users/:id/block` is idempotent server-side, whereas
   // wrongly staying silent loses the block the reporter came for.
-  const isUserReport = reportableType === "User";
+  //
+  // A SHOP report (privacy-b) gets the same follow-up, blocking the shop by its
+  // id: the buyer never holds the owner's personal id for a shop face.
+  const isShopReport = reportableType === "Shop";
+  const isUserReport = reportableType === "User" || isShopReport;
   const blockedQ = useQuery({
     queryKey: ["blocked-users"],
     queryFn: getBlockedUsers,
     enabled: isUserReport && open && status === "authed",
   });
-  const alreadyBlocked = (blockedQ.data ?? []).some(
-    (u) => u.id === reportableId,
+  const alreadyBlocked = (blockedQ.data ?? []).some((u) =>
+    isShopReport
+      ? isShopFace(u) && u.shopId === reportableId
+      : !isShopFace(u) && u.id === reportableId,
   );
 
   // Both writes are React Query mutations, like every other write in the app —
@@ -165,9 +176,10 @@ export function ReportButton({
   });
 
   const blockM = useMutation({
-    mutationFn: () => blockUser(reportableId),
+    mutationFn: () =>
+      isShopReport ? blockShop(reportableId) : blockUser(reportableId),
     onSuccess: () => {
-      toast.success(t("report.block.success"));
+      toast.success(t(isShopReport ? "report.block.successShop" : "report.block.success"));
       onBlocked?.();
       setBlockPromptOpen(false);
       // Everything that encodes "can this person reach me" is now wrong: the
@@ -345,11 +357,11 @@ export function ReportButton({
             </div>
       </Dialog>
 
-      {/* Follow-up: offer to block the person we just reported (users only). */}
+      {/* Follow-up: offer to block the person (or shop) we just reported. */}
       <ConfirmDialog
         open={blockPromptOpen}
-        title={t("report.block.title")}
-        description={t("report.block.body")}
+        title={t(isShopReport ? "report.block.titleShop" : "report.block.title")}
+        description={t(isShopReport ? "report.block.bodyShop" : "report.block.body")}
         confirmLabel={t("report.block.confirmCta")}
         cancelLabel={t("report.block.cancel")}
         destructive

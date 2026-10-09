@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { RAILS_SERVER_BASE } from "@/lib/env";
+import { RAILS_SERVER_BASE, RAILS_CLIENT_HEADERS } from "@/lib/env";
 import { railsFetch } from "@/lib/auth/upstream";
 import { isSameOrigin } from "@/lib/auth/origin";
 
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   // you a link" would be a lie in those three.
   const { failure } = await railsFetch(`${RAILS_SERVER_BASE}/auth/password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...RAILS_CLIENT_HEADERS },
     body: JSON.stringify({ email }),
     cache: "no-store",
   });

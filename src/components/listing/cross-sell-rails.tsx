@@ -34,13 +34,20 @@ const RAIL_SIZE = 4;
 export async function CrossSellRails({
   listingId,
   sellerId,
+  shopId,
   categorySlug,
   isLive,
   className,
 }: {
   listingId: number;
   /** Omitted → the seller rail is skipped entirely (no request, no section). */
-  sellerId?: number;
+  sellerId?: number | null;
+  /**
+   * privacy-b: a SHOP listing's shop. Its seller face has no id for buyers, so
+   * the rail reads the shop's stock (`?shop_id=`) and "view all" opens the shop
+   * page; the shop's whole team counts as the owner for the gate.
+   */
+  shopId?: number | null;
   /** Powers the similar rail's "view all"; omitted → bare rail. */
   categorySlug?: string;
   /**
@@ -65,10 +72,10 @@ export async function CrossSellRails({
     safe(getSimilarListings(listingId), [] as Listing[]),
     // RAIL_SIZE + 1, not a page of 12: the only reason to fetch past the cap is
     // that this listing may itself come back in the page and get filtered out.
-    sellerId
+    shopId != null || sellerId != null
       ? safe(
           getListings({
-            userId: sellerId,
+            ...(shopId != null ? { shopId } : { userId: sellerId ?? undefined }),
             pageSize: RAIL_SIZE + 1,
           }),
           EMPTY_LISTINGS,
@@ -106,13 +113,19 @@ export async function CrossSellRails({
           the rail itself stays server-rendered, because the SSR fetch is
           anonymous and cannot know who is looking. */}
       {sellerListings.length > 0 && (
-        <HideForOwner ownerId={sellerId}>
+        <HideForOwner ownerId={sellerId} ownerShopId={shopId}>
           <ListingRail
             testId="seller-rail"
             title={t("listing.detail.moreFromSeller")}
             listings={sellerListings}
             viewAllHref={
-              isLive && sellerId ? `/sellers/${sellerId}` : undefined
+              !isLive
+                ? undefined
+                : shopId != null
+                  ? `/shops/${shopId}`
+                  : sellerId
+                    ? `/sellers/${sellerId}`
+                    : undefined
             }
             viewAllLabel={t("home.viewAll")}
           />

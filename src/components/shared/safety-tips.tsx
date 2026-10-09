@@ -43,15 +43,18 @@ const TIPS: { key: string; icon: LucideIcon }[] = [
 export function SafetyTips({
   variant = "full",
   ownerId,
+  ownerShopId,
   className,
 }: {
   variant?: "full" | "short";
   /** Owner of the listing being viewed — the tips hide for them. */
-  ownerId?: number;
+  ownerId?: number | null;
+  /** privacy-b: the shop it belongs to — its whole team counts as the owner. */
+  ownerShopId?: number | null;
   className?: string;
 }) {
   const t = useTranslations("safety");
-  const isOwner = useIsOwner(ownerId);
+  const isOwner = useIsOwner(ownerId, ownerShopId);
   const [open, setOpen] = useState(false);
   const titleId = useId();
 
