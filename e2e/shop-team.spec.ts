@@ -325,7 +325,7 @@ test.describe("Manager, change role, transfer (1.1.6)", () => {
     await page.getByTestId("team-member-menu-8").click();
     await page.getByTestId("member-transfer").click();
     await expect(page.getByRole("heading", { name: "Make Sara Noori the owner?" })).toBeVisible();
-    await expect(page.getByText("A Verified badge is removed")).toBeVisible();
+    await expect(page.getByText("A Verified badge stays while you remain a Manager.")).toBeVisible(); // G4 (api f0d1179)
     setRole("manager");
     const post = page.waitForRequest((r) => r.url().includes("/api/me/shops/42/transfer") && r.method() === "POST");
     await page.getByRole("button", { name: "Make owner" }).click();
