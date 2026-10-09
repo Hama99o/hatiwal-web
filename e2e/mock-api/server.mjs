@@ -742,7 +742,23 @@ const SHOP_42_CHAT = {
   unread_count: 0, last_message_body: null, last_message_kind: null, blocked_with_participant: false,
 };
 
-const ALL_CONVERSATIONS = [...CONVERSATIONS, ...ARCHIVED_CONVERSATIONS, SHOP_42_CHAT];
+// closed-shop-face (api a3ca16b): the buyer persona's PRODUCT chat with a shop
+// that has since CLOSED ("Rahimi Perfumes"). Its chats went back to the owner:
+// `shop` is null, `other_participant` is the owner personally, and
+// `closed_shop` says so. Only reachable by id, so the inbox lists are unchanged.
+const CLOSED_SHOP_AT = "2026-10-03T09:00:00Z";
+const CLOSED_SHOP_CHAT = {
+  id: 430, kind: "listing", status: "open", viewer_role: "buyer", last_message_at: "2026-10-04T10:00:00Z", created_at: "2026-10-01T09:00:00Z",
+  listing: { id: 9043, title: "Rose Attar (12 ml)", thumbnail_url: null, status: "active", price: 1200, currency: "AFN", location: "Kabul" },
+  shop: null,
+  closed_shop: { name: "Rahimi Perfumes", closed_at: CLOSED_SHOP_AT },
+  other_participant: { id: 6, name: "Hamid Rahimi", city: "Kabul", verified: false, avatar_url: null },
+  buyer: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
+  seller: { id: 6, name: "Hamid Rahimi", city: "Kabul", avatar_url: null },
+  unread_count: 0, last_message_body: "I can still sell it to you myself.", last_message_kind: "text", blocked_with_participant: false,
+};
+
+const ALL_CONVERSATIONS = [...CONVERSATIONS, ...ARCHIVED_CONVERSATIONS, SHOP_42_CHAT, CLOSED_SHOP_CHAT];
 
 const MESSAGES = {
   // Returned newest-first (Rails order); chat.ts reverses for display.
@@ -768,6 +784,15 @@ const MESSAGES = {
   2: [
     { id: 5, body: "Thanks!", kind: "text", read_at: "2026-06-19T12:00:00Z", created_at: "2026-06-19T12:00:00Z", responds_to_id: null, sender: { id: 3, name: "Najib Rahimi", avatar_url: null }, attachment_url: null },
     { id: 4, body: "Deal done, see you tomorrow.", kind: "text", read_at: "2026-06-19T11:00:00Z", created_at: "2026-06-19T11:00:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
+  ],
+  // closed-shop-face: two messages a member wrote AS the shop before it closed
+  // (the shop's name, no logo, id null for the buyer, shop_closed), the buyer's
+  // question, then the owner's own reply after the closure (personal, no as_shop).
+  430: [
+    { id: 4305, body: "I can still sell it to you myself.", kind: "text", read_at: null, created_at: "2026-10-04T10:00:00Z", responds_to_id: null, sender: { id: 6, name: "Hamid Rahimi", avatar_url: null }, attachment_url: null },
+    { id: 4304, body: "Is the attar still available?", kind: "text", read_at: "2026-10-04T10:00:00Z", created_at: "2026-10-04T09:00:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null },
+    { id: 4302, body: "It ships in a gift box.", kind: "text", read_at: "2026-10-01T10:00:00Z", created_at: "2026-10-01T09:35:00Z", responds_to_id: null, sender: { id: null, name: "Rahimi Perfumes", avatar_url: null, as_shop: true, shop_closed: true }, attachment_url: null },
+    { id: 4301, body: "Salaam! Yes, we have it in stock.", kind: "text", read_at: "2026-10-01T10:00:00Z", created_at: "2026-10-01T09:30:00Z", responds_to_id: null, sender: { id: null, name: "Rahimi Perfumes", avatar_url: null, as_shop: true, shop_closed: true }, attachment_url: null },
   ],
 };
 

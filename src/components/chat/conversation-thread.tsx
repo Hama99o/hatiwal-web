@@ -61,6 +61,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { MessageBubble } from "./message-bubble";
 import { NoticeActionButton } from "./notice-action-button";
 import { startsTeamRun, TeamSenderLabel } from "@/components/chat/team-sender-label";
+import { ClosedShopSenderLabel, startsClosedShopRun } from "@/components/chat/closed-shop-sender-label";
 import { useSellerSideEntry } from "./use-seller-side-entry";
 import { QuickReplies } from "./quick-replies";
 import { useComposerDraft } from "./use-composer-draft";
@@ -348,6 +349,9 @@ export function ConversationThread({ id }: { id: string }) {
     () => (searching ? filterMessages(messages, trimmedQuery) : messages),
     [searching, messages, trimmedQuery],
   );
+  // The viewer's side: their own messages, plus a teammate's (SHOP-3: only
+  // members get `sentBy`, so it marks the team's side).
+  const isOwnSide = (m: Message) => m.sender.id === me || !!m.sentBy;
   const totalSearchable = useMemo(
     () => searchableCount(messages),
     [messages],
@@ -698,7 +702,13 @@ export function ConversationThread({ id }: { id: string }) {
         )}
       </div>
 
-      {sellerSide && (
+      {/* closed-shop-face: in place of the "Replying as" line, say the shop has
+        * closed and whose the new messages are (the owner's own). */}
+      {!isSupport && conversation?.closedShop ? (
+        <div className="border-b bg-muted/40 px-4 py-1.5 text-xs font-semibold text-muted-foreground" data-testid="chat-closed-shop-note">
+          {t(sellerSide ? "chat.closedShop.noteSeller" : "chat.closedShop.noteBuyer", { shop: conversation.closedShop.name })}
+        </div>
+      ) : sellerSide && (
         <div className="border-b bg-muted/40 px-4 py-1.5 text-xs font-semibold text-muted-foreground" data-testid="chat-replying-as">
           {t("chat.replyingAs", { name: replyingShop ?? t("shops.me") })}
         </div>
@@ -889,11 +899,16 @@ export function ConversationThread({ id }: { id: string }) {
                 {m.sentBy && startsTeamRun(visibleMessages, i, showDay) && (
                   <TeamSenderLabel name={m.sentBy.name} isMe={m.sentBy.id === me} />
                 )}
+                {/* closed-shop-face: who wrote each run on the other side — the
+                  * closed shop (its old messages) or the owner personally. */}
+                {conversation?.closedShop && startsClosedShopRun(visibleMessages, i, showDay, isOwnSide) && (
+                  <ClosedShopSenderLabel sender={m.sender} />
+                )}
                 <MessageBubble
                   message={m}
                   // SHOP-3: a teammate's message (only members get sentBy)
                   // sits on the team's side, like the viewer's own.
-                  mine={m.sender.id === me || !!m.sentBy}
+                  mine={isOwnSide(m)}
                   responded={respondedIds.has(m.id)}
                   highlight={searching ? trimmedQuery : undefined}
                   onCounter={
