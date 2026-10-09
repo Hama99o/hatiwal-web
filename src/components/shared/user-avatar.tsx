@@ -9,6 +9,8 @@ function initials(name: string): string {
 interface UserAvatarProps {
   name: string;
   avatarUrl?: string | null;
+  /** The original behind a thumb `avatarUrl` (avatarOriginalUrl / logoOriginalUrl): retried if the thumb fails to load. */
+  avatarFallbackUrl?: string | null;
   size?: number;
   className?: string;
   /** SHOP-1: a shop is a rounded square — its logo, or initials on brand lapis. */
@@ -19,16 +21,26 @@ interface UserAvatarProps {
  * Round avatar. A fixed-size, overflow-hidden round container holds a `fill`
  * image (object-cover) — so it stays a perfect circle regardless of the source
  * image's aspect ratio (and immune to Tailwind preflight's `img { height: auto }`).
- * Falls back to initials. Never hand-roll avatar markup — use this.
+ * Falls back to initials (no url, or it fails to load). Never hand-roll avatar markup — use this.
  */
 export function UserAvatar({
   name,
   avatarUrl,
+  avatarFallbackUrl,
   size = 40,
   className,
   variant = "user",
 }: UserAvatarProps) {
   const shop = variant === "shop";
+  // Also what a photo that fails to load falls back to (RemoteImage `fallback`).
+  const initialsMark = (
+    <span
+      className={cn("font-semibold leading-none", shop ? "font-extrabold text-white" : "text-primary")}
+      style={{ fontSize: Math.round(size * 0.4) }}
+    >
+      {initials(name)}
+    </span>
+  );
   return (
     <span
       style={{ width: size, height: size, borderRadius: shop ? size * 0.24 : undefined }}
@@ -42,18 +54,15 @@ export function UserAvatar({
       {avatarUrl ? (
         <RemoteImage
           src={avatarUrl}
+          fallbackSrc={avatarFallbackUrl}
           alt={name}
           fill
           sizes={`${size}px`}
           className="object-cover"
+          fallback={initialsMark}
         />
       ) : (
-        <span
-          className={cn("font-semibold leading-none", shop ? "font-extrabold text-white" : "text-primary")}
-          style={{ fontSize: Math.round(size * 0.4) }}
-        >
-          {initials(name)}
-        </span>
+        initialsMark
       )}
     </span>
   );

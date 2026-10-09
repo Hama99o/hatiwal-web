@@ -23,6 +23,8 @@ export interface Shop extends ShopCard {
   timeZone?: string | null;
   createdAt: string;
   coverUrl: string | null;
+  /** 1.1.6 photo variants: the 1200px cover for the shop page (fallback: coverUrl). */
+  coverMediumUrl?: string | null;
   phone: string | null;
   listingsCount: number;
   verifiedAt: string | null;

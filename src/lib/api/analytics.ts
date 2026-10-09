@@ -33,7 +33,7 @@ export interface TeamNumbers {
 }
 
 export interface TeamMemberNumbers extends TeamNumbers {
-  user: { id: number; name: string; avatarUrl: string | null };
+  user: { id: number; name: string; avatarUrl: string | null; avatarOriginalUrl?: string | null };
   role: "owner" | "manager" | "staff";
 }
 

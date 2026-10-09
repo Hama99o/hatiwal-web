@@ -10,6 +10,8 @@ import { userTextProps } from "@/lib/text-direction";
 interface UserIdentityProps {
   name: string;
   avatarUrl?: string | null;
+  /** The original behind a thumb `avatarUrl` (avatarOriginalUrl / logoOriginalUrl): retried if the thumb fails to load. */
+  avatarFallbackUrl?: string | null;
   verified?: boolean;
   subtitle?: string | null;
   size?: number;
@@ -49,6 +51,7 @@ interface UserIdentityProps {
 export function UserIdentity({
   name,
   avatarUrl,
+  avatarFallbackUrl,
   verified,
   subtitle,
   size = 40,
@@ -72,7 +75,7 @@ export function UserIdentity({
           <Logomark className="size-full" />
         </span>
       ) : (
-        <UserAvatar name={name} avatarUrl={avatarUrl} size={size} variant={variant === "shop" ? "shop" : "user"} />
+        <UserAvatar name={name} avatarUrl={avatarUrl} avatarFallbackUrl={avatarFallbackUrl} size={size} variant={variant === "shop" ? "shop" : "user"} />
       )}
       <div
         className={cn(

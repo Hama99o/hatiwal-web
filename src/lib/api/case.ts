@@ -35,8 +35,35 @@ function convert(value: unknown, mapKey: (k: string) => string): unknown {
   return value;
 }
 
+// 1.1.6 photo variants (owner): every person block carries avatar_thumb_url
+// (256px) beside avatar_url, a shop logo_thumb_url beside logo_url. Avatars and
+// logos are only ever drawn small on the web, so the THUMB takes the familiar
+// name here — once, for the 50+ call sites — and the original stays reachable
+// as avatarOriginalUrl / logoOriginalUrl. An older API (no thumb) changes nothing.
+const PREFER_THUMB: [thumb: string, field: string, original: string][] = [
+  ["avatarThumbUrl", "avatarUrl", "avatarOriginalUrl"],
+  ["logoThumbUrl", "logoUrl", "logoOriginalUrl"],
+];
+
+function preferThumbs(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    value.forEach(preferThumbs);
+    return value;
+  }
+  if (isPlainObject(value)) {
+    for (const [thumb, field, original] of PREFER_THUMB) {
+      if (typeof value[thumb] === "string" && value[thumb]) {
+        value[original] = value[field] ?? null;
+        value[field] = value[thumb];
+      }
+    }
+    Object.values(value).forEach(preferThumbs);
+  }
+  return value;
+}
+
 export function convertKeysToCamel<T = unknown>(input: unknown): T {
-  return convert(input, snakeToCamel) as T;
+  return preferThumbs(convert(input, snakeToCamel)) as T;
 }
 
 export function convertKeysToSnake<T = unknown>(input: unknown): T {

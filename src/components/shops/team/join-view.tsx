@@ -163,7 +163,7 @@ export function JoinView({ token }: { token: string }) {
 
   return shell(
     <div className="flex w-full flex-col items-center gap-4" data-testid="join-screen">
-      <UserAvatar variant="shop" name={invite.shop.name} avatarUrl={invite.shop.logoUrl} size={88} />
+      <UserAvatar variant="shop" name={invite.shop.name} avatarUrl={invite.shop.logoUrl} avatarFallbackUrl={invite.shop.logoOriginalUrl} size={88} />
       <h1 className="flex items-center gap-1.5 text-2xl font-extrabold">
         {invite.shop.name}
         {invite.shop.verified && <VerifiedBadge />}

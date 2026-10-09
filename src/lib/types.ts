@@ -37,7 +37,7 @@ export interface SellerSummary {
   name: string;
   city: string | null;
   verified?: boolean;
-  avatarUrl?: string | null;
+  avatarUrl?: string | null; avatarOriginalUrl?: string | null;
   phone?: string | null;
   /**
    * The seller's SEPARATE WhatsApp number — often a different SIM from `phone`.
@@ -84,7 +84,7 @@ export interface Review {
   createdAt: string;
   transactionId: number;
   revieweeId: number;
-  reviewer: { id: number; name: string; avatarUrl: string | null };
+  reviewer: { id: number; name: string; avatarUrl: string | null; avatarOriginalUrl?: string | null };
 }
 
 /** A sold/reserved sale — mirror of the Rails `TransactionSerializer`. Drives the
@@ -130,8 +130,8 @@ export interface Transaction {
    * (`with_counterparty`), but the mark-sold lifecycle response does NOT: since
    * SF-B3 it returns a transaction for the outside-buyer path too.
    */
-  buyer: { id: number; name: string; avatarUrl: string | null } | null;
-  seller: { id: number; name: string; avatarUrl: string | null };
+  buyer: { id: number; name: string; avatarUrl: string | null; avatarOriginalUrl?: string | null } | null;
+  seller: { id: number; name: string; avatarUrl: string | null; avatarOriginalUrl?: string | null };
 }
 
 export interface CategoryRef {
@@ -167,6 +167,8 @@ export interface ShopCard {
   id: number;
   name: string;
   logoUrl: string | null;
+  /** The original logo (the api's logo_url; logoUrl is its 256px thumb — case.ts). */
+  logoOriginalUrl?: string | null;
   verified: boolean;
   province: string | null;
   city: string | null;
@@ -206,8 +208,28 @@ export interface Listing {
   /** Radius in METRES to draw for an approximate point. */
   locationRadiusM?: number | null;
   thumbnailUrl: string | null;
-  /** Unified, non-empty-when-possible list of full-size image urls. */
+  /** Unified, non-empty-when-possible list of full-size (ORIGINAL) image urls. */
   images: string[];
+  /**
+   * Photo variants (1.1.6, api image_thumb_urls / image_medium_urls), one per
+   * photo, same order as `images`, filled by normalizeListing with the
+   * fallback thumb → medium → original. Lists, grids, cards and carousels show
+   * a THUMB; the listing gallery a MEDIUM; the full-screen view the ORIGINAL.
+   */
+  imageThumbs: string[];
+  imageMediums: string[];
+  /**
+   * The ONE image a card / list row shows: the first real thumb, else the first
+   * real medium, else the 600px thumbnailUrl, else the first original. (Not
+   * imageThumbs[0], which on an older API is the full-size original.)
+   */
+  cardImageUrl: string | null;
+  /**
+   * `"<thumb> 640w, <medium> 1440w"` for the card (api PublicImageUrl::SIZES:
+   * the thumb's SHORT side is 640, what a cover crop needs sharp; the medium's
+   * long side 1440). Null unless the api sent both real variants.
+   */
+  cardImageSrcSet: string | null;
   /** {signed-id, url} pairs (detail view only) — needed to remove photos on edit. */
   imageAttachments?: { id: string; url: string }[];
   viewsCount: number;
@@ -315,7 +337,7 @@ export interface ListingSale {
    * NULL for a sale to "someone not on Hatiwal" (SF-B3). The sale is real and
    * must still render — only the counterparty is absent.
    */
-  buyer: { id: number; name: string; avatarUrl: string | null; verified?: boolean } | null;
+  buyer: { id: number; name: string; avatarUrl: string | null; avatarOriginalUrl?: string | null; verified?: boolean } | null;
   /** The thread with this buyer, when there is one. Null for an outside buyer. */
   conversationId?: number | null;
 }
@@ -371,7 +393,7 @@ export interface Message {
    * `id` is null for the BUYER on a message written as the shop (api c714771):
    * the member's id is the team's only (privacy). Compare it, never navigate by it.
    */
-  sender: { id: number | null; name: string; avatarUrl?: string | null };
+  sender: { id: number | null; name: string; avatarUrl?: string | null; avatarOriginalUrl?: string | null };
   attachmentUrl?: string | null;
   /**
    * For `offer` and `offer_counter` kinds, the server pre-parses the pipe-encoded
@@ -407,7 +429,7 @@ export interface ConversationParticipant {
   name: string;
   city?: string | null;
   verified?: boolean;
-  avatarUrl?: string | null;
+  avatarUrl?: string | null; avatarOriginalUrl?: string | null;
 }
 
 export interface Conversation {
@@ -443,6 +465,8 @@ export interface Conversation {
     id: number;
     title: string;
     thumbnailUrl: string | null;
+    /** 1.1.6 photo variants, when the API sends them here: [0] is the light thumb. */
+    imageThumbUrls?: string[] | null;
     status: string;
     price?: number;
     currency?: string;
@@ -504,7 +528,7 @@ export interface User {
   longitude: number | null;
   /** LOC-1 — see HomeLocation. Undefined on an older API. */
   location?: HomeLocation;
-  avatarUrl: string | null;
+  avatarUrl: string | null; avatarOriginalUrl?: string | null;
   preferredLanguage: "en" | "ps" | "fa";
   preferredTheme: "light" | "dark" | "system";
   sellerMode: boolean;

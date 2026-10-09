@@ -20,7 +20,7 @@ type Choice = number | "else" | null;
 export interface PreselectedBuyer {
   id: number;
   name: string;
-  avatarUrl?: string | null;
+  avatarUrl?: string | null; avatarOriginalUrl?: string | null;
   verified?: boolean;
 }
 
@@ -205,7 +205,7 @@ export function SellBuyerDialog({
           <div className="my-4 rounded-md border border-primary bg-primary/5 px-3 py-2">
             <UserIdentity
               name={preselectedBuyer.name}
-              avatarUrl={preselectedBuyer.avatarUrl}
+              avatarUrl={preselectedBuyer.avatarUrl} avatarFallbackUrl={preselectedBuyer.avatarOriginalUrl}
               verified={preselectedBuyer.verified}
               size={36}
             />
@@ -236,7 +236,7 @@ export function SellBuyerDialog({
                   >
                     <UserAvatar
                       name={buyer.name}
-                      avatarUrl={buyer.avatarUrl}
+                      avatarUrl={buyer.avatarUrl} avatarFallbackUrl={buyer.avatarOriginalUrl}
                       size={36}
                     />
                     <div className="min-w-0 flex-1">

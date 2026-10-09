@@ -16,7 +16,7 @@ export type ShopRole = "owner" | "manager" | "staff";
 export type InviteStatus = "pending" | "accepted" | "declined" | "cancelled" | "expired";
 
 export interface ShopMember {
-  user: { id: number; name: string; avatarUrl: string | null };
+  user: { id: number; name: string; avatarUrl: string | null; avatarOriginalUrl?: string | null };
   role: ShopRole;
   joinedAt: string;
 }

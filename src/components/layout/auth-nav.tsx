@@ -116,7 +116,7 @@ export function AuthNav() {
             aria-label={name}
           >
             <span className="relative block">
-              <UserAvatar name={name} avatarUrl={user.avatarUrl} size={36} />
+              <UserAvatar name={name} avatarUrl={user.avatarUrl} avatarFallbackUrl={user.avatarOriginalUrl} size={36} />
               {/* Owner, 1.1.6: a pending invitation to join a shop. */}
               {(user.pendingShopInvitesCount ?? 0) > 0 && (
                 <span

@@ -165,7 +165,7 @@ export function ListingSalesView({ id }: { id: string }) {
                   {sale.buyer ? (
                     <UserIdentity
                       name={sale.buyer.name}
-                      avatarUrl={sale.buyer.avatarUrl}
+                      avatarUrl={sale.buyer.avatarUrl} avatarFallbackUrl={sale.buyer.avatarOriginalUrl}
                       size={40}
                       subtitle={formatRelativeDate(
                         sale.completedAt ?? sale.createdAt,

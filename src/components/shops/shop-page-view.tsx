@@ -141,12 +141,12 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
   return (
     <div className="mx-auto max-w-5xl pb-12" data-testid="shop-page">
       <div className="relative h-44 w-full overflow-hidden bg-brand-lapis sm:h-56 sm:rounded-b-2xl">
-        {shop.coverUrl && <RemoteImage src={shop.coverUrl} alt="" fill sizes="100vw" className="object-cover" />}
+        {shop.coverUrl && <RemoteImage src={shop.coverMediumUrl ?? shop.coverUrl} fallbackSrc={shop.coverUrl} alt="" fill sizes="100vw" className="object-cover" />}
       </div>
       <div className="space-y-3 px-4">
         <div className="-mt-10 flex items-end justify-between gap-3">
           <span className="rounded-[22px] border-4 border-background">
-            <UserAvatar variant="shop" name={shop.name} avatarUrl={shop.logoUrl} size={80} />
+            <UserAvatar variant="shop" name={shop.name} avatarUrl={shop.logoUrl} avatarFallbackUrl={shop.logoOriginalUrl} size={80} />
           </span>
           {/* Wraps beside the logo: three member buttons are wider than a phone
               (design QA 1.1.6: the page scrolled sideways at 390px). */}

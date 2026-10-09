@@ -48,7 +48,7 @@ export function PendingReviewsNudge() {
             <li key={txn.id} className="flex items-center gap-3">
               <UserAvatar
                 name={counterparty.name}
-                avatarUrl={counterparty.avatarUrl}
+                avatarUrl={counterparty.avatarUrl} avatarFallbackUrl={counterparty.avatarOriginalUrl}
                 size={36}
               />
               <div className="min-w-0 flex-1">

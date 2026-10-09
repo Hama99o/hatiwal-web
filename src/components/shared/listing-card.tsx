@@ -95,7 +95,11 @@ export function ListingCard({
       {t("seen")}
     </span>
   ) : null;
-  const cover = listing.thumbnailUrl ?? listing.images[0] ?? null;
+  // A card shows the light THUMB (1.1.6 photo variants), then the 600px
+  // thumbnail_url, then the original (normalizeListing's cardImageUrl).
+  const cover = listing.cardImageUrl ?? listing.thumbnailUrl ?? listing.images[0] ?? null;
+  // A variant that fails to load falls back to the original (RemoteImage).
+  const coverFallback = listing.images[0] !== cover ? listing.images[0] : null;
   const showStatusBadge = showStatus && listing.status !== "active";
   // The seller's OWN inventory names a missing photo in words instead of leaving
   // a silent grey glyph: there a photoless listing is an action prompt — no photo
@@ -166,6 +170,8 @@ export function ListingCard({
           <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-md bg-muted sm:w-28">
             <RemoteImage
               src={cover}
+              srcSet={listing.cardImageSrcSet}
+              fallbackSrc={coverFallback}
               alt={listing.title}
               label={noPhotoLabel}
               fill
@@ -241,6 +247,8 @@ export function ListingCard({
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           <RemoteImage
             src={cover}
+            srcSet={listing.cardImageSrcSet}
+            fallbackSrc={coverFallback}
             alt={listing.title}
             label={noPhotoLabel}
             fill

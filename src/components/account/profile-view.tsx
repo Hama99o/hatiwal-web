@@ -77,7 +77,7 @@ export function ProfileView() {
         <UserIdentity
           className="min-w-0"
           name={name}
-          avatarUrl={user.avatarUrl}
+          avatarUrl={user.avatarUrl} avatarFallbackUrl={user.avatarOriginalUrl}
           verified={user.verified}
           subtitle={user.city ?? user.email}
           size={64}

@@ -202,7 +202,7 @@ export function TeamView({ shopId }: { shopId: number }) {
         <ul className="divide-y rounded-lg border bg-card">
           {(members ?? []).map((m) => (
             <li key={m.user.id} className="flex items-center gap-3 p-3" data-testid={`team-member-${m.user.id}`}>
-              <UserAvatar name={m.user.name} avatarUrl={m.user.avatarUrl} size={40} />
+              <UserAvatar name={m.user.name} avatarUrl={m.user.avatarUrl} avatarFallbackUrl={m.user.avatarOriginalUrl} size={40} />
               <span className="min-w-0 flex-1 truncate font-semibold">
                 {m.user.name}
                 {m.user.id === user?.id ? ` · ${t("team.you")}` : ""}

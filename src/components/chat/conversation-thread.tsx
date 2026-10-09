@@ -639,7 +639,7 @@ export function ConversationThread({ id }: { id: string }) {
           <div className="min-w-0 flex-1" data-testid="chat-shop-identity">
             <UserIdentity
               name={shopFace.name}
-              avatarUrl={shopFace.logoUrl}
+              avatarUrl={shopFace.logoUrl} avatarFallbackUrl={shopFace.logoOriginalUrl}
               verified={shopFace.verified}
               variant="shop"
               href={`/shops/${shopFace.id}`}
@@ -649,7 +649,7 @@ export function ConversationThread({ id }: { id: string }) {
         ) : other && (
           <UserIdentity
             name={other.name}
-            avatarUrl={other.avatarUrl}
+            avatarUrl={other.avatarUrl} avatarFallbackUrl={other.avatarOriginalUrl}
             verified={other.verified}
             subtitle={other.city}
             href={`/sellers/${other.id}`}
@@ -761,7 +761,7 @@ export function ConversationThread({ id }: { id: string }) {
         >
           <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
             <RemoteImage
-              src={pinnedListing.thumbnailUrl}
+              src={pinnedListing.imageThumbUrls?.[0] ?? pinnedListing.thumbnailUrl}
               alt={pinnedListing.title}
               width={40}
               height={40}

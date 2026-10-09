@@ -168,7 +168,7 @@ export function VerificationCard() {
       <>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <UserAvatar name={name} avatarUrl={user.avatarUrl} size={48} />
+            <UserAvatar name={name} avatarUrl={user.avatarUrl} avatarFallbackUrl={user.avatarOriginalUrl} size={48} />
             <span className="absolute -bottom-0.5 -end-0.5 rounded-full bg-card p-0.5">
               <ShieldCheck className="size-[18px] text-primary" />
             </span>

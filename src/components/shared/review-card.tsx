@@ -20,7 +20,7 @@ export function ReviewCard({ review }: { review: Review }) {
             pushing the date past the card's edge (mobile had the same bug). */}
         <UserIdentity
           name={review.reviewer.name}
-          avatarUrl={review.reviewer.avatarUrl}
+          avatarUrl={review.reviewer.avatarUrl} avatarFallbackUrl={review.reviewer.avatarOriginalUrl}
           size={36}
           className="min-w-0 flex-1"
         />

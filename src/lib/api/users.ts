@@ -62,7 +62,7 @@ interface PublicProfileUser {
   province?: string | null;
   city?: string | null;
   verified?: boolean;
-  avatarUrl?: string | null;
+  avatarUrl?: string | null; avatarOriginalUrl?: string | null;
   responseRatePercent?: number | null;
   responseTimeLabel?: string | null;
   lastActiveLabel?: SellerSummary["lastActiveLabel"];

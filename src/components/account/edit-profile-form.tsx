@@ -161,6 +161,7 @@ export function EditProfileForm() {
           <UserAvatar
             name={displayName}
             avatarUrl={previewUrl ?? user?.avatarUrl}
+            avatarFallbackUrl={previewUrl ? null : user?.avatarOriginalUrl}
             size={72}
           />
         </div>

@@ -376,6 +376,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                           variant={shopFace ? "shop" : "user"}
                           name={name}
                           avatarUrl={shopFace ? shopFace.logoUrl : who?.avatarUrl}
+                          avatarFallbackUrl={shopFace ? shopFace.logoOriginalUrl : who?.avatarOriginalUrl}
                           size={48}
                         />
                       )}
@@ -449,10 +450,10 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                         {!support && (
                           <div className="flex size-12 items-center justify-center overflow-hidden rounded-md bg-muted">
                             {shopChat ? (
-                              <UserAvatar variant="shop" name={shopChat.name} avatarUrl={shopChat.logoUrl} size={48} />
+                              <UserAvatar variant="shop" name={shopChat.name} avatarUrl={shopChat.logoUrl} avatarFallbackUrl={shopChat.logoOriginalUrl} size={48} />
                             ) : c.listing ? (
                               <RemoteImage
-                                src={c.listing.thumbnailUrl}
+                                src={c.listing.imageThumbUrls?.[0] ?? c.listing.thumbnailUrl}
                                 alt={c.listing.title}
                                 width={48}
                                 height={48}

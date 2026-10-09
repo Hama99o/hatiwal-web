@@ -45,7 +45,7 @@ export function TeamBreakdown({
       {team.map((m) => (
         <div key={m.user.id} className="rounded-xl border bg-card p-3" data-testid={`analytics-team-${m.user.id}`}>
           <div className="flex items-center gap-2">
-            <UserAvatar name={m.user.name} avatarUrl={m.user.avatarUrl} size={32} />
+            <UserAvatar name={m.user.name} avatarUrl={m.user.avatarUrl} avatarFallbackUrl={m.user.avatarOriginalUrl} size={32} />
             <span className="min-w-0 flex-1 truncate text-sm font-bold" dir="auto">
               {m.user.id === meId ? t("seller.analytics.team.you") : m.user.name}
             </span>

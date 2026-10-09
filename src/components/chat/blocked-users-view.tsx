@@ -59,7 +59,7 @@ export function BlockedUsersView() {
             <li key={u.id} className="flex items-center justify-between gap-3 p-3">
               <UserIdentity
                 name={u.name}
-                avatarUrl={u.avatarUrl}
+                avatarUrl={u.avatarUrl} avatarFallbackUrl={u.avatarOriginalUrl}
                 subtitle={u.city}
                 size={40}
               />

@@ -79,7 +79,7 @@ export function SellingAsPill() {
         aria-label={t("sellingAs", { name: sellingAs?.name ?? meName })}
         className="inline-flex items-center gap-2 rounded-full border bg-card px-2.5 py-1.5 text-sm font-semibold transition-colors hover:bg-accent"
       >
-        <UserAvatar variant={sellingAs ? "shop" : "user"} name={sellingAs?.name ?? meName} avatarUrl={sellingAs ? sellingAs.logoUrl : user.avatarUrl} size={24} />
+        <UserAvatar variant={sellingAs ? "shop" : "user"} name={sellingAs?.name ?? meName} avatarUrl={sellingAs ? sellingAs.logoUrl : user.avatarUrl} avatarFallbackUrl={sellingAs ? sellingAs.logoOriginalUrl : user.avatarOriginalUrl} size={24} />
         {t("sellingAs", { name: sellingAs ? sellingAs.name : t("me") })}
         <ChevronDown className="size-3.5 text-muted-foreground" />
         {otherUnread > 0 && (

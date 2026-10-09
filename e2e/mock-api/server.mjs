@@ -18,8 +18,42 @@
  * response / optimistic UI / toast / redirect, not on cross-request persistence.
  */
 import { createServer } from "node:http";
+import { deflateSync } from "node:zlib";
 
 const PORT = Number(process.env.MOCK_API_PORT || 4010);
+
+// A solid-colour RGB PNG of w×h (the /media route), built with zlib only.
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+function pngChunk(type, data) {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+  const td = Buffer.concat([Buffer.from(type, "ascii"), data]);
+  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
+  return Buffer.concat([len, td, crc]);
+}
+const PNG_CACHE = new Map();
+function mediaPng(w, h) {
+  const key = `${w}x${h}`;
+  if (PNG_CACHE.has(key)) return PNG_CACHE.get(key);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; ihdr[9] = 2; // 8-bit RGB
+  const row = Buffer.alloc(1 + w * 3);
+  for (let x = 0; x < w; x++) { row[1 + x * 3] = 18; row[2 + x * 3] = 34; row[3 + x * 3] = 79; } // lapis
+  const raw = Buffer.concat(Array.from({ length: h }, () => row));
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", ihdr), pngChunk("IDAT", deflateSync(raw)), pngChunk("IEND", Buffer.alloc(0))]);
+  PNG_CACHE.set(key, png);
+  return png;
+}
 
 const TOKEN_FULL = "mock-access-token";
 const TOKEN_EMPTY = "mock-access-token-empty";
@@ -40,7 +74,12 @@ const SELLERS = {
        response_rate_percent: 90, response_time_label: "within_one_hour" },
   2: { id: 2, name: "Sara Ahmadi", city: "Herat", verified: false, avatar_url: null,
        response_rate_percent: null, response_time_label: null },
-  3: { id: 3, name: "Najib Rahimi", city: "Kabul", verified: true, avatar_url: null,
+  // 1.1.6: a photo with its 256px thumb (avatar_thumb_url), Rails-shaped like the
+  // api: the thumb is a representation of the same signed blob as the original,
+  // so RemoteImage can derive one from the other; photo-variants.spec.ts.
+  3: { id: 3, name: "Najib Rahimi", city: "Kabul", verified: true,
+       avatar_url: `http://localhost:${PORT}/rails/active_storage/blobs/redirect/av3/avatar-3-64x64.png`,
+       avatar_thumb_url: `http://localhost:${PORT}/rails/active_storage/representations/redirect/av3/vk/avatar-3-64x64.png`,
        response_rate_percent: 75, response_time_label: "within_a_day" },
 };
 
@@ -124,7 +163,8 @@ function catRef(id) {
 const LISTINGS = [
   { id: 1, title: "iPhone 13 Pro", price: 45000, currency: "AFN", status: "active", location: "Kabul", address: "Shar-e-Naw", condition: "good", category_id: 101, seller_id: 1, views_count: 120, created_at: "2026-06-20T10:00:00Z", price_drop_percent: 12, price_dropped_at: "2026-06-19T10:00:00Z", description: "Barely used iPhone 13 Pro, 256GB." },
   { id: 2, title: "Samsung 4K TV", price: 30000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "like_new", category_id: 1, seller_id: 2, views_count: 80, created_at: "2026-06-18T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "55 inch 4K smart TV." },
-  { id: 3, title: "Toyota Corolla 2015", price: 600000, currency: "AFN", status: "active", location: "Herat", address: null, condition: "fair", category_id: 2, seller_id: 1, views_count: 300, created_at: "2026-06-15T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Clean title, well maintained." },
+  // originalsOnly: 1 → an OLDER API's shape (image_urls, no variants): the fallback.
+  { id: 3, title: "Toyota Corolla 2015", price: 600000, currency: "AFN", status: "active", location: "Herat", address: null, condition: "fair", category_id: 2, seller_id: 1, views_count: 300, created_at: "2026-06-15T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Clean title, well maintained.", originalsOnly: 1 },
   // The one FIRM-PRICE listing (`negotiable: false`, a real `view :list` field):
   // drives the "Firm price" badge on a feed card and on the detail page, plus the
   // gate that hides the make-an-offer affordance. Every other row is negotiable,
@@ -152,7 +192,8 @@ const LISTINGS = [
   // The one listing NOBODY has messaged about (conversations_count 0, which Rails
   // always emits): drives the "count badge hides at zero" case that the majority
   // of owner views actually are.
-  { id: 5, title: "MacBook Pro M2", price: 90000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "good", category_id: 102, seller_id: 1, views_count: 210, conversations_count: 0, created_at: "2026-06-17T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "16GB RAM, 512GB SSD." },
+  // photos: 2 → image_urls + the 1.1.6 variants (photoFields); e2e/photo-variants.spec.ts.
+  { id: 5, title: "MacBook Pro M2", price: 90000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "good", category_id: 102, seller_id: 1, views_count: 210, conversations_count: 0, created_at: "2026-06-17T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "16GB RAM, 512GB SSD.", photos: 3, photoDims: ["40x30", "300x900", "1600x200"] },
   // Not in the public feed; reachable by id for detail edge cases.
   { id: 6, title: "Mountain Bike (Reserved)", price: 5000, currency: "AFN", status: "reserved", location: "Kabul", address: null, condition: "good", category_id: 2, seller_id: 2, views_count: 40, created_at: "2026-06-10T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Reserved for a buyer." },
   // Sold WITH a buyer, so it carries the owner-only `sale` block (`SALE_FIELD`)
@@ -362,7 +403,7 @@ function lifecycleFields(l) {
  *  block (see `detailedSeller`); a feed row has never carried them. */
 function listSeller(l) {
   const u = SELLERS[l.seller_id];
-  return { id: u.id, name: u.name, city: u.city, verified: u.verified, avatar_url: u.avatar_url };
+  return { id: u.id, name: u.name, city: u.city, verified: u.verified, avatar_url: u.avatar_url, avatar_thumb_url: u.avatar_thumb_url ?? null };
 }
 
 /** The trust summary the `:detailed` seller block adds (UserSerializer-derived
@@ -418,6 +459,33 @@ function saleView(l) {
  *                      plus the price_at_save / price_dropped / price_drop_amount
  *                      trio, which is null/false on every other :list surface.
  */
+// 1.1.6 photo variants (api image_thumb_urls / image_medium_urls beside the
+// original image_urls; thumbnail_url = the first photo at 600px). Only fixtures
+// with `photos` (all three) or `originalsOnly` (an older API: originals only)
+// have images; every other listing stays photoless, as before.
+const MEDIA = `http://localhost:${PORT}/media`;
+function photoFields(l, originalsKey = "image_urls") {
+  const n = l.photos || l.originalsOnly || 0;
+  if (!n) return {};
+  // `photoDims` names each photo's ORIGINAL size (default 1600x1200); a variant
+  // is that size fitted in the api's box (PublicImageUrl::SIZES: thumb 640 on
+  // the SHORT side / 1600 long, medium 1440x1440; thumbnail_url 600x600),
+  // never upscaled and never cropped — resize_to_limit, like Rails.
+  const dims = (i) => (l.photoDims?.[i] ?? "1600x1200").split("x").map(Number);
+  const BOX = { thumbnail: () => [600, 600], medium: () => [1440, 1440], thumb: ([w, h]) => (w >= h ? [1600, 640] : [640, 1600]) };
+  const fit = ([w, h], [bw, bh]) => {
+    const k = Math.min(1, bw / w, bh / h);
+    return [Math.round(w * k), Math.round(h * k)];
+  };
+  const urls = (size) => Array.from({ length: n }, (_, i) => {
+    const [w, h] = BOX[size] ? fit(dims(i), BOX[size](dims(i))) : dims(i);
+    return `${MEDIA}/${l.id}-${size}-${i}-${w}x${h}.png`;
+  });
+  const out = { [originalsKey]: urls("original"), thumbnail_url: urls("thumbnail")[0] };
+  if (l.photos) Object.assign(out, { image_thumb_urls: urls("thumb"), image_medium_urls: urls("medium") });
+  return out;
+}
+
 function listView(l, { viewedIds = null, savedIds = null, savedByListingId = null } = {}) {
   const save = savedByListingId?.[l.id] ?? null;
   return {
@@ -427,6 +495,7 @@ function listView(l, { viewedIds = null, savedIds = null, savedByListingId = nul
     negotiable: l.negotiable ?? true,
     thumbnail_url: null,
     image_urls: [],
+    ...photoFields(l),
     is_viewed: viewedIds?.includes(l.id) ?? false,
     is_saved: save !== null || (savedIds?.includes(l.id) ?? false),
     seller: listSeller(l),
@@ -469,6 +538,7 @@ function sellerListView(l) {
     shop_id: l.shop?.id ?? null,
     thumbnail_url: null,
     image_urls: [],
+    ...photoFields(l),
     // Rails emits this for every listing, 0 included — per-fixture override so a
     // listing with no chats can be asserted on.
     conversations_count: l.conversations_count ?? 2,
@@ -499,6 +569,7 @@ function detailView(l) {
     images: [],
     image_attachments: [],
     thumbnail_url: null,
+    ...photoFields(l, "images"),
     expired: l.expired ?? false,
     conversations_count: l.conversations_count ?? 2,
     saves_count: l.saves_count ?? 0,
@@ -843,6 +914,19 @@ const server = createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const path = url.pathname.replace(/^\/api\/v1/, "");
   const q = url.searchParams;
+
+  // ── Photos (1.1.6 photo variants, e2e/photo-variants.spec.ts) ─────────────
+  // /media/<name>: a real PNG whose size is in the name ("…-300x900.png"; 64x64
+  // when none), so tiny / portrait / panorama photos can be measured (also the
+  // Rails-shaped /rails/active_storage/… avatar urls); a name
+  // with "missing" is a 404, for the load-error fallback.
+  if (url.pathname.startsWith("/media/") || url.pathname.startsWith("/rails/active_storage/")) {
+    if (url.pathname.includes("missing")) return send(res, 404, { error: "not found" });
+    const m = /-(\d+)x(\d+)\.\w+$/.exec(url.pathname);
+    const body = mediaPng(m ? Number(m[1]) : 64, m ? Number(m[2]) : 64);
+    res.writeHead(200, { "Content-Type": "image/png", "Content-Length": body.length, "Cache-Control": "no-store" });
+    return res.end(body);
+  }
 
   // ── Basemap (hermetic) ────────────────────────────────────────────────────
   // The app fetches its map style and vector tiles from map.hatiwal.com in

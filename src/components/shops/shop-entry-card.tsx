@@ -61,7 +61,7 @@ export function ShopEntryCard() {
             data-testid={i === 0 ? "profile-my-shop" : `profile-my-shop-${card.id}`}
             className="flex items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
           >
-            <UserAvatar variant="shop" name={card.name} avatarUrl={card.logoUrl} size={44} />
+            <UserAvatar variant="shop" name={card.name} avatarUrl={card.logoUrl} avatarFallbackUrl={card.logoOriginalUrl} size={44} />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5">
                 <span className="truncate font-bold">{many ? card.name : t("mine")}</span>

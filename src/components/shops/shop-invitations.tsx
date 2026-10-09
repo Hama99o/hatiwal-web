@@ -58,7 +58,7 @@ export function ShopInvitationsSection() {
       </h2>
       {invites.map((invite) => (
         <div key={invite.id} className="flex items-start gap-3 rounded-xl border bg-card p-4" data-testid={`shop-invitation-${invite.id}`}>
-          <UserAvatar variant="shop" name={invite.shop.name} avatarUrl={invite.shop.logoUrl} size={44} />
+          <UserAvatar variant="shop" name={invite.shop.name} avatarUrl={invite.shop.logoUrl} avatarFallbackUrl={invite.shop.logoOriginalUrl} size={44} />
           <div className="min-w-0 flex-1 space-y-2">
             <p className="text-sm">
               {t("invitations.invitesYou", { inviter: invite.inviterName, shop: invite.shop.name, role: t(`roles.${invite.role}`) })}
@@ -83,7 +83,7 @@ export function InvitationRows() {
       <h3 className="text-sm font-bold text-muted-foreground">{t("invitations.groupTitle")}</h3>
       {invites.map((invite) => (
         <div key={invite.id} className="flex items-center gap-3 rounded-xl border p-3" data-testid={`shop-invitation-${invite.id}`}>
-          <UserAvatar variant="shop" name={invite.shop.name} avatarUrl={invite.shop.logoUrl} size={36} />
+          <UserAvatar variant="shop" name={invite.shop.name} avatarUrl={invite.shop.logoUrl} avatarFallbackUrl={invite.shop.logoOriginalUrl} size={36} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{invite.shop.name}</p>
             <p className="text-xs text-muted-foreground">{t(`roles.${invite.role}`)}</p>

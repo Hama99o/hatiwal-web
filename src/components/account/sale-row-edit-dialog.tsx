@@ -183,7 +183,7 @@ export function SaleRowEditDialog({
             {stagedBuyer ? (
               <UserIdentity
                 name={stagedBuyer.name}
-                avatarUrl={stagedBuyer.avatarUrl}
+                avatarUrl={stagedBuyer.avatarUrl} avatarFallbackUrl={stagedBuyer.avatarOriginalUrl}
                 size={36}
               />
             ) : (
@@ -228,7 +228,7 @@ export function SaleRowEditDialog({
                           >
                             <UserAvatar
                               name={buyer.name}
-                              avatarUrl={buyer.avatarUrl}
+                              avatarUrl={buyer.avatarUrl} avatarFallbackUrl={buyer.avatarOriginalUrl}
                               size={32}
                             />
                             <span className="truncate text-sm font-medium">

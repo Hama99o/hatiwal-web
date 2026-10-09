@@ -98,7 +98,7 @@ export function ManageListingView({ id }: { id: string }) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="grid gap-8 lg:grid-cols-2">
-        <ListingGallery images={listing.images} title={listing.title} />
+        <ListingGallery images={listing.images} mediums={listing.imageMediums} thumbs={listing.imageThumbs} title={listing.title} />
 
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">

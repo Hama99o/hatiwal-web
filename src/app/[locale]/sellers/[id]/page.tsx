@@ -81,7 +81,7 @@ export default async function SellerPage({ params }: { params: Params }) {
         <div className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center">
           <UserIdentity
             name={seller.name}
-            avatarUrl={seller.avatarUrl}
+            avatarUrl={seller.avatarUrl} avatarFallbackUrl={seller.avatarOriginalUrl}
             verified={seller.verified}
             subtitle={seller.city ?? t("seller.memberOnHatiwal")}
             layout="stacked"

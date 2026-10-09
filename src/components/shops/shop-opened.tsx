@@ -89,7 +89,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
         <p className="text-muted-foreground">{t("form.done.subtitle")}</p>
       </div>
       <div className="rounded-xl border bg-card p-4">
-        <UserIdentity variant="shop" name={shop.name} avatarUrl={shop.logoUrl} verified={shop.verified} size={48} />
+        <UserIdentity variant="shop" name={shop.name} avatarUrl={shop.logoUrl} avatarFallbackUrl={shop.logoOriginalUrl} verified={shop.verified} size={48} />
       </div>
       <button type="button" className={row} data-testid="shop-opened-add-product" onClick={async () => { await switchToAsync(shop.id); router.push("/listings/new"); }}>
         <Plus className="size-5 text-primary" /> {t("form.done.addProduct")}

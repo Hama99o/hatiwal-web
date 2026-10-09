@@ -32,7 +32,9 @@ export interface ListingsQuery {
 
 /** Raw listing as it arrives (after snake→camel) — price/lat/lng are strings. */
 export interface RawListing
-  extends Omit<Listing, "price" | "latitude" | "longitude" | "images"> {
+  extends Omit<Listing, "price" | "latitude" | "longitude" | "images" | "imageThumbs" | "imageMediums" | "cardImageUrl" | "cardImageSrcSet"> {
+  imageThumbUrls?: string[] | null;
+  imageMediumUrls?: string[] | null;
   price: string | number;
   latitude: string | number | null;
   longitude: string | number | null;
@@ -57,12 +59,26 @@ export function normalizeListing(raw: RawListing): Listing {
           ? [raw.thumbnailUrl]
           : [];
 
+  // A variant array is used only when it has one url per photo, in the same
+  // order; otherwise (an older API, a partial list) the next size down stands in.
+  const sameLength = (list?: string[] | null) => !!list && list.length === images.length && list.every(Boolean);
+  const realMediums = sameLength(raw.imageMediumUrls) ? (raw.imageMediumUrls as string[]) : null;
+  const realThumbs = sameLength(raw.imageThumbUrls) ? (raw.imageThumbUrls as string[]) : null;
+  const imageMediums = realMediums ?? images;
+  const imageThumbs = realThumbs ?? imageMediums;
+  const cardImageUrl = realThumbs?.[0] ?? realMediums?.[0] ?? raw.thumbnailUrl ?? images[0] ?? null;
+  const cardImageSrcSet = realThumbs && realMediums ? `${realThumbs[0]} 640w, ${realMediums[0]} 1440w` : null;
+
   return {
     ...raw,
     price: num(raw.price) ?? 0,
     latitude: num(raw.latitude),
     longitude: num(raw.longitude),
     images,
+    imageThumbs,
+    imageMediums,
+    cardImageUrl,
+    cardImageSrcSet,
   };
 }
 

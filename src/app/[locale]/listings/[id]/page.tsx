@@ -188,6 +188,8 @@ export default async function ListingDetailPage({
               a reservation can fall through. */}
           <ListingGallery
             images={listing.images}
+            mediums={listing.imageMediums}
+            thumbs={listing.imageThumbs}
             title={listing.title}
             dimmed={isSold}
           />
@@ -345,7 +347,7 @@ export default async function ListingDetailPage({
                     <UserIdentity
                       variant="shop"
                       name={listing.shop.name}
-                      avatarUrl={listing.shop.logoUrl}
+                      avatarUrl={listing.shop.logoUrl} avatarFallbackUrl={listing.shop.logoOriginalUrl}
                       verified={listing.shop.verified}
                       subtitle={listing.shop.city ?? listing.shop.province}
                       href={`/shops/${listing.shop.id}`}
@@ -355,7 +357,7 @@ export default async function ListingDetailPage({
                 ) : (
                   <UserIdentity
                     name={listing.seller.name}
-                    avatarUrl={listing.seller.avatarUrl}
+                    avatarUrl={listing.seller.avatarUrl} avatarFallbackUrl={listing.seller.avatarOriginalUrl}
                     verified={listing.seller.verified}
                     subtitle={listing.seller.city}
                     href={`/sellers/${listing.seller.id}`}
