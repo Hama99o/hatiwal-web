@@ -46,6 +46,8 @@ env:
     # Server-side (RSC/ISR + the /api/proxy route) fetches Rails directly here.
     # All real values come from .env.production (gitignored) — never hardcoded here.
     API_URL: <%= ENV.fetch("API_URL") %>
+    # Android App Links: the Play app-signing key SHA-256 (public; read from .env.production).
+    ANDROID_SHA256_CERT_FINGERPRINTS: <%= ENV.fetch("ANDROID_SHA256_CERT_FINGERPRINTS", "") %>
 
 aliases:
   logs: app logs -f
