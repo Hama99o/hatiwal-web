@@ -1,18 +1,19 @@
 // The self-hosted basemap (map.hatiwal.com) carries vector tiles for
-// Afghanistan, Pakistan and Iran — a tile outside that area comes back empty
-// (HTTP 204), so the map paints blank. Rather than show a blank box for an
-// out-of-area point (e.g. a diaspora user who taps "use my location" from
-// abroad), callers check this and render a fallback instead.
+// Afghanistan, Pakistan and the region around them — a tile outside that area
+// comes back empty (HTTP 204), so the map paints blank. Rather than show a blank
+// box for an out-of-area point (e.g. a diaspora user who taps "use my location"
+// from abroad), callers check this and render a fallback instead.
 //
 // WIDENED 2026-09-13, and the ORDER mattered: the owner reported the map
 // showing nothing for Pakistan, and the cause was the TILESET, not this box.
 // Widening here first would only have replaced an honest fallback with a blank
-// map. The AF+PK+IR tileset (862 MB, zoom 0-14) was built and deployed first;
-// this now matches the `bounds` those tiles and all 8 styles declare.
+// map. The wider tileset (862 MB, zoom 0-14) was built and deployed first; this
+// now matches the `bounds` those tiles and all 8 styles declare.
 //
-// Iran is inside the box deliberately — supported TECHNICALLY, with no
-// user-facing copy naming it. That is why the western edge is 44.0 and not the
-// ~60.3 an Afghanistan-and-Pakistan box would need.
+// This box is wider than the SERVICE area on purpose (western edge 44.0, not
+// the ~60.3 an Afghanistan-and-Pakistan box would need): it follows the tiles.
+// What counts as served is ./service-area.ts (Afghanistan + Pakistan since
+// 1.1.7); shrinking this box means rebuilding the tiles and the styles first.
 export const SERVICE_AREA_BOUNDS = {
   minLat: 23.6,
   maxLat: 39.8,

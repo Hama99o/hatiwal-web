@@ -144,7 +144,7 @@ test.describe("Bazaar location bar — web = app parity", () => {
     expect(url.searchParams.has("radius")).toBe(false);
   });
 
-  test("a place outside Afghanistan/Pakistan/Iran in me.location falls back to Kabul", async ({ page }) => {
+  test("a place outside Afghanistan/Pakistan in me.location falls back to Kabul", async ({ page }) => {
     await meWithLocation(page, { source: "guess", latitude: 25.2048, longitude: 55.2708, province: null }); // Dubai
     await page.goto("/en/bazaar");
     await expect(page.getByTestId("location-bar-place")).toHaveText("Kabul");
