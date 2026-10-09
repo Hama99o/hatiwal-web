@@ -1629,7 +1629,7 @@
       "makeStaff": "Make staff",
       "transfer": "Make owner",
       "transferTitle": "Make {name} the owner?",
-      "transferBody": "{name} will own the shop and you become a Manager. A Verified badge is removed: the new owner applies again with their own e-Tazkira. Only the new owner can give it back to you.",
+      "transferBody": "{name} will own the shop and you become a Manager. A Verified badge stays while you remain a Manager.",
       "transferConfirm": "Make owner",
       "roleChanged": "{name} is now {role}",
       "transferred": "{name} is now the owner",
