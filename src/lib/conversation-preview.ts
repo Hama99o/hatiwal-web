@@ -51,6 +51,11 @@ export function conversationPreviewText(
   t: PreviewTranslate,
   formatCurrency: FormatCurrency,
 ): string {
+  // A server notice, in the reader's language — the same key as its bubble
+  // (1.1.6 run-080: the stored body is frozen in the buyer's language).
+  if (conversation.lastMessageNotice?.notice === "listing_moved") {
+    return t("listing.move.notice", { name: conversation.lastMessageNotice.name ?? "" });
+  }
   switch (conversation.lastMessageKind) {
     case "meetup_proposal":
       return t("chat.preview.meetup");

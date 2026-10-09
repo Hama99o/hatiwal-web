@@ -569,3 +569,26 @@ test.describe("Conversations (guest)", () => {
     await expect(page).toHaveURL(/\/login/, { timeout: 20_000 });
   });
 });
+
+// e5, 1.1.6 run-080: the "listing moved" notice previewed as its stored body,
+// frozen in the BUYER's language at move time (English in a Pashto inbox).
+test.describe("conversationPreviewText — a server notice (1.1.6)", () => {
+  const withMove: PreviewTranslate = (key, values) =>
+    key === "listing.move.notice" ? `MOVED→${values?.name}` : t(key, values);
+
+  test("renders the notice in the reader's language, not the stored body", () => {
+    const row = conv({
+      lastMessageKind: "system",
+      lastMessageBody: "This listing moved to Kabul QA Cosmetics",
+      lastMessageNotice: { notice: "listing_moved", shopId: 1, name: "Kabul QA Cosmetics" },
+    });
+    expect(conversationPreviewText(row, withMove, enPrice)).toBe("MOVED→Kabul QA Cosmetics");
+    // Search matches what the row shows.
+    expect(filterConversations([row], "moved→kabul", withMove, enPrice)).toHaveLength(1);
+  });
+
+  test("an unknown notice (a newer server) falls back to the body", () => {
+    const row = conv({ lastMessageKind: "system", lastMessageBody: "Something new", lastMessageNotice: { notice: "future" } });
+    expect(conversationPreviewText(row, withMove, enPrice)).toBe("Something new");
+  });
+});

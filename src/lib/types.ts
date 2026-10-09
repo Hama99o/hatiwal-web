@@ -462,6 +462,12 @@ export interface Conversation {
   seller?: ConversationParticipant;
   lastMessageBody?: string | null;
   lastMessageKind?: MessageKind | null;
+  /**
+   * The last message's server notice ({notice, shopId, name}, as on the
+   * message), null otherwise: the preview renders it in the reader's language
+   * (`lastMessageBody` is frozen in the buyer's). Newer than v1.1.6's API.
+   */
+  lastMessageNotice?: Message["notice"];
   unreadCount?: number;
   blockedWithParticipant?: boolean;
 }
