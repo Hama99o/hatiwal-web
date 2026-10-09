@@ -173,3 +173,66 @@ test("location copy (en + ps); and the ps hub", async ({ page }) => {
   await page.goto("/en/bazaar");
   await expect(page.locator("body")).not.toContainText(/Iran/);
 });
+
+// ── 1.1.6 final gate (2026-10-09): what changed since the first smoke ─────────
+
+test("privacy: en has no translation note; ps says it is a translation and links to /en/privacy", async ({ page }) => {
+  await page.goto("/en/privacy");
+  await expect(page.locator("main")).toBeVisible();
+  await expect(page.getByTestId("privacy-translation-note")).toHaveCount(0);
+  await page.goto("/ps/privacy");
+  const note = page.getByTestId("privacy-translation-note");
+  await expect(note).toBeVisible();
+  await expect(note.locator("a")).toHaveAttribute("href", "/en/privacy");
+});
+
+test("photo variants: a listing card asks for a THUMB, and that url serves an image", async ({ page }) => {
+  await page.goto("/en/bazaar");
+  const card = page.locator(`a[href="/en/listings/${IDS.live}"] img`).first();
+  await expect(card).toBeVisible({ timeout: 60_000 });
+  const src = await card.getAttribute("src");
+  expect(src, "the card's src is a Rails variant (representation), not the original blob").toMatch(/\/rails\/active_storage\/representations\//);
+  const res = await page.request.get(src!); // follows the redirect to the stored variant
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toMatch(/^image\/(webp|jpeg)/);
+  // A real image, not an error page: WebP (RIFF…WEBP) or JPEG (FF D8) magic bytes.
+  // Tiny is fine — the seed's photo is a 48x48 fixture (its WebP is ~80 bytes).
+  const body = await res.body();
+  expect(body.subarray(0, 4).toString("latin1") === "RIFF" && body.subarray(8, 12).toString("latin1") === "WEBP" || (body[0] === 0xff && body[1] === 0xd8)).toBe(true);
+  await expect.poll(() => card.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+});
+
+test("suspend: the admin suspends the shop → a notice in the shop's Support thread; reactivate", async ({ page }) => {
+  const out = rails(`
+    ActiveJob::Base.queue_adapter = :inline
+    shop = Shop.find_by!(name: "Smoke Bazaar")
+    shop.suspend!(reason: "a smoke check")
+    t = Conversation.admin_shop_support_thread_for(shop)
+    abort "no shop Support thread" unless t
+    m = t.messages.order(:id).last
+    puts "THREAD=#{t.id}"
+    puts "LAST=#{m&.body}"
+  `);
+  expect(out).toMatch(/LAST=Smoke Bazaar is suspended by Hatiwal: a smoke check\./);
+  const thread = Number(/THREAD=(\d+)/.exec(out)![1]);
+  await signIn(page, "owner");
+  await page.goto(`/en/conversations/${thread}`);
+  await expect(page.getByText(/Smoke Bazaar is suspended by Hatiwal: a smoke check\./)).toBeVisible({ timeout: 30_000 });
+  rails(`ActiveJob::Base.queue_adapter = :inline; Shop.find_by!(name: "Smoke Bazaar").reactivate!`);
+});
+
+test("closed shop: the buyer's old messages still show the shop, never the staff member", async ({ page }) => {
+  rails(`ActiveJob::Base.queue_adapter = :inline; s = Shop.find_by!(name: "Smoke Bazaar"); s.close!; puts s.reload.status`);
+  await signIn(page, "buyer", "ps");
+  await page.goto(`/ps/conversations/${IDS.shop_chat}`);
+  await expect(page.getByText("Yes, come to the shop today.")).toBeVisible();
+  // CLOSED_SHOP_FACE.md: what the team wrote as the shop keeps the shop's name,
+  // marked Closed, with no person behind it. (The chat itself now continues with
+  // the owner personally, so his name in the header / inbox is by design.)
+  const shopLabel = page.getByTestId("message-closed-shop-sender");
+  await expect(shopLabel.first()).toBeVisible();
+  await expect(shopLabel.first().getByTestId("message-closed-shop-name")).toHaveText("Smoke Bazaar");
+  await expect(shopLabel.first().getByTestId("message-closed-shop-badge")).toBeVisible();
+  await expect(shopLabel.first()).not.toContainText(/Sami|Omar/);
+  await expect(page.getByText("Sami Rahimi")).toHaveCount(0);
+});
