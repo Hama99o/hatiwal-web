@@ -194,6 +194,7 @@
       "offerInvalid": "Enter a valid amount",
       "offerMessage": "💬 Offer: {amount} for '{title}'",
       "defaultMessage": "Hi, is this still available?",
+      "firstMessageQuantityTemplate": "Hi! I'd like to buy {qty} × {unitPrice} = {total}. Is this still available?",
       "reportSent": "Report submitted — thank you",
       "notFound": "Listing not found",
       "moreOptions": "More options",

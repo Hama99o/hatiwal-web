@@ -194,6 +194,7 @@
       "offerInvalid": "مقدار معتبر وارد کنید",
       "offerMessage": "💬 پیشنهاد: {amount} برای '{title}'",
       "defaultMessage": "سلام، آیا این هنوز موجود است؟",
+      "firstMessageQuantityTemplate": "سلام! می‌خواهم {qty} × {unitPrice} = {total} بخرم. آیا این هنوز موجود است؟",
       "reportSent": "گزارش ارسال شد — ممنون",
       "notFound": "آگهی یافت نشد",
       "moreOptions": "گزینه‌های بیشتر",

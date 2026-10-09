@@ -1027,6 +1027,7 @@
       "offerInvalid": "درست رقم درج کریں",
       "offerMessage": "💬 پیشکش: '{title}' کے لیے {amount}",
       "defaultMessage": "سلام، کیا یہ ابھی دستیاب ہے؟",
+      "firstMessageQuantityTemplate": "سلام! میں {qty} × {unitPrice} = {total} خریدنا چاہتا ہوں۔ کیا یہ اب بھی دستیاب ہے؟",
       "reportSent": "رپورٹ جمع ہو گئی — شکریہ",
       "notFound": "اشتہار نہیں ملا",
       "moreOptions": "مزید اختیارات",

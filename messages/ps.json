@@ -194,6 +194,7 @@
       "offerInvalid": "سمه اندازه دننه کړئ",
       "offerMessage": "💬 وړاندیز: {amount} د '{title}' لپاره",
       "defaultMessage": "سلام، ایا دا لاهم شتون لري؟",
+      "firstMessageQuantityTemplate": "سلام! زه غواړم {qty} × {unitPrice} = {total} واخلم. ایا دا لاهم شتون لري؟",
       "reportSent": "راپور وسپارل شو — مننه",
       "notFound": "اعلان ونه موندل شو",
       "moreOptions": "نور اختیارونه",

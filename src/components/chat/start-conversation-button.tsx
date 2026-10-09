@@ -15,6 +15,7 @@ import {
   startConversation,
 } from "@/lib/api/chat";
 import { formatPrice } from "@/lib/format";
+import { buildFirstMessage } from "@/lib/first-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,7 +110,12 @@ export function StartConversationButton({
   const isOwner = useIsOwner(sellerId);
   const [open, setOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
-  const [msg, setMsg] = useState("");
+  // 1.1.7 (mobile parity): on a multi-unit listing the message FOLLOWS the
+  // quantity ("I'd like to buy 3 × …") until the buyer types — `msgDraft` is
+  // their own text, null until then, and never overwritten. Closing the dialog
+  // forgets both (closeMessage), so the next opening starts fresh.
+  const [msgUnits, setMsgUnits] = useState(1);
+  const [msgDraft, setMsgDraft] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   /**
    * Units this offer is for. Default 1 — the overwhelmingly common case, and the
@@ -122,8 +128,17 @@ export function StartConversationButton({
    * with one item must never see that this feature exists.
    */
   const asksQuantity = perUnit && (availableUnits ?? 1) > 1;
+  const msg =
+    msgDraft ??
+    buildFirstMessage({ units: msgUnits, multiUnit: asksQuantity, unitPrice: price, currency, locale, t });
+  const closeMessage = () => {
+    setOpen(false);
+    setMsgDraft(null);
+    setMsgUnits(1);
+  };
   const [busy, setBusy] = useState(false);
   const msgTitleId = useId();
+  const msgUnitsId = useId();
   const offerTitleId = useId();
   const offerUnitsId = useId();
 
@@ -411,7 +426,7 @@ export function StartConversationButton({
       {/* Message dialog */}
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeMessage}
         labelledBy={msgTitleId}
         dismissible={!busy}
         className="max-w-sm space-y-4"
@@ -419,14 +434,28 @@ export function StartConversationButton({
         <h2 id={msgTitleId} className="text-lg font-semibold">
           {t("chat.startConversation.title")}
         </h2>
+        {asksQuantity && (
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium" htmlFor={msgUnitsId}>
+              {t("listing.detail.quantityAskingLabel")}
+            </label>
+            <QuantityStepper
+              id={msgUnitsId}
+              value={msgUnits}
+              onChange={setMsgUnits}
+              max={availableUnits ?? 1}
+              disabled={busy}
+            />
+          </div>
+        )}
         <Textarea
           value={msg}
-          onChange={(e) => setMsg(e.target.value)}
+          onChange={(e) => setMsgDraft(e.target.value)}
           rows={3}
           placeholder={t("chat.startConversation.placeholder")}
         />
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+          <Button variant="outline" onClick={closeMessage} disabled={busy}>
             {t("common.cancel")}
           </Button>
           <Button onClick={startMessage} disabled={busy || !msg.trim()}>

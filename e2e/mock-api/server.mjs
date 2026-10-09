@@ -331,8 +331,14 @@ const BIDI_LISTINGS = [
   { ...BIDI_BASE, id: 9203, title: "د ښځو ګرم کوټ، نوی", description: "ډېر ګرم او نوی کوټ دی." },
 ];
 
+// First-message quantity prefill (1.1.7, mobile parity): a multi-unit listing
+// the signed-in buyer (persona 1) does NOT own — every other multi-unit fixture
+// is theirs. Detail-only, like the bidi ones. e2e/first-message-quantity.spec.ts.
+const MULTI_UNIT_OTHER = { id: 9301, title: "Silicone Phone Cases (box)", price: 400, currency: "AFN", status: "active", location: "Herat", address: null, condition: "brand_new", category_id: 101, seller_id: 2, views_count: 9, quantity: 8, sold_units: 0, created_at: "2026-10-07T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "A box of identical cases." };
+
 function findListing(id) {
   return [
+    MULTI_UNIT_OTHER,
     ...BIDI_LISTINGS,
     SHOP_LISTING,
     ...LISTINGS,
