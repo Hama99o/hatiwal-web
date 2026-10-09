@@ -59,7 +59,7 @@ export const ANDROID_PACKAGE = "com.hatiwal.app";
 export const APP_SCHEME = "hatiwal";
 
 /** A page that exists BOTH on the web and in the app. */
-export type AppRoute = { kind: "listing" | "seller" | "shop"; id: number | string };
+export type AppRoute = { kind: "listing" | "seller" | "shop" | "join"; id: number | string };
 
 /**
  * The one map between the two route sets. Web and app name the same pages
@@ -71,6 +71,17 @@ const ROUTES: Record<AppRoute["kind"], { web: string; app: string }> = {
   seller: { web: "sellers", app: "seller" },
   // SHOP-1: web /shops/<id>, app hatiwal://shop/<id> (app/(main)/shop/[id]).
   shop: { web: "shops", app: "shop" },
+  // SHOP-3: a team invite — web /join/<token>, app hatiwal://join/<token>
+  // (app/(main)/join/[token]). Its id is a token, not a number.
+  join: { web: "join", app: "join" },
+};
+
+/** What an id looks like per kind: a number, or an invite token for join. */
+const ID_FORMAT: Record<AppRoute["kind"], RegExp> = {
+  listing: /^\d+$/,
+  seller: /^\d+$/,
+  shop: /^\d+$/,
+  join: /^[A-Za-z0-9_-]+$/,
 };
 
 /**
@@ -83,7 +94,7 @@ export function appRouteFromPath(pathname: string): AppRoute | null {
     const kind = (Object.keys(ROUTES) as AppRoute["kind"][]).find(
       (k) => ROUTES[k].web === parts[i],
     );
-    if (kind && /^\d+$/.test(parts[i + 1])) return { kind, id: parts[i + 1] };
+    if (kind && ID_FORMAT[kind].test(parts[i + 1])) return { kind, id: parts[i + 1] };
   }
   return null;
 }
@@ -180,4 +191,20 @@ export function dismissAppPrompt(): void {
     /* cookies off: it will simply be offered again next visit */
   }
   window.dispatchEvent(new Event(APP_PROMPT_CHANGED_EVENT));
+}
+
+// ── "Open in the Hatiwal app" (components/shared/open-in-app-button.tsx) ────
+//
+// Owner, 2026-10-09: shared shop / invite links opened the website on a phone
+// that HAS the app. Universal Links depend on Apple's AASA CDN copy (stale for
+// a day or two after a change) and never fire inside in-app browsers such as
+// WhatsApp's. A visible button that opens the app's custom scheme works in all
+// of them; if the app isn't installed, the visitor ends up at the store.
+
+/** How long a page that is still visible means "the app did not open". */
+export const OPEN_APP_FALLBACK_MS = 1600;
+
+/** Where the button goes first, per phone: Android's intent (store fallback built in), iPhone's deep link. */
+export function openInAppHref(route: AppRoute, platform: Exclude<DevicePlatform, "other">): string {
+  return platform === "android" ? androidIntentUrl(route) : appDeepLink(route);
 }

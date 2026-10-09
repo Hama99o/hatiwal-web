@@ -270,3 +270,58 @@ test.describe("Desktop", () => {
     await expect(page.getByTestId("app-prompt-icon")).toHaveCount(0);
   });
 });
+
+// ── "Open in the Hatiwal app" button (owner, 2026-10-09) ────────────────────
+// Shared shop / invite links opened the website on a phone WITH the app (Apple's
+// AASA CDN copy lagged, and WhatsApp's browser never fires Universal Links).
+// A visible button on every page that has an app twin, phones only.
+
+test.describe("Open-in-app button: route map", () => {
+  test("a team invite maps to the app's join screen; its id is a token", () => {
+    expect(appRouteFromPath("/ps/join/AbC_12-x")).toEqual({ kind: "join", id: "AbC_12-x" });
+    expect(appDeepLink({ kind: "join", id: "qa-team-link" })).toBe("hatiwal://join/qa-team-link");
+    expect(appDeepLink({ kind: "shop", id: 42 })).toBe("hatiwal://shop/42");
+    // A non-numeric id still never counts for a listing.
+    expect(appRouteFromPath("/en/listings/new")).toBeNull();
+  });
+});
+
+test.describe("Open-in-app button: Android", () => {
+  test.use(device("Pixel 7"));
+  for (const [path, re] of [
+    ["/en/listings/1", /^intent:\/\/listing\/1#Intent;scheme=hatiwal;package=com\.hatiwal\.app;/],
+    ["/en/sellers/1", /^intent:\/\/seller\/1#Intent;scheme=hatiwal;/],
+    ["/en/shops/42", /^intent:\/\/shop\/42#Intent;scheme=hatiwal;/],
+    ["/en/join/qa-team-link", /^intent:\/\/join\/qa-team-link#Intent;scheme=hatiwal;/],
+  ] as const) {
+    test(`${path}: opens the same page in the app (Play fallback via /download)`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", re, { timeout: 45_000 });
+      await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", /browser_fallback_url=.*%2Fdownload/);
+    });
+  }
+
+  test("RTL: translated (ps)", async ({ page }) => {
+    await page.goto("/ps/shops/42");
+    await expect(page.getByTestId("open-in-app")).toContainText("په هټیوال اپ کې پرانیزئ", { timeout: 45_000 });
+  });
+});
+
+test.describe("Open-in-app button: iPhone", () => {
+  test.use(device("iPhone 14"));
+  test("shop and invite use the app's own deep links", async ({ page }) => {
+    await page.goto("/en/shops/42");
+    await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", "hatiwal://shop/42", { timeout: 45_000 });
+    await page.goto("/en/join/qa-team-link");
+    await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", "hatiwal://join/qa-team-link", { timeout: 45_000 });
+  });
+});
+
+test.describe("Open-in-app button: desktop", () => {
+  test.use(device("Desktop Chrome"));
+  test("never shown", async ({ page }) => {
+    await page.goto("/en/shops/42");
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("open-in-app")).toHaveCount(0);
+  });
+});
