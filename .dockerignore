@@ -13,7 +13,11 @@ docker-compose*.yml
 README.md
 # Test/dev-only assets — not needed in the production image.
 e2e
+e2e-design
+e2e-real
 playwright.config.ts
+playwright.design.config.ts
+playwright.real.config.ts
 playwright-report
 test-results
 maestro
