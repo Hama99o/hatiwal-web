@@ -795,6 +795,9 @@
       "changeEmail": "Change email",
       "required": "Confirm your email first.",
       "resendIn": "{count, plural, one {Resend in # second} other {Resend in # seconds}}"
+    },
+    "google": {
+      "emailUnverified": "Google has not verified this email address. Verify it with Google, or sign in with your email and password."
     }
   },
   "saved": {
