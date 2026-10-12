@@ -9,7 +9,6 @@ import { Loader2 } from "lucide-react";
 import Script from "next/script";
 import { Link, useRouter } from "@/i18n/navigation";
 import { authFailureKey, useAuth } from "@/components/auth/auth-provider";
-import { googleFailureKey } from "@/lib/auth/google-error";
 import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -79,7 +78,7 @@ function GoogleSignInButton() {
         if (res.ok) {
           router.replace(currentNextDest());
         } else {
-          setGoogleError(t(authFailureKey(res.error) ?? googleFailureKey(res.error)));
+          setGoogleError(t(authFailureKey(res.error) ?? "auth.googleSignInFailed"));
         }
       },
     });

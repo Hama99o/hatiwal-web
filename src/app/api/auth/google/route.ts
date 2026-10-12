@@ -5,7 +5,6 @@ import { isSameOrigin } from "@/lib/auth/origin";
 import { writeTokenCookies } from "@/lib/auth/cookies";
 import { fetchMe } from "@/lib/auth/server";
 import type { DeviseTokens } from "@/lib/auth/devise";
-import { googleUpstreamError } from "@/lib/auth/google-error";
 
 export async function POST(req: Request) {
   if (!isSameOrigin(req))
@@ -35,7 +34,7 @@ export async function POST(req: Request) {
         { status: 403 },
       );
     }
-    return NextResponse.json({ error: googleUpstreamError(data?.code) }, { status: 401 });
+    return NextResponse.json({ error: "google_failed" }, { status: 401 });
   }
 
   // Google endpoint returns tokens in body, not headers
