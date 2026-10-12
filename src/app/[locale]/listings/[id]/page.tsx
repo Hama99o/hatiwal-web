@@ -6,7 +6,9 @@ import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListing, getSimilarListings } from "@/lib/api/listings";
-import { localizedAlternates } from "@/lib/seo";
+import { jsonLdHtml, localizedAlternates } from "@/lib/seo";
+import { SITE_URL } from "@/lib/env";
+import type { ListingCondition } from "@/lib/types";
 import { categoryName } from "@/lib/api/categories";
 import { safe, unlessNotFound } from "@/lib/api/safe";
 import { formatPrice, formatRelativeDate } from "@/lib/format";
@@ -51,6 +53,14 @@ import { profileHrefFor } from "@/lib/identity";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ locale: string; id: string }>;
+
+/** schema.org's item conditions. Only brand_new is new; the rest are used. */
+const CONDITION_SCHEMA: Record<ListingCondition, string> = {
+  brand_new: "https://schema.org/NewCondition",
+  like_new: "https://schema.org/UsedCondition",
+  good: "https://schema.org/UsedCondition",
+  fair: "https://schema.org/UsedCondition",
+};
 
 export async function generateMetadata({
   params,
@@ -154,23 +164,44 @@ export default async function ListingDetailPage({
     ? []
     : await safe(getSimilarListings(listing.id), []);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: listing.title,
-    description: listing.description ?? undefined,
-    image: listing.images,
-    category: listing.category ? categoryName(listing.category, "en") : undefined,
-    offers: {
-      "@type": "Offer",
-      price: listing.price,
-      priceCurrency: listing.currency,
-      availability:
-        listing.status === "sold"
-          ? "https://schema.org/SoldOut"
-          : "https://schema.org/InStock",
-    },
-  };
+  // Product + Offer structured data. Google reads it twice: "Product snippets"
+  // (price/availability under the result) and "Merchant listings" (Shopping).
+  // Merchant listings REQUIRE `image`, and 41 of 54 live listings had no photo
+  // (Search Console, 2026-10-12: 31 merchant listings "invalid"), so a listing
+  // without a photo emits no Product at all rather than an invalid one — a
+  // placeholder picture would be a false image of the item. The shipping and
+  // return-policy fields Google also asks for are WARNINGS, not errors, and
+  // are left out on purpose: Hatiwal does not ship (local meetup) and has no
+  // return policy to declare. See docs/SEO.md.
+  const pageUrl = `${SITE_URL}/${locale}/listings/${listing.id}`;
+  const jsonLd =
+    listing.images.length > 0 && Number(listing.price) > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: listing.title,
+          description: listing.description || listing.title,
+          image: listing.images,
+          url: pageUrl,
+          category: listing.category ? categoryName(listing.category, "en") : undefined,
+          offers: {
+            "@type": "Offer",
+            url: pageUrl,
+            price: Number(listing.price),
+            priceCurrency: listing.currency,
+            availability: isSold
+              ? "https://schema.org/SoldOut"
+              : "https://schema.org/InStock",
+            itemCondition: listing.condition
+              ? CONDITION_SCHEMA[listing.condition]
+              : undefined,
+            // A shop is a public business; a private seller is not named here.
+            seller: listing.shop
+              ? { "@type": "Organization", name: listing.shop.name }
+              : undefined,
+          },
+        }
+      : null;
 
   // The room the sticky <ListingActionBar> needs is reserved by the bar itself
   // (it renders its own spacer), not by padding here: only that component knows
@@ -183,10 +214,12 @@ export default async function ListingDetailPage({
       ownerShop={listing.shop ? { ownerId: listing.seller?.id, shopId: listing.shop.id } : null}
     >
       <div className="mx-auto max-w-6xl px-4 py-6">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
+          />
+        )}
         {/* Records this open into Recently Viewed for logged-in users (no-op for
             guests) — the SSR fetch above is a guest, so Rails can't attribute it. */}
         <RecordListingView id={listing.id} />

@@ -7,7 +7,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { routing, dir } from "@/i18n/routing";
 import { SITE_URL } from "@/lib/env";
-import { localizedAlternates } from "@/lib/seo";
+import { brandLabel } from "@/lib/seo";
 import { Providers } from "@/components/providers";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -98,13 +98,20 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "home" });
+  const brand = brandLabel(t("brandName"));
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: "Hatiwal", template: "%s — Hatiwal" },
+    // The default is the localized brand ("هټیوال (Hatiwal)" on /ps), so a page
+    // without a title of its own still names the brand in its own script.
+    title: { default: brand, template: "%s — Hatiwal" },
     description: t("hero.subtitle"),
-    // Canonical + hreflang for the home page. Pages with their own
-    // generateMetadata set their own alternates (they'd otherwise inherit these).
-    alternates: localizedAlternates(locale, "/"),
+    // NO alternates here. Metadata is inherited, so a canonical set in this
+    // layout became the canonical of every page that did not set its own:
+    // /en/login, /en/saved, /en/profile… all declared https://hatiwal.com/en as
+    // their canonical (measured on production, 2026-10-12), which Search
+    // Console reports as "Alternate page with proper canonical tag" and
+    // "Google chose different canonical". The home page sets its own now
+    // ([locale]/page.tsx); a page with no canonical is better than a wrong one.
     // iPhone: Apple's Smart App Banner on every page ("Open" when installed,
     // "Get" when not). Listing and seller pages override it with an
     // app-argument that lands on the same page in the app.
@@ -112,7 +119,7 @@ export async function generateMetadata({
     openGraph: {
       siteName: "Hatiwal",
       type: "website",
-      title: "Hatiwal",
+      title: brand,
       description: t("hero.subtitle"),
     },
     // Google Search Console ownership, for a URL-PREFIX property.

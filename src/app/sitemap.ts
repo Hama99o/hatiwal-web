@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
 import { getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
-import { getCategories } from "@/lib/api/categories";
+import { getCategories, flattenCategories } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
 import { routing } from "@/i18n/routing";
 import { SITE_URL as SITE } from "@/lib/env";
 import { apiGet } from "@/lib/api/client";
+import { localizedAlternates } from "@/lib/seo";
 
 /** SHOP-1: verified shops go in the sitemap (GET /shops?verified=true, guest). */
 async function getVerifiedShops(): Promise<{ id: number; updatedAt?: string }[]> {
@@ -22,45 +23,41 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getListings({ pageSize: 200, sort: "newest" }),
     EMPTY_LISTINGS,
   );
-  const categories = await safe(getCategories(), []);
+  // Only categories with stock: an empty one is noindexed (soft 404 otherwise),
+  // and a sitemap must not list pages that ask not to be indexed. Subcategories
+  // with stock are real landing pages too ("phones", "cars").
+  const categories = flattenCategories(
+    await safe(getCategories({ revalidate: 600, withCounts: true }), []),
+  ).filter((c) => (c.activeListingsCount ?? 1) > 0);
   const shops = await safe(getVerifiedShops(), []);
 
   const entries: MetadataRoute.Sitemap = [];
   for (const locale of routing.locales) {
-    entries.push({ url: `${SITE}/${locale}`, changeFrequency: "daily", priority: 1 });
-    entries.push({
-      url: `${SITE}/${locale}/bazaar`,
-      changeFrequency: "hourly",
-      priority: 0.9,
-    });
-    entries.push({
-      url: `${SITE}/${locale}/categories`,
-      changeFrequency: "weekly",
-      priority: 0.6,
-    });
-    entries.push({
-      url: `${SITE}/${locale}/download`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    });
-    for (const c of categories) {
+    // Each URL carries its hreflang set (en/ps/fa + x-default), the same one the
+    // page itself declares, so the three languages read as one page.
+    const add = (path: string, rest: Omit<MetadataRoute.Sitemap[number], "url">) =>
       entries.push({
-        url: `${SITE}/${locale}/categories/${c.slug}`,
-        changeFrequency: "daily",
-        priority: 0.7,
+        url: `${SITE}/${locale}${path}`,
+        alternates: { languages: localizedAlternates(locale, path).languages as Record<string, string> },
+        ...rest,
       });
+    add("", { changeFrequency: "daily", priority: 1 });
+    add("/bazaar", { changeFrequency: "hourly", priority: 0.9 });
+    add("/categories", { changeFrequency: "weekly", priority: 0.6 });
+    add("/download", { changeFrequency: "monthly", priority: 0.8 });
+    add("/privacy", { changeFrequency: "monthly", priority: 0.3 });
+    for (const c of categories) {
+      add(`/categories/${c.slug}`, { changeFrequency: "daily", priority: 0.7 });
     }
     for (const s of shops) {
-      entries.push({
-        url: `${SITE}/${locale}/shops/${s.id}`,
+      add(`/shops/${s.id}`, {
         lastModified: s.updatedAt,
         changeFrequency: "weekly",
         priority: 0.7,
       });
     }
     for (const l of items) {
-      entries.push({
-        url: `${SITE}/${locale}/listings/${l.id}`,
+      add(`/listings/${l.id}`, {
         lastModified: l.updatedAt ?? l.createdAt,
         changeFrequency: "daily",
         priority: 0.8,

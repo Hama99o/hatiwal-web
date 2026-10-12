@@ -8,7 +8,7 @@ import {
   categoryName,
 } from "@/lib/api/categories";
 import { getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
-import { localizedAlternates } from "@/lib/seo";
+import { localizedAlternates, NOINDEX } from "@/lib/seo";
 import { safe } from "@/lib/api/safe";
 import { Link } from "@/i18n/navigation";
 import { ListingGrid } from "@/components/shared/listing-grid";
@@ -27,11 +27,22 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const categories = await safe(getCategories(), []);
+  // Same request as the page below (Next memoizes it), so the counts are free.
+  const categories = await safe(
+    getCategories({ revalidate: 60, withCounts: true }),
+    [],
+  );
   const category = findCategoryBySlug(categories, slug);
   const alternates = localizedAlternates(locale, `/categories/${slug}`);
   if (!category) return { title: "Hatiwal", alternates };
-  return { title: categoryName(category, locale), alternates };
+  return {
+    title: categoryName(category, locale),
+    alternates,
+    // An empty category is a page that says "nothing here": Google files it as
+    // a soft 404. Keep it out of the index until it has stock (and out of the
+    // sitemap: src/app/sitemap.ts). An unknown count is treated as stocked.
+    ...(category.activeListingsCount === 0 ? { robots: NOINDEX } : {}),
+  };
 }
 
 export default async function CategoryPage({ params }: { params: Params }) {

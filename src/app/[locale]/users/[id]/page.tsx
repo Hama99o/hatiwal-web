@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 // A user's public profile is the same as the seller profile — one canonical page.
 export default async function UserProfileRedirect({
@@ -7,5 +7,5 @@ export default async function UserProfileRedirect({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  redirect(`/${locale}/sellers/${id}`);
+  permanentRedirect(`/${locale}/sellers/${id}`);
 }

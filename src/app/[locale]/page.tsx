@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Search } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -7,10 +8,53 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
 import { getCategories, categoryName } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
+import { brandLabel, homeJsonLd, jsonLdHtml, localizedAlternates } from "@/lib/seo";
 
 // Render fresh per request so short-lived Active Storage image URLs are valid
 // on load (stale ISR HTML served expired urls → broken thumbnails).
 export const dynamic = "force-dynamic";
+
+/**
+ * The home page carries the brand in every language: "Hatiwal — Buy and sell
+ * locally in Afghanistan", "هټیوال (Hatiwal) — …", "هتیوال (Hatiwal) — …".
+ * It used to be a bare "Hatiwal" on all three, which gave a search engine
+ * nothing to tie the name to (see docs/SEO.md).
+ */
+/**
+ * app/opengraph-image.png. Named here because a page that sets its own
+ * openGraph replaces the inherited one, file-based image included — without
+ * this the home page shared with no picture.
+ */
+const OG_IMAGE = { url: "/opengraph-image.png", width: 1200, height: 630, type: "image/png" };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "home" });
+  const title = `${brandLabel(t("brandName"))} — ${t("hero.title")}`;
+  const description = t("hero.subtitle");
+  const alternates = localizedAlternates(locale, "/");
+  return {
+    // absolute: the layout template would otherwise append a second "— Hatiwal".
+    title: { absolute: title },
+    description,
+    alternates,
+    openGraph: {
+      siteName: "Hatiwal",
+      type: "website",
+      url: alternates.canonical as string,
+      locale,
+      title,
+      description,
+      images: [OG_IMAGE],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE] },
+  };
+}
 
 export default async function HomePage({
   params,
@@ -27,8 +71,14 @@ export default async function HomePage({
   );
   const categories = await safe(getCategories({ revalidate: 600 }), []);
 
+  const jsonLd = homeJsonLd(locale, {
+    description: t("home.hero.subtitle"),
+    sameAs: [GOOGLE_PLAY_URL, APP_STORE_URL],
+  });
+
   return (
     <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       {/* Hero — left-aligned, with an in-page search (web-native GET form). */}
       <section className="border-b bg-gradient-to-br from-primary/10 via-background to-background">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:py-20 lg:py-24">

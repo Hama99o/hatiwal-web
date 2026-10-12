@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 // The marketplace moved to /bazaar (matching the mobile "Bazaar" naming).
 // Keep this as a permanent redirect so old links / bookmarks / indexed URLs
@@ -17,5 +17,5 @@ export default async function BrowseRedirect({
     for (const one of Array.isArray(v) ? v : v != null ? [v] : []) sp.append(k, one);
   }
   const qs = sp.toString();
-  redirect(`/${locale}/bazaar${qs ? `?${qs}` : ""}`);
+  permanentRedirect(`/${locale}/bazaar${qs ? `?${qs}` : ""}`);
 }
