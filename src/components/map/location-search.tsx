@@ -104,7 +104,7 @@ export function LocationSearch({
           // src/utils/geocoding.ts; the reverse lookup above stays UNSCOPED,
           // because a coordinate needs no country hint.
           // tiles, so an out-of-country result would recenter onto a blank map.
-          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=af,pk&limit=5&accept-language=${locale}&q=${encodeURIComponent(q)}`,
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=af,pk,ir&limit=5&accept-language=${locale}&q=${encodeURIComponent(q)}`,
           { signal: ctrl.signal },
         );
         const data: Suggestion[] = res.ok ? await res.json() : [];

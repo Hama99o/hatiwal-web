@@ -27,7 +27,7 @@ type Pending = { province: string; latitude: number | null; longitude: number | 
  * - A province alone saves that province and clears the old map point, so the
  *   two can never disagree.
  * - "Choose an area on the map" reveals the shared LocationMap for a precise point.
- * - Nothing outside Afghanistan/Pakistan is saved; a note says why.
+ * - Nothing outside Afghanistan/Pakistan/Iran is saved; a note says why.
  */
 export function LocationSheet({
   open,

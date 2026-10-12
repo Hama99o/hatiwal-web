@@ -14,7 +14,7 @@ import type { HomeLocation } from "@/lib/types";
  *
  * The rule (own address → guessed → Kabul) is resolved by the API and read
  * from `me.location`; it is never re-implemented here. Guests, an older API,
- * and anything outside Afghanistan/Pakistan get Kabul.
+ * and anything outside Afghanistan/Pakistan/Iran get Kabul.
  *
  * Also sends the browser-only clues:
  *   - `gps`: at most once a day, ONLY when geolocation is already granted
