@@ -20,11 +20,17 @@ export default function middleware(req: NextRequest) {
   }
 
   // A hidden locale (Urdu, for now) keeps old links alive: /ur/x → /en/x.
+  // 301, not 307: Google keeps a temporarily-redirected URL in its index, and
+  // /ur/categories/mens-clothing was still drawing impressions a week after
+  // Urdu was hidden (Search Console, 2026-10-12). A permanent redirect drops
+  // the /ur URL and hands its signals to /en. Un-hiding Urdu (routing.ts)
+  // removes this branch; a browser that cached the 301 sends that visitor to
+  // /en once more, and the language switcher brings them back.
   const [, first, ...rest] = req.nextUrl.pathname.split("/");
   if ((HIDDEN_LOCALES as readonly string[]).includes(first)) {
     const url = req.nextUrl.clone();
     url.pathname = `/${routing.defaultLocale}${rest.length ? `/${rest.join("/")}` : ""}`;
-    return NextResponse.redirect(url, 307);
+    return NextResponse.redirect(url, 301);
   }
   return intl(req);
 }
