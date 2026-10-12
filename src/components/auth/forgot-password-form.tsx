@@ -12,6 +12,7 @@ import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function ForgotPasswordForm() {
   const t = useTranslations();
@@ -32,6 +33,7 @@ export function ForgotPasswordForm() {
     resolver: zodResolver(schema),
     defaultValues: { email: "" },
   });
+  const hydrated = useHydrated();
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
@@ -66,7 +68,7 @@ export function ForgotPasswordForm() {
           </Link>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        <form method="post" onSubmit={onSubmit} className="space-y-4" noValidate>
           {formError && (
             <p
               role="alert"
@@ -87,7 +89,7 @@ export function ForgotPasswordForm() {
               {...register("email")}
             />
           </Field>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={!hydrated || isSubmitting}>
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             {t("auth.sendResetLink")}
           </Button>

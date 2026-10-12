@@ -12,6 +12,7 @@ import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface Props {
   token: string | null;
@@ -42,6 +43,7 @@ export function ResetPasswordForm({ token }: Props) {
     resolver: zodResolver(schema),
     defaultValues: { password: "", passwordConfirmation: "" },
   });
+  const hydrated = useHydrated();
 
   // No token — show an error with link to request a new one
   if (!token) {
@@ -102,7 +104,7 @@ export function ResetPasswordForm({ token }: Props) {
           </Link>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        <form method="post" onSubmit={onSubmit} className="space-y-4" noValidate>
           {formError && (
             <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {formError}
@@ -132,7 +134,7 @@ export function ResetPasswordForm({ token }: Props) {
               {...register("passwordConfirmation")}
             />
           </Field>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={!hydrated || isSubmitting}>
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             {t("auth.resetPassword")}
           </Button>

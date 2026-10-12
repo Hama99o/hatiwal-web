@@ -13,6 +13,7 @@ import { isInviteToken } from "@/lib/api/shop-team";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function RegisterForm() {
   const t = useTranslations();
@@ -61,6 +62,7 @@ export function RegisterForm() {
       passwordConfirmation: "",
     },
   });
+  const hydrated = useHydrated();
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
@@ -88,7 +90,7 @@ export function RegisterForm() {
       footerLinkLabel={t("auth.login")}
       footerHref={inviteToken ? `/login?next=${encodeURIComponent(`/join/${inviteToken}`)}` : "/login"}
     >
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="space-y-4" noValidate>
         {formError && (
           <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {formError}
@@ -137,7 +139,7 @@ export function RegisterForm() {
             {...register("passwordConfirmation")}
           />
         </Field>
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full" disabled={!hydrated || isSubmitting}>
           {isSubmitting && <Loader2 className="size-4 animate-spin" />}
           {t("auth.registerButton")}
         </Button>

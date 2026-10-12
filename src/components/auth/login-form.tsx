@@ -13,6 +13,7 @@ import { AuthCard } from "./auth-card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 declare global {
   interface Window {
@@ -143,6 +144,7 @@ export function LoginForm() {
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
+  const hydrated = useHydrated();
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
@@ -168,7 +170,7 @@ export function LoginForm() {
       footerLinkLabel={t("auth.register")}
       footerHref={signupHref}
     >
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="space-y-4" noValidate>
         {formError && (
           <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {formError}
@@ -202,7 +204,7 @@ export function LoginForm() {
             {t("auth.forgotPassword")}
           </Link>
         </div>
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full" disabled={!hydrated || isSubmitting}>
           {isSubmitting && <Loader2 className="size-4 animate-spin" />}
           {t("auth.loginButton")}
         </Button>
