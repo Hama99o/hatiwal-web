@@ -169,11 +169,14 @@ export default async function ListingDetailPage({
   // Merchant listings REQUIRE `image`, and 41 of 54 live listings had no photo
   // (Search Console, 2026-10-12: 31 merchant listings "invalid"), so a listing
   // without a photo emits no Product at all rather than an invalid one — a
-  // placeholder picture would be a false image of the item. The shipping and
-  // return-policy fields Google also asks for are WARNINGS, not errors, and
-  // are left out on purpose: Hatiwal does not ship (local meetup) and has no
-  // return policy to declare. See docs/SEO.md.
+  // placeholder picture would be a false image of the item. Shipping and
+  // returns are declared as what they are, which clears Google's two
+  // "missing field" warnings without inventing a policy: the item does not
+  // ship (buyers meet the seller) and it cannot be returned. See docs/SEO.md.
   const pageUrl = `${SITE_URL}/${locale}/listings/${listing.id}`;
+  // The country the listing is sold in, from its currency (USD listings are
+  // Afghan: the dollar circulates there).
+  const saleCountry = listing.currency === "PKR" ? "PK" : "AF";
   const jsonLd =
     listing.images.length > 0 && Number(listing.price) > 0
       ? {
@@ -195,6 +198,16 @@ export default async function ListingDetailPage({
             itemCondition: listing.condition
               ? CONDITION_SCHEMA[listing.condition]
               : undefined,
+            shippingDetails: {
+              "@type": "OfferShippingDetails",
+              doesNotShip: true,
+              shippingDestination: { "@type": "DefinedRegion", addressCountry: saleCountry },
+            },
+            hasMerchantReturnPolicy: {
+              "@type": "MerchantReturnPolicy",
+              applicableCountry: saleCountry,
+              returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+            },
             // A shop is a public business; a private seller is not named here.
             seller: listing.shop
               ? { "@type": "Organization", name: listing.shop.name }

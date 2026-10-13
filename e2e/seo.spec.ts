@@ -85,6 +85,21 @@ test.describe("SEO: listing Product structured data", () => {
     expect(product.offers.itemCondition).toBe("https://schema.org/UsedCondition");
   });
 
+  test("declares honestly: no shipping (local meetup) and no returns", async ({ request }) => {
+    const { ld } = await head(request, "/en/listings/3");
+    const offer = ld.find((d) => d["@type"] === "Product").offers;
+    expect(offer.shippingDetails).toEqual({
+      "@type": "OfferShippingDetails",
+      doesNotShip: true,
+      shippingDestination: { "@type": "DefinedRegion", addressCountry: "AF" },
+    });
+    expect(offer.hasMerchantReturnPolicy).toEqual({
+      "@type": "MerchantReturnPolicy",
+      applicableCountry: "AF",
+      returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+    });
+  });
+
   test("a listing without a photo emits no Product (Google requires an image)", async ({ request }) => {
     const h = await head(request, "/en/listings/1");
     expect(h.status).toBe(200);

@@ -31,11 +31,21 @@ Fix: a listing without a photo now emits no Product markup. A placeholder
 picture would not show the real item. Those listings drop out of the report;
 the ones with photos stay valid.
 
-Google will still show these as **warnings**, which do not make a page invalid
-and are left out on purpose:
+Shipping and returns (1.1.7) are declared as what they are, not left out:
 
-- `shippingDetails`: Hatiwal does not ship; buyers meet the seller.
-- `hasMerchantReturnPolicy`: there is no return policy to declare.
+- `shippingDetails`: `OfferShippingDetails` with `doesNotShip: true` and the
+  sale country (`AF`, or `PK` for a PKR listing). Buyers meet the seller.
+  Google's merchant-listing page lists only `shippingRate` + `shippingDestination`
+  for offer-level shipping; `doesNotShip` is documented on its shipping-policy
+  page (`ShippingConditions`), where `shippingRate` is dropped when it is true.
+  So this warning may not clear in every validator: check it in the Rich
+  Results Test once deployed.
+- `hasMerchantReturnPolicy`: `MerchantReturnPolicy` with
+  `returnPolicyCategory: MerchantReturnNotPermitted` and `applicableCountry`
+  (both required by Google; no `merchantReturnDays` needed for this category).
+
+Google will still show these as **warnings**, which do not make a page invalid:
+
 - `brand`, `gtin`, `aggregateRating`: we don't have this data.
 
 Making those up would be false structured data, which Google can penalise.
