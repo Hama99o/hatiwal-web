@@ -9,6 +9,18 @@ import {
   ListingGridSkeleton,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import type { Listing } from "@/lib/types";
+
+/**
+ * Which saved cards carry a lifecycle badge: only what is off the market. A
+ * SOLD listing (mobile 45526855) and an EXPIRED one, which stays saved but is
+ * out of the feed (e5 run-312: it read as live). Reserved stays unlabelled, as
+ * in the feed: a hold never stops a buyer from messaging. Mirrors mobile's
+ * `savedCardShowsStatus`.
+ */
+export function savedCardShowsStatus(listing: Listing): boolean {
+  return listing.status === "sold" || listing.expired === true;
+}
 
 export function SavedList() {
   const t = useTranslations();
@@ -37,7 +49,7 @@ export function SavedList() {
           action={{ label: t("saved.browseButton"), href: "/bazaar" }}
         />
       ) : (
-        <ListingGrid listings={data} priorityCount={4} />
+        <ListingGrid listings={data} priorityCount={4} showStatus={savedCardShowsStatus} />
       )}
     </div>
   );

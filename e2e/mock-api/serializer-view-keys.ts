@@ -104,6 +104,9 @@ export const LIST_VIEW_KEYS = [
   "price_at_save",
   "price_dropped",
   "price_drop_amount",
+  // 1.1.7 (api b263e54): the public "no longer on the market" flag, so Saved can
+  // label an expired listing. Still no `expires_at` (buyers never get the date).
+  "expired",
 ] as const;
 
 /**

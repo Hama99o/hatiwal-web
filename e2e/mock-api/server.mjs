@@ -550,6 +550,8 @@ function listView(l, { viewedIds = null, savedIds = null, savedByListingId = nul
     ...photoFields(l),
     is_viewed: viewedIds?.includes(l.id) ?? false,
     is_saved: save !== null || (savedIds?.includes(l.id) ?? false),
+    // The public flag only (buyers never get the date) — api 1.1.7 :list.
+    expired: l.expired ?? false,
     seller: listSeller(l),
     shop: l.shop ?? null,
     category: catRef(l.category_id),

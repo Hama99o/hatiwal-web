@@ -13,6 +13,35 @@ test.describe("Saved listings", () => {
   });
 });
 
+test.describe("Saved listings: lifecycle labels", () => {
+  test.use({ storageState: BUYER_STATE });
+
+  // e5 run-312: an expired listing stays saved but is off the market, and it
+  // read as live. Saved labels what is off the market (sold, expired) and
+  // nothing else: a live card stays as clean as in the feed.
+  test("labels a sold and an expired saved listing, and nothing on a live one", async ({ page }) => {
+    await page.route("**/api/me/my/saved_listings*", async (route) => {
+      const res = await route.fetch();
+      const json = await res.json();
+      json.listings = json.listings.map((l: { id: number }) =>
+        l.id === 4 ? { ...l, expired: true } : l.id === 2 ? { ...l, status: "sold" } : l,
+      );
+      await route.fulfill({ response: res, json });
+    });
+    await page.goto("/en/saved");
+    const card = (title: string) => page.locator("a", { hasText: title });
+    await expect(card("Winter Jacket").getByText("Expired", { exact: true })).toBeVisible();
+    await expect(card("Samsung 4K TV").getByText("Sold", { exact: true }).first()).toBeVisible();
+  });
+
+  test("a live saved listing carries no lifecycle badge", async ({ page }) => {
+    await page.goto("/en/saved");
+    const jacket = page.locator("a", { hasText: "Winter Jacket" });
+    await expect(jacket).toBeVisible();
+    await expect(jacket.getByText(/^(Expired|Sold|Active)$/)).toHaveCount(0);
+  });
+});
+
 test.describe("Saved listings (empty)", () => {
   test.use({ storageState: EMPTY_STATE });
 

@@ -49,7 +49,11 @@ export function ListingGrid({
   viewMode?: ListingViewMode;
   /** `page` (default) = full feed tracks; `rail` = 2→4 for a capped rail. */
   columns?: ListingGridColumns;
-  showStatus?: boolean;
+  /**
+   * Lifecycle badges on every card, or per card when a predicate (Saved labels
+   * only what is off the market: sold and expired).
+   */
+  showStatus?: boolean | ((listing: Listing) => boolean);
   /**
    * Caption photoless cards "No photo" — the OWNER's own inventory only (see the
    * prop on `ListingCard`). Never pass it on a buyer-facing grid.
@@ -77,7 +81,7 @@ export function ListingGrid({
           listing={listing}
           variant={viewMode}
           tracks={columns}
-          showStatus={showStatus}
+          showStatus={typeof showStatus === "function" ? showStatus(listing) : showStatus}
           nameMissingPhoto={nameMissingPhoto}
           showSave={showSave}
           priority={i < priorityCount}
