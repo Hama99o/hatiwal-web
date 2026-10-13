@@ -653,7 +653,8 @@
     "rights": "© {year, number, ::group-off} Hatiwal. All rights reserved.",
     "legal": "Legal",
     "privacy": "Privacy Policy",
-    "deleteAccount": "Delete account"
+    "deleteAccount": "Delete account",
+    "prohibitedItems": "Prohibited items"
   },
   "openInApp": {
     "cta": "Open in the Hatiwal app",
@@ -1670,5 +1671,37 @@
       "groupTitle": "Invitations",
       "continueSeller": "Continue to Seller mode"
     }
+  },
+  "prohibitedItems": {
+    "title": "Prohibited items",
+    "intro": "Hatiwal is a local marketplace for everyone in Afghanistan. To keep buyers and sellers safe, and to follow the law, these items can't be sold on Hatiwal.",
+    "firearmsTitle": "Weapons and firearms",
+    "firearmsBody": "Guns of any kind, hunting guns included: pistols, rifles, shotguns, air guns, and their parts.",
+    "ammunitionTitle": "Ammunition",
+    "ammunitionBody": "Bullets, cartridges, gunpowder and anything made to be fired.",
+    "explosivesTitle": "Explosives",
+    "explosivesBody": "Grenades, mines, dynamite, detonators and any other explosive.",
+    "drugsTitle": "Drugs",
+    "drugsBody": "Heroin, opium (taryak), hashish (chars), cannabis, methamphetamine and any other narcotic.",
+    "alcoholTitle": "Alcohol",
+    "alcoholBody": "Any alcoholic drink.",
+    "fakeDocumentsTitle": "Fake documents and money",
+    "fakeDocumentsBody": "Fake or forged tazkiras, passports, driving licences, diplomas or certificates, and counterfeit money.",
+    "stolenGoodsTitle": "Stolen goods",
+    "stolenGoodsBody": "Anything stolen, or anything you do not have the right to sell.",
+    "adultTitle": "Adult content",
+    "adultBody": "Pornography and sexual services.",
+    "gamblingTitle": "Gambling",
+    "gamblingBody": "Betting, casino games and gambling of any kind.",
+    "traffickingTitle": "People and human organs",
+    "traffickingBody": "Selling people, or human organs such as a kidney.",
+    "medicineTitle": "Medicines",
+    "medicineBody": "Medicines, especially prescription medicines and painkillers such as tramadol, are reviewed by our team and may be taken down.",
+    "allowedTitle": "Allowed",
+    "allowedBody": "Knives, tobacco, cigarettes, naswar and animals (sheep, goats, birds and others) can be sold on Hatiwal.",
+    "whatHappensTitle": "What happens to a listing",
+    "whatHappensBody": "Our team reviews listings that may break these rules. A listing that does is moved back to the seller's drafts, and the seller gets a message from Hatiwal Support saying why. A listing reported by several people is moved to drafts until our team has looked at it. Breaking the rules can also add a warning to the account: 3 active warnings suspend it.",
+    "reportTitle": "See something that shouldn't be here?",
+    "reportBody": "Open the listing, choose Report, then “Prohibited item”. Questions? Write to {email}."
   }
 }

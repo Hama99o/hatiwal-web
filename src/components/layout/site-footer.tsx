@@ -45,6 +45,12 @@ export function SiteFooter() {
             {t("footer.privacy")}
           </Link>
           <Link
+            href="/prohibited-items"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t("footer.prohibitedItems")}
+          </Link>
+          <Link
             href="/delete-account"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >

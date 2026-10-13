@@ -25,6 +25,36 @@ test.describe("Legal / static pages", () => {
     });
   }
 
+  // Prohibited items (owner, 2026-10-13): the API's take-down message links
+  // https://hatiwal.com/<locale>/prohibited-items, so it must exist in all three.
+  const brand = { en: "Hatiwal", ps: "هټیوال", fa: "هتیوال" } as const;
+  for (const locale of ["en", "ps", "fa"] as const) {
+    test(`prohibited items page renders (${locale})`, async ({ page }) => {
+      const resp = await page.goto(`/${locale}/prohibited-items`);
+      expect(resp?.status()).toBe(200);
+      await expect(page.locator("html")).toHaveAttribute("dir", locale === "en" ? "ltr" : "rtl");
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByTestId("prohibited-categories").getByRole("heading", { level: 2 })).toHaveCount(11);
+      await expect(page.getByTestId("prohibited-allowed")).toBeVisible();
+      await expect(page.locator("main, body").first()).toContainText(brand[locale]);
+      await expect(page.locator(`a[href="mailto:${SUPPORT_EMAIL}"]`).first()).toBeVisible();
+    });
+  }
+
+  test("prohibited items names hunting guns and what stays allowed (en)", async ({ page }) => {
+    await page.goto("/en/prohibited-items");
+    const body = page.locator("main, body").first();
+    await expect(body).toContainText("hunting guns included");
+    await expect(body).toContainText("Knives, tobacco, cigarettes, naswar and animals");
+  });
+
+  test("prohibited items is reachable from the footer", async ({ page }) => {
+    await page.goto("/en");
+    await page.getByRole("contentinfo").getByRole("link", { name: "Prohibited items" }).click();
+    await expect(page).toHaveURL(/\/en\/prohibited-items/);
+    await expect(page.getByRole("heading", { level: 1, name: "Prohibited items" })).toBeVisible();
+  });
+
   test("privacy is reachable from the footer", async ({ page }) => {
     await page.goto("/en");
     await page.getByRole("contentinfo").getByRole("link", { name: "Privacy Policy" }).click();
