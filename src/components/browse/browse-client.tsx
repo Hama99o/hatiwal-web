@@ -41,6 +41,7 @@ import {
   type ListingViewMode,
 } from "@/components/shared/listing-grid";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CategoryPills } from "@/components/shared/category-pills";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SearchBox } from "@/components/shared/search-box";
 import { useSearchHistory } from "@/lib/use-search-history";
@@ -813,6 +814,15 @@ export function BrowseClient({
         {/* Results */}
         {/* <section>, not <main>: the locale layout already renders the page's <main>. */}
         <section className="min-w-0">
+          {/* A search names itself (Dribbble "Results for …", Etsy): with only the
+              term inside the search box the grid read like the plain feed. */}
+          {filters.q && (
+            <h2 className="mb-3 text-xl font-bold tracking-tight" data-testid="results-for">
+              {/* The query is its own bidi isolate: a Latin term inside ps/fa
+                  guillemets otherwise drags the marks to the wrong ends. */}
+              {t("browse.resultsFor", { query: `\u2068${filters.q}\u2069` })}
+            </h2>
+          )}
           <div className="mb-4 flex items-center justify-between gap-3">
             {/* `data-testid`: the E2E digit fence (e2e/i18n-digits.spec.ts) reads
                 this count to prove `t()` and `formatPrice` agree on one digit
@@ -820,7 +830,7 @@ export function BrowseClient({
             {/* Phones: Filters sits in THIS row with sort + view (Etsy / Shop),
                 instead of a row of its own above it — one control row, not two
                 (docs/design/bazaar.md). On phones the place line below carries the context; the count is lg+. */}
-            <div className="lg:hidden">
+            <div className="shrink-0 lg:hidden">
               <Button
                 type="button"
                 variant="outline"
@@ -860,7 +870,10 @@ export function BrowseClient({
                 actually matters: a flex child defaults to min-width:auto and so
                 refuses to shrink below its content, which is why `flex-wrap`
                 alone would not have fixed it. */}
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            {/* No wrap: the sort select is the flex item that gives (min-w-0 down to
+                the select), so Filters (with its count badge) + sort + view stay one
+                row in every locale — wrapping broke it into 2-3 rows on phones. */}
+            <div className="flex min-w-0 items-center gap-2">
               {nearestLoading && (
                 <span
                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
@@ -872,7 +885,7 @@ export function BrowseClient({
                   </span>
                 </span>
               )}
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex min-w-0 items-center gap-2 text-sm">
                 <span className="hidden text-muted-foreground sm:inline">
                   {t("browse.sort.label")}
                 </span>
@@ -886,7 +899,7 @@ export function BrowseClient({
                   disabled={nearestLoading}
                   // Capped on phones so Filters + sort + view fit ONE row in every
                   // locale (the fa labels are wider); the open list stays full width.
-                  className={cn(SELECT_CLASS, "max-w-32 sm:max-w-none", nearestLoading && "opacity-70")}
+                  className={cn(SELECT_CLASS, "min-w-0 max-w-32 sm:max-w-none", nearestLoading && "opacity-70")}
                 >
                   <option value="home">{t("location.nearYou")}</option>
                   <option value="newest">{t("browse.sort.newest")}</option>
@@ -964,11 +977,24 @@ export function BrowseClient({
           ) : query.isPending ? (
             <ListingGridSkeleton count={12} viewMode={viewMode} />
           ) : items.length === 0 ? (
-            <EmptyState
-              icon={SlidersHorizontal}
-              title={t("browse.empty.title")}
-              description={t("browse.empty.description")}
-            />
+            /* Not a dead end (GetYourGuide "Go beyond"): one tap clears the search
+               and filters, and the categories are right there to browse instead. */
+            <div className="space-y-8">
+              <EmptyState
+                icon={SlidersHorizontal}
+                title={t("browse.empty.title")}
+                description={t("browse.empty.description")}
+                action={filterCount > 0 || filters.q ? { label: t("browse.clearAllFilters"), onClick: reset } : undefined}
+              />
+              <CategoryPills
+                categories={categories}
+                locale={locale}
+                heading={t("home.categoriesHeading")}
+                viewAllLabel={t("home.viewAll")}
+                headingId="browse-empty-categories"
+                size="sm"
+              />
+            </div>
           ) : (
             <>
               <ListingGrid

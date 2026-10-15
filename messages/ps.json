@@ -357,6 +357,7 @@
   },
   "browse": {
     "title": "بازار",
+    "resultsFor": "د «{query}» پایلې",
     "searchPlaceholder": "توکي لټوئ...",
     "allCategories": "ټولې ډلې",
     "activeSellers": "فعال پلورونکي",

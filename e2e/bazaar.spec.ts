@@ -465,7 +465,12 @@ test.describe("Bazaar feed (one tab, two users)", () => {
 
     // ── User A: fill the feed cache with a PERSONALISED payload ──────────────
     await signIn("buyer@hatiwal.test");
-    await gotoBazaar();
+    // The buyer@ persona is in Seller mode, where the header has no Bazaar link
+    // (it follows the mode, like mobile's tabs — docs/design/mode-switch.md).
+    // Switching to Buyer mode lands on the Bazaar, client-side, no reload.
+    await openAccountMenu("Ahmad Karimi");
+    await page.getByTestId("menu-mode-buyer").click();
+    await expect(page).toHaveURL(/\/en\/bazaar/, { timeout: 30_000 });
     await expect(page.getByText("Samsung 4K TV")).toHaveCount(0, {
       timeout: 30_000,
     });

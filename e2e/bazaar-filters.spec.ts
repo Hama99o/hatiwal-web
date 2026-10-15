@@ -45,10 +45,12 @@ test.describe("Bazaar filters", () => {
 
   // docs/design/bazaar.md: on a phone, Filters + sort + view are ONE row in every
   // locale (fa was 1px too wide and wrapped before the sort select was capped).
-  for (const locale of ["en", "ps", "fa"]) {
-    test(`phone (${locale}): Filters, sort and view share one row`, async ({ page }) => {
+  // ...including with a search + an active filter, whose count badge widens the
+  // Filters button (it wrapped the row before the sort select could shrink).
+  for (const [locale, qs] of [["en", ""], ["ps", ""], ["fa", ""], ["fa", "?q=iphone&condition=good"], ["en", "?q=iphone&condition=good"]]) {
+    test(`phone (${locale}${qs}): Filters, sort and view share one row`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
-      await page.goto(`/${locale}/bazaar`);
+      await page.goto(`/${locale}/bazaar${qs}`);
       const sort = page.locator("main select").first();
       await expect(sort).toBeVisible({ timeout: 60_000 });
       const filters = page.locator("main .lg\\:hidden > button").first();

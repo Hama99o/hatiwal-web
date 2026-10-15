@@ -467,6 +467,7 @@
   },
   "browse": {
     "title": "بازار",
+    "resultsFor": "«{query}» کے نتائج",
     "searchPlaceholder": "اشتہارات تلاش کریں...",
     "allCategories": "تمام اقسام",
     "activeSellers": "فعال بیچنے والے",

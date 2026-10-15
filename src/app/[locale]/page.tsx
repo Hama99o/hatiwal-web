@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ListingRail } from "@/components/shared/listing-rail";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getListings, EMPTY_LISTINGS } from "@/lib/api/listings";
-import { getCategories, categoryName } from "@/lib/api/categories";
+import { getCategories } from "@/lib/api/categories";
+import { CategoryPills } from "@/components/shared/category-pills";
 import { safe } from "@/lib/api/safe";
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
 import { brandLabel, homeJsonLd, jsonLdHtml, localizedAlternates } from "@/lib/seo";
@@ -126,35 +127,15 @@ export default async function HomePage({
       </section>
 
       <div className="mx-auto max-w-7xl space-y-10 px-4 py-8">
-        {categories.length > 0 && (
-          // One pill row (Airtasker / Shop): sideways scroll on phones, wraps on
-          // desktop — 12 tiles in a 2-column grid used to fill ~700px of a phone.
-          <section className="space-y-3" aria-labelledby="home-categories">
-            <div className="flex items-baseline justify-between gap-4">
-              <h2 id="home-categories" className="text-xl font-bold tracking-tight sm:text-2xl">
-                {t("home.categoriesHeading")}
-              </h2>
-              <Link href="/categories" className="text-sm font-medium text-primary hover:underline">
-                {t("home.viewAll")}
-              </Link>
-            </div>
-            <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-              {categories.map((category) => (
-                <li key={category.id} className="shrink-0">
-                  <Link
-                    href={`/categories/${category.slug}`}
-                    className="flex h-11 items-center gap-2 rounded-full border bg-card ps-3 pe-4 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <span aria-hidden className="text-lg leading-none">
-                      {category.icon ?? "📦"}
-                    </span>
-                    {categoryName(category, locale)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {/* One pill row (Airtasker / Shop): sideways scroll on phones, wraps on
+            desktop — 12 tiles in a 2-column grid used to fill ~700px of a phone. */}
+        <CategoryPills
+          categories={categories}
+          locale={locale}
+          heading={t("home.categoriesHeading")}
+          viewAllLabel={t("home.viewAll")}
+          headingId="home-categories"
+        />
 
         {/* Same shared section as the listing-detail cross-sell rails — heading +
             "view all" + grid live in ONE component (`size="lg"` is the

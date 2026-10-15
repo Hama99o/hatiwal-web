@@ -357,6 +357,7 @@
   },
   "browse": {
     "title": "Bazaar",
+    "resultsFor": "Results for “{query}”",
     "searchPlaceholder": "Search listings...",
     "allCategories": "All Categories",
     "activeSellers": "Active sellers",

@@ -357,6 +357,7 @@
   },
   "browse": {
     "title": "بازار",
+    "resultsFor": "نتایج برای «{query}»",
     "searchPlaceholder": "جستجوی آگهی‌ها...",
     "allCategories": "همه دسته‌بندی‌ها",
     "activeSellers": "فروشندگان فعال",
