@@ -264,7 +264,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       content = (
         <div className="space-y-5">
           <Store className="mx-auto size-14 text-primary" />
-          <h1 className="text-2xl font-extrabold">{t("form.why.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.why.title")}</h1>
           <ul className="space-y-3">
             {(
               [
@@ -290,7 +290,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
     case "name":
       content = (
         <div className="space-y-4">
-          <h1 className="text-2xl font-extrabold">{t("form.name.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.name.title")}</h1>
           <label className="block space-y-1.5">
             <span className="text-sm font-semibold">{t("form.name.nameLabel")}</span>
             <Input value={draft.name} maxLength={50} dir="auto" onChange={(e) => update({ name: e.target.value })} onBlur={() => setTouched((x) => ({ ...x, name: true }))} data-testid="shop-form-name-input" />
@@ -307,7 +307,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       showContinue = draft.categoryId != null;
       content = (
         <div className="space-y-4">
-          <h1 className="text-2xl font-extrabold">{t("form.category.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.category.title")}</h1>
           <p className="text-muted-foreground">{t("form.category.subtitle")}</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {top.map((c) => (
@@ -331,7 +331,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
     case "logo":
       content = (
         <div className="space-y-4">
-          <h1 className="text-2xl font-extrabold">{t("form.logo.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.logo.title")}</h1>
           <p className="text-muted-foreground">{t("form.logo.subtitle")}</p>
           <ImagePick label={t("form.logo.logo")} file={logo} existing={shop?.logoUrl} square onPick={setLogo} testId="shop-form-logo" />
           <ImagePick label={t("form.logo.cover")} file={cover} existing={shop?.coverUrl} onPick={setCover} testId="shop-form-cover" />
@@ -344,7 +344,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       const addrErr = touched.location && !draft.addressLine.trim();
       content = (
         <div className="space-y-4">
-          <h1 className="text-2xl font-extrabold">{t("form.location.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.location.title")}</h1>
           <p className="text-muted-foreground">{t("form.location.subtitle")}</p>
           <div data-testid="shop-form-pin">
             <LocationMap lat={draft.latitude} lng={draft.longitude} editable searchable className="h-72 rounded-lg" onChange={(lat, lng) => update({ latitude: lat, longitude: lng })} />
@@ -366,7 +366,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       const presetId = { satThu: "sat_thu", everyDay: "every_day", custom: "custom", none: "none" } as const;
       content = (
         <div className="space-y-3">
-          <h1 className="text-2xl font-extrabold">{t("form.hours.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.hours.title")}</h1>
           <p className="text-muted-foreground">{t("form.hours.subtitle")}</p>
           {(["satThu", "everyDay", "custom", "none"] as const).map((p) => (
             <button
@@ -435,7 +435,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
     case "contact":
       content = (
         <div className="space-y-4">
-          <h1 className="text-2xl font-extrabold">{t("form.contact.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.contact.title")}</h1>
           <p className="text-muted-foreground">{t("form.contact.subtitle")}</p>
           <label className="block space-y-1.5">
             <span className="text-sm font-semibold">{t("form.contact.phoneLabel")}</span>
@@ -465,7 +465,7 @@ export function ShopForm({ shopId }: { shopId?: number }) {
       );
       content = (
         <div className="space-y-3">
-          <h1 className="text-2xl font-extrabold">{t("form.review.title")}</h1>
+          <h1 className="text-title font-extrabold">{t("form.review.title")}</h1>
           {block("basics", t("form.review.basics"), `${draft.name}${category ? ` · ${categoryName(category, locale)}` : ""}`, "name")}
           {block("place", t("form.review.place"), draft.addressLine || notAdded, "location")}
           {block("hours", t("form.review.hours"), hoursLabel, "hours")}

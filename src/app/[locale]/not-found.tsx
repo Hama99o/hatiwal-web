@@ -10,7 +10,7 @@ export default function NotFound() {
       <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <SearchX className="size-7" />
       </div>
-      <h1 className="text-2xl font-bold">404</h1>
+      <h1 className="text-title font-extrabold">404</h1>
       <p className="text-muted-foreground">{t("common.noResults")}</p>
       <Button asChild>
         <Link href="/">{t("nav.browse")}</Link>

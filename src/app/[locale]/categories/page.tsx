@@ -246,7 +246,7 @@ function HubShell({
 }) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+      <h1 className="text-title font-extrabold text-foreground">{title}</h1>
       <div className="mt-6">{children}</div>
     </div>
   );

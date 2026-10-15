@@ -2,9 +2,10 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "./logo";
 
+// 32px rows with a mouse, 44px on a touch screen (#22: these were 20px tall).
 const LINK =
-  "rounded-sm text-sm text-foreground/75 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const HEADING = "text-xs font-semibold uppercase tracking-wider text-muted-foreground";
+  "inline-flex min-h-8 items-center rounded-sm text-sm text-foreground/75 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11";
+const HEADING = "mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground";
 
 /**
  * Site footer (visual-system.md §4): a `--surface` band, not a bordered card —
@@ -25,7 +26,7 @@ export function SiteFooter() {
             {t("footer.tagline")}
           </p>
         </div>
-        <nav aria-labelledby="footer-explore" className="flex flex-col items-start gap-3">
+        <nav aria-labelledby="footer-explore" className="flex flex-col items-start gap-1">
           <h2 id="footer-explore" className={HEADING}>
             {t("footer.explore")}
           </h2>
@@ -39,7 +40,7 @@ export function SiteFooter() {
             {t("nav.getApp")}
           </Link>
         </nav>
-        <nav aria-labelledby="footer-legal" className="flex flex-col items-start gap-3">
+        <nav aria-labelledby="footer-legal" className="flex flex-col items-start gap-1">
           <h2 id="footer-legal" className={HEADING}>
             {t("footer.legal")}
           </h2>

@@ -176,7 +176,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight" data-testid="shop-page-name" {...userTextProps(shop.name)}>
+          <h1 className="text-title font-extrabold" data-testid="shop-page-name" {...userTextProps(shop.name)}>
             {shop.name}
           </h1>
           {shop.verified && (

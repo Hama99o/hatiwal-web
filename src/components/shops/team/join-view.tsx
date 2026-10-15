@@ -146,7 +146,7 @@ export function JoinView({ token }: { token: string }) {
     return shell(
       <div className="flex flex-col items-center gap-4" data-testid="join-done">
         <PartyPopper className="size-11 text-primary" />
-        <h1 className="text-2xl font-extrabold">{t("team.join.doneTitle", { shop: invite.shop.name })}</h1>
+        <h1 className="text-title font-extrabold">{t("team.join.doneTitle", { shop: invite.shop.name })}</h1>
         <Button
           data-testid="join-start-selling"
           onClick={async () => {

@@ -182,7 +182,7 @@ export function TeamView({ shopId }: { shopId: number }) {
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-8" data-testid="shop-team">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="truncate text-2xl font-extrabold">{t("team.heading", { shop: shop?.name ?? "" })}</h1>
+        <h1 className="truncate text-title font-extrabold">{t("team.heading", { shop: shop?.name ?? "" })}</h1>
         {canInvite && (
           <Button onClick={() => setSheet("invite")} data-testid="team-invite">
             <UserPlus className="size-4" /> {t("team.invite")}

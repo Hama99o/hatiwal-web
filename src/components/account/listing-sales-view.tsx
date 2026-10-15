@@ -126,7 +126,7 @@ export function ListingSalesView({ id }: { id: string }) {
       </Button>
 
       <div className="mb-6 space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-title font-extrabold">
           {t("listing.salesScreen.title")}
         </h1>
         {/* The tally is a BATCH question ("how far through my 15 am I?"). A

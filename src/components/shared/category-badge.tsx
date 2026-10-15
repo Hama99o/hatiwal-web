@@ -109,7 +109,9 @@ export function CategoryBadge({
         // says nothing at all.
         aria-label={countLabel ? `${name} — ${countLabel}` : name}
         aria-current={ariaCurrent}
-        className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        // The chip keeps its size; on a touch screen an invisible box around it
+        // makes the target 44px tall (#22).
+        className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-2 pointer-coarse:after:content-['']"
       >
         {content}
       </Link>

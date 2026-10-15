@@ -67,7 +67,7 @@ export function SellerAnalyticsView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8" data-testid="seller-analytics">
-      <h1 className="text-2xl font-bold">{t("seller.analytics.title")}</h1>
+      <h1 className="text-title font-extrabold">{t("seller.analytics.title")}</h1>
 
       {/* Whose numbers these are — never ambiguous. */}
       <div className="flex items-center gap-3" data-testid="analytics-identity">

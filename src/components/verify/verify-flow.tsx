@@ -117,7 +117,7 @@ export function LockLine() {
 export function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="space-y-1.5">
-      <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
+      <h1 className="text-title font-extrabold">{title}</h1>
       {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
     </div>
   );
@@ -416,7 +416,7 @@ export function VerifyFlow({ shopId }: { shopId?: number } = {}) {
         <div className="mx-auto flex size-22 items-center justify-center rounded-full bg-warning/15">
           <Hourglass className="size-10 text-warning" />
         </div>
-        <h1 className="text-2xl font-extrabold">{t("done.title")}</h1>
+        <h1 className="text-title font-extrabold">{t("done.title")}</h1>
         <p className="text-muted-foreground">{t("done.body")}</p>
         <Button asChild className="w-full" data-testid={tid(forShop ? "done" : "done-close")}>
           <Link href={exitHref}>{t("done.close")}</Link>

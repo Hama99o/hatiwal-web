@@ -53,7 +53,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
   if (moving) {
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 py-8" data-testid="shop-move-listings">
-        <h1 className="text-2xl font-extrabold">{t("form.done.moveTitle")}</h1>
+        <h1 className="text-title font-extrabold">{t("form.done.moveTitle")}</h1>
         {mine && candidates.length === 0 && <p className="text-muted-foreground">{t("form.done.noListings")}</p>}
         <ul className="space-y-2">
           {candidates.map((l) => (
@@ -85,7 +85,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
     <div className="mx-auto max-w-lg space-y-4 px-4 py-10" data-testid="shop-open-success">
       <div className="space-y-2 text-center motion-safe:animate-in motion-safe:fade-in">
         <CheckCircle2 className="mx-auto size-16 text-success" />
-        <h1 className="text-2xl font-extrabold">{t("form.done.title")} 🎉</h1>
+        <h1 className="text-title font-extrabold">{t("form.done.title")} 🎉</h1>
         <p className="text-muted-foreground">{t("form.done.subtitle")}</p>
       </div>
       <div className="rounded-xl border bg-card p-4">

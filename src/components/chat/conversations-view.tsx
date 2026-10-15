@@ -347,7 +347,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
               }}
             />
           ) : (
-            <ul className="divide-y overflow-hidden rounded-lg border bg-card">
+            <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
               {rows.map((c) => {
                 const who = c.otherParticipant;
                 // Kind FIRST: a support thread also reports `listing: null` +

@@ -278,3 +278,13 @@ html:lang(fa) {
 .leaflet-control-attribution a {
   color: var(--muted-foreground) !important;
 }
+
+/* Map zoom buttons: 30px by default, 44px on a touch screen (web UI/UX QA #22). */
+@media (pointer: coarse) {
+  .leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+}
+

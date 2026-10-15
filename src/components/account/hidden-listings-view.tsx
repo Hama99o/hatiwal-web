@@ -82,7 +82,7 @@ export function HiddenListingsView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">{t("hidden.title")}</h1>
+      <h1 className="mb-6 text-title font-extrabold">{t("hidden.title")}</h1>
 
       {query.isError ? (
         <EmptyState

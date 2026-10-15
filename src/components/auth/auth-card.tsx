@@ -21,11 +21,13 @@ export function AuthCard({
 }: AuthCardProps) {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-10">
-      <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+      {/* Phones: the form sits on the page (Etsy / Airbnb sign-in); from sm a
+          lifted card (visual-system.md). */}
+      <div className="rounded-3xl bg-card px-1 py-2 sm:border sm:border-border/70 sm:p-10 sm:shadow-card">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <Logo />
           <div>
-            <h1 className="text-xl font-bold">{title}</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
             {subtitle && (
               <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
             )}

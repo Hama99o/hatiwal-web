@@ -58,6 +58,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { nativeSelectClass } from "@/components/ui/native-select";
 
 interface BrowseClientProps {
   initialResult: ListingsResult | null;
@@ -65,8 +66,7 @@ interface BrowseClientProps {
   categories: Category[];
 }
 
-const SELECT_CLASS =
-  "h-9 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const SELECT_CLASS = nativeSelectClass({ variant: "pill" });
 
 // Client-only view-mode preference (not in the URL), same ephemeral pattern as
 // the nearest-sort coords. Mirrors mobile's `browse-view-mode` store.
@@ -804,7 +804,7 @@ export function BrowseClient({
           <div
             className={cn(
               showFilters ? "block" : "hidden",
-              "rounded-xl border bg-card p-4 lg:block lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin]",
+              "rounded-2xl bg-surface p-4 lg:block lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin]",
             )}
           >
             {sidebar}

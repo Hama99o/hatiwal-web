@@ -120,7 +120,7 @@ export function SellerListingsView() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-title font-extrabold">
             {sellingAs ? t("shops.mine") : t("sidebar.myListings")}
           </h1>
           {/* Gated on real DATA, not `!isPending`: in TanStack v5 `isPending` is

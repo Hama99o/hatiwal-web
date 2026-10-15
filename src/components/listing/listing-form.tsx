@@ -32,6 +32,7 @@ import { RemoteImage } from "@/components/shared/remote-image";
 import { LocationMap } from "@/components/map/location-map";
 import { LocationSearch, reverseGeocode } from "@/components/map/location-search";
 import { cn } from "@/lib/utils";
+import { nativeSelectClass } from "@/components/ui/native-select";
 
 // AFN + PKR first — Hatiwal serves Afghanistan AND Pakistan, so a seller in
 // either country finds their own currency at the top. Must stay in step with
@@ -61,8 +62,7 @@ interface DraftSnapshot {
   lng: number | null;
   savedAt: number;
 }
-const SELECT_CLASS =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const SELECT_CLASS = nativeSelectClass({ variant: "field" });
 
 interface NewPhoto {
   file: File;
@@ -457,7 +457,7 @@ export function ListingForm({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold tracking-tight">
+      <h1 className="mb-6 text-title font-extrabold">
         {isEdit ? t("listing.edit") : t("listing.create")}
       </h1>
 
@@ -630,7 +630,7 @@ export function ListingForm({
                 type="button"
                 onClick={() => setValue("condition", condition === c ? "" : c)}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-sm transition-colors",
+                  "inline-flex h-9 items-center rounded-full border px-3.5 text-sm font-medium transition-colors pointer-coarse:h-11",
                   condition === c
                     ? "border-primary bg-primary text-primary-foreground"
                     : "bg-card hover:bg-accent",
@@ -644,7 +644,7 @@ export function ListingForm({
 
         {/* Firm / negotiable price — mirrors mobile's single toggle. Off = firm
             price (gates offers in chat); the backend defaults to negotiable. */}
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border bg-card p-4">
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border bg-card p-4">
           <span className="text-sm font-medium">
             {t("listing.form.negotiableLabel")}
           </span>
@@ -661,7 +661,7 @@ export function ListingForm({
             semantically an annex to price ("does this number mean one item or a
             lot?"). Collapsed to a single toggle when off, so a seller with one
             item sees no new field, no header, and no "1" to confirm. */}
-        <div className="space-y-3 rounded-lg border bg-card p-4">
+        <div className="space-y-3 rounded-2xl border bg-card p-4">
           <label className="flex cursor-pointer items-center justify-between gap-4">
             <span className="flex items-center gap-2 text-sm font-medium">
               <Boxes className="size-4 text-muted-foreground" />

@@ -15,11 +15,11 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { nativeSelectClass } from "@/components/ui/native-select";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
 
-const SELECT_CLASS =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const SELECT_CLASS = nativeSelectClass({ variant: "field" });
 
 export function EditProfileForm() {
   const t = useTranslations();
