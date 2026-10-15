@@ -63,9 +63,17 @@ export function ShareButton({
     try {
       await navigator.clipboard.writeText(url);
       toast.success(t("common.linkCopied"));
+      return;
     } catch {
-      toast.error(t("common.error"));
+      // In-app browsers (WhatsApp, Facebook) often block the async clipboard.
     }
+    if (legacyCopy(url)) {
+      toast.success(t("common.linkCopied"));
+      return;
+    }
+    // Last resort: show the link so it can still be copied by hand — a bare
+    // "Error" left the user with nothing (web UI/UX QA 2026-10-15).
+    toast.error(t("common.error"), { description: url });
   }
 
   async function onShare() {
@@ -98,4 +106,22 @@ export function ShareButton({
       {label ?? (canShare ? t("common.share") : t("common.copyLink"))}
     </Button>
   );
+}
+
+/** The pre-Clipboard-API copy: a selected off-screen textarea + execCommand. */
+function legacyCopy(text: string): boolean {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    ta.remove();
+  }
 }
