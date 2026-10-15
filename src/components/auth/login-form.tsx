@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import Script from "next/script";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -42,6 +42,7 @@ function currentNextDest(): string {
 
 function GoogleSignInButton() {
   const t = useTranslations();
+  const locale = useLocale();
   const { googleLogin } = useAuth();
   const router = useRouter();
   const divRef = useRef<HTMLDivElement>(null);
@@ -88,8 +89,11 @@ function GoogleSignInButton() {
       size: "large",
       width: divRef.current?.offsetWidth || 300,
       text: "continue_with",
+      // Without this GIS labels the button in the browser's own language, so an
+      // /en page on a French browser said "Continuer avec Google" (web UI/UX QA).
+      locale,
     });
-  }, [clientId, gsiReady, googleLogin, router, t]);
+  }, [clientId, gsiReady, googleLogin, router, t, locale]);
 
   if (!clientId) return null;
 
