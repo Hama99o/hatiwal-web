@@ -89,6 +89,12 @@ test.describe("Auth", () => {
 
     // ── User A: populate the saved-listings cache ────────────────────────────
     await signIn("buyer@hatiwal.test");
+    // The buyer@ persona is in Seller mode, and Saved is a BUYING item (the menu
+    // follows the mode, like mobile's tab bar — docs/design/mode-switch.md).
+    // Switch to Buyer mode from the same menu: a client-side push, no reload.
+    await openAccountMenu("Ahmad Karimi");
+    await page.getByTestId("menu-mode-buyer").click();
+    await expect(page).toHaveURL(/\/en\/bazaar/, { timeout: 30_000 });
     await openAccountMenu("Ahmad Karimi");
     await page.getByRole("menuitem", { name: /^Saved$/i }).click();
     await expect(page.getByText("Samsung 4K TV")).toBeVisible({ timeout: 30_000 });

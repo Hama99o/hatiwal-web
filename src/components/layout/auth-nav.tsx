@@ -2,14 +2,18 @@
 
 import { useTranslations } from "next-intl";
 import {
+  Check,
   Flag,
   Heart,
   LogOut,
   MessageSquare,
   Plus,
   ShieldOff,
+  ShoppingBag,
+  Store,
   Tag,
   User as UserIcon,
+  Users,
 } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -17,6 +21,8 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { CountBadge } from "@/components/shared/count-badge";
 import { Button } from "@/components/ui/button";
 import { DroppedToMeNotice } from "@/components/shops/dropped-to-me-notice";
+import { useSellingIdentity } from "@/components/shops/use-selling-identity";
+import { useModeSwitch } from "@/components/account/use-mode-switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +38,8 @@ export function AuthNav() {
   // SHOP-1: "My listings" as Me, "My shop" when selling as a shop.
   const myListingsLabel = user?.sellingAsShop ? t("shops.mine") : t("sidebar.myListings");
   const router = useRouter();
+  const mode = useModeSwitch();
+  const identity = useSellingIdentity();
 
   if (status === "loading") {
     return <div className="size-9 animate-pulse rounded-full bg-muted" />;
@@ -58,6 +66,7 @@ export function AuthNav() {
     <>
       {/* SHOP-1: "You were removed from …" once, if the server drops you to Me. */}
       <DroppedToMeNotice />
+      {mode.dialog}
       <Button
         asChild
         variant="ghost"
@@ -88,27 +97,6 @@ export function AuthNav() {
           />
         </Link>
       </Button>
-      {user.sellerMode && (
-        <>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden sm:inline-flex"
-          >
-            <Link href="/my-listings">
-              <Tag className="size-4" />
-              {myListingsLabel}
-            </Link>
-          </Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/listings/new">
-              <Plus className="size-4" />
-              {t("sidebar.createListing")}
-            </Link>
-          </Button>
-        </>
-      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -131,28 +119,109 @@ export function AuthNav() {
         <DropdownMenuContent align="end" className="min-w-48">
           <DropdownMenuLabel className="truncate">{name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {/* Buying / Selling — the same switch as Profile (useModeSwitch), here
+              so it is one tap from anywhere, like Airbnb's "Switch to hosting". */}
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+            {t("profile.modeToggleLabel")}
+          </DropdownMenuLabel>
+          {(["buyer", "seller"] as const).map((m) => {
+            const active = (m === "seller") === user.sellerMode;
+            return (
+              <DropdownMenuItem
+                key={m}
+                disabled={mode.busy}
+                onSelect={() => mode.select(m)}
+                data-testid={`menu-mode-${m}`}
+                aria-current={active ? "true" : undefined}
+                className={active ? "font-semibold" : undefined}
+              >
+                {m === "buyer" ? (
+                  <ShoppingBag className="size-4" />
+                ) : (
+                  <Store className={active ? "size-4 text-seller" : "size-4"} />
+                )}
+                {t(m === "buyer" ? "profile.buyerMode" : "profile.sellerMode")}
+                {active && <Check className="ms-auto size-4" aria-hidden />}
+              </DropdownMenuItem>
+            );
+          })}
+          {/* SHOP-1 "Sell as" — Seller mode only (Buyer mode is always personal,
+              owner 2026-10-05) and only with an active shop. The server decides
+              (PATCH users/me/selling_as checks membership); a refused switch says
+              so and refreshes `me`. */}
+          {user.sellerMode && identity.hasShop && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                {t("shops.sellAs")}
+              </DropdownMenuLabel>
+              {[{ id: null as number | null, name: `${t("shops.me")} · ${name}`, role: null as string | null },
+                ...identity.shops.map((sh) => ({ id: sh.id as number | null, name: sh.name, role: sh.role as string | null }))].map((o) => {
+                const active = (identity.sellingAs?.id ?? null) === o.id;
+                return (
+                  <DropdownMenuItem
+                    key={String(o.id)}
+                    disabled={identity.switching}
+                    onSelect={() => identity.switchTo(o.id)}
+                    data-testid={o.id === null ? "menu-sell-as-me" : `menu-sell-as-shop-${o.id}`}
+                    aria-current={active ? "true" : undefined}
+                  >
+                    {o.id === null ? <UserIcon className="size-4" /> : <Store className="size-4" />}
+                    <span className="min-w-0 flex-1 truncate">{o.name}</span>
+                    {o.role && (
+                      <span className="text-xs text-muted-foreground">
+                        {t(`shops.roles.${o.role}`)}
+                      </span>
+                    )}
+                    {active && <Check className="size-4" aria-hidden />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </>
+          )}
+          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/profile">
               <UserIcon className="size-4" />
               {t("sidebar.profile")}
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/my-listings">
-              <Tag className="size-4" />
-              {myListingsLabel}
-            </Link>
-          </DropdownMenuItem>
+          {user.sellerMode ? (
+            <>
+              <DropdownMenuItem asChild>
+                <Link href="/my-listings">
+                  <Tag className="size-4" />
+                  {myListingsLabel}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/listings/new">
+                  <Plus className="size-4" />
+                  {t("sidebar.createListing")}
+                </Link>
+              </DropdownMenuItem>
+              {/* Every member may see the team (ShopPolicy#team?). */}
+              {identity.sellingAs && (
+                <DropdownMenuItem asChild>
+                  <Link href={`/shops/${identity.sellingAs.id}/team`}>
+                    <Users className="size-4" />
+                    {t("shops.team.title")}
+                  </Link>
+                </DropdownMenuItem>
+              )}
+            </>
+          ) : (
+            <DropdownMenuItem asChild>
+              <Link href="/saved">
+                <Heart className="size-4" />
+                {t("sidebar.saved")}
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <Link href="/conversations">
               <MessageSquare className="size-4" />
               {t("sidebar.chat")}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/saved">
-              <Heart className="size-4" />
-              {t("sidebar.saved")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
@@ -165,15 +234,6 @@ export function AuthNav() {
             <Link href="/settings/reports">
               <Flag className="size-4" />
               {t("report.myReports.title")}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            asChild
-            className={user.sellerMode ? "sm:hidden" : undefined}
-          >
-            <Link href="/listings/new">
-              <Plus className="size-4" />
-              {t("sidebar.createListing")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
