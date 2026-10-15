@@ -740,9 +740,10 @@ test.describe("My Shop (seller dashboard)", () => {
       },
     );
     await page.goto("/en/my-listings");
-    // A skeleton card = a bordered card whose content is pulses.
+    // A skeleton card = a bordered card whose content is pulses (the owner
+    // card's panel is rounded-2xl since the visual system, docs/design/visual-system.md).
     const skeletonCard = page
-      .locator("main div.rounded-lg.border")
+      .locator("main div.rounded-2xl.border")
       .filter({ has: page.locator(".animate-pulse") })
       .first();
     await expect(skeletonCard).toBeVisible({ timeout: 30_000 });

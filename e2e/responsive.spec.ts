@@ -163,6 +163,20 @@ for (const vp of VIEWPORTS) {
         // 216-character shell shows none of them: a listing link, a deliberate
         // empty state, or the page's own heading (the shell is header + footer
         // only, and every heading here lives inside the client component).
+        // Wait for the STRUCTURE, not a character count: the header + footer
+        // shell alone grew past 200 characters (the footer's "Get the app"
+        // link, 2026-10-15), and a count gate then returned on the blank shell
+        // before the page had rendered — the same trap described above.
+        await page
+          .waitForFunction(
+            () =>
+              !!document.querySelector(
+                "a[href*='/listings/'], [data-testid='empty-state'], main h1, main h2",
+              ),
+            undefined,
+            { timeout: 25_000 },
+          )
+          .catch(() => {}); // the assertion below reports what was (not) there
         const bodyChars = await waitForContent(page, 200);
         const [listingLinks, emptyStates, headings] = await Promise.all([
           page.locator("a[href*='/listings/']").count(),

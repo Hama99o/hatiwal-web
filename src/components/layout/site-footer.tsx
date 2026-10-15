@@ -11,7 +11,8 @@ const HEADING = "mb-1 text-xs font-semibold uppercase tracking-wider text-muted-
  * Site footer (visual-system.md §4): a `--surface` band, not a bordered card —
  * Airbnb / Klarna. Each link group is a `<nav>` NAMED by its visible heading
  * (`aria-labelledby`), so the header's and the footer's navigation landmarks are
- * distinguishable (axe `landmark-unique`, report #23).
+ * distinguishable (axe `landmark-unique`, report #23). The labels are <p>, not
+ * headings: a footer column is not a section of the page's outline.
  */
 export function SiteFooter() {
   const t = useTranslations();
@@ -27,9 +28,9 @@ export function SiteFooter() {
           </p>
         </div>
         <nav aria-labelledby="footer-explore" className="flex flex-col items-start gap-1">
-          <h2 id="footer-explore" className={HEADING}>
+          <p id="footer-explore" className={HEADING}>
             {t("footer.explore")}
-          </h2>
+          </p>
           <Link href="/bazaar" className={LINK}>
             {t("nav.browse")}
           </Link>
@@ -41,9 +42,9 @@ export function SiteFooter() {
           </Link>
         </nav>
         <nav aria-labelledby="footer-legal" className="flex flex-col items-start gap-1">
-          <h2 id="footer-legal" className={HEADING}>
+          <p id="footer-legal" className={HEADING}>
             {t("footer.legal")}
-          </h2>
+          </p>
           <Link href="/privacy" className={LINK}>
             {t("footer.privacy")}
           </Link>
