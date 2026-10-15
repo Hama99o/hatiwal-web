@@ -5,7 +5,7 @@ test.describe("Auth", () => {
     await page.goto("/en/login");
     await expect(page.getByRole("heading", { name: /Welcome to Hatiwal/i })).toBeVisible();
     await expect(page.getByLabel(/Email/i)).toBeVisible();
-    await expect(page.getByLabel(/Password/i)).toBeVisible();
+    await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /Sign In/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Register/i })).toBeVisible();
   });
@@ -13,7 +13,7 @@ test.describe("Auth", () => {
   test("invalid credentials show an error", async ({ page }) => {
     await page.goto("/en/login");
     await page.getByLabel(/Email/i).fill("wrong@example.com");
-    await page.getByLabel(/Password/i).fill("badpassword");
+    await page.getByLabel("Password", { exact: true }).fill("badpassword");
     await page.getByRole("button", { name: /Sign In/i }).click();
     // The mock returns 401 → the form surfaces auth.loginError and stays on /login.
     await expect(page).toHaveURL(/\/login/);
@@ -28,7 +28,7 @@ test.describe("Auth", () => {
   test("valid credentials log in and leave the login page", async ({ page }) => {
     await page.goto("/en/login");
     await page.getByLabel(/Email/i).fill("buyer@hatiwal.test");
-    await page.getByLabel(/Password/i).fill("Password123!");
+    await page.getByLabel("Password", { exact: true }).fill("Password123!");
     await page.getByRole("button", { name: /Sign In/i }).click();
     await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
   });
@@ -62,7 +62,7 @@ test.describe("Auth", () => {
   test("a second user never sees the first user's saved listings", async ({ page }) => {
     async function signIn(email: string) {
       await page.getByLabel(/Email/i).fill(email);
-      await page.getByLabel(/Password/i).fill("Password123!");
+      await page.getByLabel("Password", { exact: true }).fill("Password123!");
       await page.getByRole("button", { name: /Sign In/i }).click();
       await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
     }
@@ -112,4 +112,54 @@ test.describe("Auth", () => {
     await expect(page.getByText("Samsung 4K TV")).toHaveCount(0);
     await expect(page.getByText("Winter Jacket")).toHaveCount(0);
   });
+});
+
+// ── Show / hide password (web UI/UX QA #28) ─────────────────────────────────
+
+test.describe("Password visibility toggle", () => {
+  test("login: shows and hides the password, without submitting", async ({ page }) => {
+    await page.goto("/en/login");
+    const field = page.locator("#password");
+    const toggle = page.getByRole("button", { name: "Show password" });
+    await field.fill("Secret123!");
+    await expect(field).toHaveAttribute("type", "password");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    await toggle.click();
+    await expect(field).toHaveAttribute("type", "text");
+    await expect(field).toHaveValue("Secret123!");
+    const hide = page.getByRole("button", { name: "Hide password" });
+    await expect(hide).toHaveAttribute("aria-pressed", "true");
+    await expect(page).toHaveURL(/\/en\/login$/); // not a submit
+
+    await hide.click();
+    await expect(field).toHaveAttribute("type", "password");
+    // 44px touch target.
+    const box = (await toggle.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test("signup: each field has its own toggle", async ({ page }) => {
+    await page.goto("/en/signup");
+    await expect(page.getByTestId("password-toggle")).toHaveCount(2);
+    await page.getByTestId("password-toggle").nth(1).click();
+    await expect(page.locator("#passwordConfirmation")).toHaveAttribute("type", "text");
+    await expect(page.locator("#password")).toHaveAttribute("type", "password");
+  });
+
+  for (const [locale, show] of [
+    ["fa", "نمایش رمز عبور"],
+    ["ps", "پټنوم ښکاره کړئ"],
+    // ur has its copy too, but the locale is hidden on web (/ur → /en).
+  ] as const) {
+    test(`${locale}: translated, and on the inline end (the left) of the field`, async ({ page }) => {
+      await page.goto(`/${locale}/login`);
+      const toggle = page.getByRole("button", { name: show });
+      await expect(toggle).toBeVisible();
+      const field = (await page.locator("#password").boundingBox())!;
+      const t = (await toggle.boundingBox())!;
+      expect(t.x + t.width / 2).toBeLessThan(field.x + field.width / 2);
+    });
+  }
 });

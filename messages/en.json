@@ -800,7 +800,9 @@
       "changeEmail": "Change email",
       "required": "Confirm your email first.",
       "resendIn": "{count, plural, one {Resend in # second} other {Resend in # seconds}}"
-    }
+    },
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "saved": {
     "title": "Saved",

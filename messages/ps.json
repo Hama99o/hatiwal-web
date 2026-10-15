@@ -800,7 +800,9 @@
       "changeEmail": "برېښنالیک بدل کړئ",
       "required": "لومړی خپل برېښنالیک تایید کړئ.",
       "resendIn": "{count, plural, one {له # ثانیې وروسته بیا لېږل} other {له # ثانیو وروسته بیا لېږل}}"
-    }
+    },
+    "showPassword": "پټنوم ښکاره کړئ",
+    "hidePassword": "پټنوم پټ کړئ"
   },
   "saved": {
     "title": "خوندي شوي",

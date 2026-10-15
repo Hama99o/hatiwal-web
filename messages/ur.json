@@ -465,7 +465,9 @@
       "changeEmail": "ای میل تبدیل کریں",
       "required": "پہلے اپنی ای میل کی تصدیق کریں۔",
       "resendIn": "{count, plural, one {# سیکنڈ بعد دوبارہ بھیجیں} other {# سیکنڈ بعد دوبارہ بھیجیں}}"
-    }
+    },
+    "showPassword": "پاس ورڈ دکھائیں",
+    "hidePassword": "پاس ورڈ چھپائیں"
   },
   "browse": {
     "title": "بازار",

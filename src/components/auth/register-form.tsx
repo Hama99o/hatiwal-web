@@ -12,6 +12,7 @@ import { AuthCard } from "./auth-card";
 import { isInviteToken } from "@/lib/api/shop-team";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { useHydrated } from "@/lib/use-hydrated";
 
@@ -120,9 +121,8 @@ export function RegisterForm() {
           htmlFor="password"
           error={errors.password?.message}
         >
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             {...register("password")}
           />
@@ -132,9 +132,8 @@ export function RegisterForm() {
           htmlFor="passwordConfirmation"
           error={errors.passwordConfirmation?.message}
         >
-          <Input
+          <PasswordInput
             id="passwordConfirmation"
-            type="password"
             autoComplete="new-password"
             {...register("passwordConfirmation")}
           />

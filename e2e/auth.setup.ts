@@ -24,7 +24,7 @@ async function login(page: import("@playwright/test").Page, email: string) {
   // gets, keeps the tight default action timeout everywhere else.
   await expect(page.getByLabel(/Email/i)).toBeVisible({ timeout: 60_000 });
   await page.getByLabel(/Email/i).fill(email);
-  await page.getByLabel(/Password/i).fill("Password123!");
+  await page.getByLabel("Password", { exact: true }).fill("Password123!");
   await page.getByRole("button", { name: /Sign In/i }).click();
   // Login redirects to /profile once authenticated. Generous: the setup runs
   // first and triggers the cold dev-mode compile of /login and /profile.

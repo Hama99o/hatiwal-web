@@ -444,7 +444,7 @@ test.describe("Bazaar feed (one tab, two users)", () => {
   test("B never inherits A's hidden / seen / saved state", async ({ page }) => {
     async function signIn(email: string) {
       await page.getByLabel(/Email/i).fill(email);
-      await page.getByLabel(/Password/i).fill("Password123!");
+      await page.getByLabel("Password", { exact: true }).fill("Password123!");
       await page.getByRole("button", { name: /Sign In/i }).click();
       await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
     }

@@ -365,7 +365,7 @@ test.describe("Auth forms (guest)", () => {
   async function signIn(page: Page) {
     await page.goto("/en/login");
     await page.getByLabel(/Email/i).fill("buyer@hatiwal.test");
-    await page.getByLabel(/Password/i).fill("Password123!");
+    await page.getByLabel("Password", { exact: true }).fill("Password123!");
     await page.getByRole("button", { name: /Sign In/i }).click();
   }
 
