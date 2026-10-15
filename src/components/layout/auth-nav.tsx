@@ -31,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { IdentityName } from "@/components/shops/identity-name";
 
 export function AuthNav() {
   const t = useTranslations();
@@ -113,7 +114,8 @@ export function AuthNav() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            // A 36px avatar in a 40 / 44px (touch) hit area (#22).
+            className="flex size-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:size-11"
             aria-label={name}
           >
             <span className="relative block">
@@ -168,8 +170,8 @@ export function AuthNav() {
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                 {t("shops.sellAs")}
               </DropdownMenuLabel>
-              {[{ id: null as number | null, name: `${t("shops.me")} · ${name}`, role: null as string | null },
-                ...identity.shops.map((sh) => ({ id: sh.id as number | null, name: sh.name, role: sh.role as string | null }))].map((o) => {
+              {[{ id: null as number | null, name, prefix: t("shops.me") as string | undefined, role: null as string | null },
+                ...identity.shops.map((sh) => ({ id: sh.id as number | null, name: sh.name, prefix: undefined, role: sh.role as string | null }))].map((o) => {
                 const active = (identity.sellingAs?.id ?? null) === o.id;
                 return (
                   <DropdownMenuItem
@@ -180,7 +182,7 @@ export function AuthNav() {
                     aria-current={active ? "true" : undefined}
                   >
                     {o.id === null ? <UserIcon className="size-4" /> : <Store className="size-4" />}
-                    <span className="min-w-0 flex-1 truncate">{o.name}</span>
+                    <IdentityName name={o.name} prefix={o.prefix} />
                     {o.role && (
                       <span className="text-xs text-muted-foreground">
                         {t(`shops.roles.${o.role}`)}

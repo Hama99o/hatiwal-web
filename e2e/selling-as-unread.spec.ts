@@ -43,3 +43,38 @@ test.describe("Selling as: other identities are a dot", () => {
     await expect(page.getByTestId("selling-as-other-unread")).toHaveCount(0);
   });
 });
+
+// Web UI/UX QA #26: as ONE string, "Me · <Latin name>" in an RTL row lost the
+// START of the name to the ellipsis ("…air Shopkeeper · خودم"). The name is now
+// its own isolate in its own direction, so it is cut at its END.
+test.describe("Sell as: Latin names truncate at their end in RTL", () => {
+  test.use({ storageState: BUYER_STATE, viewport: { width: 390, height: 844 } });
+
+  test("fa: a long Latin shop name keeps its first letters; the label never truncates", async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem("hatiwal.sell-as-asked-1", "1"));
+    const long = "Kabul Qandahar Wholesale Cosmetics And Perfume Corner";
+    await withSessionUser(page, {
+      sellerMode: true,
+      shops: [shopEntry(42, long)],
+      sellingAsShop: null,
+      unreadCounts: { buying: 0, sellingMe: 0, support: 0, shops: { "42": 0 } },
+    });
+    await page.goto("/fa/my-listings");
+    await page.getByTestId("selling-as-pill").click({ timeout: 60_000 });
+
+    const shopName = page.getByTestId("sell-as-option-shop-42").locator("bdi");
+    await expect(shopName).toHaveAttribute("dir", "ltr");
+    const m = await shopName.evaluate((el) => ({
+      truncated: el.scrollWidth > el.clientWidth,
+      direction: getComputedStyle(el).direction,
+      overflow: getComputedStyle(el).textOverflow,
+    }));
+    expect(m).toEqual({ truncated: true, direction: "ltr", overflow: "ellipsis" });
+
+    // The personal row: "خودم · " is its own, never-truncated part.
+    const me = page.getByTestId("sell-as-option-me");
+    const label = me.locator("bdi").locator("xpath=preceding-sibling::span[1]");
+    await expect(label).toContainText("·");
+    expect(await label.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  });
+});

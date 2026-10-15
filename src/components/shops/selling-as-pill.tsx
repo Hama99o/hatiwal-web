@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { CountBadge } from "@/components/shared/count-badge";
 import { sellAsAsk, useSellingIdentity } from "./use-selling-identity";
 import { InvitationRows } from "./shop-invitations";
+import { IdentityName } from "./identity-name";
 
 const askedKey = (userId: number) => `hatiwal.sell-as-asked-${userId}`;
 
@@ -63,8 +64,8 @@ export function SellingAsPill() {
     .reduce<number>((sum, id) => sum + (unreadFor(id) ?? 0), 0);
   const options = [
     // The avatar takes the person's own name: initials of "Me · Ahmad" read "M·".
-    { id: null as number | null, name: `${t("me")} · ${meName}`, avatarName: meName, logo: user.avatarUrl, shop: false },
-    ...shops.map((s) => ({ id: s.id as number | null, name: s.name, avatarName: s.name, logo: s.logoUrl, shop: true })),
+    { id: null as number | null, name: meName, prefix: t("me") as string | undefined, avatarName: meName, logo: user.avatarUrl, shop: false },
+    ...shops.map((s) => ({ id: s.id as number | null, name: s.name, prefix: undefined, avatarName: s.name, logo: s.logoUrl, shop: true })),
   ];
 
   return (
@@ -110,7 +111,7 @@ export function SellingAsPill() {
                   className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-start transition-colors hover:bg-accent", selected && "border-2 border-primary")}
                 >
                   <UserAvatar variant={o.shop ? "shop" : "user"} name={o.avatarName} avatarUrl={o.logo} size={36} />
-                  <span className="flex-1 truncate font-semibold">{o.name}</span>
+                  <IdentityName name={o.name} prefix={o.prefix} className="font-semibold" />
                   <UnreadDot count={unreadFor(o.id)} />
                   {selected && <Check className="size-4 text-primary" />}
                 </button>
