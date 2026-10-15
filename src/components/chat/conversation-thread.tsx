@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -278,9 +278,13 @@ export function ConversationThread({ id }: { id: string }) {
   // search bar), so the old fixed `100vh - 4rem` overshot the screen by ~53px and
   // the composer started below the fold (web UI/UX QA, 390x844).
   const [headerH, setHeaderH] = useState(64);
-  useEffect(() => {
+  // Layout effect: measured before paint, so the thread never first renders at
+  // the 64px guess and then jumps (CLS 0.18 on desktop with an effect).
+  useLayoutEffect(() => {
     const header = document.querySelector("header");
-    if (!header || typeof ResizeObserver === "undefined") return;
+    if (!header) return;
+    setHeaderH(header.getBoundingClientRect().height);
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => setHeaderH(header.getBoundingClientRect().height));
     observer.observe(header);
     return () => observer.disconnect();
@@ -621,8 +625,13 @@ export function ConversationThread({ id }: { id: string }) {
   }
 
   if (convQ.isPending || msgsQ.isPending) {
+    // Same frame as the loaded thread below, so the swap moves nothing (a full-
+    // width 60vh box here made the thread "shift" in: CLS 0.18 at 1440).
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div
+        className="mx-auto flex max-w-3xl items-center justify-center"
+        style={{ height: `calc(100dvh - ${headerH}px)` }}
+      >
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     );
