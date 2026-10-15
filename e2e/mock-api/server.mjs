@@ -859,7 +859,16 @@ const BLOCKED_USERS = [
 ];
 
 const SAVED_SEARCHES = [
-  { id: 1, name: "Cheap phones in Kabul", query: { search: "phone", category_id: 101, location: "Kabul" }, created_at: "2026-06-10T10:00:00Z" },
+  // Real shape = SavedSearchSerializer (api saved_search_serializer.rb): flat
+  // fields, NOT the old {name, query} the web never read. The web reads
+  // category_name / location_based / radius / new_matches_count.
+  {
+    id: 1, location: "Kabul", price_min: null, price_max: 50000,
+    latitude: null, longitude: null, radius: null,
+    created_at: "2026-06-10T10:00:00Z", last_viewed_at: null,
+    category_id: 101, category_name: "Phones", location_based: false,
+    new_matches_count: 3,
+  },
 ];
 
 function analytics() {
@@ -1153,9 +1162,21 @@ function route(req, res, method, path, q, body, raw = "") {
   if (method === "GET" && publicProfileMatch) {
     const s = SELLERS[Number(publicProfileMatch[1])];
     if (!s) return send(res, 404, { error: "Not found" });
+    // Real API renders UserSerializer :public here: `full_name` (NOT `name`),
+    // `province`, `is_away` + `away_until` (NOT `seller_away_until`). SELLERS is
+    // shared with the hand-rolled conversation person blocks, which DO use
+    // `name`, so remap only on this endpoint. (The old fixture shipped the
+    // pre-BUG-1 `name`/`seller_away_until` shape, which left the no-listings
+    // seller page nameless in tests and would have masked a `.name` regression.)
+    const { name, seller_away_until, city, ...rest } = s;
     return send(res, 200, {
       user: {
-        ...s,
+        ...rest,
+        full_name: name,
+        province: city ?? null,
+        is_away: Boolean(seller_away_until),
+        away_until: seller_away_until ?? null,
+        last_active_label: null,
         avg_rating: s.id === 1 ? 4.7 : null,
         review_count: s.id === 1 ? 3 : 0,
         // api f1fac84: the month joined, as a date the client formats.
@@ -1802,6 +1823,17 @@ function route(req, res, method, path, q, body, raw = "") {
     if (!requireAuth()) return;
     if (method === "GET") return send(res, 200, { saved_searches: empty ? [] : SAVED_SEARCHES });
     if (method === "POST") return send(res, 201, { saved_search: SAVED_SEARCHES[0] });
+  }
+  const ssMarkSeen = path.match(/^\/users\/saved_searches\/(\d+)\/mark_seen$/);
+  if (ssMarkSeen && method === "PUT") {
+    if (!requireAuth()) return;
+    const id = Number(ssMarkSeen[1]);
+    const ss = SAVED_SEARCHES.find((x) => x.id === id) ?? SAVED_SEARCHES[0];
+    // Real API (SavedSearchesController#mark_seen) returns the row with the
+    // badge cleared.
+    return send(res, 200, {
+      saved_search: { ...ss, new_matches_count: 0, last_viewed_at: new Date().toISOString() },
+    });
   }
   const ssDelete = path.match(/^\/users\/saved_searches\/(\d+)$/);
   if (ssDelete && method === "DELETE") {
