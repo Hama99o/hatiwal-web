@@ -50,10 +50,16 @@ export function LocationMap({
 
   return (
     <>
-      {/* No `overflow-hidden` on the frame: the map is clipped by its own inner
+      {/* `isolate` (isolation: isolate) is load-bearing: Leaflet gives its panes
+          z-index 400, and without a stacking context here those panes competed
+          globally and painted OVER the fixed z-50 dialog host — the map covered
+          the Report dialog's reason list and the fa Submit button (e5 BUG-2).
+          Isolating the frame contains every Leaflet layer below any dialog /
+          sheet / popover / toast, on every surface that mounts this map.
+          No `overflow-hidden` on the frame: the map is clipped by its own inner
           layer, which lets the search dropdown spill past the map's bottom edge
           instead of being cut off. */}
-      <div className={cn("relative rounded-lg border bg-muted", className)}>
+      <div className={cn("relative isolate rounded-lg border bg-muted", className)}>
         {outsideAfghanistan ? (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center">
             <MapPinOff className="size-6 text-muted-foreground" />
