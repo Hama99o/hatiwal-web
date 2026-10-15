@@ -28,6 +28,10 @@ export interface ListingsQuery {
   sellerType?: "shop";
   /** SHOP-1: one shop's products (shop page). */
   shopId?: number;
+  /** Stays: rooms for at least this many guests. */
+  guests?: number;
+  /** Stays: rooms with ALL of these amenities. */
+  amenities?: string[];
 }
 
 /** Raw listing as it arrives (after snake→camel) — price/lat/lng are strings. */
@@ -105,6 +109,8 @@ function toParams(q: ListingsQuery): QueryParams {
     seller_active_days: q.sellerActiveDays,
     seller_type: q.sellerType,
     shop_id: q.shopId,
+    guests: q.guests && q.guests > 0 ? q.guests : undefined,
+    "amenities[]": q.amenities?.length ? q.amenities : undefined,
   };
 }
 

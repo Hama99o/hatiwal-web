@@ -202,6 +202,7 @@ export function ListingCard({
             <div className="flex flex-wrap items-center gap-2">
               <PriceTag
                 price={listing.price}
+                unit={listing.priceUnit}
                 currency={listing.currency}
                 size="md"
                 perUnit={hasStockToShow(listing)}
@@ -286,6 +287,7 @@ export function ListingCard({
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <PriceTag
               price={listing.price}
+              unit={listing.priceUnit}
               currency={listing.currency}
               size="md"
               perUnit={hasStockToShow(listing)}

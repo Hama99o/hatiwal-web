@@ -1,4 +1,5 @@
 import { findCategoryBySlug } from "@/lib/api/categories";
+import { isStayAmenity, isStayCategory } from "@/lib/stays";
 import type { Category, ListingSort } from "@/lib/types";
 import type { ListingsQuery } from "@/lib/api/listings";
 
@@ -48,6 +49,13 @@ export interface BrowseFilters {
   activeSellers: boolean;
   /** SHOP-1: the "Shops" chip — only listings posted as a shop (`seller_type=shop`). URL: `shops=1`. */
   shops: boolean;
+  /**
+   * Stays (api STAYS_DESIGN §2.6): rooms for at least N guests, with ALL these
+   * amenities. Sent only while the chosen category is a stay. URL:
+   * `guests=2`, `amenities=wifi,breakfast`.
+   */
+  guests: string;
+  amenities: string[];
 }
 
 export const DEFAULT_FILTERS: BrowseFilters = {
@@ -64,6 +72,8 @@ export const DEFAULT_FILTERS: BrowseFilters = {
   nearestLng: "",
   activeSellers: false,
   shops: false,
+  guests: "",
+  amenities: [],
 };
 
 /** Default search radius (km) when a location is picked without an explicit radius. */
@@ -108,6 +118,8 @@ export function filtersFromParams(source: ParamSource): BrowseFilters {
     nearestLng: "",
     activeSellers: read(source, "active_sellers") === "1",
     shops: read(source, "shops") === "1",
+    guests: /^\d+$/.test(read(source, "guests")) ? read(source, "guests") : "",
+    amenities: read(source, "amenities").split(",").filter(isStayAmenity),
   };
 }
 
@@ -130,6 +142,8 @@ export function filtersToSearchString(f: BrowseFilters): string {
   }
   if (f.activeSellers) sp.set("active_sellers", "1");
   if (f.shops) sp.set("shops", "1");
+  if (f.guests) sp.set("guests", f.guests);
+  if (f.amenities.length) sp.set("amenities", f.amenities.join(","));
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -201,6 +215,9 @@ export function filtersToQuery(
     // `seller_active_within` scope default the product spec settled on.
     sellerActiveDays: f.activeSellers ? 7 : undefined,
     sellerType: f.shops ? "shop" : undefined,
+    // Stays only: a guests / amenities filter means nothing for an item.
+    guests: isStayCategory(category) && f.guests ? Number(f.guests) : undefined,
+    amenities: isStayCategory(category) && f.amenities.length ? f.amenities : undefined,
   };
 }
 
@@ -225,6 +242,8 @@ export function activeFilterCount(f: BrowseFilters): number {
     f.q,
     f.activeSellers,
     f.shops,
+    f.guests,
+    f.amenities.length > 0,
   ].filter(Boolean).length;
 }
 
@@ -238,6 +257,8 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
       f.lat ||
       f.activeSellers ||
       f.shops ||
+      f.guests ||
+      f.amenities.length > 0 ||
       f.sort !== "home",
   );
 }

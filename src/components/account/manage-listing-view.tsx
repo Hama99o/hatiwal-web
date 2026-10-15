@@ -93,7 +93,7 @@ export function ManageListingView({ id }: { id: string }) {
   // The listing itself, so the transition agrees with the <ExpiryBadge> a few
   // lines above it: both read the shared `listingExpiryState` rule (a lapsed
   // `active` listing offers Renew, never "Mark as Sold" beside a red pill).
-  const { primary, secondary, relaunch } = actionsFor(listing);
+  const { primary, secondary, relaunch, stay, resume } = actionsFor(listing);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -116,6 +116,7 @@ export function ManageListingView({ id }: { id: string }) {
           <div className="space-y-2">
             <PriceTag
               price={listing.price}
+              unit={listing.priceUnit}
               currency={listing.currency}
               size="lg"
               perUnit={hasStockToShow(listing)}
@@ -161,7 +162,7 @@ export function ManageListingView({ id }: { id: string }) {
                 disabled={busy}
                 onClick={() => ask(primary)}
               >
-                {t(`listing.${lifecycleLabel(primary, relaunch)}`)}
+                {t(`listing.${lifecycleLabel(primary, relaunch, { stay, resume })}`)}
               </Button>
             )}
             {relaunch && (

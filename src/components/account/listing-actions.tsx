@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { isStayCategory } from "@/lib/stays";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -166,11 +167,21 @@ export const LIFECYCLE: Record<
  * inches from a primary offering anything but "Renew". One input, one verdict.
  */
 export function actionsFor(
-  listing: Pick<Listing, "expiresAt" | "expired" | "sale"> & { status: string },
-): { primary?: LifecycleAction; secondary: LifecycleAction[]; relaunch?: boolean } {
+  listing: Pick<Listing, "expiresAt" | "expired" | "sale"> & {
+    status: string;
+    /** Stays (api STAYS_DESIGN §2.4): the kind makes a room — paused, never sold. */
+    category?: { kind?: string | null } | null;
+    /** A paused room (a draft that was live before) reads "Show again". */
+    publishedAt?: string | null;
+  },
+): { primary?: LifecycleAction; secondary: LifecycleAction[]; relaunch?: boolean; stay?: boolean; resume?: boolean } {
   // Lapsed = LIVE and past its run, reserved included (isListingLapsed).
   const expired = isListingLapsed(listing);
-  if (listing.status === "draft") return { primary: "publish", secondary: [] };
+  // A room is let again tomorrow: its primary is Pause (unpublish) / Show again
+  // (publish), and "sold" is not offered. The API still accepts it.
+  const stay = isStayCategory(listing.category);
+  if (listing.status === "draft")
+    return { primary: "publish", secondary: [], stay, resume: stay && Boolean(listing.publishedAt) };
   if (!isLive(listing)) return { secondary: [] }; // sold — terminal
 
   // Release hold reads the SALE, never the status. A single-item hold does flip
@@ -189,8 +200,14 @@ export function actionsFor(
   // deleted. `relaunch` tells the surface to label that Renew "Relaunch" and to
   // offer "Edit & relaunch" (the edit form with ?relaunch=1) beside it.
   if (expired)
-    return { primary: "renew", secondary: ["sold", ...hold, "unpublish"], relaunch: true };
+    return {
+      primary: "renew",
+      secondary: [...(stay ? [] : (["sold"] as LifecycleAction[])), ...hold, "unpublish"],
+      relaunch: true,
+      stay,
+    };
 
+  if (stay) return { primary: "unpublish", secondary: [...hold, "renew"], stay };
   return { primary: "sold", secondary: [...hold, "unpublish", "renew"] };
 }
 
@@ -199,8 +216,16 @@ export function actionsFor(
  * Renew reads "Relaunch" — same one-tap +90 days, worded for a listing that
  * is no longer on the market.
  */
-export function lifecycleLabel(action: LifecycleAction, relaunch?: boolean): string {
-  return relaunch && action === "renew" ? "relaunch" : LIFECYCLE[action].label;
+export function lifecycleLabel(
+  action: LifecycleAction,
+  relaunch?: boolean,
+  room?: { stay?: boolean; resume?: boolean },
+): string {
+  if (relaunch && action === "renew") return "relaunch";
+  // Stays: the same transitions in a room's words ("Pause", "Show again").
+  if (room?.stay && action === "unpublish") return "stays.pause";
+  if (room?.stay && room.resume && action === "publish") return "stays.showAgain";
+  return LIFECYCLE[action].label;
 }
 
 /** Where "Edit & relaunch" goes: the edit form, which relaunches on save. */

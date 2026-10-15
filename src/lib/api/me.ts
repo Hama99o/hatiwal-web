@@ -1,4 +1,5 @@
 import { convertKeysToCamel, convertKeysToSnake } from "./case";
+import { stayDetailsFormFields, type PriceUnit, type StayDetails } from "@/lib/stays";
 import { ApiError, parseOrExplain, readApiError } from "./client";
 import { normalizeListing, type RawListing } from "./listings";
 import type { Listing, Transaction, User } from "../types";
@@ -423,6 +424,9 @@ export interface ListingInput {
    * created without it behaves exactly as it did before the feature existed.
    */
   quantity?: number;
+  /** Stays only (api STAYS_DESIGN): "night" | "month" and the room's facts. */
+  priceUnit?: PriceUnit;
+  details?: StayDetails;
 }
 
 /** Build the multipart body Rails expects (listing[...] fields + images[]). */
@@ -447,6 +451,10 @@ function buildListingForm(
   if (input.latitude != null) f.append("listing[latitude]", String(input.latitude));
   if (input.longitude != null)
     f.append("listing[longitude]", String(input.longitude));
+  // Stays: the unit and the room's facts (absent for an item — unchanged there).
+  if (input.priceUnit) f.append("listing[price_unit]", input.priceUnit);
+  if (input.details)
+    for (const [key, value] of stayDetailsFormFields(input.details)) f.append(key, value);
   for (const file of files) f.append("listing[images][]", file);
   for (const id of removedImageIds)
     f.append("listing[removed_image_ids][]", id);

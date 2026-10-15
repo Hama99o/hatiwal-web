@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { PriceUnit } from "@/lib/stays";
 import { useTranslations } from "next-intl";
 import { StartConversationButton } from "@/components/chat/start-conversation-button";
 import { useIsOwner } from "@/components/auth/owner-gate";
@@ -82,6 +83,7 @@ export function ListingActionBar({
   status,
   price,
   currency,
+  priceUnit,
   initialSaved,
   sentinelId,
   priceAnchorId,
@@ -97,6 +99,8 @@ export function ListingActionBar({
   status: ListingStatus;
   price: number | null;
   currency?: string | null;
+  /** Stays: "/ night" next to the price (api STAYS_DESIGN). */
+  priceUnit?: PriceUnit | null;
   initialSaved?: boolean;
   /** DOM id of the inline actions block that toggles this bar. */
   sentinelId: string;
@@ -300,6 +304,7 @@ export function ListingActionBar({
           {!heroPriceOnScreen && (
             <PriceTag
               price={price}
+              unit={priceUnit}
               currency={currency}
               className="shrink-0 whitespace-nowrap"
             />

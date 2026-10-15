@@ -120,6 +120,7 @@ export function OwnerListingBar({
   expiresAt: ssrExpiresAt,
   expired: ssrExpired,
   conversationsCount,
+  category,
   className,
 }: {
   listingId: number;
@@ -132,6 +133,8 @@ export function OwnerListingBar({
   expired?: boolean;
   /** Threads opened on this listing (`conversationsCount`, already on the payload). */
   conversationsCount?: number;
+  /** Stays: the listing's category (its kind) — a room is paused, never sold. */
+  category?: { kind?: string | null } | null;
   className?: string;
 }) {
   const t = useTranslations();
@@ -184,7 +187,16 @@ export function OwnerListingBar({
   // `actionsFor` derives "lapsed" and "is it held?" from the SAME shared rules as
   // the badges above (it takes the listing, not flags), so the pill and the
   // button always tell the same story — on every seller surface, not just here.
-  const { primary, secondary, relaunch } = actionsFor({ status, expiresAt, expired });
+  // The owner's fresh copy carries the category kind + publishedAt (stays);
+  // the page's own category is the fallback until it arrives.
+  const owned = own;
+  const { primary, secondary, relaunch, stay, resume } = actionsFor({
+    status,
+    expiresAt,
+    expired,
+    category: owned?.category ?? category,
+    publishedAt: owned?.publishedAt,
+  });
   const PrimaryIcon = primary ? LIFECYCLE[primary].Icon : null;
   // The amber pill says "Expires tomorrow" / "Expires in 3 days", and the fix is
   // Renew — which for a not-yet-lapsed listing sits in `secondary`, i.e. behind
@@ -264,7 +276,7 @@ export function OwnerListingBar({
               onClick={() => ask(primary)}
             >
               <PrimaryIcon className="size-4" />
-              <span>{t(`listing.${lifecycleLabel(primary, relaunch)}`)}</span>
+              <span>{t(`listing.${lifecycleLabel(primary, relaunch, { stay, resume })}`)}</span>
             </Button>
           )}
           {relaunch && (

@@ -79,7 +79,7 @@ export function SellerListingActions({
   // The listing itself: the card renders an <ExpiryBadge> right above this
   // footer, and both now derive "lapsed" from the same shared rule — so a card
   // can never show the red "Expired" pill over a primary that isn't Renew.
-  const { primary, secondary, relaunch } = actionsFor(listing);
+  const { primary, secondary, relaunch, stay, resume } = actionsFor(listing);
 
   return (
     <div className="flex items-center gap-2">
@@ -100,13 +100,13 @@ export function SellerListingActions({
           // announce "Mark as Sold" seven times with nothing to tell them apart
           // (the kebab below carries the title for the same reason).
           aria-label={t("listing.detail.actionFor", {
-            action: t(`listing.${lifecycleLabel(primary, relaunch)}`),
+            action: t(`listing.${lifecycleLabel(primary, relaunch, { stay, resume })}`),
             title: listing.title,
           })}
           disabled={busy}
           onClick={() => ask(primary)}
         >
-          {t(`listing.${lifecycleLabel(primary, relaunch)}`)}
+          {t(`listing.${lifecycleLabel(primary, relaunch, { stay, resume })}`)}
         </Button>
       )}
 

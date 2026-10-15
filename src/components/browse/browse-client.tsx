@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { getListings, getListingsAsViewer } from "@/lib/api/listings";
-import { categoryName } from "@/lib/api/categories";
+import { categoryName, findCategoryBySlug } from "@/lib/api/categories";
+import { AMENITY_ICONS, STAY_AMENITIES, isStayCategory } from "@/lib/stays";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
   LISTING_CONDITIONS,
@@ -143,6 +144,11 @@ export function BrowseClient({
   const [wantLocationSheet, setWantLocationSheet] = useState(false);
 
   const [filters, setFilters] = useState<BrowseFilters>(initialFilters);
+  // Stays (api STAYS_DESIGN §2.6): the chosen category's kind swaps the item
+  // condition for Guests + Amenities and reads prices "per night".
+  const isStayBrowse = isStayCategory(
+    filters.categorySlug ? findCategoryBySlug(categories, filters.categorySlug) : undefined,
+  );
   const [searchInput, setSearchInput] = useState(initialFilters.q);
   const [showFilters, setShowFilters] = useState(false);
   // True while the "Nearest first" sort is acquiring a browser Geolocation fix.
@@ -552,6 +558,45 @@ export function BrowseClient({
         </ul>
       </div>
 
+      {isStayBrowse ? (
+        // Stays (api STAYS_DESIGN §2.6): Guests + Amenities instead of condition.
+        <div className="space-y-4" data-testid="browse-stay-filters">
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-foreground">{t("listing.stays.filterGuests")}</h3>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("listing.stays.filterGuests")}>
+              {["", "1", "2", "3", "4", "6"].map((g) => (
+                <Chip key={g || "any"} active={filters.guests === g} onClick={() => update({ guests: g })} testId={`browse-guests-${g || "any"}`}>
+                  {g ? `${g}+` : t("listing.stays.anyGuests")}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-foreground">{t("listing.stays.filterAmenities")}</h3>
+            <div className="flex flex-wrap gap-2">
+              {STAY_AMENITIES.map((a) => {
+                const on = filters.amenities.includes(a);
+                const Icon = AMENITY_ICONS[a];
+                return (
+                  <Chip
+                    key={a}
+                    active={on}
+                    onClick={() =>
+                      update({ amenities: on ? filters.amenities.filter((x) => x !== a) : [...filters.amenities, a] })
+                    }
+                    testId={`browse-amenity-${a}`}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon className="size-3.5" aria-hidden />
+                      {t(`listing.stays.amenities.${a}`)}
+                    </span>
+                  </Chip>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div>
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           {t("listing.condition.label")}
@@ -570,6 +615,7 @@ export function BrowseClient({
           ))}
         </div>
       </div>
+      )}
 
       {/* Active sellers — trust filter, mirrors mobile's BrowseHeader chip:
           only listings whose seller signed in within the last 7 days
@@ -614,7 +660,7 @@ export function BrowseClient({
             onChange={(e) =>
               update({ priceMin: e.target.value.replace(/\D/g, "") })
             }
-            placeholder={t("browse.priceMin")}
+            placeholder={isStayBrowse ? t("listing.stays.priceMinNight") : t("browse.priceMin")}
             className="h-9"
           />
           <span className="text-muted-foreground">–</span>
@@ -624,7 +670,7 @@ export function BrowseClient({
             onChange={(e) =>
               update({ priceMax: e.target.value.replace(/\D/g, "") })
             }
-            placeholder={t("browse.priceMax")}
+            placeholder={isStayBrowse ? t("listing.stays.priceMaxNight") : t("browse.priceMax")}
             className="h-9"
           />
         </div>

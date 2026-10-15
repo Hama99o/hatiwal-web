@@ -20,6 +20,8 @@ import {
 } from "@/lib/api/error-codes";
 import { heldUnitsOf, soldUnitsOf } from "@/lib/stock";
 import { categoryName } from "@/lib/api/categories";
+import { StayFormFields } from "@/components/listing/stay-form-fields";
+import { cleanStayDetails, isStayCategoryId, type PriceUnit, type StayDetails } from "@/lib/stays";
 import {
   LISTING_CONDITIONS,
   type Category,
@@ -203,6 +205,16 @@ export function ListingForm({
   });
 
   const condition = watch("condition");
+  // Stays (api STAYS_DESIGN): the chosen category's kind swaps the item
+  // condition for the room's own fields. Kept beside the form (not in zod):
+  // they are optional, typed, and cleaned on the way out.
+  const isStay = isStayCategoryId(categories, Number(watch("categoryId")) || null);
+  const [priceUnit, setPriceUnit] = useState<PriceUnit>(listing?.priceUnit ?? "night");
+  // A room with no facts yet (new, or posted from the 1.1.6 app) starts at what
+  // the steppers show — 2 guests, 1 bed — so what is shown is what is saved.
+  const [stayDetails, setStayDetails] = useState<StayDetails>(
+    listing?.details && Object.keys(listing.details).length ? listing.details : { guests: 2, beds: 1 },
+  );
   const negotiable = watch("negotiable");
   // Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). Seeded from the listing
   // being edited, so a 15-unit listing reopens with its number showing instead
@@ -363,6 +375,10 @@ export function ListingForm({
         address: values.address || undefined,
         latitude: lat ?? undefined,
         longitude: lng ?? undefined,
+        // A room has no condition; it sends its unit and facts instead.
+        ...(isStay
+          ? { condition: undefined, priceUnit, details: cleanStayDetails(stayDetails) }
+          : {}),
       };
       const files = newPhotos.map((p) => p.file);
 
@@ -622,6 +638,14 @@ export function ListingForm({
           </select>
         </Field>
 
+        {isStay ? (
+          <StayFormFields
+            priceUnit={priceUnit}
+            onPriceUnitChange={setPriceUnit}
+            details={stayDetails}
+            onDetailsChange={setStayDetails}
+          />
+        ) : (
         <div className="space-y-2">
           <span className="text-sm font-medium">
             {t("listing.condition.label")}
@@ -644,6 +668,7 @@ export function ListingForm({
             ))}
           </div>
         </div>
+        )}
 
         {/* Firm / negotiable price — mirrors mobile's single toggle. Off = firm
             price (gates offers in chat); the backend defaults to negotiable. */}

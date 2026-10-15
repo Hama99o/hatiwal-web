@@ -139,6 +139,14 @@ const CATEGORIES = [
 const CAT = Object.fromEntries(
   CATEGORIES.flatMap((c) => [[c.id, c], ...c.subcategories.map((s) => [s.id, s])]),
 );
+// Stays (api STAYS_DESIGN): a stay category known to the lookup ONLY — not in the
+// /categories tree — so the 840 existing specs see exactly the world they had;
+// e2e/stays.spec.ts reaches STAY_LISTING by id. Every real category carries a
+// `kind`; catRef below sends "item" for all the others.
+CAT[901] = {
+  id: 901, slug: "hotel-rooms", icon: "🏨", position: 1, kind: "stay",
+  name_en: "Hotel Rooms", name_ps: "د هوټل کوټې", name_fa: "اتاق هتل", subcategories: [],
+};
 
 /**
  * The `field(:category)` sub-object on every listing view — Rails renders it
@@ -153,6 +161,7 @@ function catRef(id) {
   return {
     id: c.id, slug: c.slug, icon: c.icon, position: c.position,
     name_en: c.name_en, name_ps: c.name_ps, name_fa: c.name_fa,
+    kind: c.kind ?? "item",
   };
 }
 
@@ -346,8 +355,18 @@ function findListing(id) {
     EXPIRING_SOON_MINE,
     SOLD_FOREIGN_CURRENCY,
     SOLD_EMPTY_CATEGORY,
+    STAY_LISTING,
   ].find((l) => String(l.id) === String(id));
 }
+
+// A hotel room (stays): reachable by id only, never in the feed.
+const STAY_LISTING = {
+  id: 9901, title: "Double room, Shahr-e Naw", price: 1500, currency: "AFN", status: "active",
+  location: "Kabul", address: null, condition: null, category_id: 901, seller_id: 2, views_count: 12,
+  created_at: "2026-10-10T10:00:00Z", quantity: 3, description: "Quiet room near the park.",
+  price_unit: "night",
+  details: { guests: 2, beds: 1, bathroom: "private", amenities: ["wifi", "hot_water", "breakfast"], check_in: "14:00", check_out: "11:00" },
+};
 
 // ── Serializer views ─────────────────────────────────────────────────────────
 // The four functions below mirror ONE view each of
@@ -372,6 +391,9 @@ function baseFields(l) {
     id: l.id, title: l.title, price: l.price, currency: l.currency, status: l.status,
     location: l.location, address: l.address, condition: l.condition,
     created_at: l.created_at,
+    // Stays — BASE on ListingSerializer too: null / {} for every item.
+    price_unit: l.price_unit ?? null,
+    details: l.details ?? {},
     // Multi-quantity — BASE on ListingSerializer, so all four views carry it.
     // Derived from the fixture the same way the model does (`available_units` is
     // `quantity - sold_units`, floored at 0; `multi_unit?` is `quantity > 1`) so

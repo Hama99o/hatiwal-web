@@ -1,4 +1,5 @@
 import { useLocale, useTranslations } from "next-intl";
+import { priceUnitKey, type PriceUnit } from "@/lib/stays";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,9 @@ interface PriceTagProps {
    * `hasStockToShow(listing)`, never a literal `true`.
    */
   perUnit?: boolean;
+  /** Stays (api STAYS_DESIGN): "night" → "AFN 1,500 / night", "month" → "/ month".
+   *  The same quiet suffix as "each", and it wins over it. */
+  unit?: PriceUnit | null;
   className?: string;
 }
 
@@ -58,6 +62,7 @@ export function PriceTag({
   size = "md",
   tone = "default",
   perUnit = false,
+  unit,
   className,
 }: PriceTagProps) {
   const locale = useLocale();
@@ -76,7 +81,8 @@ export function PriceTag({
   );
 
   // No suffix on an absent price — there is nothing for "each" to qualify.
-  if (!perUnit || price == null) return amount;
+  const unitKey = priceUnitKey(unit);
+  if ((!perUnit && !unitKey) || price == null) return amount;
 
   // The figure keeps its exact size/weight/colour; only a small muted qualifier
   // is added, so price primacy is untouched (§12.2). `items-baseline` keeps the
@@ -91,7 +97,7 @@ export function PriceTag({
           PER_UNIT_CLASS[size],
         )}
       >
-        {t("listing.stock.each")}
+        {unitKey ? t(unitKey) : t("listing.stock.each")}
       </span>
     </span>
   );

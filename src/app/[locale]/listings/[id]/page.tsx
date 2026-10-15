@@ -14,6 +14,8 @@ import { formatPrice, formatRelativeDate } from "@/lib/format";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
+import { StayFacts } from "@/components/listing/stay-facts";
+import { isStayCategory } from "@/lib/stays";
 import { PriceDropBadge } from "@/components/shared/price-drop-badge";
 import { FirmPriceBadge } from "@/components/shared/firm-price-badge";
 import { StockBadge } from "@/components/shared/stock-badge";
@@ -214,6 +216,44 @@ export default async function ListingDetailPage({
           },
         }
       : null;
+  // Stays (api STAYS_DESIGN §2.7): the same Offer, multi-typed as the room it
+  // is, priced per night/month, with only what is known — guests and
+  // amenities. No condition and no shipping fields: a room is neither.
+  const isStay = isStayCategory(listing.category);
+  const details = listing.details ?? {};
+  const structuredData =
+    jsonLd && isStay
+      ? {
+          "@context": "https://schema.org",
+          "@type": ["Product", listing.category?.slug === "hotel-rooms" ? "HotelRoom" : "Accommodation"],
+          name: listing.title,
+          description: listing.description || listing.title,
+          image: listing.images,
+          url: pageUrl,
+          category: listing.category ? categoryName(listing.category, "en") : undefined,
+          occupancy: details.guests
+            ? { "@type": "QuantitativeValue", maxValue: details.guests, unitText: "guests" }
+            : undefined,
+          amenityFeature: (details.amenities ?? []).map((a) => ({
+            "@type": "LocationFeatureSpecification",
+            name: a.replace(/_/g, " "),
+            value: true,
+          })),
+          offers: {
+            "@type": "Offer",
+            url: pageUrl,
+            price: Number(listing.price),
+            priceCurrency: listing.currency,
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: Number(listing.price),
+              priceCurrency: listing.currency,
+              unitText: listing.priceUnit ?? "night",
+            },
+            seller: listing.shop ? { "@type": "Organization", name: listing.shop.name } : undefined,
+          },
+        }
+      : jsonLd;
 
   // The room the sticky <ListingActionBar> needs is reserved by the bar itself
   // (it renders its own spacer), not by padding here: only that component knows
@@ -226,10 +266,10 @@ export default async function ListingDetailPage({
       ownerShop={listing.shop ? { ownerId: listing.seller?.id, shopId: listing.shop.id } : null}
     >
       <div className="mx-auto max-w-6xl px-4 py-6">
-        {jsonLd && (
+        {structuredData && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: jsonLdHtml(structuredData) }}
           />
         )}
         {/* Records this open into Recently Viewed for logged-in users (no-op for
@@ -284,6 +324,7 @@ export default async function ListingDetailPage({
               <div className="flex items-start justify-between gap-3">
                 <PriceTag
                   price={listing.price}
+                  unit={listing.priceUnit}
                   currency={listing.currency}
                   size="lg"
                   tone={isSold ? "muted" : "default"}
@@ -349,6 +390,7 @@ export default async function ListingDetailPage({
               expiresAt={listing.expiresAt}
               expired={listing.expired}
               conversationsCount={listing.conversationsCount}
+              category={listing.category}
             />
 
             {/* Actions — primary CTA (message seller) first, Save below it.
@@ -575,6 +617,11 @@ export default async function ListingDetailPage({
           </div>
 
           <div className="order-3 min-w-0 lg:order-none lg:col-start-1 lg:row-start-2">
+            {isStay && (
+              <div className="mb-6">
+                <StayFacts details={listing.details} />
+              </div>
+            )}
             {listing.description && (
               <section>
                 <h2 className="text-lg font-semibold">
@@ -637,6 +684,7 @@ export default async function ListingDetailPage({
           ownerShopId={sellerShopId}
           status={listing.status}
           price={listing.price}
+          priceUnit={listing.priceUnit}
           currency={listing.currency}
           initialSaved={listing.isSaved}
           sentinelId="listing-actions"

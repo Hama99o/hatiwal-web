@@ -88,7 +88,7 @@ export async function readApiError(
 
 export type QueryParams = Record<
   string,
-  string | number | boolean | null | undefined
+  string | number | boolean | null | undefined | readonly (string | number)[]
 >;
 
 /**
@@ -103,6 +103,11 @@ export function buildQuery(params?: QueryParams): string {
   const sp = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null || value === "") continue;
+    // An array is a repeated key (`amenities[]=wifi&amenities[]=parking`).
+    if (Array.isArray(value)) {
+      for (const v of value) sp.append(key, String(v));
+      continue;
+    }
     sp.append(key, String(value));
   }
   const qs = sp.toString();

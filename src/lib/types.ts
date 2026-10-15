@@ -1,4 +1,5 @@
 import type { NoticeAction } from "@/lib/notice-action";
+import type { PriceUnit, StayDetails } from "@/lib/stays";
 /**
  * Domain types — field names mirror the mobile app exactly (camelCase, post
  * snake→camel conversion of the Rails JSON). Keep these in sync with
@@ -153,6 +154,9 @@ export interface CategoryRef {
    *  client declared it. */
   nameUr: string;
   slug: string;
+  /** "item" | "stay" (api STAYS_DESIGN): switches the form, detail and filters.
+   *  A subcategory carries its parent's. Absent on an older API = an item. */
+  kind?: "item" | "stay";
 }
 
 export interface Category extends CategoryRef {
@@ -195,7 +199,13 @@ export interface Listing {
   price: number;
   currency: string;
   condition: ListingCondition | null;
+  /** Stays: "night" | "month" ("AFN 1,500 / night"); null = a total price. */
+  priceUnit?: PriceUnit | null;
+  /** Stays: guests, beds, bathroom, amenities, check-in/out. `{}` for items. */
+  details?: StayDetails | null;
   status: ListingStatus;
+  /** When it first went live (owner views); a paused room with one reads "Show again". */
+  publishedAt?: string | null;
   categoryId: number | null;
   category: CategoryRef | null;
   location: string | null;
@@ -503,6 +513,8 @@ export interface Conversation {
     status: string;
     price?: number;
     currency?: string;
+    /** Stays: "night" | "month" — "/ night" by the price in the inbox and thread. */
+    priceUnit?: PriceUnit | null;
     /**
      * Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). On BOTH the inbox
      * (`:list`) and the thread (`:detailed`) — ConversationSerializer

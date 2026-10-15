@@ -847,6 +847,7 @@ export function ConversationThread({ id }: { id: string }) {
             {pinnedListing.price != null && (
               <PriceTag
                 price={pinnedListing.price}
+                unit={pinnedListing.priceUnit}
                 currency={pinnedListing.currency}
                 size="sm"
               />
