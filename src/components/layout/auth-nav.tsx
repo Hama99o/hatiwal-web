@@ -60,7 +60,16 @@ export function AuthNav() {
     router.push("/");
   }
 
-  const unread = user.unreadMessageCount ?? 0;
+  // SHOP-1, as mobile's tab badge (app/(main)/(tabs)/_layout.tsx): with a shop the
+  // badge is THIS identity's inbox — Buyer mode = buying only, Seller = Me or the
+  // current shop (their Support included, via the API's split). Without a shop or
+  // without the split it is the total, exactly as before.
+  const splitUnread = identity.hasShop
+    ? user.sellerMode
+      ? identity.unreadFor(identity.sellingAs?.id ?? null)
+      : identity.unreadBuying
+    : null;
+  const unread = splitUnread ?? user.unreadMessageCount ?? 0;
 
   return (
     <>

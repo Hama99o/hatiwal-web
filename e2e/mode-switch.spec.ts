@@ -89,4 +89,31 @@ test.describe("Mode switch", () => {
     await page.getByTestId("menu-sell-as-shop-43").click();
     expect((await patch).postDataJSON()).toMatchObject({ shop_id: 43 });
   });
+
+  // SHOP-1 badge parity (mobile _layout.tsx): with a shop, the header chat badge is
+  // the CURRENT identity's inbox, never the all-identities total.
+  const counts = { buying: 3, sellingMe: 2, support: 1, shops: { "42": 5 } };
+  const shops = [shopEntry(42, "Safi Cosmetics", "active", "owner")];
+
+  test("chat badge: Buyer mode counts buying only", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: false, shops, unreadCounts: counts, unreadMessageCount: 11 });
+    await page.goto("/en/bazaar");
+    await expect(page.locator("header").getByRole("link", { name: "3 unread messages" })).toBeVisible();
+  });
+
+  test("chat badge: Seller as a shop counts that shop; as Me counts Me + Support", async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem("hatiwal.sell-as-asked-1", "1"));
+    await withSessionUser(page, {
+      sellerMode: true, shops, unreadCounts: counts, unreadMessageCount: 11,
+      sellingAsShop: { id: 42, name: "Safi Cosmetics", logoUrl: null, verified: false, province: "Kabul", city: "Kabul" },
+    });
+    await page.goto("/en/my-listings");
+    await expect(page.locator("header").getByRole("link", { name: "5 unread messages" })).toBeVisible();
+  });
+
+  test("chat badge: no shop → the total, as before", async ({ page }) => {
+    await withSessionUser(page, { sellerMode: true, shops: [], unreadCounts: counts, unreadMessageCount: 11 });
+    await page.goto("/en/my-listings");
+    await expect(page.locator("header").getByRole("link", { name: "11 unread messages" })).toBeVisible();
+  });
 });
