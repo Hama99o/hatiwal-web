@@ -646,7 +646,8 @@
     "getApp": "اپ ترلاسه کړئ",
     "searchPlaceholder": "په هټیوال کې لټون…",
     "toggleTheme": "تېم بدل کړئ",
-    "language": "ژبه"
+    "language": "ژبه",
+    "primary": "اصلي مینو"
   },
   "footer": {
     "tagline": "د افغانستان محلي بازار — ستاسو نږدې پیر او پلور.",

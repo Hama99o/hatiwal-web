@@ -31,11 +31,11 @@ export function CategoryPills({
       <div className="flex items-baseline justify-between gap-4">
         <h2
           id={headingId}
-          className={size === "lg" ? "text-xl font-bold tracking-tight sm:text-2xl" : "text-base font-semibold"}
+          className={size === "lg" ? "text-heading font-bold sm:text-2xl sm:tracking-tight" : "text-base font-semibold"}
         >
           {heading}
         </h2>
-        <Link href="/categories" className="text-sm font-medium text-primary hover:underline">
+        <Link href="/categories" className="text-sm font-semibold text-primary-ink hover:underline">
           {viewAllLabel}
         </Link>
       </div>
@@ -44,9 +44,9 @@ export function CategoryPills({
           <li key={category.id} className="shrink-0">
             <Link
               href={`/categories/${category.slug}`}
-              className="flex h-11 items-center gap-2 rounded-full border bg-card ps-3 pe-4 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-11 items-center gap-2 rounded-full bg-surface ps-1.5 pe-4 text-sm font-medium ring-1 ring-inset ring-border transition-[background-color,box-shadow] hover:bg-background hover:shadow-card hover:ring-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span aria-hidden className="text-lg leading-none">
+              <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-background text-base leading-none shadow-xs">
                 {category.icon ?? "📦"}
               </span>
               {categoryName(category, locale)}

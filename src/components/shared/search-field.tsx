@@ -32,8 +32,8 @@ export function SearchField({
 
   return (
     <div className={cn("relative", containerClassName)}>
-      <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input className={cn("ps-9", clearable && "pe-11", className)} {...props} />
+      <Search className="pointer-events-none absolute start-3.5 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground" />
+      <Input className={cn("rounded-full border-transparent bg-surface ps-10 shadow-none hover:border-border focus-visible:bg-background", clearable && "pe-11", className)} {...props} />
       {clearable && (
         <Button
           type="button"

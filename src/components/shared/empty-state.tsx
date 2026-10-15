@@ -32,15 +32,15 @@ export function EmptyState({
       // shared component covers every empty view in the app.
       data-testid="empty-state"
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center",
+        "flex flex-col items-center justify-center gap-4 rounded-2xl bg-surface px-6 py-14 text-center",
         className,
       )}
     >
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <div className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary-ink ring-8 ring-primary-soft/50">
         <Icon className="size-6" />
       </div>
       <div className="space-y-1">
-        <p className="font-semibold text-foreground">{title}</p>
+        <p className="text-base font-semibold text-foreground sm:text-lg">{title}</p>
         {description && (
           <p className="mx-auto max-w-sm text-sm text-muted-foreground">
             {description}
@@ -49,11 +49,11 @@ export function EmptyState({
       </div>
       {action &&
         ("href" in action ? (
-          <Button asChild variant="outline" size="sm">
+          <Button asChild>
             <Link href={action.href}>{action.label}</Link>
           </Button>
         ) : (
-          <Button variant="outline" size="sm" onClick={action.onClick}>
+          <Button onClick={action.onClick}>
             {action.label}
           </Button>
         ))}

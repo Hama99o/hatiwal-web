@@ -646,7 +646,8 @@
     "getApp": "دریافت اپ",
     "searchPlaceholder": "جستجو در هتیوال…",
     "toggleTheme": "تغییر تم",
-    "language": "زبان"
+    "language": "زبان",
+    "primary": "منوی اصلی"
   },
   "footer": {
     "tagline": "بازار محلی افغانستان — خرید و فروش در نزدیکی شما.",

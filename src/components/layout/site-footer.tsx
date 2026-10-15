@@ -2,64 +2,62 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "./logo";
 
+const LINK =
+  "rounded-sm text-sm text-foreground/75 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const HEADING = "text-xs font-semibold uppercase tracking-wider text-muted-foreground";
+
+/**
+ * Site footer (visual-system.md §4): a `--surface` band, not a bordered card —
+ * Airbnb / Klarna. Each link group is a `<nav>` NAMED by its visible heading
+ * (`aria-labelledby`), so the header's and the footer's navigation landmarks are
+ * distinguishable (axe `landmark-unique`, report #23).
+ */
 export function SiteFooter() {
   const t = useTranslations();
   const year = new Date().getFullYear();
 
-  // `data-site-footer` is the hook the sticky <ListingActionBar> watches: a fixed
-  // bottom bar would otherwise cover the end of this column (privacy /
-  // delete-account must stay reachable on a phone), so the bar steps aside once
-  // the footer is on screen.
   return (
-    <footer data-site-footer className="mt-16 border-t bg-card">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 sm:flex-row sm:items-start sm:justify-between">
+    <footer data-site-footer className="mt-16 bg-surface">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-8 pt-12 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="max-w-xs space-y-3">
           <Logo />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             {t("footer.tagline")}
           </p>
         </div>
-        <nav className="flex flex-col gap-2 text-sm">
-          <span className="font-semibold text-foreground">
+        <nav aria-labelledby="footer-explore" className="flex flex-col items-start gap-3">
+          <h2 id="footer-explore" className={HEADING}>
             {t("footer.explore")}
-          </span>
-          <Link
-            href="/bazaar"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
+          </h2>
+          <Link href="/bazaar" className={LINK}>
             {t("nav.browse")}
           </Link>
-          <Link
-            href="/categories"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Link href="/categories" className={LINK}>
             {t("nav.categories")}
           </Link>
+          <Link href="/download" className={LINK}>
+            {t("nav.getApp")}
+          </Link>
         </nav>
-        <nav className="flex flex-col gap-2 text-sm">
-          <span className="font-semibold text-foreground">{t("footer.legal")}</span>
-          <Link
-            href="/privacy"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
+        <nav aria-labelledby="footer-legal" className="flex flex-col items-start gap-3">
+          <h2 id="footer-legal" className={HEADING}>
+            {t("footer.legal")}
+          </h2>
+          <Link href="/privacy" className={LINK}>
             {t("footer.privacy")}
           </Link>
-          <Link
-            href="/prohibited-items"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Link href="/prohibited-items" className={LINK}>
             {t("footer.prohibitedItems")}
           </Link>
-          <Link
-            href="/delete-account"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Link href="/delete-account" className={LINK}>
             {t("footer.deleteAccount")}
           </Link>
         </nav>
       </div>
-      <div className="border-t py-4 text-center text-xs text-muted-foreground">
-        {t("footer.rights", { year })}
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="border-t py-5 text-xs text-muted-foreground">
+          {t("footer.rights", { year })}
+        </div>
       </div>
     </footer>
   );

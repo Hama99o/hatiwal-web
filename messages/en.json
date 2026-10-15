@@ -646,7 +646,8 @@
     "getApp": "Get the app",
     "searchPlaceholder": "Search Hatiwal…",
     "toggleTheme": "Toggle theme",
-    "language": "Language"
+    "language": "Language",
+    "primary": "Main menu"
   },
   "footer": {
     "tagline": "Afghanistan's local marketplace — buy and sell near you.",

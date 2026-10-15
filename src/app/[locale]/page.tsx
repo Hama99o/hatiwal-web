@@ -83,39 +83,52 @@ export default async function HomePage({
       {/* Hero — compact, so the first listings are on the first phone screen
           (docs/design/home.md). On phones the header already has a full-width
           search row, so the hero offers two actions instead of a second search. */}
-      <section className="border-b bg-gradient-to-br from-primary/10 via-background to-background">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:py-14 lg:py-20">
+      {/* Hero — a brand band, not a page-wide gradient (visual-system.md §4):
+          the lapis tile the logo sits on, with a soft gold glow — Depop / Airbnb
+          banner cards. Still compact, so the first listings are on the first
+          phone screen (docs/design/home.md); phones get two actions instead of
+          a second search (the header has one). */}
+      <section className="mx-auto max-w-7xl px-4 pt-4 sm:pt-6">
+        <div className="relative isolate overflow-hidden rounded-3xl bg-brand-lapis px-5 py-7 text-white shadow-card sm:px-10 sm:py-12 lg:px-14 lg:py-16">
+          <div
+            aria-hidden
+            className="absolute -end-24 -top-28 -z-10 size-80 rounded-full bg-brand-gold/25 blur-3xl sm:size-[28rem]"
+          />
+          <div
+            aria-hidden
+            className="absolute -bottom-32 -start-20 -z-10 size-72 rounded-full bg-primary/40 blur-3xl"
+          />
           <div className="max-w-2xl">
-            <h1 className="text-balance text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="text-balance text-[1.875rem] font-extrabold leading-[1.1] tracking-tight sm:text-display lg:text-[3.25rem]">
               {t("home.hero.title")}
             </h1>
-            <p className="mt-3 text-pretty text-base text-muted-foreground sm:mt-4 sm:text-lg">
+            <p className="mt-3 max-w-xl text-pretty text-base text-white/80 sm:mt-4 sm:text-lg">
               {t("home.hero.subtitle")}
             </p>
             <form
               action={`/${locale}/bazaar`}
               method="get"
               role="search"
-              className="mt-8 hidden max-w-xl gap-2 sm:flex"
+              className="mt-8 hidden max-w-xl items-center gap-2 rounded-full bg-white p-1.5 shadow-pop sm:flex"
             >
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute start-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
                 <input
                   name="q"
                   placeholder={t("nav.searchPlaceholder")}
                   aria-label={t("nav.searchPlaceholder")}
-                  className="h-12 w-full rounded-lg border border-input bg-card ps-11 pe-4 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-11 w-full rounded-full bg-transparent ps-11 pe-3 text-base text-slate-900 placeholder:text-slate-500 focus-visible:outline-none"
                 />
               </div>
-              <Button type="submit" size="lg" className="h-12 px-6">
+              <Button type="submit" size="lg" className="h-11 px-6">
                 {t("home.hero.browseCta")}
               </Button>
             </form>
             <div className="mt-6 grid grid-cols-2 gap-2 sm:hidden">
-              <Button asChild size="lg" className="h-12">
+              <Button asChild size="lg" className="h-12 bg-brand-gold text-brand-lapis shadow-none hover:bg-brand-gold/90 dark:hover:bg-brand-gold/90">
                 <Link href="/bazaar">{t("home.hero.browseCta")}</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-12">
+              <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-white/10 text-white hover:border-white/50 hover:bg-white/15">
                 <Link href="/listings/new">
                   <Plus aria-hidden />
                   {t("sidebar.createListing")}
@@ -126,7 +139,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-10 px-4 py-8">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:space-y-12 sm:py-10">
         {/* One pill row (Airtasker / Shop): sideways scroll on phones, wraps on
             desktop — 12 tiles in a 2-column grid used to fill ~700px of a phone. */}
         <CategoryPills

@@ -43,7 +43,7 @@ export default async function EmailConfirmedPage({
   const failed = sp.account_confirmation_success === "false";
 
   return (
-    <main className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
+    <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
       {failed ? (
         <AlertCircle className="size-12 text-amber-600 dark:text-amber-400" />
       ) : (
@@ -75,6 +75,6 @@ export default async function EmailConfirmedPage({
           </Link>
         )}
       </div>
-    </main>
+    </div>
   );
 }
