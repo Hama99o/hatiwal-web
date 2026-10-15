@@ -119,49 +119,91 @@ test.describe("Smart App Banner metadata", () => {
 });
 
 // ── Android ──────────────────────────────────────────────────────────────────
+// Report #12 (2026-10-15): the first visit gets ONE non-blocking bar — not a
+// modal sheet on top of an in-page "Open in app" button. The full chooser
+// (store / I have the app / Not now) only opens from the header icon.
+
+/** The first-visit bar: pinned to the bottom, NOT a dialog, page still usable. */
+async function expectBar(page: Page) {
+  await expectSheet(page);
+  await expect(sheet(page)).toHaveAttribute("data-variant", "bar");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const box = (await sheet(page).boundingBox())!;
+  // At the bottom edge — or riding on the listing's sticky Contact bar when
+  // that is up (a short phone: the inline Contact is below the fold).
+  const bar = page.getByTestId("listing-action-bar");
+  const barBox = (await bar.count()) ? await bar.boundingBox() : null;
+  const floor = barBox && barBox.y < page.viewportSize()!.height - 1 ? barBox.y : page.viewportSize()!.height;
+  expect(box.y + box.height).toBeGreaterThanOrEqual(floor - 1);
+  expect(box.height, "a slim bar, not a sheet over the page").toBeLessThan(120);
+}
 
 test.describe("Android phone", () => {
   test.use(device("Pixel 7"));
 
-  test("first visit: offered once — Google Play, and open THIS listing in the app", async ({
+  test("first visit: one slim bar that opens THIS listing in the app — no modal, no 2nd button", async ({
     page,
   }) => {
     await page.goto("/en/listings/1");
-    await expectSheet(page);
-    await expect(page.getByTestId("app-prompt-store")).toHaveAttribute("href", PLAY);
-    await expect(page.getByTestId("app-prompt-store")).toHaveText("Google Play");
+    await expectBar(page);
     await expect(page.getByTestId("app-prompt-open")).toHaveAttribute(
       "href",
       /^intent:\/\/listing\/1#Intent;scheme=hatiwal;package=com\.hatiwal\.app;/,
     );
-    // Before it is closed, no icon: the suggestion itself is the way in.
+    // The intent's own fallback covers "not installed": the Play page via /download.
+    await expect(page.getByTestId("app-prompt-open")).toHaveAttribute("href", /browser_fallback_url=.*%2Fdownload/);
+    // The page under it stays live: its own heading is clickable, nothing covers it.
+    await page.locator("h1").first().click();
+    // ONE nudge: the in-page "Open in app" button is gone from listing pages.
+    await expect(page.getByTestId("open-in-app")).toHaveCount(0);
+    // Before it is closed, no icon: the bar itself is the way in.
     await expect(page.getByTestId("app-prompt-icon")).toHaveCount(0);
+  });
+
+  test("the page gets the bar's height as bottom padding (the footer is never hidden)", async ({ page }) => {
+    await page.goto("/en/listings/1");
+    await expectBar(page);
+    const pad = await page.evaluate(() => parseFloat(getComputedStyle(document.body).paddingBottom));
+    const h = (await sheet(page).boundingBox())!.height;
+    expect(Math.abs(pad - h)).toBeLessThanOrEqual(1);
+    await page.getByTestId("app-prompt-not-now").click();
+    await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.body).paddingBottom))).toBe(0);
   });
 
   test("seller page: open lands on the seller", async ({ page }) => {
     await page.goto("/en/sellers/1");
-    await expectSheet(page);
+    await expectBar(page);
     await expect(page.getByTestId("app-prompt-open")).toHaveAttribute(
       "href",
       /^intent:\/\/seller\/1#Intent;scheme=hatiwal;/,
     );
   });
 
+  test("shop page: open lands on the shop", async ({ page }) => {
+    await page.goto("/en/shops/42");
+    await expectBar(page);
+    await expect(page.getByTestId("app-prompt-open")).toHaveAttribute(
+      "href",
+      /^intent:\/\/shop\/42#Intent;scheme=hatiwal;/,
+    );
+    await expect(page.getByTestId("open-in-app")).toHaveCount(0);
+  });
+
   test("a page with no app twin opens the app itself", async ({ page }) => {
     await page.goto("/en");
-    await expectSheet(page);
+    await expectBar(page);
     await expect(page.getByTestId("app-prompt-open")).toHaveAttribute(
       "href",
       /^intent:#Intent;action=android\.intent\.action\.MAIN;/,
     );
   });
 
-  test("'Not now' is remembered: never offered again, the header icon stays", async ({
+  test("✕ is remembered: never offered again, the header icon stays", async ({
     page,
     context,
   }) => {
     await page.goto("/en/listings/1");
-    await expectSheet(page);
+    await expectBar(page);
     await page.getByTestId("app-prompt-not-now").click();
     await expect(sheet(page)).toHaveCount(0);
     expect(await dismissedCookie(context)).toBe("dismissed");
@@ -175,7 +217,7 @@ test.describe("Android phone", () => {
     await expect(page.getByTestId("app-prompt-icon")).toBeVisible();
   });
 
-  test("the header icon reopens it; closing with ✕ keeps it closed", async ({ page }) => {
+  test("the header icon opens the full chooser; closing it keeps it closed", async ({ page }) => {
     await page.goto("/en/listings/1");
     await page.evaluate((c) => {
       document.cookie = `${c}=dismissed; path=/; max-age=31536000`;
@@ -185,7 +227,11 @@ test.describe("Android phone", () => {
 
     await page.getByTestId("app-prompt-icon").click();
     await expectSheet(page);
+    await expect(sheet(page)).toHaveAttribute("data-variant", "sheet");
+    await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByTestId("app-prompt-store")).toHaveAttribute("href", PLAY);
+    await expect(page.getByTestId("app-prompt-store")).toHaveText("Google Play");
+    await expect(page.getByTestId("app-prompt-open")).toHaveText("I have the app — open it");
     // The ✕ (and the backdrop) count as "not now" too.
     await sheet(page).getByRole("button", { name: "Not now" }).last().click();
     await expect(sheet(page)).toHaveCount(0);
@@ -200,9 +246,9 @@ test.describe("Android phone", () => {
 
   test("RTL: translated (ps)", async ({ page }) => {
     await page.goto("/ps/listings/1");
-    await expectSheet(page);
+    await expectBar(page);
     await expect(sheet(page)).toContainText("د هټیوال اپ ترلاسه کړئ");
-    await expect(page.getByTestId("app-prompt-open")).toHaveText("اپ لرم — پرانیزئ یې");
+    await expect(page.getByTestId("app-prompt-open")).toHaveText("پرانیزئ");
   });
 });
 
@@ -218,7 +264,16 @@ test.describe("Android, signed in", () => {
 
   test("once the welcome was seen, it is offered", async ({ page }) => {
     await page.goto("/en/listings/1");
-    await expectSheet(page);
+    await expectBar(page);
+  });
+
+  test("never over a chat thread's composer", async ({ page }) => {
+    await page.goto("/en/conversations");
+    await expectBar(page);
+    await page.goto("/en/conversations/1");
+    await expect(page.getByPlaceholder("Type a message...")).toBeVisible({ timeout: 45_000 });
+    await page.waitForTimeout(3_000);
+    await expect(sheet(page)).toHaveCount(0);
   });
 });
 
@@ -227,22 +282,47 @@ test.describe("Android, signed in", () => {
 test.describe("iPhone", () => {
   test.use(device("iPhone 14"));
 
-  test("first visit: offered once — App Store, and open THIS listing in the app", async ({
+  test("first visit: the bar opens THIS listing through the app's deep link", async ({
     page,
   }) => {
     await page.goto("/en/listings/1");
-    await expectSheet(page);
-    await expect(page.getByTestId("app-prompt-store")).toHaveAttribute("href", APP_STORE);
-    await expect(page.getByTestId("app-prompt-store")).toHaveText("App Store");
+    await expectBar(page);
     await expect(page.getByTestId("app-prompt-open")).toHaveAttribute(
       "href",
       "hatiwal://listing/1",
     );
   });
 
+  test("on a listing, the bar rides ON the sticky Contact bar, never under it", async ({ page }) => {
+    await page.goto("/en/listings/1");
+    await expectSheet(page);
+    const actionBar = page.getByTestId("listing-action-bar");
+    // 664px tall: the inline Contact button is below the fold, so the sticky bar is up.
+    await expect(actionBar).toBeVisible();
+    await expect
+      .poll(async () => {
+        const nudge = (await sheet(page).boundingBox())!;
+        const bar = (await actionBar.boundingBox())!;
+        return nudge.y + nudge.height - bar.y;
+      })
+      .toBeLessThanOrEqual(1);
+    // …and its ✕ is reachable (nothing paints over it).
+    await page.getByTestId("app-prompt-not-now").click();
+    await expect(sheet(page)).toHaveCount(0);
+  });
+
+  test("the header icon's chooser offers the App Store", async ({ page }) => {
+    await page.goto("/en/listings/1");
+    await expectBar(page);
+    await page.getByTestId("app-prompt-not-now").click();
+    await page.getByTestId("app-prompt-icon").click();
+    await expect(page.getByTestId("app-prompt-store")).toHaveAttribute("href", APP_STORE);
+    await expect(page.getByTestId("app-prompt-store")).toHaveText("App Store");
+  });
+
   test("closing it shows the header icon instead", async ({ page }) => {
     await page.goto("/en/sellers/1");
-    await expectSheet(page);
+    await expectBar(page);
     await page.getByTestId("app-prompt-not-now").click();
     await expect(page.getByTestId("app-prompt-icon")).toBeVisible();
     await page.reload();
@@ -274,7 +354,9 @@ test.describe("Desktop", () => {
 // ── "Open in the Hatiwal app" button (owner, 2026-10-09) ────────────────────
 // Shared shop / invite links opened the website on a phone WITH the app (Apple's
 // AASA CDN copy lagged, and WhatsApp's browser never fires Universal Links).
-// A visible button on every page that has an app twin, phones only.
+// Since report #12 (2026-10-15) the listing / seller / shop pages carry that
+// action in the ONE first-visit bar above; the button itself stays only on the
+// team-invite page, where opening the app IS the page's job.
 
 test.describe("Open-in-app button: route map", () => {
   test("a team invite maps to the app's join screen; its id is a token", () => {
@@ -288,30 +370,25 @@ test.describe("Open-in-app button: route map", () => {
 
 test.describe("Open-in-app button: Android", () => {
   test.use(device("Pixel 7"));
-  for (const [path, re] of [
-    ["/en/listings/1", /^intent:\/\/listing\/1#Intent;scheme=hatiwal;package=com\.hatiwal\.app;/],
-    ["/en/sellers/1", /^intent:\/\/seller\/1#Intent;scheme=hatiwal;/],
-    ["/en/shops/42", /^intent:\/\/shop\/42#Intent;scheme=hatiwal;/],
-    ["/en/join/qa-team-link", /^intent:\/\/join\/qa-team-link#Intent;scheme=hatiwal;/],
-  ] as const) {
-    test(`${path}: opens the same page in the app (Play fallback via /download)`, async ({ page }) => {
-      await page.goto(path);
-      await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", re, { timeout: 45_000 });
-      await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", /browser_fallback_url=.*%2Fdownload/);
-    });
-  }
+  test("/en/join/qa-team-link: opens the invite in the app (Play fallback via /download)", async ({ page }) => {
+    await page.goto("/en/join/qa-team-link");
+    await expect(page.getByTestId("open-in-app")).toHaveAttribute(
+      "href",
+      /^intent:\/\/join\/qa-team-link#Intent;scheme=hatiwal;/,
+      { timeout: 45_000 },
+    );
+    await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", /browser_fallback_url=.*%2Fdownload/);
+  });
 
   test("RTL: translated (ps)", async ({ page }) => {
-    await page.goto("/ps/shops/42");
+    await page.goto("/ps/join/qa-team-link");
     await expect(page.getByTestId("open-in-app")).toContainText("په هټیوال اپ کې پرانیزئ", { timeout: 45_000 });
   });
 });
 
 test.describe("Open-in-app button: iPhone", () => {
   test.use(device("iPhone 14"));
-  test("shop and invite use the app's own deep links", async ({ page }) => {
-    await page.goto("/en/shops/42");
-    await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", "hatiwal://shop/42", { timeout: 45_000 });
+  test("the invite uses the app's own deep link", async ({ page }) => {
     await page.goto("/en/join/qa-team-link");
     await expect(page.getByTestId("open-in-app")).toHaveAttribute("href", "hatiwal://join/qa-team-link", { timeout: 45_000 });
   });
@@ -320,8 +397,9 @@ test.describe("Open-in-app button: iPhone", () => {
 test.describe("Open-in-app button: desktop", () => {
   test.use(device("Desktop Chrome"));
   test("never shown", async ({ page }) => {
-    await page.goto("/en/shops/42");
-    await expect(page.locator("h1").first()).toBeVisible({ timeout: 45_000 });
+    await page.goto("/en/join/qa-team-link");
+    await expect(page.locator("main")).toBeVisible({ timeout: 45_000 });
+    await page.waitForTimeout(2_000); // the button decides after mount
     await expect(page.getByTestId("open-in-app")).toHaveCount(0);
   });
 });

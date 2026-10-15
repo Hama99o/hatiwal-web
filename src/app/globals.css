@@ -230,6 +230,8 @@ html:lang(fa) {
     -webkit-text-size-adjust: 100%;
   }
   body {
+    /* The phone app nudge's height while it shows (shared/app-prompt.tsx). */
+    padding-bottom: var(--app-nudge-h, 0px);
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);

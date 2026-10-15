@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { smartAppBanner } from "@/lib/app-links";
-import { OpenInAppButton } from "@/components/shared/open-in-app-button";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
@@ -236,8 +235,6 @@ export default async function ListingDetailPage({
         {/* Records this open into Recently Viewed for logged-in users (no-op for
             guests) — the SSR fetch above is a guest, so Rails can't attribute it. */}
         <RecordListingView id={listing.id} />
-        {/* Phones only: open this listing in the app (renders nothing on desktop). */}
-        <OpenInAppButton route={{ kind: "listing", id: listing.id }} className="mb-4 w-full md:hidden" />
 
 
         {/* Desktop: gallery + description on the left, the buy box then seller and

@@ -209,6 +209,18 @@ export function ListingActionBar({
     [sentinelId],
   );
 
+  // While this bar is up, the phone app nudge (shared/app-prompt.tsx) stacks
+  // ON it instead of sliding under it: the bar publishes its height.
+  const barUp = isLive({ status }) && !isOwner && ((compact && pinned) || dialogOpen);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (barUp && barHeight != null) root.style.setProperty("--action-bar-h", `${barHeight}px`);
+    else root.style.removeProperty("--action-bar-h");
+    return () => {
+      root.style.removeProperty("--action-bar-h");
+    };
+  }, [barUp, barHeight]);
+
   // A dead end (sold, or an unpublished draft) shows an inline recovery card
   // instead — no buyer CTA to pin. A RESERVED listing is live and keeps its
   // sticky CTA: it stays in search and stays message-able, so hiding the bar

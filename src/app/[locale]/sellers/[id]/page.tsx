@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { smartAppBanner } from "@/lib/app-links";
-import { OpenInAppButton } from "@/components/shared/open-in-app-button";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
@@ -82,8 +81,6 @@ export default async function SellerPage({ params }: { params: Params }) {
   return (
     <ViewerIdProvider viewerId={viewerId}>
       <div className="mx-auto max-w-7xl px-4 py-8">
-        {/* The id from the URL: with privacy-b the payload's seller.id can be null (a shop's face). */}
-        <OpenInAppButton route={{ kind: "seller", id }} className="mb-4 w-full md:hidden" />
         <div className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center">
           <UserIdentity
             name={seller.name}

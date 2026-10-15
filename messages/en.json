@@ -668,7 +668,8 @@
     "getApp": "Get the app",
     "title": "Get the Hatiwal app",
     "haveIt": "I have the app — open it",
-    "notNow": "Not now"
+    "notNow": "Not now",
+    "open": "Open"
   },
   "categoriesPage": {
     "title": "Categories",

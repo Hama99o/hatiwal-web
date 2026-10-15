@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { smartAppBanner } from "@/lib/app-links";
-import { OpenInAppButton } from "@/components/shared/open-in-app-button";
 import { localizedAlternates } from "@/lib/seo";
 import { ApiError } from "@/lib/api/client";
 import { getShop, type Shop } from "@/lib/api/shops";
@@ -93,9 +92,6 @@ export default async function ShopPage({ params }: { params: Params }) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <div className="mx-auto max-w-5xl px-4 pt-4 md:hidden">
-        <OpenInAppButton route={{ kind: "shop", id: shop.id }} />
-      </div>
       <ShopPageView shop={shop} categoryLabel={categoryLabel(shop, locale)} />
     </>
   );
