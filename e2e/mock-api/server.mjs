@@ -852,7 +852,10 @@ const MESSAGES = {
 };
 
 const BLOCKED_USERS = [
-  { id: 3, name: "Najib Rahimi", city: "Kabul", verified: true, avatar_url: null },
+  // A blocked PERSON, rendered by the real API through UserSerializer :public —
+  // it sends `full_name`, not `name` (only a blocked SHOP row sends `name`).
+  // This used to say `name`, which is why the mock never reproduced the crash.
+  { id: 3, full_name: "Najib Rahimi", city: "Kabul", verified: true, avatar_url: null, blocked: true },
 ];
 
 const SAVED_SEARCHES = [

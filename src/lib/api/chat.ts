@@ -296,8 +296,18 @@ export async function unarchiveConversation(id: number): Promise<void> {
 }
 
 export async function getBlockedUsers(): Promise<ConversationParticipant[]> {
-  const d = await meRequest<{ users: ConversationParticipant[] }>("blocks");
-  return d.users ?? [];
+  // GET /blocks renders a blocked PERSON through UserSerializer :public, which
+  // sends `full_name` (→ `fullName` after snake→camel), NOT `name` — only a
+  // blocked SHOP row carries `name`. Reading `.name` straight off a person row
+  // was therefore undefined and crashed UserIdentity ("Something went wrong")
+  // the moment the list had anyone in it. The mock sent `name` for both, so the
+  // mock suite stayed green. Map it here; every other field (avatarUrl, city,
+  // verified, shopId, asShop, blocked, id) already matches after conversion.
+  const d = await meRequest<{ users: (ConversationParticipant & { fullName?: string | null })[] }>("blocks");
+  return (d.users ?? []).map(({ fullName, ...row }) => ({
+    ...row,
+    name: row.name ?? fullName ?? "",
+  }));
 }
 
 export async function blockUser(userId: number): Promise<void> {
