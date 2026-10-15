@@ -78,6 +78,7 @@ test.describe("Listing action bar (mobile)", () => {
     page,
   }) => {
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
     await expect(bar.getByRole("button", { name: CTA.en })).toBeVisible();
@@ -108,7 +109,12 @@ test.describe("Listing action bar (mobile)", () => {
     // The inline CTA on screen → the bar gets out of the way; back up → returns.
     await page.locator("#listing-actions").scrollIntoViewIfNeeded();
     await expect(bar).toHaveClass(/opacity-0/);
+    // Back at the top the inline block is on screen too (buy box first,
+    // 8bf7b50), so the bar stays out of the way there…
     await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(bar).toHaveClass(/opacity-0/);
+    // …and returns as soon as the block is scrolled past again.
+    await scrollBelowInlineActions(page);
     await expect(bar).toHaveClass(/opacity-100/);
   });
 
@@ -125,8 +131,9 @@ test.describe("Listing action bar (mobile)", () => {
     await page.goto("/en/listings/2");
     const bar = page.getByRole("region", { name: BAR.en });
     const barPrice = bar.getByText(/AFN/);
-    await expect(bar).toHaveClass(/opacity-100/);
-    // Top of the page: bar pinned, hero price on screen, no price in the bar.
+    // Top of the page: hero price on screen, no price in the bar. (Since the
+    // buy box went first — 8bf7b50 — the inline actions are on screen here
+    // too, so the bar itself is also out of the way.)
     await expect(page.locator("#listing-price")).toBeInViewport();
     await expect(barPrice).toHaveCount(0);
 
@@ -136,7 +143,8 @@ test.describe("Listing action bar (mobile)", () => {
     await expect(bar).toHaveClass(/opacity-100/);
     await expect(barPrice).toBeVisible();
     const hero = (
-      await page.locator("#listing-price > span").first().textContent()
+      // The hero <PriceTag>, beside the share button since 8bf7b50.
+      await page.locator("#listing-price > div > span").first().textContent()
     )!.trim();
     expect((await barPrice.textContent())!.trim()).toBe(hero);
 
@@ -185,6 +193,7 @@ test.describe("Listing action bar (mobile)", () => {
     page,
   }) => {
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
 
@@ -215,6 +224,7 @@ test.describe("Listing action bar (mobile)", () => {
     page,
   }) => {
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
 
@@ -241,6 +251,7 @@ test.describe("Listing action bar (mobile)", () => {
     // an already-unsaved listing. The optimistic flip therefore lives in one
     // shared cache entry both hearts read.
     await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
     const barHeart = bar.getByRole("button", { name: /save/i });
@@ -259,7 +270,7 @@ test.describe("Listing action bar (mobile)", () => {
     // bar's heart must be filled again when it comes back.
     await inlineHeart.click();
     await expect(inlineHeart).toHaveAttribute("aria-pressed", "true");
-    await page.evaluate(() => window.scrollTo(0, 0));
+    await scrollBelowInlineActions(page);
     await expect(bar).toHaveClass(/opacity-100/);
     await expect(barHeart).toHaveAttribute("aria-pressed", "true");
   });
@@ -275,6 +286,10 @@ test.describe("Listing action bar (mobile)", () => {
     // or any reflow that brings the inline block into view. Reproduced here by
     // growing the viewport until the inline block (the bar's hide sentinel) is on
     // screen.
+    // 700px tall: the inline block (buy box first since 8bf7b50) starts just
+    // below the fold, so the bar is pinned at the top of the page — and growing
+    // the viewport below brings the block on screen, as before.
+    await page.setViewportSize({ width: 390, height: 700 });
     await page.goto("/en/listings/2");
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
@@ -325,6 +340,7 @@ test.describe("Listing action bar (mobile)", () => {
     // mounted while it hosts an open dialog, and the dialog is portalled to
     // <body> so `lg:hidden` on the bar cannot hide it.
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     await expect(bar).toHaveClass(/opacity-100/);
     const composer = page.getByPlaceholder(COMPOSER);
@@ -396,6 +412,7 @@ test.describe("Listing action bar (mobile)", () => {
     // cases which get no bar get no dead space either: own listing, a dead-end
     // (sold/draft) listing, desktop.
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const spacer = page.getByTestId("action-bar-spacer");
     await expect(spacer).toHaveCount(1);
     const spacerBox = (await spacer.boundingBox())!;
@@ -450,6 +467,7 @@ test.describe("Listing action bar (mobile)", () => {
       const where = `${locale} @ ${width}px`;
       await page.setViewportSize({ width, height: 760 });
       await page.goto(`/${locale}/listings/2`);
+      await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
       const bar = page.getByTestId("listing-action-bar");
       await expect(bar).toHaveClass(/opacity-100/);
       // Two controls, never three: the offer affordance stays in the inline block.
@@ -496,18 +514,21 @@ test.describe("Listing action bar (mobile)", () => {
     // one is how the first fix passed while looking wrong.
     await page.setViewportSize({ width: 768, height: 900 });
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByTestId("listing-action-bar");
     const row = bar.locator(":scope > div").first();
     const cta = bar.getByRole("button", { name: CTA.en });
     const heart = bar.getByRole("button", { name: /save/i });
     await expect(cta).toBeVisible();
 
-    for (const state of ["no price", "with price"] as const) {
+    // Since the buy box went first (8bf7b50) the inline actions sit right under
+    // the hero price, so the bar is never up while the hero price is on screen:
+    // the price-less pinned state is no longer reachable on a priced listing, and
+    // only the state a buyer can actually see is measured.
+    for (const state of ["with price"] as const) {
       if (state === "with price") {
         await scrollBelowInlineActions(page);
         await expect(bar.locator(":scope > div > span")).toHaveCount(1);
-      } else {
-        await expect(bar.locator(":scope > div > span")).toHaveCount(0);
       }
       await expect(bar).toHaveClass(/opacity-100/);
       const rowBox = (await row.boundingBox())!;
@@ -532,6 +553,7 @@ test.describe("Listing action bar (mobile)", () => {
     // mouse can reach, but this bar is `lg:hidden` — the one touch-only surface on
     // the site — and its heart is an icon-only target 12px from the screen edge.
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByTestId("listing-action-bar");
     await expect(bar).toHaveClass(/opacity-100/);
     for (const [name, control] of [
@@ -557,6 +579,7 @@ test.describe("Listing action bar (mobile)", () => {
     const release = await hold(page, "**/api/me/my/saved_listings**");
 
     await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     const heart = bar.getByRole("button", { name: /save/i });
     await expect(heart).toBeVisible();
@@ -588,6 +611,7 @@ test.describe("Listing action bar (mobile)", () => {
     const release = await hold(page, "**/api/auth/session");
 
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     const heart = bar.getByRole("button", { name: /save/i });
     await expect(heart).toBeVisible();
@@ -615,6 +639,7 @@ test.describe("Listing action bar (mobile)", () => {
     const release = await hold(page, "**/api/auth/session");
 
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.en });
     const cta = bar.getByRole("button", { name: CTA.en });
     // A button that says it is not ready — never a link to /login.
@@ -658,6 +683,7 @@ test.describe("Listing action bar (mobile)", () => {
     // every labelled control.
     const release = await hold(page, "**/api/auth/session");
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const cta = page
       .getByRole("region", { name: BAR.en })
       .getByRole("button", { name: CTA.en });
@@ -695,6 +721,7 @@ test.describe("Listing action bar (mobile)", () => {
     });
     const release = await hold(page, "**/api/auth/session");
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const cta = page
       .getByRole("region", { name: BAR.en })
       .getByRole("button", { name: CTA.en });
@@ -733,6 +760,7 @@ test.describe("Listing action bar (mobile)", () => {
     // pinned state indicator on the site's one touch-only surface.
     const release = await hold(page, "**/api/me/my/saved_listings**");
     await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const heart = page
       .getByRole("region", { name: BAR.en })
       .getByRole("button", { name: /save/i });
@@ -765,6 +793,7 @@ test.describe("Listing action bar (mobile)", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const release = await hold(page, "**/api/me/my/saved_listings**");
     await page.goto("/en/listings/2"); // saved by this persona in the mock API
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const heart = page
       .getByRole("region", { name: BAR.en })
       .getByRole("button", { name: /save/i });
@@ -787,6 +816,7 @@ test.describe("Listing action bar (mobile)", () => {
 
   test("mirrors in RTL — price on the right in Pashto", async ({ page }) => {
     await page.goto("/ps/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByRole("region", { name: BAR.ps });
     await expect(bar).toHaveClass(/opacity-100/);
     // The bar only carries a price below the hero one (see the two-prices spec).
@@ -803,9 +833,9 @@ test.describe("Listing action bar (mobile)", () => {
     // `ps-AF` tag gave the bar "AFN 30,000" beside a hero reading "\u060B \u06F3\u06F0\u066C\u06F0\u06F0\u06F0".
     const barPrice = (await price.textContent())!.trim();
     expect(barPrice).not.toContain("AFN");
-    // The hero <PriceTag> is the first <span> in the h1's own block.
+    // The hero <PriceTag>: the first <span> of the price row (8bf7b50).
     const heroPrice = (
-      await page.locator("h1").locator("xpath=../span[1]").textContent()
+      await page.locator("#listing-price > div > span").first().textContent()
     )!.trim();
     expect(barPrice).toBe(heroPrice);
   });
@@ -840,6 +870,7 @@ test.describe("Listing action bar (guest)", () => {
     expect(html).not.toContain('aria-busy="true"');
 
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const bar = page.getByTestId("listing-action-bar");
     await expect(bar).toHaveClass(/opacity-100/);
     await expect(
@@ -863,6 +894,7 @@ test.describe("Listing action bar (guest)", () => {
     // guest branch no longer waits on the probe at all.
     await hold(page, "**/api/auth/session"); // never released
     await page.goto("/en/listings/2");
+    await scrollBelowInlineActions(page); // 8bf7b50: the buy box is above the fold now
     const cta = page
       .getByTestId("listing-action-bar")
       .getByRole("link", { name: CTA.en });
