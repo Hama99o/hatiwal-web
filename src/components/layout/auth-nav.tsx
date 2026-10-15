@@ -15,7 +15,7 @@ import {
   User as UserIcon,
   Users,
 } from "lucide-react";
-import { Link, useRouter } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CountBadge } from "@/components/shared/count-badge";
@@ -38,6 +38,7 @@ export function AuthNav() {
   // SHOP-1: "My listings" as Me, "My shop" when selling as a shop.
   const myListingsLabel = user?.sellingAsShop ? t("shops.mine") : t("sidebar.myListings");
   const router = useRouter();
+  const pathname = usePathname();
   const mode = useModeSwitch();
   const identity = useSellingIdentity();
 
@@ -46,6 +47,9 @@ export function AuthNav() {
   }
 
   if (status === "guest" || !user) {
+    // On the sign-in / sign-up pages themselves the header "Login" only repeated
+    // the form's own button (and each page links to the other).
+    if (pathname === "/login" || pathname === "/signup") return null;
     return (
       <Button asChild variant="default" size="sm">
         <Link href="/login">{t("auth.login")}</Link>

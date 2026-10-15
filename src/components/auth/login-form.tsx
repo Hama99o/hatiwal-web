@@ -99,6 +99,16 @@ function GoogleSignInButton() {
 
   return (
     <>
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">
+            {t("auth.orDivider")}
+          </span>
+        </div>
+      </div>
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
@@ -212,16 +222,8 @@ export function LoginForm() {
           {isSubmitting && <Loader2 className="size-4 animate-spin" />}
           {t("auth.loginButton")}
         </Button>
-        <div className="relative my-2">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">
-              {t("auth.orDivider")}
-            </span>
-          </div>
-        </div>
+        {/* The "or" divider lives inside the Google button: without a client id
+            neither renders, instead of an "OR" with nothing under it. */}
         <GoogleSignInButton />
       </form>
     </AuthCard>
