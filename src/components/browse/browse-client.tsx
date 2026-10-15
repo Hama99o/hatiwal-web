@@ -834,7 +834,8 @@ export function BrowseClient({
         </aside>
 
         {/* Results */}
-        <main className="min-w-0">
+        {/* <section>, not <main>: the locale layout already renders the page's <main>. */}
+        <section className="min-w-0">
           <div className="mb-4 flex items-center justify-between gap-3">
             {/* `data-testid`: the E2E digit fence (e2e/i18n-digits.spec.ts) reads
                 this count to prove `t()` and `formatPrice` agree on one digit
@@ -873,6 +874,8 @@ export function BrowseClient({
                   {t("browse.sort.label")}
                 </span>
                 <select
+                  // The visible label is sm+ only; below that the select had no name (axe select-name).
+                  aria-label={t("browse.sort.label")}
                   value={filters.sort}
                   onChange={(e) =>
                     handleSortChange(e.target.value as BrowseSort)
@@ -984,7 +987,7 @@ export function BrowseClient({
               )}
             </>
           )}
-        </main>
+        </section>
       </div>
     </div>
   );
