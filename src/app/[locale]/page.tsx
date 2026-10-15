@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -79,23 +79,23 @@ export default async function HomePage({
   return (
     <div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
-      {/* Hero — left-aligned, with an in-page search (web-native GET form). */}
+      {/* Hero — compact, so the first listings are on the first phone screen
+          (docs/design/home.md). On phones the header already has a full-width
+          search row, so the hero offers two actions instead of a second search. */}
       <section className="border-b bg-gradient-to-br from-primary/10 via-background to-background">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:py-14 lg:py-20">
           <div className="max-w-2xl">
-            <h1 className="text-balance text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="text-balance text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
               {t("home.hero.title")}
             </h1>
-            <p className="mt-4 text-pretty text-lg text-muted-foreground">
+            <p className="mt-3 text-pretty text-base text-muted-foreground sm:mt-4 sm:text-lg">
               {t("home.hero.subtitle")}
             </p>
             <form
               action={`/${locale}/bazaar`}
               method="get"
               role="search"
-              // Stacked on phones: side by side at 390px the CTA squeezed the
-              // input to ~160px and cut its placeholder to "Search Hatiw".
-              className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
+              className="mt-8 hidden max-w-xl gap-2 sm:flex"
             >
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -110,32 +110,49 @@ export default async function HomePage({
                 {t("home.hero.browseCta")}
               </Button>
             </form>
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:hidden">
+              <Button asChild size="lg" className="h-12">
+                <Link href="/bazaar">{t("home.hero.browseCta")}</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12">
+                <Link href="/listings/new">
+                  <Plus aria-hidden />
+                  {t("sidebar.createListing")}
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-14 px-4 py-12">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-8">
         {categories.length > 0 && (
-          <section className="space-y-5">
-            <h2 className="text-2xl font-bold tracking-tight">
-              {t("home.categoriesHeading")}
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {categories.slice(0, 12).map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/categories/${category.slug}`}
-                  className="group flex flex-col items-center justify-center gap-2 rounded-xl border bg-card p-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-                >
-                  <span className="text-3xl transition-transform group-hover:scale-110">
-                    {category.icon ?? "📦"}
-                  </span>
-                  <span className="text-sm font-medium leading-tight">
-                    {categoryName(category, locale)}
-                  </span>
-                </Link>
-              ))}
+          // One pill row (Airtasker / Shop): sideways scroll on phones, wraps on
+          // desktop — 12 tiles in a 2-column grid used to fill ~700px of a phone.
+          <section className="space-y-3" aria-labelledby="home-categories">
+            <div className="flex items-baseline justify-between gap-4">
+              <h2 id="home-categories" className="text-xl font-bold tracking-tight sm:text-2xl">
+                {t("home.categoriesHeading")}
+              </h2>
+              <Link href="/categories" className="text-sm font-medium text-primary hover:underline">
+                {t("home.viewAll")}
+              </Link>
             </div>
+            <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+              {categories.map((category) => (
+                <li key={category.id} className="shrink-0">
+                  <Link
+                    href={`/categories/${category.slug}`}
+                    className="flex h-11 items-center gap-2 rounded-full border bg-card ps-3 pe-4 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span aria-hidden className="text-lg leading-none">
+                      {category.icon ?? "📦"}
+                    </span>
+                    {categoryName(category, locale)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
