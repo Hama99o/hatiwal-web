@@ -160,10 +160,15 @@ export function formatRelativeDate(
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return "";
   try {
-    return formatDistanceToNow(date, {
-      addSuffix: true,
-      locale: DF_LOCALE[locale] ?? enUS,
-    });
+    // date-fns always writes Latin digits; the chat list read "28 روز قبل" while
+    // every other number on a ps/fa page is Eastern Arabic (web UI/UX QA).
+    return localizeDigits(
+      formatDistanceToNow(date, {
+        addSuffix: true,
+        locale: DF_LOCALE[locale] ?? enUS,
+      }),
+      locale,
+    );
   } catch {
     return date.toLocaleDateString(INTL_TAG[locale] ?? "en-US");
   }
