@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -219,7 +219,6 @@ export function ConversationThread({ id }: { id: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
   // Is the reader parked at the newest messages? Same 120px threshold the mobile
   // thread uses, so "following the conversation" means the same thing on both
@@ -275,9 +274,27 @@ export function ConversationThread({ id }: { id: string }) {
       .catch(() => undefined);
     qc.invalidateQueries({ queryKey: ["conversations"] });
   }, [cid, qc, refresh]);
+  // Height of the site header, measured: on phones it carries a second row (the
+  // search bar), so the old fixed `100vh - 4rem` overshot the screen by ~53px and
+  // the composer started below the fold (web UI/UX QA, 390x844).
+  const [headerH, setHeaderH] = useState(64);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    const header = document.querySelector("header");
+    if (!header || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setHeaderH(header.getBoundingClientRect().height));
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
+  // Scroll the message box itself. scrollIntoView also scrolled the WINDOW, which
+  // lifted the whole thread so the composer sat mid-screen over the site footer.
+  const scrollToLatest = useCallback((behavior: ScrollBehavior) => {
+    const box = scrollBoxRef.current;
+    if (box) box.scrollTo({ top: box.scrollHeight, behavior });
+  }, []);
+  useEffect(() => {
+    scrollToLatest("smooth");
+  }, [messages.length, scrollToLatest]);
 
   // ...and re-land the bottom when the message AREA changes size rather than its
   // content — which `[messages.length]` above cannot see.
@@ -297,12 +314,12 @@ export function ConversationThread({ id }: { id: string }) {
     if (!box || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => {
       if (nearBottomRef.current) {
-        bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+        scrollToLatest("auto");
       }
     });
     observer.observe(box);
     return () => observer.disconnect();
-  }, []);
+  }, [scrollToLatest]);
 
   // Live updates over the WebSocket. Upsert by id so a re-broadcast of an
   // existing message (e.g. a soft-delete tombstone flip) replaces it in place
@@ -646,7 +663,10 @@ export function ConversationThread({ id }: { id: string }) {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-4rem)] max-w-3xl flex-col">
+    <div
+      className="mx-auto flex max-w-3xl flex-col"
+      style={{ height: `calc(100dvh - ${headerH}px)` }}
+    >
       {/* Header */}
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <Button asChild variant="ghost" size="icon" className="shrink-0">
@@ -973,7 +993,6 @@ export function ConversationThread({ id }: { id: string }) {
             );
           })
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Quick-reply preset chips (hidden on a closed conversation) */}
