@@ -240,21 +240,32 @@ export default async function ListingDetailPage({
         <OpenInAppButton route={{ kind: "listing", id: listing.id }} className="mb-4 w-full md:hidden" />
 
 
-        <div className="grid gap-8 lg:grid-cols-2">
+        {/* Desktop: gallery + description on the left, the buy box then seller and
+            location on the right, spanning both rows. Phones (one column, `order`):
+            gallery → buy box → description → seller/location. */}
+        <div className="grid gap-8 lg:grid-cols-2 lg:grid-rows-[auto_1fr]">
           {/* Sold stock is dimmed, photo and price both (DESIGN_SYSTEM §2), so
               the page reads as an archive at a glance instead of looking like a
               live offer with a notice bolted on. Reserved keeps full strength —
               a reservation can fall through. */}
-          <ListingGallery
-            images={listing.images}
-            mediums={listing.imageMediums}
-            thumbs={listing.imageThumbs}
-            title={listing.title}
-            dimmed={isSold}
-          />
+          <div className="order-1 min-w-0 lg:order-none lg:col-start-1 lg:row-start-1">
+            <ListingGallery
+              images={listing.images}
+              mediums={listing.imageMediums}
+              thumbs={listing.imageThumbs}
+              title={listing.title}
+              dimmed={isSold}
+            />
+          </div>
 
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
+          {/* `contents` on phones: its two halves become items of the one-column
+              grid so they can be ordered around the description (buy box →
+              description → seller/location). From lg it is the right column. */}
+          <div className="contents lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block lg:min-w-0 lg:space-y-5">
+          <div className="order-2 min-w-0 space-y-5 lg:order-none">
+            {/* `empty:hidden`: with no badge to show this row used to hold only the
+                share button — a whole phone row for "Copy link". */}
+            <div className="flex flex-wrap items-center gap-2 empty:hidden">
               {/* The RIBBON. Kept for `reserved` as well as `sold`/`draft` —
                   under the three-state model this badge IS how a hold is shown:
                   the listing stays live and simply says "Reserved". */}
@@ -267,28 +278,30 @@ export default async function ListingDetailPage({
               {listing.condition && (
                 <ConditionBadge condition={listing.condition} />
               )}
-              {/* Share / copy-link — shown for every status (mirrors mobile). */}
-              <ShareButton
-                shareTitle={listing.title}
-                text={t("listing.share.body", {
-                  title: listing.title,
-                  price: formatPrice(listing.price, listing.currency, locale),
-                })}
-                className="ms-auto"
-              />
             </div>
 
             {/* `id="listing-price"` is the price anchor <ListingActionBar>
                 watches: while this block is on screen the sticky bar shows no
                 price of its own, so the same number never appears twice. */}
             <div id="listing-price" className="space-y-2">
-              <PriceTag
-                price={listing.price}
-                currency={listing.currency}
-                size="lg"
-                tone={isSold ? "muted" : "default"}
-                perUnit={hasStockToShow(listing)}
-              />
+              <div className="flex items-start justify-between gap-3">
+                <PriceTag
+                  price={listing.price}
+                  currency={listing.currency}
+                  size="lg"
+                  tone={isSold ? "muted" : "default"}
+                  perUnit={hasStockToShow(listing)}
+                />
+                {/* Share / copy-link — shown for every status (mirrors mobile),
+                    beside the price instead of on a row of its own. */}
+                <ShareButton
+                  shareTitle={listing.title}
+                  text={t("listing.share.body", {
+                    title: listing.title,
+                    price: formatPrice(listing.price, listing.currency, locale),
+                  })}
+                />
+              </div>
               {/* Firm-price badge — quiet trust signal when negotiable is false */}
               <FirmPriceBadge negotiable={listing.negotiable} />
               {/* Stock — the buyer who assumed "1" learns otherwise BEFORE they
@@ -340,118 +353,6 @@ export default async function ListingDetailPage({
               expired={listing.expired}
               conversationsCount={listing.conversationsCount}
             />
-
-            {listing.location && (
-              /* The shared card surface, not another inline
-                 `rounded-lg border bg-card` — see `ui/card.tsx`. */
-              <Card className="space-y-2 p-3">
-                <div className="flex items-start gap-2 text-sm">
-                  <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{t("listing.detail.location")}</p>
-                    <p className="text-muted-foreground">{listing.location}</p>
-                    {/* Specific meetup address, when the seller gave one. */}
-                    {listing.address && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {listing.address}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {listing.latitude != null && listing.longitude != null && (
-                <>
-                  <LocationMap
-                    lat={listing.latitude}
-                    lng={listing.longitude}
-                    // Zoom 13, not 14, BECAUSE of the approximate-area circle: a 500m radius
-                    // at z14 in an h-48 frame fills nearly the whole map, so the circle reads
-                    // as a solid blob and the streets around it — the context a buyer
-                    // actually needs to judge "which part of town" — are pushed out of view.
-                    // One step out keeps the area obvious while leaving surrounding
-                    // neighbourhoods visible. An exact point (owner view) keeps z14.
-                    zoom={listing.locationPrecision === "exact" ? 14 : 13}
-                    className="h-48"
-                    // SAFETY-1: an AREA, not a pin. A MISSING precision is read as
-                    // approximate (the safe default), so an older payload can never
-                    // re-expose an exact point — only an explicit "exact", which the API
-                    // sends on the owner's own view alone, keeps the precise marker.
-                    // Metres on the wire, kilometres in the map component.
-                    radiusKm={
-                      listing.locationPrecision === "exact"
-                        ? undefined
-                        : (listing.locationRadiusM ?? 500) / 1000
-                    }
-                  />
-                  {listing.locationPrecision !== "exact" && (
-                    <p
-                      className="mt-2 text-xs text-muted-foreground"
-                      data-testid="listing-location-approximate"
-                    >
-                      {t("listing.detail.approximateLocation")}
-                    </p>
-                  )}
-                </>
-                )}
-              </Card>
-            )}
-
-            {/* Seller */}
-            {listing.seller && (
-              <Card className="p-4">
-                <p className="mb-3 text-sm font-medium text-muted-foreground">
-                  {t("listing.detail.seller")}
-                </p>
-                {/* SHOP-1: posted as a shop → "🏪 Safi Cosmetics · Shop" → the shop page. */}
-                {listing.shop ? (
-                  <span data-testid="listing-shop-link">
-                    <UserIdentity
-                      variant="shop"
-                      name={listing.shop.name}
-                      avatarUrl={listing.shop.logoUrl} avatarFallbackUrl={listing.shop.logoOriginalUrl}
-                      verified={listing.shop.verified}
-                      subtitle={listing.shop.city ?? listing.shop.province}
-                      href={`/shops/${listing.shop.id}`}
-                      size={48}
-                    />
-                  </span>
-                ) : (
-                  <UserIdentity
-                    name={listing.seller.name}
-                    avatarUrl={listing.seller.avatarUrl} avatarFallbackUrl={listing.seller.avatarOriginalUrl}
-                    verified={listing.seller.verified}
-                    subtitle={listing.seller.city}
-                    href={profileHrefFor(listing.seller)}
-                    size={48}
-                  />
-                )}
-                <RatingDisplay
-                  avgRating={listing.seller.avgRating}
-                  reviewCount={listing.seller.reviewCount}
-                  className="mt-3"
-                />
-                <ResponseRateBadge
-                  responseRatePercent={listing.seller.responseRatePercent}
-                  responseTimeLabel={listing.seller.responseTimeLabel}
-                />
-                <LastActiveLabel
-                  label={listing.seller.lastActiveLabel}
-                  className="mt-2"
-                />
-                {/* "Seller is away until…" is buyer information — it sets an
-                    expectation about reply speed. Told to the seller it reads as
-                    the site describing them in the third person, so it is
-                    owner-gated exactly like mobile (`!isOwnListing &&
-                    sellerIsAway` in `ListingDetail.tsx`). The seller sees their
-                    own away state where they set it: their profile, via
-                    `profile.away.youAreAway`. */}
-                <HideForOwner ownerId={sellerId} ownerShopId={sellerShopId}>
-                  <AwayBanner
-                    awayUntil={listing.seller.sellerAwayUntil}
-                    className="mt-3"
-                  />
-                </HideForOwner>
-              </Card>
-            )}
 
             {/* Actions — primary CTA (message seller) first, Save below it.
                 `id="listing-actions"` is the sentinel <ListingActionBar> watches:
@@ -556,32 +457,152 @@ export default async function ListingDetailPage({
             </div>
 
           </div>
-        </div>
+          <div className="order-4 min-w-0 space-y-5 lg:order-none">
+            {/* Who and where come AFTER the buy box (Depop / Etsy item pages):
+                the map and the seller card used to sit between the price and the
+                Contact button, pushing it to ~640px on desktop
+                (docs/design/listing-detail.md). */}
+            {/* Seller */}
+            {listing.seller && (
+              <Card className="p-4">
+                <p className="mb-3 text-sm font-medium text-muted-foreground">
+                  {t("listing.detail.seller")}
+                </p>
+                {/* SHOP-1: posted as a shop → "🏪 Safi Cosmetics · Shop" → the shop page. */}
+                {listing.shop ? (
+                  <span data-testid="listing-shop-link">
+                    <UserIdentity
+                      variant="shop"
+                      name={listing.shop.name}
+                      avatarUrl={listing.shop.logoUrl} avatarFallbackUrl={listing.shop.logoOriginalUrl}
+                      verified={listing.shop.verified}
+                      subtitle={listing.shop.city ?? listing.shop.province}
+                      href={`/shops/${listing.shop.id}`}
+                      size={48}
+                    />
+                  </span>
+                ) : (
+                  <UserIdentity
+                    name={listing.seller.name}
+                    avatarUrl={listing.seller.avatarUrl} avatarFallbackUrl={listing.seller.avatarOriginalUrl}
+                    verified={listing.seller.verified}
+                    subtitle={listing.seller.city}
+                    href={profileHrefFor(listing.seller)}
+                    size={48}
+                  />
+                )}
+                <RatingDisplay
+                  avgRating={listing.seller.avgRating}
+                  reviewCount={listing.seller.reviewCount}
+                  className="mt-3"
+                />
+                <ResponseRateBadge
+                  responseRatePercent={listing.seller.responseRatePercent}
+                  responseTimeLabel={listing.seller.responseTimeLabel}
+                />
+                <LastActiveLabel
+                  label={listing.seller.lastActiveLabel}
+                  className="mt-2"
+                />
+                {/* "Seller is away until…" is buyer information — it sets an
+                    expectation about reply speed. Told to the seller it reads as
+                    the site describing them in the third person, so it is
+                    owner-gated exactly like mobile (`!isOwnListing &&
+                    sellerIsAway` in `ListingDetail.tsx`). The seller sees their
+                    own away state where they set it: their profile, via
+                    `profile.away.youAreAway`. */}
+                <HideForOwner ownerId={sellerId} ownerShopId={sellerShopId}>
+                  <AwayBanner
+                    awayUntil={listing.seller.sellerAwayUntil}
+                    className="mt-3"
+                  />
+                </HideForOwner>
+              </Card>
+            )}
 
-        {listing.description && (
-          <section className="mt-10 max-w-3xl">
-            <h2 className="text-lg font-semibold">
-              {t("listing.detail.description")}
-            </h2>
-            <Separator className="my-3" />
-            <p className="whitespace-pre-line text-pretty text-sm leading-relaxed text-foreground" {...userTextProps(listing.description)} data-testid="listing-description">
-              {listing.description}
-            </p>
-          </section>
-        )}
+            {listing.location && (
+              /* The shared card surface, not another inline
+                 `rounded-lg border bg-card` — see `ui/card.tsx`. */
+              <Card className="space-y-2 p-3">
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{t("listing.detail.location")}</p>
+                    <p className="text-muted-foreground">{listing.location}</p>
+                    {/* Specific meetup address, when the seller gave one. */}
+                    {listing.address && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {listing.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {listing.latitude != null && listing.longitude != null && (
+                <>
+                  <LocationMap
+                    lat={listing.latitude}
+                    lng={listing.longitude}
+                    // Zoom 13, not 14, BECAUSE of the approximate-area circle: a 500m radius
+                    // at z14 in an h-48 frame fills nearly the whole map, so the circle reads
+                    // as a solid blob and the streets around it — the context a buyer
+                    // actually needs to judge "which part of town" — are pushed out of view.
+                    // One step out keeps the area obvious while leaving surrounding
+                    // neighbourhoods visible. An exact point (owner view) keeps z14.
+                    zoom={listing.locationPrecision === "exact" ? 14 : 13}
+                    className="h-48"
+                    // SAFETY-1: an AREA, not a pin. A MISSING precision is read as
+                    // approximate (the safe default), so an older payload can never
+                    // re-expose an exact point — only an explicit "exact", which the API
+                    // sends on the owner's own view alone, keeps the precise marker.
+                    // Metres on the wire, kilometres in the map component.
+                    radiusKm={
+                      listing.locationPrecision === "exact"
+                        ? undefined
+                        : (listing.locationRadiusM ?? 500) / 1000
+                    }
+                  />
+                  {listing.locationPrecision !== "exact" && (
+                    <p
+                      className="mt-2 text-xs text-muted-foreground"
+                      data-testid="listing-location-approximate"
+                    >
+                      {t("listing.detail.approximateLocation")}
+                    </p>
+                  )}
+                </>
+                )}
+              </Card>
+            )}
 
-        <div className="mt-8 max-w-3xl">
-          {/* `-ms-2` cancels the trigger's own `px-2` so the flag lines up with
-              the Description heading and the body copy at the column's start
-              edge (and its mirror in ps/fa) instead of sitting 8px inside it —
-              the padding stays, so the 40px hit box is untouched. */}
-          <ReportButton
-            reportableType="Listing"
-            reportableId={listing.id}
-            ownerId={sellerId}
-            ownerShopId={sellerShopId}
-            className="-ms-2"
-          />
+          </div>
+          </div>
+
+          <div className="order-3 min-w-0 lg:order-none lg:col-start-1 lg:row-start-2">
+            {listing.description && (
+              <section>
+                <h2 className="text-lg font-semibold">
+                  {t("listing.detail.description")}
+                </h2>
+                <Separator className="my-3" />
+                <p className="whitespace-pre-line text-pretty text-sm leading-relaxed text-foreground" {...userTextProps(listing.description)} data-testid="listing-description">
+                  {listing.description}
+                </p>
+              </section>
+            )}
+            <div className="mt-6">
+              {/* `-ms-2` cancels the trigger's own `px-2` so the flag lines up with
+                  the Description heading and the body copy at the column's start
+                  edge (and its mirror in ps/fa) instead of sitting 8px inside it —
+                  the padding stays, so the 40px hit box is untouched. */}
+              <ReportButton
+                reportableType="Listing"
+                reportableId={listing.id}
+                ownerId={sellerId}
+                ownerShopId={sellerShopId}
+                className="-ms-2"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Cross-sell rails ("More from this Seller" + "Similar Listings"). They
