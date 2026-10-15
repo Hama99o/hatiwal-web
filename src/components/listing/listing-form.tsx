@@ -512,9 +512,19 @@ export function ListingForm({
               />
             ))}
             {totalPhotos < MAX_PHOTOS && (
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground">
-                <ImagePlus className="size-6" />
-                <span className="text-xs">{t("listing.form.addPhotos")}</span>
+              /* No photo yet: the add target spans the whole row, tinted — photos are
+                 the first thing a buyer sees, so they are the first thing asked for
+                 (Depop "List an item"). Once there are photos it is one more slot. */
+              <label
+                className={cn(
+                  "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed transition-colors hover:border-primary/50 hover:text-foreground",
+                  totalPhotos === 0
+                    ? "col-span-3 h-36 border-primary/40 bg-primary/5 text-primary sm:col-span-4"
+                    : "aspect-square text-muted-foreground",
+                )}
+              >
+                <ImagePlus className={totalPhotos === 0 ? "size-8" : "size-6"} />
+                <span className={totalPhotos === 0 ? "text-sm font-semibold" : "text-xs"}>{t("listing.form.addPhotos")}</span>
                 <input
                   type="file"
                   accept="image/*"
