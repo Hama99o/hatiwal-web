@@ -42,4 +42,19 @@ test.describe("Bazaar filters", () => {
       page.getByRole("button", { name: /Reset filters/i }),
     ).toHaveCount(0);
   });
+
+  // docs/design/bazaar.md: on a phone, Filters + sort + view are ONE row in every
+  // locale (fa was 1px too wide and wrapped before the sort select was capped).
+  for (const locale of ["en", "ps", "fa"]) {
+    test(`phone (${locale}): Filters, sort and view share one row`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(`/${locale}/bazaar`);
+      const sort = page.locator("main select").first();
+      await expect(sort).toBeVisible({ timeout: 60_000 });
+      const filters = page.locator("main .lg\\:hidden > button").first();
+      const [a, b] = await Promise.all([filters.boundingBox(), sort.boundingBox()]);
+      expect(Math.abs(a!.y + a!.height / 2 - (b!.y + b!.height / 2))).toBeLessThan(4);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    });
+  }
 });

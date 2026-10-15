@@ -795,29 +795,6 @@ export function BrowseClient({
             onSubmit={commitSearch}
             placeholder={t("browse.searchPlaceholder")}
           />
-          <div className="mb-4 flex items-center justify-between lg:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters((v) => !v)}
-            >
-              <SlidersHorizontal className="size-4" />
-              {t("browse.filters")}
-              {filterCount > 0 && (
-                <Badge
-                  data-testid="browse-filter-count"
-                  className="min-w-5 justify-center px-1.5 py-0"
-                >
-                  {/* Through `formatNumber`, never raw: the "N filters active"
-                      line right below this button prints the SAME number through
-                      `t()` (Arabic-Indic on ps/fa), so a raw `{filterCount}`
-                      showed a Latin digit beside it on one screen. */}
-                  {formatNumber(filterCount, locale)}
-                </Badge>
-              )}
-            </Button>
-          </div>
           {/* Independent-scroll panel: filters scroll inside this card on
               desktop, so the page scrolls the results and the bottom filters
               stay reachable. `min-h-0` is what lets the flex column above shrink
@@ -840,8 +817,34 @@ export function BrowseClient({
             {/* `data-testid`: the E2E digit fence (e2e/i18n-digits.spec.ts) reads
                 this count to prove `t()` and `formatPrice` agree on one digit
                 set per locale, server and browser alike. */}
+            {/* Phones: Filters sits in THIS row with sort + view (Etsy / Shop),
+                instead of a row of its own above it — one control row, not two
+                (docs/design/bazaar.md). On phones the place line below carries the context; the count is lg+. */}
+            <div className="lg:hidden">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters((v) => !v)}
+              >
+                <SlidersHorizontal className="size-4" />
+                {t("browse.filters")}
+                {filterCount > 0 && (
+                  <Badge
+                    data-testid="browse-filter-count"
+                    className="min-w-5 justify-center px-1.5 py-0"
+                  >
+                    {/* Through `formatNumber`, never raw: the "N filters active"
+                        line right below this button prints the SAME number through
+                        `t()` (Arabic-Indic on ps/fa), so a raw `{filterCount}`
+                        showed a Latin digit beside it on one screen. */}
+                    {formatNumber(filterCount, locale)}
+                  </Badge>
+                )}
+              </Button>
+            </div>
             <p
-              className="text-sm text-muted-foreground"
+              className="hidden text-sm text-muted-foreground lg:block"
               data-testid="results-count"
             >
               {typeof totalCount === "number"
@@ -881,7 +884,9 @@ export function BrowseClient({
                     handleSortChange(e.target.value as BrowseSort)
                   }
                   disabled={nearestLoading}
-                  className={cn(SELECT_CLASS, nearestLoading && "opacity-70")}
+                  // Capped on phones so Filters + sort + view fit ONE row in every
+                  // locale (the fa labels are wider); the open list stays full width.
+                  className={cn(SELECT_CLASS, "max-w-32 sm:max-w-none", nearestLoading && "opacity-70")}
                 >
                   <option value="home">{t("location.nearYou")}</option>
                   <option value="newest">{t("browse.sort.newest")}</option>
