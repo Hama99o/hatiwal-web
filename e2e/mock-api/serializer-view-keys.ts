@@ -47,6 +47,10 @@ const BASE_KEYS = [
   "address",
   "condition",
   "created_at",
+  // Stays (hatiwal-api stays-1.1.7, docs/STAYS_DESIGN.md): BASE too — the price
+  // unit ("/ night") and a room's facts; null / {} for every item.
+  "price_unit",
+  "details",
   // Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). Deliberately BASE, not
   // view-scoped: the clients gate the per-unit price suffix on `multi_unit`, so
   // a view that omitted it would render a bare price for a 15-unit listing and
@@ -236,4 +240,6 @@ export const CATEGORY_REF_KEYS = [
   "name_en",
   "name_ps",
   "name_fa",
+  // Stays: "item" | "stay" on every category (CategorySerializer `fields :kind`).
+  "kind",
 ] as const;
