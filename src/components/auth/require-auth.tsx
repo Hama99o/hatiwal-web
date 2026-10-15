@@ -22,12 +22,16 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     router.replace(loginHref());
   }, [status, router, loginHref]);
 
+  // Both states hold at least one screen of height. Gated pages are client-
+  // rendered: spinner → skeleton → data each had a different height, and the site
+  // footer jumped up and down the viewport with them (CLS 0.12–0.52 at 390x844,
+  // web UI/UX QA). With the footer kept below the fold, nothing visible moves.
   if (status !== "authed") {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="flex min-h-[100dvh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
-  return <>{children}</>;
+  return <div className="min-h-[100dvh]">{children}</div>;
 }
