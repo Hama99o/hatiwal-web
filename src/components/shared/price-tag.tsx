@@ -65,7 +65,7 @@ export function PriceTag({
   const amount = (
     <span
       className={cn(
-        "font-bold tabular-nums",
+        "font-bold tracking-tight tabular-nums",
         TONE_CLASS[tone],
         SIZE_CLASS[size],
         className,

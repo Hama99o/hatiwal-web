@@ -8,8 +8,13 @@
  * and mobile share one visual language. Light values on :root, dark on .dark.
  */
 :root {
-  --background: hsl(0 0% 98%);
+  /* Visual system 2026-10-15 (docs/design/visual-system.md): a WHITE page, as
+     Etsy / Airbnb / Depop — the photos carry the colour; `--surface` is the soft
+     band (hero, footer, filter rail) that separates regions without boxes. */
+  --background: hsl(0 0% 100%);
   --foreground: hsl(222 47% 11%);
+  --surface: hsl(220 24% 97%);
+  --surface-foreground: hsl(222 47% 11%);
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(222 47% 11%);
   --popover: hsl(0 0% 100%);
@@ -32,9 +37,11 @@
   --primary-strong-foreground: hsl(0 0% 100%);
   --secondary: hsl(214 32% 91%);
   --secondary-foreground: hsl(222 47% 11%);
-  --muted: hsl(210 40% 96%);
-  --muted-foreground: hsl(215 16% 47%);
-  --accent: hsl(210 40% 96%);
+  --muted: hsl(220 20% 95%);
+  /* 6.4:1 on white, 5.9:1 on --surface (was 4.8:1): meta lines and 11–12px captions sit at this
+     colour, so it clears AA with room to spare instead of on the line. */
+  --muted-foreground: hsl(217 15% 39%);
+  --accent: hsl(220 20% 95%);
   --accent-foreground: hsl(222 47% 11%);
   /* Design pass 2026-10-07: hsl(0 84% 60%) was 3.62:1 under its own
      foreground (AA is 4.5) and 3.78:1 as text on a card. The dark value is
@@ -49,8 +56,19 @@
   --seller-foreground: hsl(0 0% 100%);
   --warning: hsl(38 92% 40%);
   --warning-foreground: hsl(0 0% 98%);
-  --border: hsl(214 32% 91%);
-  --input: hsl(214 32% 91%);
+  /* INK tokens — text on a 10–15% tint of its own hue (small badges, chips).
+     Each clears 4.5:1 against that tint (report #23): the base colours above are
+     fills, and as 10.5px text on their own tint they measured 2.3–4.5:1;
+     the inks measure 6.1–7.4:1 (light) and 7.5–9.4:1 (dark). */
+  --primary-ink: hsl(224 76% 40%);
+  --primary-soft: hsl(221 90% 96%);
+  --success-ink: hsl(142 72% 24%);
+  --warning-ink: hsl(30 90% 28%);
+  --destructive-ink: hsl(0 70% 38%);
+  --seller-ink: hsl(161 80% 22%);
+  --border: hsl(220 16% 90%);
+  /* Inputs a step darker than hairlines, so an empty field still reads as one. */
+  --input: hsl(220 14% 84%);
   --ring: hsl(221 83% 53%);
   /* Brand accent — saffron / lapis-fleck gold (#E8B23A). Same in light & dark. */
   --brand-gold: hsl(41 80% 57%);
@@ -62,6 +80,8 @@
 .dark {
   --background: hsl(222 84% 5%);
   --foreground: hsl(210 40% 98%);
+  --surface: hsl(222 50% 8%);
+  --surface-foreground: hsl(210 40% 98%);
   --card: hsl(222 47% 13%);
   --card-foreground: hsl(210 40% 98%);
   --popover: hsl(222 47% 13%);
@@ -94,6 +114,12 @@
   --seller-foreground: hsl(0 0% 100%);
   --warning: hsl(38 92% 50%);
   --warning-foreground: hsl(0 0% 98%);
+  --primary-ink: hsl(213 94% 78%);
+  --primary-soft: hsl(221 60% 16%);
+  --success-ink: hsl(142 69% 68%);
+  --warning-ink: hsl(43 96% 64%);
+  --destructive-ink: hsl(0 91% 78%);
+  --seller-ink: hsl(158 64% 62%);
   --border: hsl(217 33% 22%);
   --input: hsl(217 33% 17%);
   --ring: hsl(224 76% 48%);
@@ -131,6 +157,32 @@
   --color-ring: var(--ring);
   --color-brand-gold: var(--brand-gold);
   --color-brand-lapis: var(--brand-lapis);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-soft: var(--primary-soft);
+  --color-success-ink: var(--success-ink);
+  --color-warning-ink: var(--warning-ink);
+  --color-destructive-ink: var(--destructive-ink);
+  --color-seller-ink: var(--seller-ink);
+
+  /* Elevation: soft, layered, slate-tinted (never pure black). `card` = a lifted
+     photo or panel on hover; `pop` = menus, sheets, the sticky action bar. */
+  --shadow-xs: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+  --shadow-card: 0 1px 2px hsl(222 47% 11% / 0.06), 0 6px 16px -4px hsl(222 47% 11% / 0.1);
+  --shadow-pop: 0 4px 12px -2px hsl(222 47% 11% / 0.1), 0 16px 40px -8px hsl(222 47% 11% / 0.18);
+
+  /* Type scale (visual-system.md §2). Rubik; tight tracking on the big sizes.
+     display → hero · title → page h1 · heading → section h2 · price-card. */
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.025em;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.012em;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

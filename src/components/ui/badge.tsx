@@ -3,11 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors",
+  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5 transition-colors",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary/10 text-primary",
+        default: "border-transparent bg-primary-soft text-primary-ink",
         /**
          * Solid — for COUNTS (unread messages, buyers waiting on a listing).
          * Render it through `<CountBadge>` (components/shared/count-badge.tsx)
@@ -30,11 +30,11 @@ const badgeVariants = cva(
         secondary:
           "border-transparent bg-secondary text-secondary-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",
-        outline: "text-foreground",
-        success: "border-transparent bg-success/10 text-success",
-        warning: "border-transparent bg-warning/15 text-warning",
+        outline: "border-border bg-background text-foreground",
+        success: "border-transparent bg-success/10 text-success-ink",
+        warning: "border-transparent bg-warning/15 text-warning-ink",
         destructive:
-          "border-transparent bg-destructive/10 text-destructive",
+          "border-transparent bg-destructive/10 text-destructive-ink",
       },
     },
     defaultVariants: { variant: "default" },

@@ -13,7 +13,7 @@ export function Field({ label, htmlFor, error, className, children }: FieldProps
   return (
     <div className={cn("space-y-1.5", className)}>
       {label && (
-        <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
+        <label htmlFor={htmlFor} className="text-sm font-semibold text-foreground">
           {label}
         </label>
       )}

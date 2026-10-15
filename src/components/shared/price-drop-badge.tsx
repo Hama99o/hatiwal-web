@@ -33,7 +33,7 @@ export function PriceDropBadge({
       <Badge
         variant="success"
         className={cn(
-          "gap-0.5 border-transparent bg-success px-1.5 py-0 text-[10px] font-bold text-success-foreground",
+          "gap-0.5 border-transparent bg-success-ink px-1.5 py-0 text-[11px] font-semibold text-white shadow-xs",
           className,
         )}
       >
