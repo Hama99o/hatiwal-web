@@ -191,14 +191,17 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           {subtitle && <span className="truncate">{subtitle}</span>}
         </div>
         <OpenLine shop={shop} />
-        <div className="flex flex-wrap gap-2">
+        {/* Phones: the one primary action full width, the secondary ones paired
+            under it (Etsy shop header: Contact first, the rest quieter). sm+: one
+            row. It used to wrap as Message + Directions, then Share alone. */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {!isMember &&
             (!isGuest ? (
-              <Button onClick={() => message.mutate()} disabled={status !== "authed" || message.isPending} data-testid="shop-message">
+              <Button className="col-span-2" onClick={() => message.mutate()} disabled={status !== "authed" || message.isPending} data-testid="shop-message">
                 <MessageCircle className="size-4" /> {t("message")}
               </Button>
             ) : (
-              <Button asChild data-testid="shop-message">
+              <Button asChild className="col-span-2" data-testid="shop-message">
                 <Link href={loginHref({ includeQuery: false })}>
                   <MessageCircle className="size-4" /> {t("message")}
                 </Link>
@@ -224,7 +227,9 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
             text={shareText}
             url={shopShareUrl(shop)}
             label={isMember ? t("share.button") : t("share.buttonOther")}
-            variant="default"
+            // Primary only for members (sharing IS their main action here); for a
+            // buyer Message is the one primary, so Share must not compete with it.
+            variant={isMember ? "default" : "outline"}
             testId="shop-share-button"
           />
         </div>
