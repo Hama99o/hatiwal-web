@@ -145,5 +145,8 @@ export function cardLocation(location: string | null | undefined, lang: string, 
     const province = AFGHAN_PROVINCES.find((p) => p.value.toLowerCase() === lower || p.en.toLowerCase() === lower);
     return province ? getProvinceName(province, lang) : part;
   });
-  return shown.join(lang !== "en" ? "، " : ", ") || null;
+  // Each part is its own bidi isolate (FSI…PDI): place names arrive in mixed scripts
+  // ("ناحیه سوم" next to "District 13"), and un-isolated the neutral comma and digits
+  // got reordered across them, so an en card read "13 ,ناحیه سوم District".
+  return shown.map((part) => `\u2068${part}\u2069`).join(lang !== "en" ? "، " : ", ") || null;
 }
