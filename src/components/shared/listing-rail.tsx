@@ -68,7 +68,7 @@ export function ListingRail({
       <div className="flex items-end justify-between gap-3">
         <h2
           className={cn(
-            large ? "text-2xl font-bold tracking-tight" : "text-lg font-semibold",
+            "text-heading font-bold", large && "sm:text-2xl sm:tracking-tight",
           )}
         >
           {title}

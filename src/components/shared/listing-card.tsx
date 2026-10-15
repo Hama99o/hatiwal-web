@@ -91,7 +91,7 @@ export function ListingCard({
   // Small "Seen" pill on already-viewed cards (mobile parity — the dim alone is
   // subtle). Rendered in the photo overlay of both variants.
   const seenBadge = listing.isViewed ? (
-    <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+    <span className="rounded-full bg-background/95 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-xs">
       {t("seen")}
     </span>
   ) : null;
@@ -126,10 +126,10 @@ export function ListingCard({
       ownerId={listing.seller?.id}
       ownerShopId={listing.shop?.id ?? listing.seller?.shopId ?? listing.shopId}
       className={cn(
-        // Kept at the SaveButton's 40px default (touch-target minimum) in both
-        // variants — only the inset shifts for the smaller list thumbnail.
+        // A 44px hit area around a 36px disc (SaveButton) — the inset puts the
+        // DISC ~8px from the photo's corner in both variants.
         "absolute",
-        variant === "list" ? "end-1 top-1" : "end-2 top-2",
+        variant === "list" ? "end-0 top-0" : "end-0.5 top-0.5",
       )}
     />
   ) : null;
@@ -158,7 +158,7 @@ export function ListingCard({
       // OUTSIDE the anchor (buttons inside a link are neither valid nor usable).
       <div
         className={cn(
-          "group flex flex-col overflow-hidden rounded-lg border bg-card p-2 transition-shadow hover:shadow-md",
+          "group flex flex-col overflow-hidden rounded-2xl border bg-card p-2.5 transition-shadow hover:shadow-card",
           className,
         )}
       >
@@ -168,7 +168,7 @@ export function ListingCard({
           href={href ?? `/listings/${listing.id}`}
           className={cn("flex gap-3", listing.isViewed && "opacity-80")}
         >
-          <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-md bg-muted sm:w-28">
+          <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:w-28">
             <RemoteImage
               src={cover}
               srcSet={listing.cardImageSrcSet}
@@ -177,7 +177,7 @@ export function ListingCard({
               label={noPhotoLabel}
               fill
               sizes="112px"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               priority={priority}
             />
             {(listing.priceDropPercent || seenBadge) && (
@@ -234,18 +234,26 @@ export function ListingCard({
     );
   }
 
+  // Grid: the Etsy / Airbnb / Depop card — NO box. The photo is the card (rounded,
+  // lifted on hover) and the text sits on the page under it. An owner card with
+  // an action `footer` keeps a panel, so its buttons belong to something.
+  const conditionText = listing.condition ? t(`condition.${listing.condition}`) : null;
   return (
     <div
       className={cn(
-        "group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md",
+        "group flex flex-col",
+        footer && "rounded-2xl border bg-card p-2 shadow-xs",
         className,
       )}
     >
       <Link
         href={href ?? `/listings/${listing.id}`}
-        className={cn("block", listing.isViewed && "opacity-80")}
+        className={cn(
+          "block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          listing.isViewed && "opacity-80",
+        )}
       >
-        <div className="relative aspect-square w-full overflow-hidden bg-muted">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted ring-1 ring-inset ring-foreground/5 transition-shadow duration-300 group-hover:shadow-card">
           <RemoteImage
             src={cover}
             srcSet={listing.cardImageSrcSet}
@@ -254,13 +262,13 @@ export function ListingCard({
             label={noPhotoLabel}
             fill
             sizes={CARD_IMAGE_SIZES[tracks]}
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
             priority={priority}
           />
           <div
             className={cn(
               "absolute inset-x-2 top-2 flex flex-wrap gap-1",
-              showSave && "pe-12",
+              showSave && "pe-11",
             )}
           >
             {showStatusBadge && <StatusBadge status={listing.status} />}
@@ -274,17 +282,19 @@ export function ListingCard({
           </div>
           {saveHeart}
         </div>
-        <div className="space-y-1 p-3">
-          <PriceTag
-            price={listing.price}
-            currency={listing.currency}
-            size="md"
-            perUnit={hasStockToShow(listing)}
-          />
-          {listing.negotiable === false && (
-            <FirmPriceBadge negotiable={listing.negotiable} />
-          )}
-          <p className="line-clamp-2 text-sm font-medium text-foreground" {...userTextProps(listing.title)} data-testid="listing-card-title">
+        <div className="space-y-0.5 px-0.5 pb-1 pt-2.5">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <PriceTag
+              price={listing.price}
+              currency={listing.currency}
+              size="md"
+              perUnit={hasStockToShow(listing)}
+            />
+            {listing.negotiable === false && (
+              <FirmPriceBadge negotiable={listing.negotiable} />
+            )}
+          </div>
+          <p className="line-clamp-2 text-sm leading-snug text-foreground/85" {...userTextProps(listing.title)} data-testid="listing-card-title">
             {listing.title}
           </p>
           {showStatus && (
@@ -294,25 +304,29 @@ export function ListingCard({
               expired={listing.expired}
             />
           )}
-          {listing.condition && (
-            <ConditionBadge condition={listing.condition} />
-          )}
-          {/* SHOP-1: posted as a shop → the small "Shop" chip, on the grid card
-              too (it was only in the list row's meta; mobile shows it on both). */}
-          {listing.shop && <ShopChip testId="listing-shop-chip" />}
-          {listing.location && (
-            <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="size-3 shrink-0" />
-              <span className="truncate">{cardLocation(listing.location, locale)}</span>
-            </span>
+          {/* One quiet meta line — Vinted / Depop: condition as words, then the
+              place; the SHOP-1 chip leads it when posted as a shop. */}
+          {(listing.shop || conditionText || listing.location) && (
+            <div className="flex min-w-0 items-center gap-1.5 pt-0.5 text-xs text-muted-foreground">
+              {listing.shop && <ShopChip testId="listing-shop-chip" />}
+              {conditionText && (
+                <span className="shrink-0" data-testid="listing-card-condition">{conditionText}</span>
+              )}
+              {conditionText && listing.location && <span aria-hidden>·</span>}
+              {listing.location && (
+                <span className="flex min-w-0 items-center gap-0.5">
+                  <MapPin className="size-3 shrink-0" />
+                  <span className="truncate">{cardLocation(listing.location, locale)}</span>
+                </span>
+              )}
+            </div>
           )}
         </div>
       </Link>
       {/* `mt-auto` keeps the action rows aligned across a row of cards whose
-          titles wrap to different heights. `px-3` matches the body inset above
-          so the action button's edges line up with the price and title. */}
+          titles wrap to different heights. */}
       {footer && (
-        <div className="mt-auto border-t px-3 pb-3 pt-2">{footer}</div>
+        <div className="mt-auto border-t px-1 pb-1 pt-2">{footer}</div>
       )}
     </div>
   );

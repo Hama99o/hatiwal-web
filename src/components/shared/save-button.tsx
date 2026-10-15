@@ -376,35 +376,47 @@ export function SaveButton({
   // Icon-only chrome. `overlay` floats on a photo (round + translucent + blur so
   // the picture reads through); `bar` sits in a solid toolbar row, where it has to
   // look like a sibling of the outline buttons next to it, not a floating pill.
-  const onPhoto = variant === "overlay";
+  if (variant === "overlay") {
+    // On a photo: a 44px hit area (report #22) around a smaller, crisp disc —
+    // the Airbnb / Etsy card heart. The disc, not the hit area, is what you see,
+    // so a 170px phone card does not lose a quarter of its photo to the heart.
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onToggle}
+        aria-label={label}
+        title={label}
+        {...stateProps}
+        className={cn(
+          "group/heart size-11 shrink-0 rounded-full bg-transparent p-0 hover:bg-transparent pointer-coarse:size-11 [&_svg]:size-[18px]",
+          className,
+        )}
+      >
+        <span className="flex size-9 items-center justify-center rounded-full bg-background/95 shadow-card ring-1 ring-foreground/5 transition-transform group-hover/heart:scale-110 group-active/heart:scale-95">
+          {glyph("text-foreground")}
+        </span>
+      </Button>
+    );
+  }
 
   return (
     <Button
       type="button"
-      variant={onPhoto ? "secondary" : "outline"}
+      variant="outline"
       size="icon"
       onClick={onToggle}
       aria-label={label}
       title={label}
       {...stateProps}
       className={cn(
-        "shrink-0",
-        // 40px is the house minimum for chrome a mouse can reach (see
-        // segmented-control.tsx). The sticky bar is `lg:hidden` — the one
-        // touch-only surface on the site, and this heart sits 12px from the screen
-        // edge — so there it takes the 44px floor docs/DESIGN_SYSTEM.md mandates,
-        // matching the CTA beside it. The bar's spacer is ResizeObserver-measured,
-        // so it follows on its own.
-        //
-        // The GLYPH grows with it there, and only there: `ui/button.tsx` forces
-        // `[&_svg]:size-4`, so the bar's heart was a 16px mark inside a 44px box
-        // beside a `text-lg font-bold` price and a filled 44px CTA — the second
-        // most important action on the site's one touch-only surface reading
-        // lighter than its target implies. The card overlay keeps 16px: it floats
-        // on a photo at 40px and its convention is shared with every feed.
-        variant === "bar" ? "size-11 [&_svg]:size-5" : "size-10",
-        onPhoto &&
-          "rounded-full bg-background/80 shadow-sm backdrop-blur-sm hover:bg-background",
+        // The sticky bar is `lg:hidden` — the one touch-only surface on the
+        // site — so it takes the 44px floor docs/DESIGN_SYSTEM.md mandates,
+        // matching the CTA beside it, and a 20px glyph (`ui/button.tsx` forces
+        // 16px) so the second most important action does not read lighter than
+        // its target. The bar's spacer is ResizeObserver-measured.
+        "size-11 shrink-0 [&_svg]:size-5",
         className,
       )}
     >

@@ -26,7 +26,10 @@ const GRID_COLUMNS: Record<ListingCardTracks, string> = {
 
 export type ListingGridColumns = ListingCardTracks;
 
-const GRID = "grid gap-3";
+// Borderless cards (visual-system.md §3) need air between ROWS more than
+// between columns: the text under a photo must not read as the caption of the
+// photo below it.
+const GRID = "grid gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-8";
 /** List = one dense row per listing. */
 const LIST = "flex flex-col gap-3";
 
