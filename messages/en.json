@@ -1095,6 +1095,12 @@
       "noteSeller": "{shop} has closed — you're now replying as yourself",
       "noteBuyer": "{shop} has closed — new messages come from the seller personally",
       "inboxLine": "{shop} · closed"
+    },
+    "age": {
+      "now": "now",
+      "minutes": "{n}m",
+      "hours": "{n}h",
+      "days": "{n}d"
     }
   },
   "warnings": {

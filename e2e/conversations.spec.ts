@@ -5,7 +5,7 @@ import {
   type PreviewTranslate,
 } from "../src/lib/conversation-preview";
 import { filterConversations } from "../src/lib/filter-conversations";
-import { formatPrice } from "../src/lib/format";
+import { compactAge, formatDayMonth, formatPrice } from "../src/lib/format";
 import type { Conversation } from "../src/lib/types";
 
 /*
@@ -592,3 +592,46 @@ test.describe("conversationPreviewText — a server notice (1.1.6)", () => {
     expect(conversationPreviewText(row, withMove, enPrice)).toBe("Something new");
   });
 });
+
+// ── Compact row time (web UI/UX QA #24) ─────────────────────────────────────
+// "28 days ago" + the thumbnail + the menu truncated the name ("Bilal Moh…").
+
+test.describe("chats list: compact time", () => {
+  const NOW = Date.parse("2026-10-15T12:00:00Z");
+  const ago = (ms: number) => new Date(NOW - ms).toISOString();
+
+  test("now → minutes → hours → days → a date", () => {
+    expect(compactAge(ago(20_000), NOW)).toEqual({ unit: "now" });
+    expect(compactAge(ago(5 * 60_000), NOW)).toEqual({ unit: "minutes", n: 5 });
+    expect(compactAge(ago(3 * 3_600_000), NOW)).toEqual({ unit: "hours", n: 3 });
+    expect(compactAge(ago(2 * 86_400_000), NOW)).toEqual({ unit: "days", n: 2 });
+    expect(compactAge(ago(7 * 86_400_000), NOW)).toEqual({ unit: "date" });
+    expect(compactAge(null, NOW)).toBeNull();
+    expect(compactAge("not a date", NOW)).toBeNull();
+  });
+
+  test("a date shows the year only when it is not this year", () => {
+    const now = new Date(NOW);
+    expect(formatDayMonth("2026-06-21T15:00:00Z", "en", now)).toBe("Jun 21");
+    expect(formatDayMonth("2025-06-21T15:00:00Z", "en", now)).toBe("Jun 21, 2025");
+    // fa: Eastern Arabic digits, no Latin ones.
+    expect(formatDayMonth("2026-06-21T15:00:00Z", "fa", now)).not.toMatch(/[0-9]/);
+  });
+
+  test.describe("on the page", () => {
+    test.use({ storageState: BUYER_STATE });
+    for (const locale of ["en", "fa"] as const) {
+      test(`${locale}: every row's time is compact — no "ago" phrase`, async ({ page }) => {
+        await page.goto(`/${locale}/conversations`);
+        const times = page.locator("main a time");
+        await expect(times.first()).toBeVisible({ timeout: 45_000 });
+        for (const text of await times.allInnerTexts()) {
+          expect(text.length, `"${text}" is not compact`).toBeLessThanOrEqual(14);
+          expect(text).not.toMatch(/ago|قبل|پیش/);
+          if (locale === "fa") expect(text).not.toMatch(/[0-9]/);
+        }
+      });
+    }
+  });
+});
+

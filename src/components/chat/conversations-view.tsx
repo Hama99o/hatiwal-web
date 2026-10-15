@@ -56,7 +56,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { conversationPreviewText } from "@/lib/conversation-preview";
 import { filterConversations } from "@/lib/filter-conversations";
-import { formatPrice, formatRelativeDate } from "@/lib/format";
+import { compactAge, formatDayMonth, formatPrice, localizeDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { isShopFace } from "@/lib/identity";
 import { userTextProps } from "@/lib/text-direction";
@@ -400,7 +400,7 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
                                   : "text-muted-foreground",
                               )}
                             >
-                              {formatRelativeDate(c.lastMessageAt, locale)}
+                              <ChatAge iso={c.lastMessageAt} locale={locale} />
                             </span>
                           )}
                         </div>
@@ -574,5 +574,27 @@ export function ConversationsView({ listingId }: { listingId?: number } = {}) {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * The row's time, compact (#24): "now", "5m", "3h", "2d", then "Oct 3". The full
+ * relative phrase used to push the name into an ellipsis. The exact moment is in
+ * the `title` and the `dateTime` for anyone who needs it.
+ */
+function ChatAge({ iso, locale }: { iso: string | null | undefined; locale: string }) {
+  const t = useTranslations("chat.age");
+  const age = compactAge(iso);
+  if (!age || !iso) return null;
+  const label =
+    age.unit === "now"
+      ? t("now")
+      : age.unit === "date"
+        ? formatDayMonth(iso, locale)
+        : t(age.unit, { n: localizeDigits(String(age.n), locale) });
+  return (
+    <time dateTime={iso} title={new Date(iso).toLocaleString(locale)} className="whitespace-nowrap">
+      {label}
+    </time>
   );
 }

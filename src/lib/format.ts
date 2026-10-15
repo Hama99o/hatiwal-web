@@ -104,6 +104,61 @@ export function formatMonthYear(
 }
 
 /**
+ * How old something is, in the compact form a list row has room for — the chats
+ * list (web UI/UX QA #24: "28 days ago" + thumbnail + menu truncated the name
+ * to "Bilal Moh…"). Under a week: a count and a unit the caller words through
+ * `chat.age.*` ("5m", "۵ دقیقه"); `Intl`'s narrow units print a Latin "m"/"h"
+ * in fa and ps, so they are not used. A week or more: the day and month
+ * (`formatDayMonth`), plus the year when it is not this year — WhatsApp's rule.
+ */
+export type CompactAge =
+  | { unit: "now" }
+  | { unit: "minutes" | "hours" | "days"; n: number }
+  | { unit: "date" };
+
+export function compactAge(
+  isoDate: string | null | undefined,
+  now: number = Date.now(),
+): CompactAge | null {
+  if (!isoDate) return null;
+  const t = new Date(isoDate).getTime();
+  if (Number.isNaN(t)) return null;
+  const minutes = Math.floor(Math.max(0, now - t) / 60_000);
+  if (minutes < 1) return { unit: "now" };
+  if (minutes < 60) return { unit: "minutes", n: minutes };
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return { unit: "hours", n: hours };
+  const days = Math.floor(hours / 24);
+  if (days < 7) return { unit: "days", n: days };
+  return { unit: "date" };
+}
+
+/** "Oct 3" / "۳ میزان" — with the year only when it is not the current one. */
+export function formatDayMonth(
+  isoDate: string | null | undefined,
+  locale: string,
+  now: Date = new Date(),
+): string {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    const tag = INTL_TAG[locale] ?? "en-US";
+    const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(tag, opts);
+    // Same calendar as the reader's (fa-AF counts years in its own calendar).
+    const year = (d: Date) => fmt({ year: "numeric" }).format(d);
+    return fmt({
+      // See formatDate: fa-AF's short month is the Iranian name.
+      month: tag === "fa-AF" ? "long" : "short",
+      day: "numeric",
+      ...(year(date) !== year(now) && { year: "numeric" }),
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(INTL_TAG[locale] ?? "en-US");
+  }
+}
+
+/**
  * Absolute, locale-aware calendar date (e.g. "Jul 4, 2026"). Used where an exact
  * day matters — e.g. the seller "away until <date>" banner. Returns "" for a
  * missing/invalid date so callers can guard on emptiness.
