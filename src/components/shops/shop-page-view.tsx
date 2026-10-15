@@ -239,7 +239,8 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
             The ✓ on the shop itself stays public. */}
         {canVerify && <ShopVerificationCard shopId={shop.id} />}
 
-        <div role="tablist" className="flex rounded-lg bg-muted p-1">
+        {/* A segmented pill: 36px tabs with a mouse, 44px on touch (#22). */}
+        <div role="tablist" className="flex rounded-full bg-surface p-1 ring-1 ring-inset ring-border">
           {(["products", "reviews", "about"] as const).map((key) => (
             <button
               key={key}
@@ -248,7 +249,7 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
               aria-selected={tab === key}
               onClick={() => setTab(key)}
               data-testid={`shop-tab-${key}`}
-              className={cn("flex-1 rounded-md py-2 text-sm", tab === key ? "bg-card font-bold shadow-sm" : "text-muted-foreground")}
+              className={cn("h-9 flex-1 rounded-full text-sm transition-colors pointer-coarse:h-11", tab === key ? "bg-card font-semibold text-foreground shadow-card" : "text-muted-foreground hover:text-foreground")}
             >
               {key === "products" ? t("tabs.productsCount", { count: shop.listingsCount }) : t(`tabs.${key}`)}
             </button>
