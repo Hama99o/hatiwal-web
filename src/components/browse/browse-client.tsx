@@ -790,6 +790,7 @@ export function BrowseClient({
               term, because every query this island commits is published through
               `use-browse-query.ts` (see the filters→URL effect above). */}
           <SearchBox
+            name="q"
             className="mb-4 hidden lg:block"
             value={searchInput}
             onValueChange={setSearchInput}

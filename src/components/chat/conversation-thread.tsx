@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -76,6 +77,7 @@ import { userTextProps } from "@/lib/text-direction";
 import { isShopFace, profileHrefFor } from "@/lib/identity";
 
 export function ConversationThread({ id }: { id: string }) {
+  const hydrated = useHydrated();
   const t = useTranslations();
   const locale = useLocale();
   const qc = useQueryClient();
@@ -1043,6 +1045,7 @@ export function ConversationThread({ id }: { id: string }) {
         </div>
       ) : (
         <form
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             send(input);
@@ -1099,7 +1102,7 @@ export function ConversationThread({ id }: { id: string }) {
             type="submit"
             size="icon"
             className="shrink-0"
-            disabled={sending || !input.trim()}
+            disabled={!hydrated || sending || !input.trim()}
             aria-label={t("chat.send")}
           >
             {sending ? (

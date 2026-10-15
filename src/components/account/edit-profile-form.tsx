@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,7 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
 const SELECT_CLASS = nativeSelectClass({ variant: "field" });
 
 export function EditProfileForm() {
+  const hydrated = useHydrated();
   const t = useTranslations();
   const router = useRouter();
   const { user, setUser } = useAuth();
@@ -149,7 +151,7 @@ export function EditProfileForm() {
           right under the site header (64px + border; + the 52px search row below md). */}
       <div className="sticky top-[117px] z-30 -mx-4 mb-6 flex items-center justify-between gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:top-[65px]">
         <h1 className="min-w-0 truncate text-xl font-bold sm:text-2xl">{t("profile.edit.title")}</h1>
-        <Button type="submit" form="edit-profile-form" disabled={isSubmitting} data-testid="edit-profile-save">
+        <Button type="submit" form="edit-profile-form" disabled={!hydrated || isSubmitting} data-testid="edit-profile-save">
           {isSubmitting && <Loader2 className="size-4 animate-spin" />}
           {t("common.save")}
         </Button>
@@ -186,7 +188,7 @@ export function EditProfileForm() {
         </div>
       </div>
 
-      <form id="edit-profile-form" onSubmit={onSubmit} className="space-y-5" noValidate>
+      <form id="edit-profile-form" method="post" onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="grid grid-cols-2 gap-3">
           <Field
             label={t("profile.edit.fields.firstname")}

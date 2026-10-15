@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * and staff can leave.
  */
 export function TeamView({ shopId }: { shopId: number }) {
+  const hydrated = useHydrated();
   const t = useTranslations("shops");
   const tc = useTranslations("common");
   const tRoot = useTranslations();
@@ -320,6 +322,7 @@ export function TeamView({ shopId }: { shopId: number }) {
           )}
           {sheet === "email" && (
             <form
+              method="post"
               className="space-y-3"
               data-testid="team-email-sheet"
               onSubmit={(e) => {
@@ -331,7 +334,7 @@ export function TeamView({ shopId }: { shopId: number }) {
               <p className="text-sm text-muted-foreground">{t("team.emailHint")}</p>
               <Input type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" aria-label={t("team.byEmail")} data-testid="invite-contact-input" />
               {email.length > 3 && !EMAIL.test(email.trim()) && <p className="text-sm text-destructive">{t("team.emailInvalid")}</p>}
-              <Button type="submit" className="w-full" disabled={create.isPending || !EMAIL.test(email.trim())} data-testid="invite-send">
+              <Button type="submit" className="w-full" disabled={!hydrated || create.isPending || !EMAIL.test(email.trim())} data-testid="invite-send">
                 <Send className="size-4" /> {t("team.send")}
               </Button>
             </form>

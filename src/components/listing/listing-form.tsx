@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -84,6 +85,7 @@ export function ListingForm({
   relaunch?: boolean;
 }) {
   const t = useTranslations();
+  const hydrated = useHydrated();
   const locale = useLocale();
   const router = useRouter();
   const qc = useQueryClient();
@@ -487,6 +489,7 @@ export function ListingForm({
       )}
 
       <form
+        method="post"
         onSubmit={handleSubmit((v) => save(v, false))}
         className="space-y-6"
         noValidate
@@ -804,7 +807,7 @@ export function ListingForm({
         <div className="flex flex-wrap gap-3 pt-2">
           {isEdit ? (
             <>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={!hydrated || submitting}>
                 {submitting && <Loader2 className="size-4 animate-spin" />}
                 {relaunch ? t("listing.saveRelaunch") : t("common.save")}
               </Button>

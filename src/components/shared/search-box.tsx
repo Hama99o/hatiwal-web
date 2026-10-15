@@ -49,6 +49,14 @@ interface SearchBoxProps {
   placeholder: string;
   /** Classes for the <form> element. */
   className?: string;
+  /**
+   * Graceful no-JS / pre-hydration fallback: when set, the form is a real GET
+   * to this URL and the field carries `name` (default "q"), so an Enter before
+   * React hydrates still navigates with the query instead of dropping it
+   * (BUG-3). With JS, onSubmit preventDefaults and takes over.
+   */
+  action?: string;
+  name?: string;
 }
 
 export function SearchBox({
@@ -58,6 +66,8 @@ export function SearchBox({
   onSelectRecent,
   placeholder,
   className,
+  action,
+  name = "q",
 }: SearchBoxProps) {
   const t = useTranslations("browse");
   // Read-only view of the shared store: recording is the caller's job (it knows
@@ -174,6 +184,7 @@ export function SearchBox({
   return (
     <form
       role="search"
+      action={action}
       className={className}
       onSubmit={(e) => {
         e.preventDefault();
@@ -191,6 +202,7 @@ export function SearchBox({
       <div className="relative">
         <SearchField
           ref={inputRef}
+          name={name}
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
           onFocus={() => setFocused(true)}

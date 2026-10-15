@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { SearchBox } from "@/components/shared/search-box";
 import { useSearchHistory } from "@/lib/use-search-history";
@@ -32,6 +32,7 @@ function readBrowseQuery(pathname: string): string {
 
 export function HeaderSearch({ className }: { className?: string }) {
   const t = useTranslations("nav");
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const [value, setValue] = useState("");
@@ -181,6 +182,8 @@ export function HeaderSearch({ className }: { className?: string }) {
 
   return (
     <SearchBox
+      action={`/${locale}/bazaar`}
+      name="q"
       className={className}
       value={value}
       onValueChange={setValue}
