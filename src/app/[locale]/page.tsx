@@ -93,7 +93,9 @@ export default async function HomePage({
               action={`/${locale}/bazaar`}
               method="get"
               role="search"
-              className="mt-8 flex max-w-xl gap-2"
+              // Stacked on phones: side by side at 390px the CTA squeezed the
+              // input to ~160px and cut its placeholder to "Search Hatiw".
+              className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
             >
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
