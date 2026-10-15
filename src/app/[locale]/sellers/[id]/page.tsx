@@ -121,7 +121,8 @@ export default async function SellerPage({ params }: { params: Params }) {
             </div>
             {memberSince ? (
               <div className="px-6" data-testid="seller-stat-joined">
-                <span className="block text-lg font-bold leading-8 text-foreground">{memberSince}</span>
+                {/* nowrap: "October 2026" broke into two lines beside "30" at 390px. */}
+                <span className="block whitespace-nowrap text-lg font-bold leading-8 text-foreground">{memberSince}</span>
                 <span className="text-muted-foreground">{t("profile.userProfile.joined")}</span>
               </div>
             ) : null}
