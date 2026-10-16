@@ -133,8 +133,12 @@ test.describe("The shop's verification card (shop page, owner)", () => {
 
   test("verified: no card at all (the badge says it)", async ({ page }) => {
     await serveStatus(page, "shop:42", { status: "verified", verified_since: "2026-10-01T00:00:00Z" });
+    // Absence proves nothing until the page has decided: wait for the member
+    // view (the session says shop 42 is ours) AND the card's own status answer.
+    const answered = page.waitForResponse(/\/api\/me\/verification_requests\/current\?subject=shop/);
     await page.goto("/en/shops/42");
-    await expect(page.getByTestId("shop-page")).toBeVisible();
+    await expect(page.getByTestId("shop-page-team")).toBeVisible();
+    await answered;
     await expect(page.getByTestId("shop-verify-card")).toHaveCount(0);
   });
 });

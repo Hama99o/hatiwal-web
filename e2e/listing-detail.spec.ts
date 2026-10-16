@@ -1233,8 +1233,11 @@ test.describe("Listing detail — sold/reserved recovery CTAs", () => {
     await expect(page.getByPlaceholder("Min Price")).toHaveValue("49000");
     await expect(page.getByPlaceholder("Max Price")).toHaveValue("91000");
     // Bazaar only ever queries live stock — the sold item can't come back.
-    await expect(page.getByText("MacBook Pro M2")).toBeVisible();
-    await expect(page.getByText("Gaming Rig")).toHaveCount(0);
+    // Read in <main>: Next's route announcer (a shadow-root aria-live node on
+    // <body>, which getByText pierces) can still be announcing the listing's
+    // own title, "Gaming Rig (Sold) — Hatiwal", when the bazaar has rendered.
+    await expect(inMain(page).getByText("MacBook Pro M2")).toBeVisible();
+    await expect(inMain(page).getByText("Gaming Rig")).toHaveCount(0);
   });
 
   test("'See similar' never lands on an empty Bazaar", async ({ page }) => {
