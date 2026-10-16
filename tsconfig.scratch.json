@@ -46,7 +46,8 @@
     ".next-verify-dev/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".next-e2e-prod-3210/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
