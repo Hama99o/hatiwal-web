@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
-import { shopEntry, withSessionUser } from "./session-user";
+import { patchJsonRoute, shopEntry, withSessionUser } from "./session-user";
 import ps from "../messages/ps.json";
 
 /*
@@ -56,13 +56,7 @@ test.describe("A deleted listing", () => {
 async function asMember(page: Page, initial: "owner" | "manager" | "staff") {
   let role = initial;
   await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", initial)] });
-  await page.route("**/api/me/shops/42", async (route) => {
-    if (route.request().method() !== "GET") return route.continue();
-    const res = await route.fetch();
-    const json = await res.json();
-    json.shop = { ...json.shop, role };
-    await route.fulfill({ response: res, json });
-  });
+  await patchJsonRoute(page, "**/api/me/shops/42", (json) => ({ ...json, shop: { ...json.shop, role } }));
   return (next: typeof initial) => {
     role = next;
   };

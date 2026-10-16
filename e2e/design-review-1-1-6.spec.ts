@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
-import { shopEntry, withSessionUser } from "./session-user";
+import { patchJsonRoute, shopEntry, withSessionUser } from "./session-user";
 
 /**
  * d8's 1.1.6 design review (hatiwal-mobile docs, "Design review — 1.1.6"),
@@ -75,13 +75,7 @@ test("#5: the suspended line on Profile wraps instead of being cut", async ({ pa
 
 test("#7: the Team ⋯ buttons are at least 44px", async ({ page }) => {
   await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
-  await page.route("**/api/me/shops/42", async (route) => {
-    if (route.request().method() !== "GET") return route.continue();
-    const res = await route.fetch();
-    const json = await res.json();
-    json.shop = { ...json.shop, role: "owner" };
-    await route.fulfill({ response: res, json });
-  });
+  await patchJsonRoute(page, "**/api/me/shops/42", (json) => ({ ...json, shop: { ...json.shop, role: "owner" } }));
   await page.goto("/en/shops/42/team");
   for (const id of ["team-member-menu-7", "team-invite-menu-31"]) {
     const b = (await page.getByTestId(id).boundingBox())!;

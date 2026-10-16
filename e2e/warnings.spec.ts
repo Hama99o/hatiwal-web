@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
-import { withSessionUser, shopEntry } from "./session-user";
+import { patchJsonRoute, withSessionUser, shopEntry } from "./session-user";
 import { shopWarnings } from "../src/lib/api/shops";
 
 /**
@@ -40,12 +40,10 @@ const SHOP_WARNING_KEYS = {
 
 /** Serve the signed-in member's GET /shops/42 as the owner view: the real public payload + role/status (+ keys). */
 async function serveOwnerView(page: Page, keys: Record<string, unknown> | null) {
-  await page.route(/\/api\/me\/shops\/42$/, async (route) => {
-    const res = await route.fetch();
-    const json = await res.json();
-    json.shop = { ...json.shop, role: "owner", status: "active", phone_public: true, ...(keys ?? {}) };
-    await route.fulfill({ response: res, json });
-  });
+  await patchJsonRoute(page, /\/api\/me\/shops\/42$/, (json) => ({
+    ...json,
+    shop: { ...json.shop, role: "owner", status: "active", phone_public: true, ...(keys ?? {}) },
+  }));
 }
 
 test.describe("Warnings — the pure gate", () => {

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
-import { shopEntry, withSessionUser } from "./session-user";
+import { patchJsonRoute, shopEntry, withSessionUser } from "./session-user";
 import en from "../messages/en.json";
 import ps from "../messages/ps.json";
 
@@ -498,13 +498,7 @@ test.describe("Shop team + invite page", () => {
 
   async function asOwnerOf42(page: Page) {
     await withSessionUser(page, { sellerMode: true, shops: [shopEntry(42, "Safi Cosmetics", "active", "owner")] });
-    await page.route("**/api/me/shops/42", async (route) => {
-      if (route.request().method() !== "GET") return route.continue();
-      const res = await route.fetch();
-      const json = await res.json();
-      json.shop = { ...json.shop, role: "owner" };
-      await route.fulfill({ response: res, json });
-    });
+    await patchJsonRoute(page, "**/api/me/shops/42", (json) => ({ ...json, shop: { ...json.shop, role: "owner" } }));
   }
 
   test("invite create 429 (rate_limited, no team code) → too many attempts", async ({ page }) => {
