@@ -80,8 +80,29 @@ export function isStayAmenity(value: string): value is StayAmenity {
   return (STAY_AMENITIES as readonly string[]).includes(value);
 }
 
+/**
+ * A stay's details as the API sent them, safe to read: anything but a plain
+ * object (null, a string, an array) is `{}`, so a malformed payload renders as
+ * a room with no facts instead of crashing the page (security review, dd).
+ */
+export function asStayDetails(raw: unknown): StayDetails {
+  return raw != null && typeof raw === "object" && !Array.isArray(raw) ? (raw as StayDetails) : {};
+}
+
+/** The known amenities of a stay, in order — [] unless `amenities` is a real array. */
+export function stayAmenities(details: StayDetails | null | undefined): StayAmenity[] {
+  const raw: unknown = asStayDetails(details).amenities;
+  return Array.isArray(raw) ? raw.filter((a): a is StayAmenity => typeof a === "string" && isStayAmenity(a)) : [];
+}
+
+/** A check-in / check-out value, only when it is a string. */
+export function stayTime(v: unknown): string | undefined {
+  return typeof v === "string" && v ? v : undefined;
+}
+
 /** Only what the server accepts: counts in range, known amenities, HH:MM times. */
-export function cleanStayDetails(details: StayDetails): StayDetails {
+export function cleanStayDetails(input: StayDetails): StayDetails {
+  const details = asStayDetails(input);
   const out: StayDetails = {};
   const count = (v: unknown, min: number, max: number) =>
     typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : undefined;
@@ -90,10 +111,12 @@ export function cleanStayDetails(details: StayDetails): StayDetails {
   const beds = count(details.beds, STAY_LIMITS.beds.min, STAY_LIMITS.beds.max);
   if (beds != null) out.beds = beds;
   if (details.bathroom === "private" || details.bathroom === "shared") out.bathroom = details.bathroom;
-  const amenities = (details.amenities ?? []).filter(isStayAmenity);
+  const amenities = stayAmenities(details);
   if (amenities.length) out.amenities = Array.from(new Set(amenities));
-  if (details.checkIn && TIME_PATTERN.test(details.checkIn)) out.checkIn = details.checkIn;
-  if (details.checkOut && TIME_PATTERN.test(details.checkOut)) out.checkOut = details.checkOut;
+  const checkIn = stayTime(details.checkIn);
+  const checkOut = stayTime(details.checkOut);
+  if (checkIn && TIME_PATTERN.test(checkIn)) out.checkIn = checkIn;
+  if (checkOut && TIME_PATTERN.test(checkOut)) out.checkOut = checkOut;
   return out;
 }
 

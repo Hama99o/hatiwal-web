@@ -2,7 +2,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Bath, BedDouble, Clock, Users } from "lucide-react";
 import { localizeDigits } from "@/lib/format";
 import { Separator } from "@/components/ui/separator";
-import { AMENITY_ICONS, isStayAmenity, type StayDetails } from "@/lib/stays";
+import { AMENITY_ICONS, asStayDetails, stayAmenities, stayTime, type StayDetails } from "@/lib/stays";
 
 /**
  * A stay's facts on the listing page (api STAYS_DESIGN §2.3), mirroring mobile
@@ -12,14 +12,19 @@ import { AMENITY_ICONS, isStayAmenity, type StayDetails } from "@/lib/stays";
  * the 1.1.6 app), so the page never shows an empty section. No hooks beyond
  * translations: renders in the server tree.
  */
-export function StayFacts({ details }: { details: StayDetails | null | undefined }) {
+export function StayFacts({ details: raw }: { details: StayDetails | null | undefined }) {
   const t = useTranslations("listing.stays");
   const locale = useLocale();
-  if (!details) return null;
-  const amenities = (details.amenities ?? []).filter(isStayAmenity);
+  if (!raw) return null;
+  // A malformed payload (details not an object, amenities not an array, a time
+  // or a count of the wrong type) renders what is valid and never throws.
+  const details = asStayDetails(raw);
+  const amenities = stayAmenities(details);
+  const checkIn = stayTime(details.checkIn);
+  const checkOut = stayTime(details.checkOut);
   const facts = [
-    details.guests != null && { key: "guests", Icon: Users, label: t("guests", { count: details.guests }) },
-    details.beds != null && { key: "beds", Icon: BedDouble, label: t("beds", { count: details.beds }) },
+    typeof details.guests === "number" && { key: "guests", Icon: Users, label: t("guests", { count: details.guests }) },
+    typeof details.beds === "number" && { key: "beds", Icon: BedDouble, label: t("beds", { count: details.beds }) },
     details.bathroom && {
       key: "bathroom",
       Icon: Bath,
@@ -27,8 +32,8 @@ export function StayFacts({ details }: { details: StayDetails | null | undefined
     },
   ].filter(Boolean) as { key: string; Icon: typeof Users; label: string }[];
   const times = [
-    details.checkIn ? t("checkIn", { time: localizeDigits(details.checkIn, locale) }) : null,
-    details.checkOut ? t("checkOut", { time: localizeDigits(details.checkOut, locale) }) : null,
+    checkIn ? t("checkIn", { time: localizeDigits(checkIn, locale) }) : null,
+    checkOut ? t("checkOut", { time: localizeDigits(checkOut, locale) }) : null,
   ].filter(Boolean) as string[];
   if (!facts.length && !amenities.length && !times.length) return null;
 

@@ -8,6 +8,7 @@ import {
   AMENITY_ICONS,
   STAY_AMENITIES,
   STAY_LIMITS,
+  stayAmenities,
   type PriceUnit,
   type StayAmenity,
   type StayDetails,
@@ -75,7 +76,7 @@ export function StayFormFields({
 }) {
   const t = useTranslations("listing.stays");
   const set = (patch: Partial<StayDetails>) => onDetailsChange({ ...details, ...patch });
-  const amenities = details.amenities ?? [];
+  const amenities = stayAmenities(details);
   const toggle = (a: StayAmenity) =>
     set({ amenities: amenities.includes(a) ? amenities.filter((x) => x !== a) : [...amenities, a] });
 

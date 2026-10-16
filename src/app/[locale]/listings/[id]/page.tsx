@@ -15,7 +15,7 @@ import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
 import { StayFacts } from "@/components/listing/stay-facts";
-import { isStayCategory } from "@/lib/stays";
+import { asStayDetails, isStayCategory, stayAmenities } from "@/lib/stays";
 import { PriceDropBadge } from "@/components/shared/price-drop-badge";
 import { FirmPriceBadge } from "@/components/shared/firm-price-badge";
 import { StockBadge } from "@/components/shared/stock-badge";
@@ -220,7 +220,8 @@ export default async function ListingDetailPage({
   // is, priced per night/month, with only what is known — guests and
   // amenities. No condition and no shipping fields: a room is neither.
   const isStay = isStayCategory(listing.category);
-  const details = listing.details ?? {};
+  // Read through the stays guards: a malformed `details` must not crash the SSR.
+  const details = asStayDetails(listing.details);
   const structuredData =
     jsonLd && isStay
       ? {
@@ -231,10 +232,10 @@ export default async function ListingDetailPage({
           image: listing.images,
           url: pageUrl,
           category: listing.category ? categoryName(listing.category, "en") : undefined,
-          occupancy: details.guests
+          occupancy: typeof details.guests === "number" && details.guests > 0
             ? { "@type": "QuantitativeValue", maxValue: details.guests, unitText: "guests" }
             : undefined,
-          amenityFeature: (details.amenities ?? []).map((a) => ({
+          amenityFeature: stayAmenities(details).map((a) => ({
             "@type": "LocationFeatureSpecification",
             name: a.replace(/_/g, " "),
             value: true,

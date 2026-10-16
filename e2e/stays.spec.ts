@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import en from "../messages/en.json";
 import fa from "../messages/fa.json";
+import { asStayDetails, cleanStayDetails, stayAmenities, stayTime } from "../src/lib/stays";
 
 /**
  * Stays (api STAYS_DESIGN): a hotel room's page — "AFN 1,500 / night", the
@@ -45,5 +46,26 @@ test.describe("A hotel room's page", () => {
     await page.goto("/en/listings/1");
     await expect(page.getByTestId("stay-facts")).toHaveCount(0);
     await expect(page.locator("#listing-price")).not.toContainText(en.listing.stays.perNight);
+  });
+});
+
+// Pure guards (no page): a malformed `details` payload must never crash the
+// listing page's SSR or the facts block (security review, dd).
+test.describe("Stay details guards", () => {
+  test("anything but a plain object reads as no details", () => {
+    for (const raw of [null, undefined, "x", 3, ["wifi"], true]) expect(asStayDetails(raw)).toEqual({});
+    expect(asStayDetails({ guests: 2 })).toEqual({ guests: 2 });
+  });
+
+  test("amenities only from a real array, known ones only", () => {
+    for (const amenities of ["wifi", { wifi: true }, 7, null] as never[]) expect(stayAmenities({ amenities })).toEqual([]);
+    expect(stayAmenities({ amenities: ["wifi", "sauna", 5, "tv"] as never })).toEqual(["wifi", "tv"]);
+    expect(stayAmenities(null)).toEqual([]);
+  });
+
+  test("a malformed payload cleans down to what is valid", () => {
+    expect(stayTime(1400)).toBeUndefined();
+    expect(cleanStayDetails("oops" as never)).toEqual({});
+    expect(cleanStayDetails({ guests: 2, amenities: "wifi" as never, checkIn: 1400 as never })).toEqual({ guests: 2 });
   });
 });
