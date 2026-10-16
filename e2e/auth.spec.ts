@@ -102,7 +102,10 @@ test.describe("Auth", () => {
     // ── Hand the browser over, without ever reloading ────────────────────────
     await openAccountMenu("Ahmad Karimi");
     await page.getByRole("menuitem", { name: /Sign Out/i }).click();
-    await page.getByRole("link", { name: /^Login$/i }).first().click();
+    // Signing out ON an auth-only page (Saved) lands on the login page by itself:
+    // <RequireAuth> sends the now-guest to /login?next=/saved. (This used to
+    // click the header's Login link, which that redirect swaps out mid-click and
+    // which the header never shows on /login — a timeout every run.)
     await expect(page).toHaveURL(/\/login/, { timeout: 30_000 });
 
     // ── User B: must start from nothing, not from A's cached rows ────────────

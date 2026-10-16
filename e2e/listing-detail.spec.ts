@@ -1,8 +1,19 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { BUYER_STATE } from "./auth-paths";
 import en from "../messages/en.json";
 import ps from "../messages/ps.json";
 import fa from "../messages/fa.json";
+
+/**
+ * The cross-sell rails as the reader sees them: inside <main>. The rails stream
+ * in behind a <Suspense>, and for a few hundred ms after they arrive React keeps
+ * the server copy in its hidden `<div hidden id="S:0">` (outside <main>) while
+ * the revealed copy already sits in place. A page-wide `getByTestId("seller-rail")`
+ * then matches BOTH, and strict mode fails at once instead of retrying: that was
+ * the "flaky" half of this spec (176/204/215/248/257/273/949), measured with a
+ * MutationObserver on a prod build. `main` never holds the hidden copy.
+ */
+const inMain = (page: Page) => page.getByRole("main");
 
 /**
  * The buyer CTA's label, READ FROM THE CATALOG rather than retyped (the pattern
@@ -177,7 +188,7 @@ test.describe("Listing detail — cross-sell rails", () => {
     page,
   }) => {
     await page.goto("/en/listings/2");
-    const rail = page.getByTestId("seller-rail");
+    const rail = inMain(page).getByTestId("seller-rail");
     await expect(
       rail.getByRole("heading", { name: "More from this Seller" }),
     ).toBeVisible();
@@ -192,7 +203,7 @@ test.describe("Listing detail — cross-sell rails", () => {
     // Listing.similar_to → by_category → self_and_children), so a listing filed
     // directly under Electronics still cross-sells the phone and the laptop
     // below it.
-    const similar = page.getByTestId("similar-rail");
+    const similar = inMain(page).getByTestId("similar-rail");
     await expect(similar.getByText("iPhone 13 Pro")).toBeVisible();
     await expect(similar.getByText("MacBook Pro M2")).toBeVisible();
     // ...and it is not a dead end either: "view all" lands on the category hub.
@@ -206,10 +217,10 @@ test.describe("Listing detail — cross-sell rails", () => {
     // seller rail (which runs first) keeps it and the similar rail — left with
     // nothing else — does not render at all.
     await page.goto("/en/listings/9");
-    const seller = page.getByTestId("seller-rail");
+    const seller = inMain(page).getByTestId("seller-rail");
     await expect(seller.getByText("MacBook Pro M2")).toBeVisible();
-    await expect(page.getByText("MacBook Pro M2")).toHaveCount(1);
-    await expect(page.getByTestId("similar-rail")).toHaveCount(0);
+    await expect(inMain(page).getByText("MacBook Pro M2")).toHaveCount(1);
+    await expect(inMain(page).getByTestId("similar-rail")).toHaveCount(0);
   });
 
   test("a rule separates the two rails, and never dangles alone", async ({
@@ -217,11 +228,11 @@ test.describe("Listing detail — cross-sell rails", () => {
   }) => {
     // Both rails on listing 7 → the boundary is drawn.
     await page.goto("/en/listings/7");
-    await expect(page.getByTestId("rail-divider")).toBeVisible();
+    await expect(inMain(page).getByTestId("rail-divider")).toBeVisible();
     // Only one rail on listing 4 (Clothes has no other stock) → no rule.
     await page.goto("/en/listings/4");
-    await expect(page.getByTestId("seller-rail")).toBeVisible();
-    await expect(page.getByTestId("rail-divider")).toHaveCount(0);
+    await expect(inMain(page).getByTestId("seller-rail")).toBeVisible();
+    await expect(inMain(page).getByTestId("rail-divider")).toHaveCount(0);
   });
 
   test("each rail is a named region with a self-describing view-all", async ({
@@ -250,23 +261,23 @@ test.describe("Listing detail — cross-sell rails", () => {
   }) => {
     // Winter Jacket is the only browsable listing in Clothes.
     await page.goto("/en/listings/4");
-    await expect(page.getByTestId("seller-rail")).toBeVisible();
-    await expect(page.getByTestId("similar-rail")).toHaveCount(0);
+    await expect(inMain(page).getByTestId("seller-rail")).toBeVisible();
+    await expect(inMain(page).getByTestId("similar-rail")).toHaveCount(0);
   });
 
   test("seller stock is ranked above the category rail", async ({ page }) => {
     await page.goto("/en/listings/7");
-    const rails = page.locator('[data-testid$="-rail"]');
+    const rails = inMain(page).locator('[data-testid$="-rail"]');
     await expect(rails).toHaveCount(2);
     // The buyer has just read the seller trust card, so that seller's stock is
     // the first thing offered.
     await expect(rails.nth(0)).toHaveAttribute("data-testid", "seller-rail");
     await expect(rails.nth(1)).toHaveAttribute("data-testid", "similar-rail");
     await expect(
-      page.getByTestId("seller-rail").getByText("iPhone 13 Pro"),
+      inMain(page).getByTestId("seller-rail").getByText("iPhone 13 Pro"),
     ).toBeVisible();
     await expect(
-      page.getByTestId("similar-rail").getByText("Winter Jacket"),
+      inMain(page).getByTestId("similar-rail").getByText("Winter Jacket"),
     ).toBeVisible();
   });
 
@@ -282,11 +293,11 @@ test.describe("Listing detail — cross-sell rails", () => {
         .getByTestId("unavailable-actions")
         .getByRole("link", { name: /More from Ahmad Karimi/i }),
     ).toHaveAttribute("href", "/en/sellers/1");
-    const rail = page.getByTestId("seller-rail");
+    const rail = inMain(page).getByTestId("seller-rail");
     await expect(rail).toBeVisible();
     await expect(rail.getByRole("link", { name: /View all/i })).toHaveCount(0);
     await expect(
-      page.getByTestId("similar-rail").getByRole("link", { name: /View all/i }),
+      inMain(page).getByTestId("similar-rail").getByRole("link", { name: /View all/i }),
     ).toHaveCount(0);
   });
 
@@ -308,7 +319,7 @@ test.describe("Listing detail — cross-sell rails", () => {
     await page.goto("/en/listings/6");
     await expect(page.getByTestId("unavailable-actions")).toHaveCount(0);
     await expect(
-      page.getByTestId("seller-rail").getByRole("link", { name: /View all/i }),
+      inMain(page).getByTestId("seller-rail").getByRole("link", { name: /View all/i }),
     ).toHaveAttribute("href", "/en/sellers/2");
   });
 
@@ -333,10 +344,10 @@ test.describe("Listing detail — cross-sell rails", () => {
     // Name is a prefix match, not exact: the accessible name is the visible
     // "ټول وګورئ" plus the section title, appended sr-only.
     await expect(
-      page.getByTestId("seller-rail").getByRole("link", { name: /^ټول وګورئ/ }),
+      inMain(page).getByTestId("seller-rail").getByRole("link", { name: /^ټول وګورئ/ }),
     ).toHaveAttribute("href", "/ps/sellers/2");
     await expect(
-      page.getByTestId("similar-rail").getByRole("link", { name: /^ټول وګورئ/ }),
+      inMain(page).getByTestId("similar-rail").getByRole("link", { name: /^ټول وګورئ/ }),
     ).toHaveAttribute("href", "/ps/categories/electronics");
   });
 
@@ -350,7 +361,10 @@ test.describe("Listing detail — cross-sell rails", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/en/listings/7");
     for (const testId of ["seller-rail", "similar-rail"]) {
-      const rail = page.getByTestId(testId);
+      const rail = inMain(page).getByTestId(testId);
+      // Laid out first: measured before React reveals it, the grid reports its
+      // declared `repeat(4, minmax(0, 1fr))` (3 space-separated words), not 4 tracks.
+      await expect(rail).toBeVisible();
       const grid = rail.locator("div.grid");
       const tracks = await grid.evaluate(
         (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
@@ -365,7 +379,7 @@ test.describe("Listing detail — cross-sell rails", () => {
     // Control for the owner case below: signed out, seller 1's other stock is
     // exactly what a buyer should be offered here.
     await page.goto("/en/listings/1");
-    const rail = page.getByTestId("seller-rail");
+    const rail = inMain(page).getByTestId("seller-rail");
     await expect(rail).toBeVisible();
     await expect(rail.getByText("Toyota Corolla 2015")).toBeVisible();
     await expect(rail.getByText("MacBook Pro M2")).toBeVisible();
@@ -940,7 +954,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // with a "view all" to their own profile — is what mobile gates out too.
     await page.goto("/en/listings/1");
     await expect(page.getByTestId("owner-listing-bar")).toBeVisible();
-    await expect(page.getByTestId("seller-rail")).toHaveCount(0);
+    await expect(inMain(page).getByTestId("seller-rail")).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: "More from this Seller" }),
     ).toHaveCount(0);
@@ -952,7 +966,7 @@ test.describe("Listing detail — viewed by its own seller", () => {
     // Listing 2 belongs to seller 2, so the same signed-in user is a buyer here
     // and the rail is exactly what they should see.
     await page.goto("/en/listings/2");
-    const rail = page.getByTestId("seller-rail");
+    const rail = inMain(page).getByTestId("seller-rail");
     await expect(rail).toBeVisible();
     await expect(rail.getByText("Winter Jacket")).toBeVisible();
   });
