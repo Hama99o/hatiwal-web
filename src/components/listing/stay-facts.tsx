@@ -1,5 +1,6 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Bath, BedDouble, Clock, Users } from "lucide-react";
+import { localizeDigits } from "@/lib/format";
 import { Separator } from "@/components/ui/separator";
 import { AMENITY_ICONS, isStayAmenity, type StayDetails } from "@/lib/stays";
 
@@ -13,6 +14,7 @@ import { AMENITY_ICONS, isStayAmenity, type StayDetails } from "@/lib/stays";
  */
 export function StayFacts({ details }: { details: StayDetails | null | undefined }) {
   const t = useTranslations("listing.stays");
+  const locale = useLocale();
   if (!details) return null;
   const amenities = (details.amenities ?? []).filter(isStayAmenity);
   const facts = [
@@ -25,8 +27,8 @@ export function StayFacts({ details }: { details: StayDetails | null | undefined
     },
   ].filter(Boolean) as { key: string; Icon: typeof Users; label: string }[];
   const times = [
-    details.checkIn ? t("checkIn", { time: details.checkIn }) : null,
-    details.checkOut ? t("checkOut", { time: details.checkOut }) : null,
+    details.checkIn ? t("checkIn", { time: localizeDigits(details.checkIn, locale) }) : null,
+    details.checkOut ? t("checkOut", { time: localizeDigits(details.checkOut, locale) }) : null,
   ].filter(Boolean) as string[];
   if (!facts.length && !amenities.length && !times.length) return null;
 

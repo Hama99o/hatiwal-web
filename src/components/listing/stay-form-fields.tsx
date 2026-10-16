@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Minus, Plus } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   AMENITY_ICONS,
@@ -33,6 +34,7 @@ function Stepper({
   testId: string;
 }) {
   const t = useTranslations("listing.stays.form");
+  const locale = useLocale();
   const btn =
     "inline-flex size-9 items-center justify-center rounded-full border bg-card transition-colors hover:bg-accent disabled:opacity-40 pointer-coarse:size-11";
   return (
@@ -43,7 +45,7 @@ function Stepper({
           <Minus className="size-4" aria-hidden />
         </button>
         <span className="min-w-6 text-center text-base font-bold tabular-nums" aria-live="polite" data-testid={`${testId}-value`}>
-          {value}
+          {formatNumber(value, locale)}
         </span>
         <button type="button" className={btn} disabled={value >= max} onClick={() => onChange(value + 1)} aria-label={`${t("increase")} — ${label}`}>
           <Plus className="size-4" aria-hidden />

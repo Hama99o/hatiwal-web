@@ -37,6 +37,8 @@ test.describe("A hotel room's page", () => {
     await expect(page.locator("#listing-price")).toContainText(fa.listing.stays.perNight);
     await expect(page.getByTestId("stay-facts")).toContainText(fa.listing.stays.bathroomPrivate);
     await expect(page.getByTestId("stay-amenities")).toContainText(fa.listing.stays.amenities.wifi);
+    // Times in Dari digits, like the rest of the page.
+    await expect(page.getByTestId("stay-times")).toContainText("۱۴:۰۰");
   });
 
   test("an item's page is unchanged: no room facts, no unit", async ({ page }) => {
