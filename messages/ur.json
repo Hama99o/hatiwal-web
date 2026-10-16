@@ -73,8 +73,13 @@
     "browseButton": "بازار دیکھیں"
   },
   "warnings": {
-    "title": "اکاؤنٹ کی تنبیہ",
-    "body": "آپ کے پاس {count, number} فعال تنبیہات ہیں۔ {threshold, number} تنبیہات پر اکاؤنٹ معطل ہو جاتا ہے۔",
+    "title": "آپ کو {threshold, number} میں سے {count, number} تنبیہات ملی ہیں",
+    "shopTitle": "اس دکان کو {threshold, number} میں سے {count, number} تنبیہات ملی ہیں",
+    "ruleAccount": "{threshold, number} تنبیہات پر آپ کا اکاؤنٹ معطل ہو جاتا ہے اور آپ کے تمام اشتہارات چھپ جاتے ہیں۔ اگر آپ کی دکان ہے تو وہ بھی آپ کا اکاؤنٹ بحال ہونے تک چھپی رہتی ہے۔",
+    "ruleShop": "{threshold, number} تنبیہات پر دکان معطل ہو جاتی ہے اور اس کے تمام اشتہارات چھپ جاتے ہیں۔",
+    "removedProhibited": "ممنوعہ چیز کی وجہ سے ایک اشتہار ہٹا دیا گیا۔",
+    "removedProhibitedTitled": "«{title}» ممنوعہ چیز کی وجہ سے ہٹا دیا گیا۔",
+    "rulesLink": "دیکھیں کیا ممنوع ہے",
     "acknowledge": "میں سمجھ گیا"
   },
   "onboarding": {

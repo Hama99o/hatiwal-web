@@ -36,6 +36,41 @@ export interface Shop extends ShopCard {
   status?: "active" | "suspended" | "pending" | "closed";
   phonePublic?: boolean;
   role?: "owner" | "manager" | "staff" | null;
+  /**
+   * Members only (owner view, api docs/WARNINGS_API.md): the shop's own active
+   * moderation warnings. 3 active → the SHOP is suspended (they never count
+   * toward the owner's personal 3). Absent on an older API and in the public
+   * view — which is all the server-rendered shop page ever gets.
+   */
+  activeWarningsCount?: number;
+  warningsThreshold?: number;
+  latestWarning?: ShopWarning | null;
+}
+
+export interface ShopWarning {
+  category: string;
+  /** Display reason, in the reader's language. */
+  reason: string;
+  createdAt: string;
+  /** The taken-down listing's title, or null for a shop-level warning. */
+  listingTitle: string | null;
+}
+
+/**
+ * The shop's warning card, or null when there is nothing to show: the viewer
+ * is not a member (no `role` — never a buyer, whatever the payload says), no
+ * active warnings, or an API that does not send the keys. Mirrors mobile's
+ * `shopWarnings` (src/api/shops.ts).
+ */
+export function shopWarnings(
+  shop: Pick<Shop, "role" | "activeWarningsCount" | "warningsThreshold" | "latestWarning"> | null | undefined,
+): { activeCount: number; threshold: number; warnings: ShopWarning[] } | null {
+  if (!shop?.role) return null;
+  const count = shop.activeWarningsCount;
+  const threshold = shop.warningsThreshold;
+  if (typeof count !== "number" || count <= 0 || typeof threshold !== "number") return null;
+  const latest = shop.latestWarning;
+  return { activeCount: count, threshold, warnings: latest && typeof latest === "object" ? [latest] : [] };
 }
 
 export interface ShopInput {

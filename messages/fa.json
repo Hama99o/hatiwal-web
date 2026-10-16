@@ -1158,8 +1158,13 @@
     }
   },
   "warnings": {
-    "title": "هشدار حساب",
-    "body": "شما {count, number} هشدار فعال دارید. {threshold, number} هشدار منجر به تعلیق حساب می‌شود.",
+    "title": "شما {count, number} از {threshold, number} هشدار دارید",
+    "shopTitle": "این دوکان {count, number} از {threshold, number} هشدار دارد",
+    "ruleAccount": "با {threshold, number} هشدار حساب شما معلق می‌شود و همه آگهی‌هایتان پنهان می‌شوند. اگر دوکان دارید، آن هم تا بازگشت حساب شما پنهان می‌ماند.",
+    "ruleShop": "با {threshold, number} هشدار دوکان معلق می‌شود و همه آگهی‌هایش پنهان می‌شوند.",
+    "removedProhibited": "یک آگهی به خاطر کالای ممنوع حذف شد.",
+    "removedProhibitedTitled": "«{title}» به خاطر کالای ممنوع حذف شد.",
+    "rulesLink": "ببینید چه چیزهایی ممنوع است",
     "acknowledge": "متوجه شدم"
   },
   "sidebar": {

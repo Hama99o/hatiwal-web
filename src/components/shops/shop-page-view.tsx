@@ -28,6 +28,7 @@ import { SHOP_DAYS, dayOf, hasHours, shopOpenText } from "@/lib/shop-hours";
 import { shopShareText } from "@/lib/shop-share";
 import { cn } from "@/lib/utils";
 import { ShopVerificationCard } from "./shop-verification-card";
+import { ShopWarningsCard } from "./shop-warnings-card";
 import { shopCan } from "@/lib/shop-permissions";
 import { userTextProps } from "@/lib/text-direction";
 
@@ -234,6 +235,8 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           />
         </div>
 
+        {/* The shop's own warnings — members only (owner + team), never a buyer. */}
+        {isMember && <ShopWarningsCard shopId={shop.id} />}
         {/* SHOP-1: the owner's "Get the Verified shop ✓ badge" card. */}
         {/* The owner and managers only; staff never see it (owner, 2026-10-08).
             The ✓ on the shop itself stays public. */}

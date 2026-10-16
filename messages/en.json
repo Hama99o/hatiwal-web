@@ -1158,8 +1158,13 @@
     }
   },
   "warnings": {
-    "title": "Account warning",
-    "body": "You have {count, number} active warning(s). {threshold, number} warnings lead to a suspension.",
+    "title": "You have {count, number} of {threshold, number} warnings",
+    "shopTitle": "This shop has {count, number} of {threshold, number} warnings",
+    "ruleAccount": "At {threshold, number} warnings your account is suspended and all your listings are hidden. If you own a shop, it is hidden too until your account is restored.",
+    "ruleShop": "At {threshold, number} warnings the shop is suspended and all its listings are hidden.",
+    "removedProhibited": "A listing was removed for a prohibited item.",
+    "removedProhibitedTitled": "“{title}” was removed for a prohibited item.",
+    "rulesLink": "See what's not allowed",
     "acknowledge": "I understand"
   },
   "sidebar": {

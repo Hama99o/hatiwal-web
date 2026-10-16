@@ -1158,8 +1158,13 @@
     }
   },
   "warnings": {
-    "title": "د حساب خبرتیا",
-    "body": "تاسو {count, number} فعالې خبرتیاوې لرئ. {threshold, number} خبرتیاوې د بندیدو لامل کیږي.",
+    "title": "تاسو {count, number} له {threshold, number} خبرتیاوې لرئ",
+    "shopTitle": "دا دوکان {count, number} له {threshold, number} خبرتیاوې لري",
+    "ruleAccount": "په {threshold, number} خبرتیاوو ستاسو حساب ځنډول کېږي او ټول اعلانونه مو پټېږي. که دوکان لرئ، هغه هم تر هغه پټ پاتې کېږي چې ستاسو حساب بېرته فعال شي.",
+    "ruleShop": "په {threshold, number} خبرتیاوو دوکان ځنډول کېږي او ټول اعلانونه یې پټېږي.",
+    "removedProhibited": "یو اعلان د منع شوي توکي له امله لرې شو.",
+    "removedProhibitedTitled": "«{title}» د منع شوي توکي له امله لرې شو.",
+    "rulesLink": "وګورئ څه شی منع دي",
     "acknowledge": "پوهیږم"
   },
   "sidebar": {
