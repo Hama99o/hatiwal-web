@@ -8,6 +8,7 @@
     "start": "NODE_ENV=production next start -p 3011",
     "lint": "eslint",
     "test:e2e": "playwright test",
+    "test:e2e:prod": "E2E_PROD=1 playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
   },

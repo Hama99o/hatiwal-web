@@ -5,6 +5,12 @@ import { ListingForm } from "@/components/listing/listing-form";
 import { getCategories } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
 
+// Rendered per request, never prerendered: a build that cannot reach the API
+// baked `categories: []` into this page, and every seller got a form with no
+// categories to pick until the 600 s revalidation (e2e on a prod build, 1.1.7).
+// The categories fetch keeps its own 600 s data cache, which never stores a failure.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {

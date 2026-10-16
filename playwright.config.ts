@@ -14,6 +14,15 @@ const MOCK_API_PORT = Number(process.env.E2E_MOCK_API_PORT || 4010);
 // developer's `npm run dev` and always talks to the mock API below.
 const WEB_PORT = Number(process.env.E2E_WEB_PORT || 3210);
 const API_BASE = `http://localhost:${MOCK_API_PORT}/api/v1`;
+// `E2E_PROD=1` (npm run test:e2e:prod) runs the suite against a PRODUCTION build
+// (`next build` + `next start`, ~0.5 GB) instead of `next dev` (3.5–7 GB on a
+// full run). It also catches what dev never does: a page prerendered at build
+// time with whatever the API answered then. The mock API is started first (web
+// servers launch in order), so the build prerenders real mock data.
+const PROD = !!process.env.E2E_PROD;
+const DIST_DIR = PROD
+  ? `.next-e2e-prod-${WEB_PORT}`
+  : WEB_PORT === 3210 ? ".next-e2e" : `.next-e2e-${WEB_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -63,16 +72,22 @@ export default defineConfig({
     {
       // Always start a fresh isolated server (own port + own .next-e2e dir) so
       // E2E is deterministic and never reuses a dev server pointed at real Rails.
-      command: `npx next dev -p ${WEB_PORT}`,
+      command: PROD
+        ? `npx next build && npx next start -p ${WEB_PORT}`
+        : `npx next dev -p ${WEB_PORT}`,
       url: `http://localhost:${WEB_PORT}/en`,
       reuseExistingServer: false,
       // Cold dev compile of the whole /en route tree + first-hit next/font
       // downloads (Rubik/Zain/Noto) can exceed 3 min on a loaded CI runner.
       // 5 min gives margin so the webServer isn't declared "not ready" mid-compile.
-      timeout: 300_000,
+      // (A production build takes up to ~5 min on this kind of host as well.)
+      timeout: PROD ? 600_000 : 300_000,
       env: {
         // Per-port build dir: two concurrent suites must not share .next output.
-        NEXT_DIST_DIR: WEB_PORT === 3210 ? ".next-e2e" : `.next-e2e-${WEB_PORT}`,
+        NEXT_DIST_DIR: DIST_DIR,
+        // An agent shell exports NODE_ENV=development, which breaks `next build`
+        // (AGENTS.md); dev ignores it either way.
+        ...(PROD ? { NODE_ENV: "production" } : {}),
         // …and its own tsconfig, because Next writes an include entry for its
         // distDir into whatever tsconfig it reads. tsconfig.scratch.json already
         // declares `.next-e2e/types/**/*.ts`, so the default port writes nothing
