@@ -35,7 +35,9 @@ export async function patchJsonRoute(
       const json = patch(await res.json());
       await route.fulfill({ response: res, json });
     } catch (e) {
-      if (page.isClosed()) return;
+      // The context can be mid-teardown with page.isClosed() still false, so
+      // Playwright's own "has been closed" error counts too (mode-switch:68).
+      if (page.isClosed() || /Target page, context or browser has been closed/.test(String(e))) return;
       throw e;
     }
   });
