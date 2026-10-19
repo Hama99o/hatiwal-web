@@ -1,10 +1,8 @@
 "use client";
 
-import { useId, useState } from "react";
-import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { useState } from "react";
 import { RemoteImage } from "@/components/shared/remote-image";
-import { Dialog } from "@/components/ui/dialog";
+import { PhotoZoomDialog } from "@/components/shared/photo-zoom-dialog";
 import { ListingVideoButton, type ListingVideo } from "@/components/shared/listing-video-button";
 import { cn } from "@/lib/utils";
 
@@ -45,8 +43,6 @@ export function ListingGallery({
    */
   video?: ListingVideo | null;
 }) {
-  const t = useTranslations("common");
-  const titleId = useId();
   const [active, setActive] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const pick = (list: string[], i: number) => list[i] ?? images[i] ?? images[0] ?? null;
@@ -107,25 +103,7 @@ export function ListingGallery({
           ))}
         </div>
       )}
-      <Dialog
-        open={zoomed}
-        onClose={() => setZoomed(false)}
-        labelledBy={titleId}
-        className="max-w-5xl bg-black p-0"
-      >
-        <h2 id={titleId} className="sr-only">{title}</h2>
-        <div className="relative h-[80vh] w-full" data-testid="listing-gallery-zoom">
-          <RemoteImage src={original} alt={title} fill sizes="100vw" className="object-scale-down" />
-        </div>
-        <button
-          type="button"
-          onClick={() => setZoomed(false)}
-          aria-label={t("close")}
-          className="absolute end-2 top-2 inline-flex size-10 items-center justify-center rounded-full bg-black/60 text-white"
-        >
-          <X className="size-5" />
-        </button>
-      </Dialog>
+      <PhotoZoomDialog open={zoomed} onClose={() => setZoomed(false)} src={original} title={title} />
     </div>
   );
 }

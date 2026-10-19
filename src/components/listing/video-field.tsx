@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { VideoBadge } from "@/components/shared/video-badge";
 import { ListingVideoUploadStatus } from "@/components/listing/listing-video-upload-status";
+import type { VideoTarget } from "@/lib/listing-video-upload";
 import { formatDuration } from "@/lib/format";
 import { MAX_VIDEO_DURATION_S, canUploadUnread, defaultWindow, getVideoInfo, needsTrim, type VideoWindow } from "@/lib/listing-video";
 
@@ -31,11 +32,14 @@ export function VideoField({
   value,
   onChange,
   listingId,
+  uploadTarget,
 }: {
   value: VideoValue | null;
   onChange: (next: VideoValue | null) => void;
   /** Editing a saved listing: shows its pending upload. */
   listingId?: number | null;
+  /** SHOP-MEDIA: any other saved record whose pending upload to show (a shop). */
+  uploadTarget?: VideoTarget | null;
 }) {
   const t = useTranslations("listing.video");
   const tc = useTranslations("common");
@@ -153,7 +157,11 @@ export function VideoField({
         </div>
       )}
 
-      {listingId ? <ListingVideoUploadStatus listingId={listingId} /> : null}
+      {uploadTarget ? (
+        <ListingVideoUploadStatus target={uploadTarget} />
+      ) : listingId ? (
+        <ListingVideoUploadStatus listingId={listingId} />
+      ) : null}
 
       {trim ? (
         <TrimDialog

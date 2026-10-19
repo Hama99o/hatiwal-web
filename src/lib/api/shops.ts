@@ -1,5 +1,5 @@
 import { apiGet } from "./client";
-import { meRequest } from "./me";
+import { meRequest, putVideo, type VideoUpload } from "./me";
 import type { ShopCard } from "../types";
 import type { ShopHours } from "../shop-hours";
 
@@ -25,6 +25,13 @@ export interface Shop extends ShopCard {
   coverUrl: string | null;
   /** 1.1.6 photo variants: the 1200px cover for the shop page (fallback: coverUrl). */
   coverMediumUrl?: string | null;
+  /** SHOP-MEDIA (docs/SHOP_MEDIA.md): one optional video ("▶ Video" on the cover). Absent on an older API. */
+  hasVideo?: boolean;
+  videoUrl?: string | null;
+  videoPosterUrl?: string | null;
+  videoDurationS?: number | null;
+  /** SHOP-MEDIA: up to 5 photos of the real shop, in the owner's order. Absent on an older API. */
+  galleryPhotos?: ShopGalleryPhoto[];
   phone: string | null;
   listingsCount: number;
   verifiedAt: string | null;
@@ -46,6 +53,17 @@ export interface Shop extends ShopCard {
   warningsThreshold?: number;
   latestWarning?: ShopWarning | null;
 }
+
+/** One shop photo; `id` is what PUT shops/:id/gallery takes back to keep or reorder it. */
+export interface ShopGalleryPhoto {
+  id: string;
+  url: string;
+  mediumUrl: string | null;
+  thumbUrl: string | null;
+}
+
+/** SHOP-MEDIA: the most photos a shop shows (Shop::MAX_GALLERY_PHOTOS). */
+export const MAX_SHOP_PHOTOS = 5;
 
 export interface ShopWarning {
   category: string;
@@ -128,6 +146,30 @@ export async function createShop(input: ShopInput): Promise<Shop> {
 
 export async function updateShop(id: number, input: Partial<ShopInput>): Promise<Shop> {
   return (await meRequest<{ shop: Shop }>(`shops/${id}`, { method: "PATCH", form: toForm(input) })).shop;
+}
+
+/** SHOP-MEDIA: set (or replace) the shop's video — the listing video's wire (me.ts putVideo). */
+export function uploadShopVideo(
+  id: number,
+  video: VideoUpload,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<Shop> {
+  return putVideo(`shops/${id}/video`, video, onProgress, signal).then((data) => (data as { shop: Shop }).shop);
+}
+
+export async function deleteShopVideo(id: number): Promise<Shop> {
+  return (await meRequest<{ shop: Shop }>(`shops/${id}/video`, { method: "DELETE" })).shop;
+}
+
+/** SHOP-MEDIA: the gallery in one save — kept ids in order, then new photos. A photo left out is deleted. */
+export async function updateShopGallery(id: number, keepIds: string[], files: File[]): Promise<Shop> {
+  const form = new FormData();
+  for (const keep of keepIds) form.append("gallery[keep_ids][]", keep);
+  for (const file of files) form.append("gallery[photos][]", file);
+  // An emptied gallery still sends the field: no keep_ids means "keep none".
+  if (keepIds.length === 0 && files.length === 0) form.append("gallery[keep_ids][]", "");
+  return (await meRequest<{ shop: Shop }>(`shops/${id}/gallery`, { method: "PUT", form })).shop;
 }
 
 export async function moveListingsToShop(id: number, listingIds: number[]): Promise<number> {

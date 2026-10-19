@@ -1770,6 +1770,24 @@
       "joined": "You joined {shop}",
       "groupTitle": "Invitations",
       "continueSeller": "Continue to Seller mode"
+    },
+    "media": {
+      "title": "Photos & video",
+      "subtitle": "Show buyers your real shop, your team and your products.",
+      "photos": "Photos",
+      "photosHint": "Up to 5 photos of your shop.",
+      "addPhoto": "Add photo",
+      "removePhoto": "Remove photo",
+      "video": "Video",
+      "saved": "Shop photos saved",
+      "saveFailed": "Couldn't save the shop photos. Please try again.",
+      "videoUploaded": "Video added to your shop",
+      "videoFailed": "The video didn't upload. Your shop is saved.",
+      "videoRemoved": "Video removed from your shop",
+      "manage": "Photos & video",
+      "seeAll": "See all",
+      "moveEarlier": "Move earlier",
+      "moveLater": "Move later"
     }
   },
   "prohibitedItems": {

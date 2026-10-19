@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { ListingVideoButton } from "@/components/shared/listing-video-button";
+import { ListingVideoUploadStatus } from "@/components/listing/listing-video-upload-status";
+import { ShopPhotoStrip } from "@/components/shops/shop-photo-strip";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BarChart3, MessageCircle, Navigation, Pencil, Phone, Store, Users } from "lucide-react";
+import { BarChart3, Images, MessageCircle, Navigation, Pencil, Phone, Store, Users } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useLoginHref } from "@/components/auth/login-href";
 import { ApiError } from "@/lib/api/client";
@@ -143,6 +146,12 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
     <div className="mx-auto max-w-5xl pb-12" data-testid="shop-page">
       <div className="relative h-44 w-full overflow-hidden bg-brand-lapis sm:h-56 sm:rounded-b-2xl">
         {shop.coverUrl && <RemoteImage src={shop.coverMediumUrl ?? shop.coverUrl} fallbackSrc={shop.coverUrl} alt="" fill sizes="100vw" className="object-cover" />}
+        {/* SHOP-MEDIA: one click to the shop's video, as on a listing — above the
+            band the logo and the member buttons overlap (-mt-10 below). */}
+        <ListingVideoButton
+          video={shop.videoUrl ? { url: shop.videoUrl, posterUrl: shop.videoPosterUrl, durationS: shop.videoDurationS } : null}
+          className="absolute bottom-14 end-3"
+        />
       </div>
       <div className="space-y-3 px-4">
         <div className="-mt-10 flex items-end justify-between gap-3">
@@ -164,6 +173,13 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
               <Button asChild variant="outline" data-testid="shop-page-team">
                 <Link href={`/shops/${shop.id}/team`}>
                   <Users className="size-4" /> {t("team.title")}
+                </Link>
+              </Button>
+            )}
+            {canEdit && (
+              <Button asChild variant="outline" data-testid="shop-page-media">
+                <Link href={`/shops/${shop.id}/media`}>
+                  <Images className="size-4" /> {t("media.manage")}
                 </Link>
               </Button>
             )}
@@ -192,6 +208,9 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           {subtitle && <span className="truncate">{subtitle}</span>}
         </div>
         <OpenLine shop={shop} />
+        {/* SHOP-MEDIA: the shop's photos, and (members) its pending video upload. */}
+        <ShopPhotoStrip photos={shop.galleryPhotos} shopName={shop.name} />
+        {isMember && <ListingVideoUploadStatus target={{ kind: "shop", id: shop.id }} />}
         {/* Phones: the one primary action full width, the secondary ones paired
             under it (Etsy shop header: Contact first, the rest quieter). sm+: one
             row. It used to wrap as Message + Directions, then Share alone. */}

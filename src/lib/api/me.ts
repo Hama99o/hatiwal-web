@@ -481,15 +481,36 @@ export async function createListing(
  */
 export function uploadListingVideo(
   id: number,
-  video: { blob: Blob; poster?: Blob | null; durationS?: number | null },
+  video: VideoUpload,
   onProgress?: (fraction: number) => void,
   signal?: AbortSignal,
 ): Promise<Listing> {
+  return putVideo(`my/listings/${id}/video`, video, onProgress, signal).then((data) =>
+    normalizeListing((data as { listing: RawListing }).listing),
+  );
+}
+
+export interface VideoUpload {
+  blob: Blob;
+  poster?: Blob | null;
+  durationS?: number | null;
+}
+
+/**
+ * VID / SHOP-MEDIA — the one video PUT on the wire (listing and shop): multipart
+ * through the authed proxy with an XHR for upload progress (fetch has none).
+ * Answers the record, camelCased.
+ */
+export function putVideo(
+  path: string,
+  video: VideoUpload,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<unknown> {
   const form = new FormData();
   form.append("video", video.blob, "video.mp4");
   if (video.poster) form.append("poster", video.poster, "poster.jpg");
   if (video.durationS) form.append("duration_s", String(video.durationS)); // 0 = unknown (unread file)
-  const path = `my/listings/${id}/video`;
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -506,8 +527,7 @@ export function uploadListingVideo(
         return;
       }
       try {
-        const data = convertKeysToCamel<{ listing: RawListing }>(parseOrExplain(xhr.responseText, `me/${path}`, res));
-        resolve(normalizeListing(data.listing));
+        resolve(convertKeysToCamel(parseOrExplain(xhr.responseText, `me/${path}`, res)));
       } catch (e) {
         reject(e);
       }

@@ -123,6 +123,10 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^shops\/\d+$/],
   ["PATCH", /^shops\/\d+$/],
   ["POST", /^shops\/\d+\/move_listings$/],
+  // SHOP-MEDIA: the shop's video (PUT/DELETE) and its gallery (one PUT).
+  ["PUT", /^shops\/\d+\/video$/],
+  ["DELETE", /^shops\/\d+\/video$/],
+  ["PUT", /^shops\/\d+\/gallery$/],
   ["GET", /^my\/shops$/],
   ["PATCH", /^users\/me\/selling_as$/],
   // SHOP-2: "Message shop" — find-or-create the listing-less chat with a shop.

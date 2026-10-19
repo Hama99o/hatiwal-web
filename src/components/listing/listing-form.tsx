@@ -8,7 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Boxes, History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
+import { Boxes, History, ImagePlus, Loader2, MapPin } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createListing, updateListing, listingLifecycle, relaunchMyListing, deleteListingVideo } from "@/lib/api/me";
@@ -33,7 +33,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { RemoteImage } from "@/components/shared/remote-image";
+import { PhotoTile } from "@/components/shared/photo-tile";
 import { LocationMap } from "@/components/map/location-map";
 import { LocationSearch, reverseGeocode } from "@/components/map/location-search";
 import { cn } from "@/lib/utils";
@@ -889,30 +889,6 @@ export function ListingForm({
           )}
         </div>
       </form>
-    </div>
-  );
-}
-
-function PhotoTile({
-  src,
-  onRemove,
-  label,
-}: {
-  src: string;
-  onRemove: () => void;
-  label: string;
-}) {
-  return (
-    <div className="relative aspect-square overflow-hidden rounded-lg border bg-muted">
-      <RemoteImage src={src} alt="" fill sizes="120px" className="object-cover" />
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={label}
-        className="absolute end-1 top-1 flex size-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
-      >
-        <X className="size-4" />
-      </button>
     </div>
   );
 }

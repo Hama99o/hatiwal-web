@@ -553,6 +553,26 @@ function videoFields(l) {
   };
 }
 
+// SHOP-MEDIA (docs/SHOP_MEDIA.md): shop 42's photos (2) and 20 s video, on
+// :public / :owner (never on the card). The PUT/DELETE answers are stateless —
+// the shop as the request asked for it — so parallel specs never see each
+// other's edits.
+const SHOP_42_GALLERY = ["g1", "g2"].map((id) => ({
+  id,
+  url: `${MEDIA}/shop42-${id}-1600x1200.png`,
+  medium_url: `${MEDIA}/shop42-${id}-800x600.png`,
+  thumb_url: `${MEDIA}/shop42-${id}-300x300.png`,
+}));
+function shopMedia({ video = true, gallery = SHOP_42_GALLERY } = {}) {
+  return {
+    has_video: video,
+    video_url: video ? `${MEDIA}/shop42-video.mp4` : null,
+    video_poster_url: video ? `${MEDIA}/shop42-poster-1280x720.png` : null,
+    video_duration_s: video ? 20 : null,
+    gallery_photos: gallery,
+  };
+}
+
 function photoFields(l, originalsKey = "image_urls") {
   const n = l.photos || l.originalsOnly || 0;
   // The api always sends the variant arrays (empty without photos); an OLDER
@@ -1279,7 +1299,7 @@ function route(req, res, method, path, q, body, raw = "") {
   }
   const shopMatch = path.match(/^\/shops\/(\d+)$/);
   if (method === "GET" && shopMatch) {
-    return shopMatch[1] === "42" ? send(res, 200, { shop: SHOP_42 }) : send(res, 404, { error: "Not found" });
+    return shopMatch[1] === "42" ? send(res, 200, { shop: { ...SHOP_42, ...shopMedia() } }) : send(res, 404, { error: "Not found" });
   }
 
   // ── Authenticated ─────────────────────────────────────────────────────────
@@ -1563,6 +1583,24 @@ function route(req, res, method, path, q, body, raw = "") {
       MOCK_VIDEOS.delete(id);
     }
     return send(res, 200, { listing: myListingView(id) });
+  }
+  // SHOP-MEDIA: PUT (multipart) / DELETE /shops/:id/video and PUT
+  // /shops/:id/gallery (keep_ids in their new order, then the new files) —
+  // each answers the shop. A shop the caller can't edit is 403, as Rails.
+  const shopMediaMatch = path.match(/^\/shops\/(\d+)\/(video|gallery)$/);
+  if (shopMediaMatch && (method === "PUT" || (method === "DELETE" && shopMediaMatch[2] === "video"))) {
+    if (!requireAuth()) return;
+    if (shopMediaMatch[1] !== "42") return send(res, 403, { error: "Forbidden" });
+    const shop = { ...SHOP_42, role: "owner", status: "active" };
+    if (shopMediaMatch[2] === "video") return send(res, 200, { shop: { ...shop, ...shopMedia({ video: method === "PUT" }) } });
+    const keep = [...raw.matchAll(/name="gallery\[keep_ids\]\[\]"\r?\n\r?\n([^\r\n]*)/g)].map((m) => m[1]);
+    const added = (raw.match(/name="gallery\[photos\]\[\]"; filename=/g) ?? []).length;
+    if (keep.length + added > 5) return send(res, 422, { errors: ["Gallery photos can't be more than 5"] });
+    const gallery = [
+      ...keep.map((id) => SHOP_42_GALLERY.find((g) => g.id === id)).filter(Boolean),
+      ...Array.from({ length: added }, (_, i) => ({ ...SHOP_42_GALLERY[0], id: `new${i + 1}` })),
+    ];
+    return send(res, 200, { shop: { ...shop, ...shopMedia({ gallery }) } });
   }
   const analyticsMatch = path.match(/^\/my\/listings\/(\d+)\/analytics$/);
   if (analyticsMatch && method === "GET") {
