@@ -3,6 +3,7 @@ import { cardLocation } from "@/lib/provinces";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { RemoteImage } from "./remote-image";
+import { VideoBadge } from "@/components/shared/video-badge";
 import { PriceTag } from "./price-tag";
 import { StatusBadge } from "./status-badge";
 import { ConditionBadge } from "./condition-badge";
@@ -180,6 +181,12 @@ export function ListingCard({
               className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               priority={priority}
             />
+            {/* VID: a small centred ▶ when the listing has a video — nothing else on a card. */}
+            {listing.hasVideo ? (
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <VideoBadge />
+              </span>
+            ) : null}
             {(listing.priceDropPercent || seenBadge) && (
               <div
                 className={cn(
@@ -266,6 +273,11 @@ export function ListingCard({
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
             priority={priority}
           />
+          {listing.hasVideo ? (
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <VideoBadge />
+            </span>
+          ) : null}
           <div
             className={cn(
               "absolute inset-x-2 top-2 flex flex-wrap gap-1",

@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import { Boxes, History, ImagePlus, Loader2, MapPin, X } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-import { createListing, updateListing, listingLifecycle, relaunchMyListing } from "@/lib/api/me";
+import { createListing, updateListing, listingLifecycle, relaunchMyListing, deleteListingVideo } from "@/lib/api/me";
+import { VideoField, type VideoValue } from "@/components/listing/video-field";
+import { discardListingVideoUpload, startListingVideoUpload } from "@/lib/listing-video-upload";
 import {
   API_ERROR_CODES,
   apiErrorCode,
@@ -97,6 +99,27 @@ export function ListingForm({
   const [existing, setExisting] = useState(listing?.imageAttachments ?? []);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [newPhotos, setNewPhotos] = useState<NewPhoto[]>([]);
+  // VID: the optional video — the saved one, a newly picked clip, or none.
+  const [video, setVideo] = useState<VideoValue | null>(
+    listing?.hasVideo
+      ? { kind: "remote", posterUrl: listing.videoPosterUrl ?? listing.cardImageUrl ?? null, durationS: listing.videoDurationS ?? null }
+      : null,
+  );
+  // After the listing is saved: hand a new clip to the background uploader
+  // (publishing never waits for it), or delete the video the seller removed.
+  const syncVideo = (savedId: number) => {
+    if (video?.kind === "local") {
+      startListingVideoUpload(qc, savedId, video.file, video.window);
+    } else if (!video && listing?.hasVideo) {
+      discardListingVideoUpload(savedId);
+      deleteListingVideo(savedId)
+        .then(() => {
+          qc.invalidateQueries({ queryKey: ["my-listing", String(savedId)] });
+          toast.success(t("listing.video.removed"));
+        })
+        .catch(() => toast.error(t("listing.video.removeFailed")));
+    }
+  };
   const [submitting, setSubmitting] = useState(false);
   // Synchronous twin of `submitting`: react-hook-form validates asynchronously
   // before calling save(), so a double click reaches save() twice while the
@@ -384,6 +407,7 @@ export function ListingForm({
 
       if (isEdit && listing) {
         await updateListing(listing.id, input, files, removedIds);
+        syncVideo(listing.id);
         const relaunched = relaunch ? await relaunchMyListing(listing.id) : null;
         // Drop the cached pre-edit copies so the manage/list views show the
         // saved values immediately (the global 60s staleTime would otherwise
@@ -404,6 +428,7 @@ export function ListingForm({
         router.push(`/my-listings/${listing.id}`);
       } else {
         const created = await createListing(input, files);
+        syncVideo(created.id);
         // The listing was saved on the server — drop the autosaved draft.
         clearDraft();
         if (publish) {
@@ -558,6 +583,9 @@ export function ListingForm({
             {t("listing.form.photosHint")}
           </p>
         </div>
+
+        {/* VID: the optional video, right under the photos. */}
+        <VideoField value={video} onChange={setVideo} listingId={isEdit ? listing?.id : null} />
 
         <Field
           label={t("listing.title")}

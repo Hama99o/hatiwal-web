@@ -65,6 +65,13 @@ export function localizeDigits(text: string, locale: string): string {
   return text.replace(/[0-9]/g, (d) => formatNumber(Number(d), locale, { useGrouping: false }));
 }
 
+/** A clip length, "0:42" / "1:05", in the locale's digits (VID); "" for a missing value. */
+export function formatDuration(seconds: number | null | undefined, locale: string): string {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "";
+  const total = Math.round(seconds);
+  return localizeDigits(`${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`, locale);
+}
+
 export function formatNumber(
   value: number,
   locale: string,

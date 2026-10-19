@@ -472,6 +472,59 @@ export async function createListing(
   return normalizeListing(data.listing);
 }
 
+/**
+ * VID (1.1.9): set (or replace) a listing's one video — multipart PUT
+ * my/listings/:id/video through the authed proxy, apart from the listing save
+ * so publishing never waits for it. An XHR rather than meRequest's fetch, for
+ * one reason: upload PROGRESS (fetch has none). The file is already cut and
+ * compressed (src/lib/listing-video.ts). Answers the listing with its video.
+ */
+export function uploadListingVideo(
+  id: number,
+  video: { blob: Blob; poster?: Blob | null; durationS?: number | null },
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<Listing> {
+  const form = new FormData();
+  form.append("video", video.blob, "video.mp4");
+  if (video.poster) form.append("poster", video.poster, "poster.jpg");
+  if (video.durationS) form.append("duration_s", String(video.durationS)); // 0 = unknown (unread file)
+  const path = `my/listings/${id}/video`;
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", `/api/me/${path}`);
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.upload.onprogress = (e) => {
+      if (onProgress && e.lengthComputable) onProgress(Math.min(1, e.loaded / e.total));
+    };
+    xhr.onload = async () => {
+      const res = new Response(xhr.responseText, { status: xhr.status });
+      if (xhr.status < 200 || xhr.status >= 300) {
+        const { errors, code, details } = await readApiError(res);
+        reject(new ApiError(xhr.status, `me/${path} ${xhr.status}`, errors, code, details));
+        return;
+      }
+      try {
+        const data = convertKeysToCamel<{ listing: RawListing }>(parseOrExplain(xhr.responseText, `me/${path}`, res));
+        resolve(normalizeListing(data.listing));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    xhr.onerror = () => reject(new Error("network"));
+    xhr.onabort = () => reject(new DOMException("aborted", "AbortError"));
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    xhr.send(form);
+  });
+}
+
+/** VID: remove the video and its poster. The photos never change. */
+export async function deleteListingVideo(id: number): Promise<Listing> {
+  const data = await meRequest<{ listing: RawListing }>(`my/listings/${id}/video`, { method: "DELETE" });
+  return normalizeListing(data.listing);
+}
+
 export async function updateListing(
   id: number,
   input: ListingInput,

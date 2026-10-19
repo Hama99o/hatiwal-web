@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { RemoteImage } from "@/components/shared/remote-image";
 import { Dialog } from "@/components/ui/dialog";
+import { ListingVideoButton, type ListingVideo } from "@/components/shared/listing-video-button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,6 +25,7 @@ export function ListingGallery({
   thumbs = mediums,
   title,
   dimmed = false,
+  video,
 }: {
   /** The originals: what the full-screen view shows. */
   images: string[];
@@ -37,6 +39,11 @@ export function ListingGallery({
    * reserved item (which can still come back) keeps its full-strength photo.
    */
   dimmed?: boolean;
+  /**
+   * VID: the listing's optional video — a "▶ Video · 0:42" button ON the main
+   * photo (never a slide after the photos), opening it full-screen.
+   */
+  video?: ListingVideo | null;
 }) {
   const t = useTranslations("common");
   const titleId = useId();
@@ -51,6 +58,7 @@ export function ListingGallery({
       className={cn("space-y-3", dimmed && "opacity-70")}
       data-testid="listing-gallery"
     >
+      <div className="relative">
       <button
         type="button"
         onClick={() => original && setZoomed(true)}
@@ -69,6 +77,9 @@ export function ListingGallery({
           priority
         />
       </button>
+      {/* A sibling, not inside the photo button (no nested buttons). */}
+      <ListingVideoButton video={video} className="absolute bottom-3 end-3" />
+      </div>
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {images.map((src, i) => (

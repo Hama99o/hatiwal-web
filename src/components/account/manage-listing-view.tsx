@@ -30,6 +30,7 @@ import {
 import { useListingPlaces } from "./listing-places";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import { ListingGallery } from "@/components/listing/listing-gallery";
+import { ListingVideoUploadStatus } from "@/components/listing/listing-video-upload-status";
 import { ListingViewsChart } from "./listing-views-chart";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -98,7 +99,17 @@ export function ManageListingView({ id }: { id: string }) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="grid gap-8 lg:grid-cols-2">
-        <ListingGallery images={listing.images} mediums={listing.imageMediums} thumbs={listing.imageThumbs} title={listing.title} />
+        <div className="space-y-3">
+          <ListingGallery
+            images={listing.images}
+            mediums={listing.imageMediums}
+            thumbs={listing.imageThumbs}
+            title={listing.title}
+            video={listing.videoUrl ? { url: listing.videoUrl, posterUrl: listing.videoPosterUrl, durationS: listing.videoDurationS } : null}
+          />
+          {/* VID: this listing's background video upload (progress / Retry). */}
+          <ListingVideoUploadStatus listingId={listing.id} />
+        </div>
 
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">

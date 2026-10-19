@@ -97,6 +97,8 @@ export const LIST_VIEW_KEYS = [
   // 1.1.6 photo variants (api 62e1ecc): one per photo, in image_urls' order.
   "image_thumb_urls",
   "image_medium_urls",
+  // VID (1.1.9): the card ▶.
+  "has_video",
   "is_viewed",
   "is_saved",
   "seller",
@@ -135,6 +137,8 @@ export const SELLER_LIST_VIEW_KEYS = [
   // 1.1.6 photo variants (api 62e1ecc): one per photo, in image_urls' order.
   "image_thumb_urls",
   "image_medium_urls",
+  // VID (1.1.9): the card ▶.
+  "has_video",
   "conversations_count",
   "expired",
   // Edit + relaunch (owner, 2026-10-12): when it may next move to the top.
@@ -165,6 +169,11 @@ export const DETAILED_VIEW_KEYS = [
   "image_thumb_urls",
   "image_medium_urls",
   "image_attachments",
+  // VID (1.1.9): one optional video, opened by the "▶ Video" button.
+  "has_video",
+  "video_url",
+  "video_poster_url",
+  "video_duration_s",
   "thumbnail_url",
   "expired",
   "conversations_count",

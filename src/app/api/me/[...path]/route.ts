@@ -29,6 +29,9 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["DELETE", /^my\/listings\/\d+$/],
   ["PUT", /^my\/listings\/\d+\/(publish|unpublish|reserve|activate|sold|renew|relaunch|move)$/],
   ["POST", /^my\/listings\/\d+\/duplicate$/],
+  // VID (1.1.9): a listing's one video — multipart PUT (≤ 25 MB), DELETE.
+  ["PUT", /^my\/listings\/\d+\/video$/],
+  ["DELETE", /^my\/listings\/\d+\/video$/],
   // Item 2: a seller's numbers (Me / one shop) and "Relaunch all".
   ["GET", /^my\/analytics$/],
   ["POST", /^my\/listings\/relaunch_expired$/],

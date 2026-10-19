@@ -293,6 +293,7 @@ export default async function ListingDetailPage({
               thumbs={listing.imageThumbs}
               title={listing.title}
               dimmed={isSold}
+              video={listing.videoUrl ? { url: listing.videoUrl, posterUrl: listing.videoPosterUrl, durationS: listing.videoDurationS } : null}
             />
           </div>
 

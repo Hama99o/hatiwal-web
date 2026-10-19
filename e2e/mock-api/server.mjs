@@ -171,7 +171,9 @@ function catRef(id) {
 // so the seller dashboard's status tabs are all populated.
 const LISTINGS = [
   { id: 1, title: "iPhone 13 Pro", price: 45000, currency: "AFN", status: "active", location: "Kabul", address: "Shar-e-Naw", condition: "good", category_id: 101, seller_id: 1, views_count: 120, created_at: "2026-06-20T10:00:00Z", price_drop_percent: 12, price_dropped_at: "2026-06-19T10:00:00Z", description: "Barely used iPhone 13 Pro, 256GB." },
-  { id: 2, title: "Samsung 4K TV", price: 30000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "like_new", category_id: 1, seller_id: 2, views_count: 80, created_at: "2026-06-18T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "55 inch 4K smart TV." },
+  { id: 2, title: "Samsung 4K TV", price: 30000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "like_new", category_id: 1, seller_id: 2, views_count: 80, created_at: "2026-06-18T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "55 inch 4K smart TV.",
+    // VID: the fixture listing with a video (e2e/listing-video.spec.ts).
+    video: { duration_s: 42 } },
   // originalsOnly: 1 → an OLDER API's shape (image_urls, no variants): the fallback.
   { id: 3, title: "Toyota Corolla 2015", price: 600000, currency: "AFN", status: "active", location: "Herat", address: null, condition: "fair", category_id: 2, seller_id: 1, views_count: 300, created_at: "2026-06-15T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "Clean title, well maintained.", originalsOnly: 1 },
   // The one FIRM-PRICE listing (`negotiable: false`, a real `view :list` field):
@@ -535,6 +537,22 @@ function saleView(l) {
 // with `photos` (all three) or `originalsOnly` (an older API: originals only)
 // have images; every other listing stays photoless, as before.
 const MEDIA = `http://localhost:${PORT}/media`;
+// VID (1.1.9): videos the e2e uploaded, by listing id (PUT/DELETE /my/listings/:id/video).
+const MOCK_VIDEOS = new Map();
+function videoOf(l) {
+  const v = l.video ?? MOCK_VIDEOS.get(String(l.id));
+  return v ? { url: `${MEDIA}/${l.id}-video.mp4`, poster_url: `${MEDIA}/${l.id}-poster-1280x720.png`, ...v } : null;
+}
+function videoFields(l) {
+  const v = videoOf(l);
+  return {
+    has_video: !!v,
+    video_url: v ? v.url : null,
+    video_poster_url: v ? v.poster_url : null,
+    video_duration_s: v ? v.duration_s : null,
+  };
+}
+
 function photoFields(l, originalsKey = "image_urls") {
   const n = l.photos || l.originalsOnly || 0;
   // The api always sends the variant arrays (empty without photos); an OLDER
@@ -570,6 +588,7 @@ function listView(l, { viewedIds = null, savedIds = null, savedByListingId = nul
     thumbnail_url: null,
     image_urls: [],
     ...photoFields(l),
+    has_video: !!videoOf(l),
     is_viewed: viewedIds?.includes(l.id) ?? false,
     is_saved: save !== null || (savedIds?.includes(l.id) ?? false),
     // The public flag only (buyers never get the date) — api 1.1.7 :list.
@@ -615,6 +634,7 @@ function sellerListView(l) {
     thumbnail_url: null,
     image_urls: [],
     ...photoFields(l),
+    has_video: !!videoOf(l),
     // Rails emits this for every listing, 0 included — per-fixture override so a
     // listing with no chats can be asserted on.
     conversations_count: l.conversations_count ?? 2,
@@ -646,6 +666,7 @@ function detailView(l, { team = false } = {}) {
     image_attachments: [],
     thumbnail_url: null,
     ...photoFields(l, "images"),
+    ...videoFields(l),
     expired: l.expired ?? false,
     conversations_count: l.conversations_count ?? 2,
     saves_count: l.saves_count ?? 0,
@@ -1530,6 +1551,18 @@ function route(req, res, method, path, q, body, raw = "") {
   if (path === "/my/listings" && method === "POST") {
     if (!requireAuth()) return;
     return send(res, 201, { listing: myListingView(1001) }); // created draft (Rails: 201)
+  }
+  // VID: PUT (multipart) / DELETE /my/listings/:id/video — answers the listing.
+  const videoMatch = path.match(/^\/my\/listings\/(\d+)\/video$/);
+  if (videoMatch && (method === "PUT" || method === "DELETE")) {
+    if (!requireAuth()) return;
+    const id = videoMatch[1];
+    if (method === "PUT") {
+      MOCK_VIDEOS.set(id, { duration_s: 2 });
+    } else {
+      MOCK_VIDEOS.delete(id);
+    }
+    return send(res, 200, { listing: myListingView(id) });
   }
   const analyticsMatch = path.match(/^\/my\/listings\/(\d+)\/analytics$/);
   if (analyticsMatch && method === "GET") {

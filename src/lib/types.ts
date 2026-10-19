@@ -251,6 +251,12 @@ export interface Listing {
   cardImageSrcSet: string | null;
   /** {signed-id, url} pairs (detail view only) — needed to remove photos on edit. */
   imageAttachments?: { id: string; url: string }[];
+  /** VID (1.1.9): a ▶ on cards. Absent on an older API = no video. */
+  hasVideo?: boolean;
+  /** VID — detail views only: the progressive MP4, opened by the "▶ Video" button. */
+  videoUrl?: string | null;
+  videoPosterUrl?: string | null;
+  videoDurationS?: number | null;
   viewsCount: number;
   /** How many people have saved this listing (detail view — from saves_count). */
   savesCount?: number;
