@@ -96,3 +96,141 @@ Off-site brand signals (these matter most for a new name):
 
 Be patient: a new brand name usually takes **several weeks** to rank, even
 after everything above is done. Check Performance once a week.
+
+---
+
+# seo-1 (2026-10-22, branch `seo-1`, off `release-1.1.8`)
+
+Starting point (Search Console, 2026-10-16): **383 indexed, 308 not indexed**.
+Page with redirect 113 · Alternate page with proper canonical 69 · Duplicate
+without user-selected canonical 34 · Discovered, not indexed 42 · Not found
+(404) 18 · Google chose different canonical 17 · Crawled, not indexed 9 ·
+Excluded by noindex 4 · Soft 404 2.
+
+## What production looked like (measured 2026-10-22, read-only GETs)
+
+| Check | Result |
+|---|---|
+| The 135 sitemap URLs | All **200**, all self-canonical, none noindex. Nothing to fix in the sitemap itself. |
+| `/` | **307** → `/en` (next-intl's default). `/bazaar`, `/listings/1` (locale-less) also 307. `/ps/` → `/ps` was already 308. |
+| `/en/bazaar?q=…`, `?category=…`, `?province=…`, `?sort=…`, `?page=2` | All 200, all canonical → `/en/bazaar`, all indexable. The `?q=` / `?category=` / zone URLs render DIFFERENT results (SSR applies the filters), so a canonical to `/bazaar` is a claim Google can reject: this is the likely source of "Google chose different canonical" (17). |
+| `/en/categories/electronics?sort=…&page=2` | Canonical → clean URL. Correct: the category page ignores its params (same HTML). |
+| Listing ids 1–260 | 229 → **404** (deleted: a real 404, correct), 20 live, **11 sold → 200, indexable**, still "for sale" pages for an item nobody can buy (soft-404 / crawled-not-indexed material). |
+| Seller ids 1–80 | 58 profiles → 200, **all indexable**, most with no listings and no reviews: a name and a join date. Unknown ids → 404. |
+| Shop ids 1–80 | 3 shops → 200; the rest → 404. |
+| Unknown listing / seller / shop / category / path | Already a real **404** (no 200 "not found" anywhere). |
+| The noindex pages | Login, signup, forgot/reset password, email-confirmed, saved, conversations, my-listings, analytics, settings, profile/*, recently-viewed, shop edit/new/verify, join/<token>, empty categories. All intentional (account pages, or "nothing here"). `/delete-account`, `/privacy`, `/prohibited-items` are public and indexable on purpose (the stores require them). No public page was noindex by mistake. |
+| Internal links on home, Bazaar, categories, a listing | No query-string links in the SSR HTML: the duplicate query URLs come from the client-side filter chips and from shared links, not from crawlable `<a href>`s. |
+
+The 18 "Not found (404)" are mostly deleted listings and are **correct**:
+Google drops them by itself. The 113 "Page with redirect" are, as before,
+`/` → `/en`, http → https, www → apex, `/l/<id>` share links, `/ur/*`.
+
+## What changed
+
+| Change | Google-recommended because |
+|---|---|
+| `/` and every locale-less path now answer **308** (was 307) to the reader's locale, with `Cache-Control: no-store` and `Vary: Accept-Language, Cookie` (`src/middleware.ts`). | A permanent redirect passes signals and drops the source URL; `no-store` keeps locale detection live for people (a 308 is otherwise cached forever by browsers, so a reader who switches language would be stuck). Googlebot sends no Accept-Language/cookie, so it always gets `/` → `/en`, which is the `x-default`. |
+| **Bazaar search and filter URLs** (`q`, `category`, `condition`, `min`, `max`, `lat`/`lng`/`radius`, `active_sellers`, `shops`, `guests`, `amenities`) are `noindex, follow` with **no canonical and no hreflang**. `sort`, `page` and tracking params keep the canonical to the clean `/bazaar` and stay indexable (`isFacetedSearch`, `src/lib/seo.ts`). | Google's guidance for internal search results and faceted navigation: keep them out of the index; `follow` keeps the listings they link to discoverable. noindex plus a canonical to another URL are conflicting signals, so the canonical is dropped there. The landing pages for searchers are the category and city pages, which are clean URLs. |
+| **Sold or expired listings**: still **200** (the buyer's chat, the review and the seller's share link open them, and they show similar items), but `noindex, follow`. Removed / unknown listings stay a real **404**. | A page for an item that can no longer be bought is what Google files as a soft 404. noindex takes it out cleanly without breaking the page for the people who still need it. See "Owner decisions" for the 410 alternative. |
+| **Seller profiles with no listings and no reviews** are `noindex, follow`; they are indexed again as soon as they have a listing or a review. | Thin page, and it put private people's names in search results for no buyer's benefit. |
+| Every 404 page (listing, seller, shop, any unknown path, unknown city) links to the **Bazaar and the categories**. The generic 404's button went to `/` (a redirect); it now goes to `/bazaar`. | A real 404 with a way on, as Google recommends for removed content. |
+| **MobileApplication JSON-LD** on `/` (beside Organization + WebSite) and `/download`: name + both native spellings, `operatingSystem: "Android, iOS"`, `applicationCategory: ShoppingApplication`, free `Offer`, both store URLs as `downloadUrl`/`installUrl`, `inLanguage: en, ps, fa`, icon as `image`, publisher = the Organization. | **No `aggregateRating`**: we have no real rating data in hand, and invented ratings are a manual-action risk. Google shows the software-app rich result only with a rating, so this is valid markup that earns no stars until real ratings are added. No `screenshot`: store screenshots are not in this repo. |
+| **New pages**, en/ps/fa, each self-canonical with the full hreflang set, its own title + description, in the sitemap and linked from the footer of every page: `/how-to-sell`, `/buy-safely`, `/cities/kabul`, `/cities/herat`, `/cities/kandahar`, `/cities/mazar-i-sharif`, `/cities/jalalabad`. | Content a searcher actually types ("how to sell in Kabul", "buy and sell Herat", "هټیوال"). Each claim is one the product makes: the numbers on the sell guide come from the constants the product enforces (`MAX_LISTING_PHOTOS` = 8 = `Listing::MAX_IMAGES`, `MAX_VIDEO_DURATION_S` = 60, `MAX_SHOP_PHOTOS` = 5); the buy guide's meeting checklist is the app's own `safety.tips`. |
+
+City pages: each city is its province's capital, at the coordinates in
+`src/lib/provinces.ts` (Mazar-i-Sharif = Balkh, Jalalabad = Nangarhar). The page
+shows the 12 newest listings within 25 km (`CITY_RADIUS_KM`), links to
+`/bazaar?lat=…&lng=…&radius=25` (noindex by the rule above, on purpose: the city
+page is the indexable one), the most stocked categories site-wide (the API has
+no per-city counts), the sell guide and the other cities. An unknown city is a
+404. To add a city, add it to `CITY_PROVINCES` in `src/lib/cities.ts` and to
+`cities.names` in all four message files.
+
+Urdu: the new strings are translated in `ur.json` too (the message-coverage
+spec requires it), but Urdu stays hidden, so no Urdu URL exists.
+
+`src/i18n/locales.ts` now holds the locale constants without importing
+next-intl, so the Playwright unit specs can load `src/lib/seo.ts`
+(`routing.ts` re-exports them; nothing else changed for callers).
+
+## Tests
+
+- `e2e/seo-unit.spec.ts` (no server): `isFacetedSearch` against the filter URL
+  vocabulary of `filters.ts`, the MobileApplication shape (required fields, no
+  rating, absolute URLs), the city map.
+- `e2e/seo-1.spec.ts` (HTTP + browser): 308s and locale detection, canonical /
+  noindex per Bazaar URL kind, real 404s with their links, sold listing and
+  empty profile noindex, JSON-LD on `/en`, `/ps`, `/fa/download`, the 7 new
+  pages × 3 locales (status, canonical, hreflang, `lang`/`dir`, title,
+  description, brand spelling ps ټ / fa ت), sitemap and footer links, phone
+  width with no sideways scroll, RTL.
+- `e2e/seo.spec.ts`: the old "bazaar?q=phone is indexable" assertion now uses
+  `?sort=&page=` (a search URL is noindex by design).
+
+## Owner decisions
+
+1. **Sold listings: 200 + noindex (what this branch does) or 410 Gone?** A 410
+   removes them from Google a little faster, but the page would then show
+   "no longer available" to the buyer and seller who open it from their chat,
+   their review or a shared link, and lose the "similar items" it offers. I
+   recommend keeping noindex.
+2. **Short share links** (`/l/<id>`, `/u/<id>`, `/s/<id>`) are still 307 →
+   `/listings/<id>` etc. They are not in the sitemap and are listed only under
+   "Page with redirect" (harmless). Making them permanent is one line in
+   `next.config.ts`, but a browser then caches them forever, which closes the
+   door on ever making them smarter (e.g. open the app). Left temporary.
+3. **More cities?** Kunduz, Ghazni, Khost and the Pakistani cities (Peshawar,
+   Quetta) are one line each. Worth it only where there are listings: a city
+   page with nothing near it is thin.
+4. **Ratings in the app JSON-LD**: once the store ratings are real and stable,
+   adding `aggregateRating` (ratingValue + ratingCount from the store) unlocks
+   the star snippet. Never before.
+
+## Owner checklist after deploying seo-1 (things only you can do)
+
+1. **Search Console → Sitemaps**: resubmit `https://hatiwal.com/sitemap.xml`
+   (it now has 21 more URLs: 7 pages × 3 languages).
+2. **URL inspection → Request indexing** for: `/en/how-to-sell`,
+   `/ps/how-to-sell`, `/fa/how-to-sell`, `/en/buy-safely`, `/en/cities/kabul`,
+   `/ps/cities/kabul`, `/fa/cities/herat`, `/ps/cities/jalalabad`,
+   `/fa/cities/mazar-i-sharif`. (Search Console caps manual requests per day;
+   the sitemap covers the rest.)
+3. **Pages → "Why pages aren't indexed"**: on "Google chose different canonical"
+   and "Duplicate without user-selected canonical", click **Validate fix**. Expect
+   "Excluded by noindex" to GROW (search URLs, sold listings, empty profiles):
+   that is the point, those pages are now excluded on purpose.
+4. **Enhancements**: a "Software apps" entry may appear with the
+   MobileApplication markup. It will say the item has no rating: expected (see
+   decision 4). Test it once in the Rich Results Test
+   (`https://search.google.com/test/rich-results?url=https://hatiwal.com/en/download`).
+5. **Store marketing URLs**: Play Console → Store settings → Website =
+   `https://hatiwal.com`; App Store Connect → App information → Marketing URL =
+   `https://hatiwal.com` (if not done after seo-1.1.7). Put
+   `https://hatiwal.com/ps/how-to-sell` in the store description's last line.
+6. **Bios**: TikTok, Facebook, Instagram, YouTube, WhatsApp channel: "Hatiwal —
+   هټیوال" + `https://hatiwal.com`. Send us the profile URLs to add to
+   `sameAs` (Organization JSON-LD).
+7. **Google Business Profile**: only with a real address people can visit (an
+   office or a shop). Without one, skip it: a fake or virtual address gets the
+   profile suspended.
+8. **Bing Webmaster Tools** (`https://www.bing.com/webmasters`): sign in →
+   "Import from Google Search Console" (one click, verifies the site and imports
+   the sitemap). Bing results also feed DuckDuckGo.
+9. Share the guides: `/ps/how-to-sell` and `/fa/buy-safely` are good links for
+   WhatsApp groups and TikTok captions; real links from real people are what
+   ranks a new site.
+
+## How to re-check Search Console (once a week)
+
+- **Pages**: indexed count should rise; "Google chose different canonical" and
+  "Duplicate without user-selected canonical" should fall over 2–4 weeks;
+  "Excluded by noindex" rises (on purpose); "Not found (404)" stays roughly the
+  number of deleted listings (fine).
+- **Performance → Search results → Pages**: filter by URL containing
+  `how-to-sell`, `buy-safely` or `cities`: impressions first, clicks later.
+- **Queries**: "hatiwal", "هټیوال", "هتیوال", "kabul buy sell", "په کابل کې
+  پلور"…: note the position each week.
+- **URL inspection** on one sold listing: should say "Excluded by 'noindex' tag".
+- Re-run the measurement in this doc: `curl -s -o /dev/null -w '%{http_code}
+  %{redirect_url}\n' https://hatiwal.com/` must print `308 https://hatiwal.com/en`.
