@@ -8,6 +8,9 @@ import type {
 } from "../types";
 
 /** Filters accepted by the listings index — mirrors the mobile getListings query. */
+/** The most photos a listing takes (Listing::MAX_IMAGES; the web form and the /how-to-sell guide read it). */
+export const MAX_LISTING_PHOTOS = 8;
+
 export interface ListingsQuery {
   page?: number;
   pageSize?: number;

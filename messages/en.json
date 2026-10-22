@@ -740,7 +740,11 @@
     "legal": "Legal",
     "privacy": "Privacy Policy",
     "deleteAccount": "Delete account",
-    "prohibitedItems": "Prohibited items"
+    "prohibitedItems": "Prohibited items",
+    "guides": "Guides",
+    "howToSell": "How to sell",
+    "buySafely": "Buy safely",
+    "cities": "Cities"
   },
   "openInApp": {
     "cta": "Open in the Hatiwal app",
@@ -1821,5 +1825,103 @@
     "whatHappensBody": "Our team reviews listings that may break these rules. A listing that does is moved back to the seller's drafts, and the seller gets a message from Hatiwal Support saying why. A listing reported by several people is moved to drafts until our team has looked at it. Breaking the rules can also add a warning to the account: 3 active warnings suspend it.",
     "reportTitle": "See something that shouldn't be here?",
     "reportBody": "Open the listing, choose Report, then “Prohibited item”. Questions? Write to {email}."
+  },
+  "guides": {
+    "relatedTitle": "Keep reading",
+    "sell": {
+      "metaTitle": "How to sell on Hatiwal: step by step",
+      "metaDescription": "Sell your things for free on Hatiwal: add up to {max, number} photos and a {seconds, number}-second video, chat with buyers in the app and meet in person. No online payment, no delivery.",
+      "title": "How to sell on Hatiwal",
+      "intro": "Hatiwal is a free local marketplace. You post an item, buyers near you message you in the app, and you meet in person to hand it over and get paid. There is no online payment and no delivery: every sale is made face to face.",
+      "stepsTitle": "Step by step",
+      "steps": {
+        "account": {
+          "title": "Create a free account",
+          "body": "Sign up in the Hatiwal app for iPhone or Android, or here on hatiwal.com. The same account is used for buying and for selling."
+        },
+        "photos": {
+          "title": "Take clear photos",
+          "body": "Add up to {max, number} photos. Shoot in daylight, from several sides, and show any scratch or damage. The first photo is the one buyers see in the Bazaar."
+        },
+        "video": {
+          "title": "Add a short video",
+          "body": "Optional: one video of up to {seconds, number} seconds. Show the item working, or turn it around so buyers see every side."
+        },
+        "details": {
+          "title": "Describe it honestly",
+          "body": "Choose the category and the condition, then write a clear title and description. Say what is included, and what is not."
+        },
+        "price": {
+          "title": "Set your price",
+          "body": "Write the price in afghani, Pakistani rupees, US dollars or euros. A fair price gets messages faster: look at similar items in the Bazaar first."
+        },
+        "location": {
+          "title": "Pin the place on the map",
+          "body": "Choose where the item is. Buyers who search near that place will find it."
+        },
+        "publish": {
+          "title": "Publish",
+          "body": "Your listing goes live in the Bazaar. Listings that break the rules are taken down."
+        },
+        "chat": {
+          "title": "Answer buyers in the chat",
+          "body": "Buyers message you in the app and can make an offer. Agree on the price, then on a time and a public place to meet."
+        },
+        "meet": {
+          "title": "Meet in person",
+          "body": "Let the buyer look at the item and try it. Take the money only when you hand it over."
+        },
+        "sold": {
+          "title": "Mark it sold",
+          "body": "One tap marks the listing sold and takes it out of the Bazaar. After the sale, buyer and seller can review each other."
+        }
+      },
+      "shopTitle": "Selling a lot? Open a shop",
+      "shopBody": "A shop gets its own page with up to {photos, number} photos and one video. You post listings in the shop's name and can invite people to help you run it. You need a confirmed email address to open a shop.",
+      "verifiedTitle": "Get the verified badge",
+      "verifiedBody": "Verify your identity in the app and buyers see a verified badge next to your name. Verified sellers are easier to trust.",
+      "rulesTitle": "What you cannot sell",
+      "rulesBody": "Weapons, drugs, stolen goods and the other items on the prohibited list are not allowed on Hatiwal.",
+      "rulesLink": "See the full list",
+      "startCta": "Post an item"
+    },
+    "buy": {
+      "metaTitle": "How to buy safely on Hatiwal",
+      "metaDescription": "Buy safely on Hatiwal: chat with the seller in the app, check their reviews, meet in a public place, inspect the item and pay only in person. Report anything suspicious.",
+      "title": "Buy safely on Hatiwal",
+      "intro": "Every deal on Hatiwal happens in person: there is no online payment and no delivery. Follow these steps and buy with confidence.",
+      "chatTitle": "Talk in the Hatiwal chat",
+      "chatBody": "Ask your questions and agree on the price in the app's chat, so everything you agreed is written down in one place. You can block a user who bothers you.",
+      "sellerTitle": "Check the seller",
+      "sellerBody": "Open the seller's profile: reviews from earlier buyers, the verified badge, how long they have been a member and how quickly they usually reply.",
+      "meetTitle": "When you meet",
+      "payTitle": "Pay only in person",
+      "payBody": "Pay when the item is in your hands. Hatiwal has no online payment and no delivery, so a seller who asks for money in advance or offers to send the item is not following how Hatiwal works.",
+      "reportTitle": "Report anything suspicious",
+      "reportBody": "Choose Report on the listing or on the seller's profile. Reports go to the Hatiwal team, who can take down listings that break the rules.",
+      "startCta": "Explore the Bazaar"
+    }
+  },
+  "cities": {
+    "metaTitle": "Buy and sell in {city}",
+    "metaDescription": "Find items for sale in {city} on Hatiwal, the local marketplace. Message the seller in the app and meet in person. Free, with no online payment and no delivery.",
+    "title": "Buy and sell in {city}",
+    "intro": "Hatiwal is a free local marketplace for {city} and the rest of {province} province. See what people near you are selling, message the seller in the app and meet in person to look at the item before you pay.",
+    "nearTitle": "Recently listed near {city}",
+    "seeAll": "See everything near {city}",
+    "empty": "Nothing is listed near {city} yet.",
+    "emptyAction": "See the whole Bazaar",
+    "popular": "Popular categories",
+    "sellTitle": "Selling something in {city}?",
+    "sellBody": "Post it for free in a few minutes. Buyers near you will message you in the app.",
+    "sellCta": "How to sell on Hatiwal",
+    "otherCities": "Other cities",
+    "names": {
+      "kabul": "Kabul",
+      "herat": "Herat",
+      "kandahar": "Kandahar",
+      "mazar-i-sharif": "Mazar-i-Sharif",
+      "jalalabad": "Jalalabad"
+    }
   }
 }

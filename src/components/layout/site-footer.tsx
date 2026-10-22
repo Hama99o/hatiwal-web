@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { CITY_SLUGS } from "@/lib/cities";
 import { Logo } from "./logo";
 
 // 32px rows with a mouse, 44px on a touch screen (#22: these were 20px tall).
@@ -20,7 +21,7 @@ export function SiteFooter() {
 
   return (
     <footer data-site-footer className="mt-16 bg-surface">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-8 pt-12 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-8 pt-12 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
         <div className="max-w-xs space-y-3">
           <Logo />
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -40,6 +41,29 @@ export function SiteFooter() {
           <Link href="/download" className={LINK}>
             {t("nav.getApp")}
           </Link>
+        </nav>
+        {/* Guides + city pages (docs/SEO.md): linked from every page so a
+            crawler reaches them, and a visitor finds them, without the sitemap. */}
+        <nav aria-labelledby="footer-guides" className="flex flex-col items-start gap-1">
+          <p id="footer-guides" className={HEADING}>
+            {t("footer.guides")}
+          </p>
+          <Link href="/how-to-sell" className={LINK}>
+            {t("footer.howToSell")}
+          </Link>
+          <Link href="/buy-safely" className={LINK}>
+            {t("footer.buySafely")}
+          </Link>
+        </nav>
+        <nav aria-labelledby="footer-cities" className="flex flex-col items-start gap-1">
+          <p id="footer-cities" className={HEADING}>
+            {t("footer.cities")}
+          </p>
+          {CITY_SLUGS.map((slug) => (
+            <Link key={slug} href={`/cities/${slug}`} className={LINK}>
+              {t(`cities.names.${slug}`)}
+            </Link>
+          ))}
         </nav>
         <nav aria-labelledby="footer-legal" className="flex flex-col items-start gap-1">
           <p id="footer-legal" className={HEADING}>

@@ -6,6 +6,7 @@ import { routing } from "@/i18n/routing";
 import { SITE_URL as SITE } from "@/lib/env";
 import { apiGet } from "@/lib/api/client";
 import { localizedAlternates } from "@/lib/seo";
+import { CITY_SLUGS } from "@/lib/cities";
 
 /** SHOP-1: verified shops go in the sitemap (GET /shops?verified=true, guest). */
 async function getVerifiedShops(): Promise<{ id: number; updatedAt?: string }[]> {
@@ -47,6 +48,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     add("/download", { changeFrequency: "monthly", priority: 0.8 });
     add("/privacy", { changeFrequency: "monthly", priority: 0.3 });
     add("/prohibited-items", { changeFrequency: "monthly", priority: 0.3 });
+    add("/how-to-sell", { changeFrequency: "monthly", priority: 0.6 });
+    add("/buy-safely", { changeFrequency: "monthly", priority: 0.6 });
+    for (const slug of CITY_SLUGS) {
+      add(`/cities/${slug}`, { changeFrequency: "daily", priority: 0.7 });
+    }
     for (const c of categories) {
       add(`/categories/${c.slug}`, { changeFrequency: "daily", priority: 0.7 });
     }
