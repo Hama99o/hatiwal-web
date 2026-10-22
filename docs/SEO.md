@@ -122,6 +122,14 @@ Excluded by noindex 4 · Soft 404 2.
 | The noindex pages | Login, signup, forgot/reset password, email-confirmed, saved, conversations, my-listings, analytics, settings, profile/*, recently-viewed, shop edit/new/verify, join/<token>, empty categories. All intentional (account pages, or "nothing here"). `/delete-account`, `/privacy`, `/prohibited-items` are public and indexable on purpose (the stores require them). No public page was noindex by mistake. |
 | Internal links on home, Bazaar, categories, a listing | No query-string links in the SSR HTML: the duplicate query URLs come from the client-side filter chips and from shared links, not from crawlable `<a href>`s. |
 
+How a 404 is sent (production and this branch alike): Next 15 answers the
+404 status with its error shell (`<html id="__next_error__">`) and the browser
+draws the not-found page from the flight data, so the "no longer available"
+page and its links appear only with JavaScript. Google acts on the status code
+and renders JavaScript, so this does not cost indexing; a no-JS visitor sees a
+blank page. Not changed here (framework behaviour, all 404s); worth a look if
+it matters for very old phones.
+
 The 18 "Not found (404)" are mostly deleted listings and are **correct**:
 Google drops them by itself. The 113 "Page with redirect" are, as before,
 `/` → `/en`, http → https, www → apex, `/l/<id>` share links, `/ur/*`.
