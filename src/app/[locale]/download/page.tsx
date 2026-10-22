@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { MessageCircle, MapPin, Handshake } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { localizedAlternates } from "@/lib/seo";
+import { jsonLdHtml, localizedAlternates, mobileAppJsonLd } from "@/lib/seo";
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
 import { DownloadOptions } from "@/components/download/download-options";
 
 // The one link in the TikTok bio (captions there are not clickable), so this
@@ -42,8 +43,14 @@ export default async function DownloadPage({
     { icon: Handshake, title: t("steps.meet.title"), body: t("steps.meet.body") },
   ];
 
+  const jsonLd = mobileAppJsonLd(locale, {
+    description: t("metaDescription"),
+    downloadUrls: [GOOGLE_PLAY_URL, APP_STORE_URL],
+  });
+
   return (
     <div className="border-b bg-gradient-to-br from-primary/10 via-background to-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       <div className="mx-auto max-w-xl px-4 py-12 sm:py-16">
         <h1 className="text-balance text-3xl font-extrabold tracking-tight sm:text-4xl">
           {t("title")}

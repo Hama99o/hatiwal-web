@@ -3,7 +3,7 @@ import { smartAppBanner } from "@/lib/app-links";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPublicSeller, type PublicSellerProfile } from "@/lib/api/users";
-import { localizedAlternates } from "@/lib/seo";
+import { localizedAlternates, NOINDEX } from "@/lib/seo";
 import { formatMonthYear, formatNumber } from "@/lib/format";
 import { safe, unlessNotFound } from "@/lib/api/safe";
 import { UserIdentity } from "@/components/shared/user-identity";
@@ -36,11 +36,16 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  const { seller } = await safe(getPublicSeller(id), EMPTY_SELLER);
+  const { seller, totalCount } = await safe(getPublicSeller(id), EMPTY_SELLER);
   const t = await getTranslations({ locale, namespace: "seller" });
   return {
     title: seller?.name ?? t("title"),
     alternates: localizedAlternates(locale, `/sellers/${id}`),
+    // A profile with nothing for sale and no reviews is a name and a join date:
+    // a thin page (58 of them on production, 2026-10-22, most empty) that also
+    // puts a private person's name in search results for no buyer's benefit.
+    // It is indexed again as soon as it has a listing or a review.
+    ...(seller && totalCount === 0 && !seller.reviewCount ? { robots: NOINDEX } : {}),
     // iPhone: Smart App Banner — "Open" lands on this profile in the app.
     itunes: smartAppBanner({ kind: "seller", id }),
     // WhatsApp & co. build the link card from og:*, not <title>: without this a

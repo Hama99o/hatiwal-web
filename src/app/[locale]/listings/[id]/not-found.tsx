@@ -16,6 +16,8 @@ export default function ListingNotFound() {
       title={t("listing.detail.unavailableNotice")}
       backHref="/bazaar"
       backLabel={t("nav.browse")}
+      secondaryHref="/categories"
+      secondaryLabel={t("nav.categories")}
       testId="listing-unavailable"
     />
   );

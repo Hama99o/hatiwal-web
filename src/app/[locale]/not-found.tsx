@@ -12,9 +12,16 @@ export default function NotFound() {
       </div>
       <h1 className="text-title font-extrabold">404</h1>
       <p className="text-muted-foreground">{t("common.noResults")}</p>
-      <Button asChild>
-        <Link href="/">{t("nav.browse")}</Link>
-      </Button>
+      {/* Real HTTP 404 (Next sets it for not-found). The Bazaar and the
+          categories are where a stale search result can still lead. */}
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button asChild>
+          <Link href="/bazaar">{t("nav.browse")}</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/categories">{t("nav.categories")}</Link>
+        </Button>
+      </div>
     </div>
   );
 }

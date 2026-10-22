@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Eye, Heart, MapPin } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListing, getSimilarListings } from "@/lib/api/listings";
-import { jsonLdHtml, localizedAlternates } from "@/lib/seo";
+import { jsonLdHtml, localizedAlternates, NOINDEX } from "@/lib/seo";
 import { SITE_URL } from "@/lib/env";
 import type { ListingCondition } from "@/lib/types";
 import { categoryName } from "@/lib/api/categories";
@@ -79,6 +79,13 @@ export async function generateMetadata({
     title: listing.title,
     description,
     alternates,
+    // A sold or expired listing stays reachable (the buyer's chat, the review,
+    // the seller's share link all open it, and it offers similar items), but it
+    // is no longer for sale, so it leaves the index: a page Google keeps for an
+    // item nobody can buy is what it files as a soft 404 / "crawled, not
+    // indexed". Removed listings and unknown ids are a real 404 (notFound
+    // below). docs/SEO.md, "404 and soft 404".
+    ...(!isLive(listing) || listing.expired ? { robots: NOINDEX } : {}),
     // iPhone: Safari's Smart App Banner — "Open" when Hatiwal is installed
     // (lands on this listing), "Get" when it is not. See lib/app-links.ts.
     itunes: smartAppBanner({ kind: "listing", id }),

@@ -11,6 +11,8 @@ export default function SellerNotFound() {
       title={t("common.noLongerAvailable")}
       backHref="/bazaar"
       backLabel={t("nav.browse")}
+      secondaryHref="/categories"
+      secondaryLabel={t("nav.categories")}
       testId="seller-unavailable"
     />
   );

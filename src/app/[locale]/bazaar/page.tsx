@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getListings } from "@/lib/api/listings";
-import { localizedAlternates } from "@/lib/seo";
+import { isFacetedSearch, localizedAlternates, NOINDEX } from "@/lib/seo";
 import { getCategories } from "@/lib/api/categories";
 import { safe } from "@/lib/api/safe";
 import type { ListingsResult } from "@/lib/types";
@@ -25,15 +25,21 @@ function firstValues(
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: SearchParams;
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "browse" });
-  return {
-    title: t("title"),
-    alternates: localizedAlternates(locale, "/bazaar"),
-  };
+  // A search or filter result is kept out of the index (noindex, follow) and
+  // declares no canonical or hreflang (both would name a different page);
+  // sort/page/tracking params keep the clean canonical. Why: isFacetedSearch in
+  // src/lib/seo.ts, docs/SEO.md.
+  if (isFacetedSearch(await searchParams)) {
+    return { title: t("title"), robots: NOINDEX };
+  }
+  return { title: t("title"), alternates: localizedAlternates(locale, "/bazaar") };
 }
 
 export default async function BrowsePage({

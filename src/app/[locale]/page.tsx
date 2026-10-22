@@ -10,7 +10,7 @@ import { getCategories } from "@/lib/api/categories";
 import { CategoryPills } from "@/components/shared/category-pills";
 import { safe } from "@/lib/api/safe";
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
-import { brandLabel, homeJsonLd, jsonLdHtml, localizedAlternates } from "@/lib/seo";
+import { brandLabel, homeJsonLd, jsonLdHtml, localizedAlternates, mobileAppJsonLd } from "@/lib/seo";
 
 // Render fresh per request so short-lived Active Storage image URLs are valid
 // on load (stale ISR HTML served expired urls → broken thumbnails).
@@ -75,7 +75,13 @@ export default async function HomePage({
   const jsonLd = homeJsonLd(locale, {
     description: t("home.hero.subtitle"),
     sameAs: [GOOGLE_PLAY_URL, APP_STORE_URL],
-  });
+  }).concat(
+    // The app itself (also on /download): free, iOS + Android, the store links.
+    mobileAppJsonLd(locale, {
+      description: t("download.metaDescription"),
+      downloadUrls: [GOOGLE_PLAY_URL, APP_STORE_URL],
+    }),
+  );
 
   return (
     <div>
