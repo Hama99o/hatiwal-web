@@ -116,7 +116,10 @@ test.describe("Listing detail", () => {
     const resp = await page.goto("/en/listings/99999");
     expect(resp?.status()).toBe(404);
     await expect(page.getByRole("heading", { name: "This item is no longer available" })).toBeVisible();
-    await expect(page.getByTestId("listing-unavailable").getByRole("link")).toHaveAttribute("href", "/en/bazaar");
+    const box = page.getByTestId("listing-unavailable");
+    await expect(box.getByRole("link", { name: en.nav.browse })).toHaveAttribute("href", "/en/bazaar");
+    // seo-1: and the categories, for a visitor from a stale search result.
+    await expect(box.getByRole("link", { name: en.nav.categories })).toHaveAttribute("href", "/en/categories");
   });
 
   test("a reserved listing is still viewable by direct id", async ({ page }) => {

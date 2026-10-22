@@ -67,7 +67,9 @@ test.describe("SEO: no page borrows the home page's canonical", () => {
   }
 
   test("a public page keeps its own canonical and stays indexable", async ({ request }) => {
-    const h = await head(request, "/en/bazaar?q=phone&page=2");
+    // seo-1: only re-ordering/paging params here; a search (?q=) is now noindex
+    // with no canonical (e2e/seo-1.spec.ts).
+    const h = await head(request, "/en/bazaar?sort=newest&page=2");
     expect(h.canonical).toMatch(/\/en\/bazaar$/);
     expect(h.robots).toBeNull();
   });

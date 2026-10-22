@@ -547,7 +547,7 @@ test.describe("Resource pages: 404 says 'no longer available', with the way back
     const resp = await page.goto("/en/listings/99999");
     expect(resp?.status()).toBe(404);
     await expect(page.getByTestId("listing-unavailable")).toContainText(en.listing.detail.unavailableNotice);
-    await page.getByTestId("listing-unavailable").getByRole("link").click();
+    await page.getByTestId("listing-unavailable").getByRole("link", { name: en.nav.browse }).click();
     await expect(page).toHaveURL(/\/en\/bazaar/);
   });
 
@@ -555,7 +555,7 @@ test.describe("Resource pages: 404 says 'no longer available', with the way back
     const resp = await page.goto("/en/shops/999");
     expect(resp?.status()).toBe(404);
     await expect(page.getByTestId("shop-unavailable")).toContainText(en.common.noLongerAvailable);
-    await expect(page.getByTestId("shop-unavailable").getByRole("link")).toHaveAttribute("href", "/en/bazaar");
+    await expect(page.getByTestId("shop-unavailable").getByRole("link", { name: en.nav.browse })).toHaveAttribute("href", "/en/bazaar");
   });
 
   test("seller profile", async ({ page }) => {
