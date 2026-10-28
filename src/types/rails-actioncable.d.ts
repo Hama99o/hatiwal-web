@@ -9,7 +9,7 @@ declare module "@rails/actioncable" {
       params: { channel: string } & Record<string, unknown>,
       mixin: {
         connected?(): void;
-        disconnected?(): void;
+        disconnected?(data?: { willAttemptReconnect?: boolean }): void;
         received?(data: unknown): void;
       },
     ): Subscription;
@@ -19,5 +19,6 @@ declare module "@rails/actioncable" {
     connect(): void;
     disconnect(): void;
   }
-  export function createConsumer(url?: string): Consumer;
+  /** A function is read on every (re)open — a fresh single-use ticket each time. */
+  export function createConsumer(url?: string | (() => string)): Consumer;
 }

@@ -1155,6 +1155,15 @@ function route(req, res, method, path, q, body, raw = "") {
     return send(res, 401, { errors: ["Invalid login credentials. Please try again."] });
   }
 
+  // A single-use ticket for the cable's connect URL (privacy review 2026-10-28):
+  // signed in only; the devise headers rotate like any authenticated answer.
+  if (method === "POST" && path === "/cable_ticket") {
+    if (!who) return send(res, 401, { errors: ["You need to sign in or sign up before continuing."] });
+    res.writeHead(201, { ...tokenHeaders(who), "cache-control": "no-store" });
+    res.end(JSON.stringify({ ticket: `mock-ticket-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`, expires_in: 60 }));
+    return;
+  }
+
   if (method === "POST" && path === "/auth") {
     // Registration. A taken email surfaces devise field errors.
     const { email, firstname, lastname } = body;
