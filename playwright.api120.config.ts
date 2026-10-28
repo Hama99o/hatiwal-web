@@ -9,6 +9,8 @@ import { defineConfig, devices } from "@playwright/test";
  *   REG_OUT         where the screenshots and the run's JSON go
  *   REG_SELLER / REG_BUYER / REG_PASSWORD, REG_CONV (their thread), REG_SOLD_ID (a live listing of the
  *                   seller the run may mark sold), REG_OTHER_ID (someone else's live listing to save/report)
+ *   REG_COVER_ID / REG_COVER_BLOB / REG_COVER_Q  a listing whose photos the seller reordered (blob REG_COVER_BLOB
+ *                   made the cover), and a search that lists its card — the chosen-cover check (B12)
  *   PW_CHROMIUM     an installed chromium headless shell, when this Playwright's own build is not installed
  * Serial, one worker: the steps change shared state in order. Three viewports for the cable and the prices.
  */

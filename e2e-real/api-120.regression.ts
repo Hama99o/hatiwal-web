@@ -49,6 +49,19 @@ async function personContext(browser: Browser, email: string, use: object): Prom
   return { ctx, page };
 }
 
+// The Active Storage blob behind an image URL (a representation/blob URL carries it as signed JSON;
+// a Next <Image> wraps that URL in /_next/image?url=…).
+function blobIdOf(src: string | null): number | null {
+  if (!src) return null;
+  const inner = src.includes("/_next/image") ? decodeURIComponent(new URL(src, "http://x").searchParams.get("url") ?? "") : src;
+  const signed = inner.match(/\/(?:redirect|proxy)\/([A-Za-z0-9_=-]+)--/)?.[1];
+  if (!signed) return null;
+  return (JSON.parse(Buffer.from(signed, "base64").toString("utf8")) as { _rails: { data: number } })._rails.data;
+}
+
+const loaded = (page: Page, img: ReturnType<Page["locator"]>) =>
+  expect.poll(() => img.evaluate((i: HTMLImageElement) => (i.complete ? i.naturalWidth : 0)), { timeout: 30_000 }).toBeGreaterThan(0);
+
 const shot = (page: Page, name: string) =>
   page.screenshot({ path: `${OUT}/${name}.jpg`, type: "jpeg", quality: 60, fullPage: false });
 
@@ -128,7 +141,7 @@ test("1. chat is live through the single-use cable ticket; a new ticket after 60
   await b.ctx.close();
 });
 
-test("2. prices on the Bazaar cards and a listing's page", async ({ browser }, info) => {
+test("2. prices and photos on the Bazaar cards and a listing's page; the chosen cover first", async ({ browser }, info) => {
   const view = info.project.name;
   const { ctx, page } = await personContext(browser, BUYER, info.project.use);
   await page.goto("/en/bazaar");
@@ -142,6 +155,8 @@ test("2. prices on the Bazaar cards and a listing's page", async ({ browser }, i
     const m = t.match(/(AFN|PKR)\s?[\d,.]+/);
     expect(m, `card ${i} shows a price: "${t.slice(0, 80)}"`).not.toBeNull();
     prices.push(m![0]);
+    await cards.nth(i).scrollIntoViewIfNeeded();
+    await loaded(page, cards.nth(i).locator("img").first()); // a real image, never a broken one
   }
   await shot(page, `${view}-2-bazaar-prices`);
   const href = await cards.first().getAttribute("href");
@@ -150,7 +165,29 @@ test("2. prices on the Bazaar cards and a listing's page", async ({ browser }, i
   const dm = detail.match(/(AFN|PKR)\s?[\d,.]+/);
   expect(dm, "the listing's page shows its price").not.toBeNull();
   await shot(page, `${view}-2-detail-price`);
-  record(`prices.${view}`, { cards: prices, detail: dm![0], listing: href });
+  // The cover the seller CHOSE (B12): REG_COVER_ID's photos were reordered so that blob REG_COVER_BLOB —
+  // not the first one uploaded — is first. Its card and its page must both lead with it.
+  let cover: Record<string, unknown> | null = null;
+  if (process.env.REG_COVER_ID) {
+    const want = Number(process.env.REG_COVER_BLOB);
+    await page.goto(`/en/bazaar?q=${encodeURIComponent(process.env.REG_COVER_Q ?? "")}`);
+    const card = page.locator(`a[href="/en/listings/${process.env.REG_COVER_ID}"]`).first();
+    await expect(card).toBeVisible({ timeout: 60_000 });
+    const cardImg = card.locator("img").first();
+    await loaded(page, cardImg);
+    const cardBlob = blobIdOf(await cardImg.getAttribute("src"));
+    expect(cardBlob, "the card shows the chosen cover").toBe(want);
+    await card.scrollIntoViewIfNeeded();
+    await shot(page, `${view}-2-cover-card`);
+    await page.goto(`/en/listings/${process.env.REG_COVER_ID}`);
+    const firstPhoto = page.locator("main img").filter({ hasNot: page.locator("[data-avatar]") }).first();
+    await loaded(page, firstPhoto);
+    const detailBlob = blobIdOf(await firstPhoto.getAttribute("src"));
+    expect(detailBlob, "the listing's page opens on the chosen cover").toBe(want);
+    await shot(page, `${view}-2-cover-detail`);
+    cover = { listing: Number(process.env.REG_COVER_ID), chosen: want, card: cardBlob, detail: detailBlob };
+  }
+  record(`prices.${view}`, { cards: prices, detail: dm![0], listing: href, cover });
   await ctx.close();
 });
 
