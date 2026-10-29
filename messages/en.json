@@ -738,6 +738,7 @@
     "explore": "Explore",
     "rights": "© {year, number, ::group-off} Hatiwal. All rights reserved.",
     "legal": "Legal",
+    "support": "Support",
     "privacy": "Privacy Policy",
     "deleteAccount": "Delete account",
     "prohibitedItems": "Prohibited items",
@@ -1923,5 +1924,28 @@
       "mazar-i-sharif": "Mazar-i-Sharif",
       "jalalabad": "Jalalabad"
     }
+  },
+  "support": {
+    "title": "Help & support",
+    "description": "How to get help with Hatiwal: contact the Hatiwal team, and answers to common questions.",
+    "intro": "Need help with Hatiwal? Here is how to reach us, and answers to the questions we hear most.",
+    "contactTitle": "Contact us",
+    "contactInApp": "In the app, open <b>{path}</b>. It starts a chat with the Hatiwal team.",
+    "contactInAppPath": "Me → Help & support → Contact support",
+    "contactEmail": "Or email us:",
+    "faqTitle": "Common questions",
+    "sellQ": "How do I sell something?",
+    "sellA": "Our step-by-step guide shows how to post a listing with photos, a price and your location.",
+    "buyQ": "How do I buy safely?",
+    "buyA": "Message the seller in the app, meet in a busy public place in daylight, check the item before you pay, and never send money in advance.",
+    "paymentsQ": "Does Hatiwal handle payments or delivery?",
+    "paymentsA": "No. Hatiwal has no online payments and no delivery: buyer and seller agree in the chat, meet, and pay in person.",
+    "reportQ": "How do I report a listing or a person?",
+    "reportA": "Open the listing and tap Report, or open the person's profile or your chat with them and tap Report user. Our team reviews reports.",
+    "deleteQ": "How do I delete my account?",
+    "deleteA": "In the app: Me → Privacy & account → Delete account. You can also ask for it here:",
+    "privacyQ": "What do you do with my data?",
+    "privacyA": "Our Privacy Policy explains what we collect and why.",
+    "downloadTitle": "Get the app"
   }
 }

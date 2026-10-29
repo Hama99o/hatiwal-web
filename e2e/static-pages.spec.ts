@@ -25,6 +25,34 @@ test.describe("Legal / static pages", () => {
     });
   }
 
+  // Support (2026-10-29): the Support URL declared in App Store Connect must lead to support information
+  // (Apple guideline 1.5 rejected iOS 1.1.9: hatiwal.com had none). How to reach us, in every locale.
+  for (const locale of ["en", "ps", "fa"] as const) {
+    test(`support page renders (${locale})`, async ({ page }) => {
+      const resp = await page.goto(`/${locale}/support`);
+      expect(resp?.status()).toBe(200);
+      await expect(page.locator("html")).toHaveAttribute("dir", locale === "en" ? "ltr" : "rtl");
+      await expect(page.getByTestId("support-page").getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.getByTestId("support-email")).toHaveText(SUPPORT_EMAIL);
+      await expect(page.locator(`a[href="mailto:${SUPPORT_EMAIL}"]`).first()).toBeVisible();
+      // The in-app way, by the app's own labels, and the guides it links instead of repeating them.
+      await expect(page.locator(`#faq a[href="/${locale}/how-to-sell"]`)).toBeVisible();
+      await expect(page.locator(`#faq a[href="/${locale}/buy-safely"]`)).toBeVisible();
+    });
+  }
+
+  test("support says where the Support chat is in the app (en)", async ({ page }) => {
+    await page.goto("/en/support");
+    await expect(page.locator("#contact")).toContainText("Me → Help & support → Contact support");
+  });
+
+  test("support is reachable from the footer", async ({ page }) => {
+    await page.goto("/en");
+    await page.getByRole("contentinfo").getByRole("link", { name: "Support", exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/support/);
+    await expect(page.getByRole("heading", { level: 1, name: "Help & support" })).toBeVisible();
+  });
+
   // Prohibited items (owner, 2026-10-13): the API's take-down message links
   // https://hatiwal.com/<locale>/prohibited-items, so it must exist in all three.
   const brand = { en: "Hatiwal", ps: "هټیوال", fa: "هتیوال" } as const;
