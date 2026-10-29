@@ -35,6 +35,7 @@ import { useTranslations } from "next-intl";
 import { SearchField } from "@/components/shared/search-field";
 import { SearchHistoryPanel } from "@/components/shared/search-history-panel";
 import { useSearchHistory } from "@/lib/use-search-history";
+import { cn } from "@/lib/utils";
 
 interface SearchBoxProps {
   value: string;
@@ -57,6 +58,14 @@ interface SearchBoxProps {
    */
   action?: string;
   name?: string;
+  /**
+   * Pinned to the end of the field — search by image's 📷. Rendered OUTSIDE
+   * the <form>, over the field's end: inside a form, Chromium does not open a
+   * file chooser from a button activated with Enter (measured 2026-10-29: the
+   * click fires, no dialog; Space worked), which made the 📷 keyboard-dead.
+   * It positions itself `absolute end-0 top-1/2` against the wrapper below.
+   */
+  trailingAction?: React.ReactNode;
 }
 
 export function SearchBox({
@@ -68,6 +77,7 @@ export function SearchBox({
   className,
   action,
   name = "q",
+  trailingAction,
 }: SearchBoxProps) {
   const t = useTranslations("browse");
   // Read-only view of the shared store: recording is the caller's job (it knows
@@ -181,11 +191,11 @@ export function SearchBox({
     [open, roveFocus],
   );
 
-  return (
+  const form = (
     <form
       role="search"
       action={action}
-      className={className}
+      className={trailingAction ? undefined : className}
       onSubmit={(e) => {
         e.preventDefault();
         setFocused(false);
@@ -217,6 +227,7 @@ export function SearchBox({
             inputRef.current?.focus();
           }}
           placeholder={placeholder}
+          reserveTrailing={Boolean(trailingAction)}
           aria-label={placeholder}
           autoComplete="off"
           // Announced only while the chips exist: a screen-reader user is told
@@ -246,5 +257,13 @@ export function SearchBox({
         </div>
       </div>
     </form>
+  );
+
+  if (!trailingAction) return form;
+  return (
+    <div className={cn("relative", className)}>
+      {form}
+      {trailingAction}
+    </div>
   );
 }

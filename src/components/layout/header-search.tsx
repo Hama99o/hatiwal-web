@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { SearchBox } from "@/components/shared/search-box";
+import { ImageSearchButton } from "@/components/image-search/image-search-button";
+import { useImageSearchEnabled } from "@/lib/image-search/use-image-search-enabled";
 import { useSearchHistory } from "@/lib/use-search-history";
 import {
   publishBrowseQuery,
@@ -36,6 +38,7 @@ export function HeaderSearch({ className }: { className?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [value, setValue] = useState("");
+  const imageSearch = useImageSearchEnabled();
 
   // Recent searches — client-only, shared with the Bazaar sidebar field. The
   // field UI + panel gating live in SearchBox; this screen only records the
@@ -189,6 +192,7 @@ export function HeaderSearch({ className }: { className?: string }) {
       onValueChange={setValue}
       onSubmit={go} // Enter applies immediately, skipping the debounce.
       placeholder={t("searchPlaceholder")}
+      trailingAction={imageSearch ? <ImageSearchButton /> : null}
     />
   );
 }

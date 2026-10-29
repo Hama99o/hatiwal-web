@@ -45,6 +45,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { CategoryPills } from "@/components/shared/category-pills";
 import { SegmentedControl } from "@/components/shared/segmented-control";
 import { SearchBox } from "@/components/shared/search-box";
+import { ImageSearchButton } from "@/components/image-search/image-search-button";
+import { useImageSearchEnabled } from "@/lib/image-search/use-image-search-enabled";
 import { useSearchHistory } from "@/lib/use-search-history";
 import { publishBrowseQuery } from "@/lib/use-browse-query";
 import { SavedSearches } from "./saved-searches";
@@ -125,6 +127,7 @@ export function BrowseClient({
 }: BrowseClientProps) {
   const t = useTranslations();
   const locale = useLocale();
+  const imageSearch = useImageSearchEnabled();
   const router = useRouter();
   const pathname = usePathname();
   // WHO is browsing. The feed is personalised server-side for a bearer (the
@@ -842,6 +845,7 @@ export function BrowseClient({
             onValueChange={setSearchInput}
             onSubmit={commitSearch}
             placeholder={t("browse.searchPlaceholder")}
+            trailingAction={imageSearch ? <ImageSearchButton /> : null}
           />
           {/* Independent-scroll panel: filters scroll inside this card on
               desktop, so the page scrolls the results and the bottom filters

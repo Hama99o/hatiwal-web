@@ -109,6 +109,9 @@ const ALLOWED: Array<[string, RegExp]> = [
   // Authed listing show — fired client-side on the detail page so Rails records
   // a Recently-Viewed entry (the SSR fetch is a guest and never attributes it).
   ["GET", /^listings\/\d+$/],
+  // Search by image (multipart, one photo; nothing stored): signed in, Rails
+  // also leaves out the viewer's hidden listings and blocked sellers.
+  ["POST", /^listings\/image_search$/],
   // Hidden ("not interested") listings — hide/restore + the management list.
   ["POST", /^listings\/\d+\/hide$/],
   ["DELETE", /^listings\/\d+\/unhide$/],

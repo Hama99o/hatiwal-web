@@ -1947,5 +1947,32 @@
     "privacyQ": "What do you do with my data?",
     "privacyA": "Our Privacy Policy explains what we collect and why.",
     "downloadTitle": "Get the app"
+  },
+  "imageSearch": {
+    "button": "Search with a photo",
+    "takePhoto": "Take a photo",
+    "choosePhoto": "Choose from gallery",
+    "title": "Similar items",
+    "pageTitle": "Search with a photo",
+    "searching": "Looking for similar items…",
+    "count": "{count, plural, one {# item} other {# items}}",
+    "yourPhoto": "Your photo",
+    "tryAnother": "Try another photo",
+    "searchByText": "Search by text",
+    "emptyTitle": "No similar items found",
+    "emptyHint": "Try a photo where the item is clear and fills the frame.",
+    "startTitle": "Search with a photo",
+    "startHint": "Take or choose one photo of an item to find listings that look like it.",
+    "cameraDenied": "Camera access is off. You can still choose a photo from your gallery.",
+    "galleryDenied": "Photo access is off. Allow it in Settings to choose a photo.",
+    "openSettings": "Open Settings",
+    "errors": {
+      "invalidImage": "This file isn't a photo we can read. Try another photo.",
+      "tooLarge": "This photo is too large (10 MB max).",
+      "rateLimited": "Too many photo searches. Please wait a few minutes and try again.",
+      "unavailable": "Search with a photo isn't available right now.",
+      "offline": "Search with a photo needs the internet. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }

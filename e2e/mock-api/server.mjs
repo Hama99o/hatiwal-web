@@ -169,6 +169,8 @@ function catRef(id) {
 // /listings/:id returns any (detail shows a status notice for reserved/sold).
 // Seller 1 (the logged-in buyer persona) owns a listing in every lifecycle state,
 // so the seller dashboard's status tabs are all populated.
+const IMAGE_SEARCHES = [];
+
 const LISTINGS = [
   { id: 1, title: "iPhone 13 Pro", price: 45000, currency: "AFN", status: "active", location: "Kabul", address: "Shar-e-Naw", condition: "good", category_id: 101, seller_id: 1, views_count: 120, created_at: "2026-06-20T10:00:00Z", price_drop_percent: 12, price_dropped_at: "2026-06-19T10:00:00Z", description: "Barely used iPhone 13 Pro, 256GB." },
   { id: 2, title: "Samsung 4K TV", price: 30000, currency: "AFN", status: "active", location: "Kabul", address: null, condition: "like_new", category_id: 1, seller_id: 2, views_count: 80, created_at: "2026-06-18T10:00:00Z", price_drop_percent: null, price_dropped_at: null, description: "55 inch 4K smart TV.",
@@ -1207,6 +1209,49 @@ function route(req, res, method, path, q, body, raw = "") {
       listings: slice.map((l) => listView(l, viewerSets(who))),
       meta: { pagination },
     });
+  }
+
+  // UPD-1 app_config — only the part the web reads: `features.image_search`
+  // turns on the search-by-image 📷 (hatiwal-api docs/IMAGE_SEARCH.md).
+  if (method === "GET" && path === "/app_config") {
+    return send(res, 200, {
+      platform: null, min_version: null, latest_version: null, store_url: null, status: "ok",
+      features: { image_search: !process.env.MOCK_NO_IMAGE_SEARCH },
+    });
+  }
+
+  // Search by image: POST /listings/image_search, multipart, one `image`.
+  // There is no model here, so the PHOTO'S FILENAME picks the answer (the web
+  // sends the buyer's own filename even after shrinking the photo):
+  //   *nomatch*  → no similar listing (200, empty page)
+  //   *ratelimit* → 429 rate_limited     *notaphoto* → 422 invalid_image
+  //   anything else → the browsable listings, "best match first" = feed order.
+  // Rails filters the viewer's hidden listings when signed in, as the index does.
+  if (method === "POST" && path === "/listings/image_search") {
+    const filename = (raw.match(/name="image"; filename="([^"]*)"/) || [])[1];
+    if (filename === undefined) {
+      return send(res, 422, { error: "Add one photo to search with.", code: "image_missing" });
+    }
+    if (filename.includes("ratelimit")) {
+      res.setHeader("Retry-After", "600");
+      return send(res, 429, { error: "rate_limited", message: "Too many requests. Please wait a moment and try again." });
+    }
+    if (filename.includes("notaphoto")) {
+      return send(res, 422, { error: "This file is not a photo we can read.", code: "invalid_image" });
+    }
+    IMAGE_SEARCHES.push({ filename, persona: who });
+    const items = filename.includes("nomatch")
+      ? []
+      : LISTINGS.filter((l) => l.status === "active").slice(0, 6);
+    const { slice, pagination } = paginate(items, q.get("page[number]"), q.get("page[size]"));
+    return send(res, 200, {
+      listings: slice.map((l) => listView(l, viewerSets(who))),
+      meta: { pagination },
+    });
+  }
+  // Test hook: which photos were searched, and as whom (never a photo's bytes).
+  if (method === "GET" && path === "/__image_searches") {
+    return send(res, 200, { searches: IMAGE_SEARCHES });
   }
 
   // The dedicated similarity endpoint (Listing.similar_to): browsable stock in
