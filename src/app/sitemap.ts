@@ -46,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     add("/bazaar", { changeFrequency: "hourly", priority: 0.9 });
     add("/categories", { changeFrequency: "weekly", priority: 0.6 });
     add("/download", { changeFrequency: "monthly", priority: 0.8 });
+    add("/support", { changeFrequency: "monthly", priority: 0.5 });
     add("/privacy", { changeFrequency: "monthly", priority: 0.3 });
     add("/prohibited-items", { changeFrequency: "monthly", priority: 0.3 });
     add("/how-to-sell", { changeFrequency: "monthly", priority: 0.6 });

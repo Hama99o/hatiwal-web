@@ -69,6 +69,10 @@ export function SiteFooter() {
           <p id="footer-legal" className={HEADING}>
             {t("footer.legal")}
           </p>
+          {/* The Support URL the stores require (Apple guideline 1.5, 2026-10-29). */}
+          <Link href="/support" className={LINK}>
+            {t("footer.support")}
+          </Link>
           <Link href="/privacy" className={LINK}>
             {t("footer.privacy")}
           </Link>
