@@ -942,6 +942,17 @@ const SAVED_SEARCHES = [
   },
 ];
 
+// Saved-search alerts (hatiwal-api docs/SAVED_SEARCH_ALERTS.md). The fixture
+// above stays what every older spec reads; a request carrying `alert` or
+// `query` works on this mutable copy instead (reset by the alerts spec).
+let ALERT_SEARCHES = null; // null = untouched: GET serves SAVED_SEARCHES as before
+let ME_SAVED_SEARCH_ALERTS = true;
+const ALERTS_MAX = 5;
+function alertSearches() {
+  if (!ALERT_SEARCHES) ALERT_SEARCHES = SAVED_SEARCHES.map((s) => ({ ...s, query: null, alert: false }));
+  return ALERT_SEARCHES;
+}
+
 function analytics() {
   const days = ["2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22"];
   const counts = [5, 12, 8, 20, 15, 30, 25];
@@ -1412,10 +1423,11 @@ function route(req, res, method, path, q, body, raw = "") {
   }
   if (path === "/users/me") {
     if (!requireAuth()) return;
-    if (method === "GET") return send(res, 200, { user: userMe(empty ? "empty" : "full") });
+    if (method === "GET") return send(res, 200, { user: { ...userMe(empty ? "empty" : "full"), saved_search_alerts: ME_SAVED_SEARCH_ALERTS } });
     if (method === "PUT" || method === "PATCH") {
       const patch = body && body.user ? body.user : {};
-      const merged = { ...userMe(empty ? "empty" : "full"), ...patch };
+      if (patch.saved_search_alerts !== undefined) ME_SAVED_SEARCH_ALERTS = Boolean(patch.saved_search_alerts);
+      const merged = { ...userMe(empty ? "empty" : "full"), saved_search_alerts: ME_SAVED_SEARCH_ALERTS, ...patch };
       // LOC-1: saving a province (the Bazaar's Change sheet) makes it the OWN
       // address, which is what Rails' `location` block then reports.
       if (patch.province) {
@@ -2036,8 +2048,51 @@ function route(req, res, method, path, q, body, raw = "") {
   // Saved searches
   if (path === "/users/saved_searches") {
     if (!requireAuth()) return;
-    if (method === "GET") return send(res, 200, { saved_searches: empty ? [] : SAVED_SEARCHES });
-    if (method === "POST") return send(res, 201, { saved_search: SAVED_SEARCHES[0] });
+    if (method === "GET") return send(res, 200, { saved_searches: empty ? [] : (ALERT_SEARCHES ?? SAVED_SEARCHES) });
+    if (method === "POST") {
+      if (body.alert === undefined && body.query === undefined) return send(res, 201, { saved_search: SAVED_SEARCHES[0] });
+      const list = alertSearches();
+      if (body.alert && list.filter((x) => x.alert).length >= ALERTS_MAX) {
+        return send(res, 422, { errors: ["Alert You can follow at most 5 searches."], code: "alerts_limit" });
+      }
+      const row = {
+        id: 1000 + list.length, location: null, price_min: body.price_min ?? null, price_max: body.price_max ?? null,
+        latitude: body.latitude ?? null, longitude: body.longitude ?? null, radius: body.radius ?? null,
+        created_at: new Date().toISOString(), last_viewed_at: null, category_id: body.category_id ?? null,
+        category_name: null, location_based: body.latitude != null, new_matches_count: 0,
+        query: body.query ?? null, alert: Boolean(body.alert),
+      };
+      list.unshift(row);
+      return send(res, 201, { saved_search: row });
+    }
+  }
+  // Follow / unfollow (saved-search alerts): PUT /users/saved_searches/:id {alert}.
+  const ssUpdate = path.match(/^\/users\/saved_searches\/(\d+)$/);
+  if (ssUpdate && method === "PUT") {
+    if (!requireAuth()) return;
+    const list = alertSearches();
+    const row = list.find((x) => x.id === Number(ssUpdate[1]));
+    if (!row) return send(res, 404, { error: "Not found" });
+    if (body.alert && !row.alert && list.filter((x) => x.alert).length >= ALERTS_MAX) {
+      return send(res, 422, { errors: ["Alert You can follow at most 5 searches."], code: "alerts_limit" });
+    }
+    row.alert = Boolean(body.alert);
+    return send(res, 200, { saved_search: row });
+  }
+  // Test hooks: the alerts state.
+  if (path === "/__saved_search_alerts" && method === "GET") {
+    return send(res, 200, { searches: ALERT_SEARCHES ?? SAVED_SEARCHES, me_saved_search_alerts: ME_SAVED_SEARCH_ALERTS });
+  }
+  if (path === "/__saved_search_alerts/reset" && method === "POST") {
+    ALERT_SEARCHES = null;
+    ME_SAVED_SEARCH_ALERTS = true;
+    if (body.followed) {
+      const list = alertSearches();
+      for (let i = 0; i < body.followed; i++) {
+        list.push({ ...SAVED_SEARCHES[0], id: 2000 + i, price_max: 1000 * (i + 1), alert: true, query: `q${i}`, new_matches_count: 0 });
+      }
+    }
+    return send(res, 200, { ok: true });
   }
   const ssMarkSeen = path.match(/^\/users\/saved_searches\/(\d+)\/mark_seen$/);
   if (ssMarkSeen && method === "PUT") {
