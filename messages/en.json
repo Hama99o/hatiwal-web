@@ -1048,7 +1048,11 @@
       "accepted": "Meetup accepted",
       "declined": "Meetup declined",
       "acceptedToast": "You accepted the meetup",
-      "declinedToast": "You declined the meetup"
+      "declinedToast": "You declined the meetup",
+      "spots": {
+        "title": "Busy public places nearby",
+        "tip": "Meet by day in a busy place. Check the item before you pay."
+      }
     },
     "startConversation": {
       "title": "Message Seller",

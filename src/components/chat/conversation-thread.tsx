@@ -66,6 +66,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
+import { MeetupSpotChips } from "./meetup-spot-chips";
 import { MessageBubble } from "./message-bubble";
 import { NoticeActionButton } from "./notice-action-button";
 import { startsTeamRun, TeamSenderLabel } from "@/components/chat/team-sender-label";
@@ -125,6 +126,9 @@ export function ConversationThread({ id }: { id: string }) {
   const [meetupOpen, setMeetupOpen] = useState(false);
   const [place, setPlace] = useState("");
   const [time, setTime] = useState("");
+  // IDEA-6: the pin of a suggested spot — sent as the proposal's 3rd part, the
+  // "place | time | lat,long" format the apps already read.
+  const [meetupCoords, setMeetupCoords] = useState<{ lat: number; long: number } | null>(null);
   // Counter-offer dialog (seller responds to the buyer's offer with a new price).
   const [counterTarget, setCounterTarget] = useState<Message | null>(null);
   const [counterAmount, setCounterAmount] = useState("");
@@ -555,10 +559,12 @@ export function ConversationThread({ id }: { id: string }) {
     if (!place.trim()) return toast.error(t("chat.meetup.placeRequired"));
     if (!time.trim()) return toast.error(t("chat.meetup.timeRequired"));
     // "Sent!" only once it IS sent — it used to show alongside the failure toast.
-    if (!(await send(`${place.trim()} | ${time.trim()}`, "meetup_proposal"))) return;
+    const pin = meetupCoords ? ` | ${meetupCoords.lat},${meetupCoords.long}` : "";
+    if (!(await send(`${place.trim()} | ${time.trim()}${pin}`, "meetup_proposal"))) return;
     setMeetupOpen(false);
     setPlace("");
     setTime("");
+    setMeetupCoords(null);
     toast.success(t("chat.thread.meetupSent"));
   }
 
@@ -1167,6 +1173,17 @@ export function ConversationThread({ id }: { id: string }) {
         <h2 id={meetupTitleId} className="text-lg font-semibold">
           {t("chat.meetup.title")}
         </h2>
+        <MeetupSpotChips
+          point={
+            conversation?.listing?.latitude != null && conversation.listing.longitude != null
+              ? { latitude: conversation.listing.latitude, longitude: conversation.listing.longitude }
+              : null
+          }
+          onPick={(spot, name) => {
+            setPlace(name);
+            setMeetupCoords({ lat: spot.latitude, long: spot.longitude });
+          }}
+        />
         <Input
           value={place}
           onChange={(e) => setPlace(e.target.value)}
