@@ -69,6 +69,8 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^users\/saved_searches$/],
   ["DELETE", /^users\/saved_searches\/\d+$/],
   ["PUT", /^users\/saved_searches\/\d+\/mark_seen$/],
+  // Saved-search alerts: follow / unfollow one search.
+  ["PUT", /^users\/saved_searches\/\d+$/],
   // Restore a scheduled-for-deletion account:
   ["POST", /^users\/me\/restore$/],
   // Resend the email-confirmation link. Reached from the "confirm your email"

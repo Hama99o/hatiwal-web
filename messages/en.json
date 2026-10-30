@@ -511,7 +511,15 @@
     "noSavedSearches": "No saved searches yet",
     "deleteSavedSearch": "Delete saved search",
     "savedSearchAll": "All listings",
-    "newMatches": "{count, plural, one {# new} other {# new}}"
+    "newMatches": "{count, plural, one {# new} other {# new}}",
+    "alerts": {
+      "bannerTitle": "Get alerts for new matches",
+      "bannerHint": "At most 3 a day, never at night. Turn off any time.",
+      "on": "We'll let you know. Turn off any time.",
+      "off": "Alerts off for this search.",
+      "toggleLabel": "Alerts for this search",
+      "limit": "You can follow up to 5 searches. Turn one off first."
+    }
   },
   "profile": {
     "title": "Profile",
@@ -667,6 +675,10 @@
       "privacyAccount": "Privacy & account",
       "settings": "Settings",
       "deleteAccountHint": "Deletes your account and everything in it. You have 30 days to restore it by signing back in."
+    },
+    "savedSearchAlerts": {
+      "title": "Saved-search alerts",
+      "hint": "Pushes for new listings that match the searches you follow."
     }
   },
   "report": {

@@ -606,6 +606,8 @@ export interface User {
   avatarUrl: string | null; avatarOriginalUrl?: string | null;
   preferredLanguage: "en" | "ps" | "fa";
   preferredTheme: "light" | "dark" | "system";
+  /** Saved-search alerts: the account-wide switch (1.2.1; absent = on). */
+  savedSearchAlerts?: boolean;
   sellerMode: boolean;
   status: string;
   verified: boolean;

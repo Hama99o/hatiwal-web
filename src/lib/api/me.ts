@@ -159,6 +159,15 @@ export async function restoreAccount(): Promise<User> {
   return data.user;
 }
 
+/** Saved-search alerts: the account-wide switch (Settings). */
+export async function setSavedSearchAlerts(value: boolean): Promise<User> {
+  const data = await meRequest<{ user: User }>("users/me", {
+    method: "PUT",
+    json: { user: { savedSearchAlerts: value } },
+  });
+  return data.user;
+}
+
 /** Switch buyer/seller mode (persists sellerMode), mirroring mobile's mode store. */
 export async function setSellerMode(value: boolean): Promise<User> {
   const data = await meRequest<{ user: User }>("users/me", {
