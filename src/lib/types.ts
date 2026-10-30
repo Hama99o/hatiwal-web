@@ -549,6 +549,9 @@ export interface Conversation {
     multiUnit?: boolean;
     availableUnits?: number;
     location?: string | null;
+    /** IDEA-6: the listing's APPROXIMATE point (SAFETY-1 grid), for the suggested meetup spots. */
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
   otherParticipant?: ConversationParticipant;
   buyer?: ConversationParticipant;
