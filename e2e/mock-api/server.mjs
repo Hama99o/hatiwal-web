@@ -768,9 +768,14 @@ function userMe(persona) {
 // them to tell which side the viewer is on (the seller gets the counter-offer
 // action and the reserve/mark-sold header button). Both listings here belong to
 // seller 1, who is the signed-in persona, so the seller side is exercised.
+// IDEA-6 e2e: the last message a client sent (GET /__last_message).
+let LAST_MESSAGE = null;
+
 const HERO_CONVERSATIONS = [
   { id: 1, status: "open", last_message_at: "2026-06-21T15:00:00Z", created_at: "2026-06-20T10:00:00Z",
-    listing: { id: 1, title: "iPhone 13 Pro", thumbnail_url: null, status: "active", price: 45000, currency: "AFN", location: "Kabul" },
+    listing: { id: 1, title: "iPhone 13 Pro", thumbnail_url: null, status: "active", price: 45000, currency: "AFN", location: "Kabul",
+      // IDEA-6: the approximate point the meetup spots are picked from.
+      latitude: 34.53, longitude: 69.17 },
     other_participant: { id: 2, name: "Sara Ahmadi", city: "Herat", verified: false, avatar_url: null },
     buyer: { id: 2, name: "Sara Ahmadi", city: "Herat", avatar_url: null },
     seller: { id: 1, name: "Ahmad Karimi", city: "Kabul", avatar_url: null },
@@ -1242,6 +1247,17 @@ function route(req, res, method, path, q, body, raw = "") {
   // `?with_counts` (any value, like Rails' params[:with_counts].present?) adds
   // active_listings_count to parents *and* subcategories; without it the plain
   // tree is returned, so both call sites stay covered.
+  // IDEA-6: the switched-on meetup spots (public). Kabul + Mazar; the client
+  // keeps the ones near the listing.
+  if (method === "GET" && path === "/meetup_spots") {
+    return send(res, 200, { meetup_spots: [
+      { id: 3, city_key: "kabul", kind: "mall", name_en: "Majid Mall", name_ps: null, name_fa: "مجید مال", name_ur: null, latitude: 34.53399, longitude: 69.17285 },
+      { id: 5, city_key: "kabul", kind: "bazaar", name_en: "Madina Bazaar", name_ps: "مدینه بازار", name_fa: "مدینه بازار", name_ur: null, latitude: 34.54242, longitude: 69.16787 },
+      { id: 13, city_key: "mazar", kind: "mall", name_en: "Aria Market", name_ps: null, name_fa: "مارکیت آریا", name_ur: null, latitude: 36.70878, longitude: 67.10370 },
+    ] });
+  }
+  if (method === "GET" && path === "/__last_message") return send(res, 200, { message: LAST_MESSAGE });
+
   if (method === "GET" && path === "/categories") {
     return send(res, 200, {
       categories: q.get("with_counts") ? categoriesWithCounts() : CATEGORIES,
@@ -2015,6 +2031,7 @@ function route(req, res, method, path, q, body, raw = "") {
       }
       const text = body && body.body ? body.body : "photo.jpg";
       const kind = body && body.kind ? body.kind : "text";
+      LAST_MESSAGE = { conversation_id: cid, body: text, kind };
       return send(res, 200, { message: { id: 9999, body: text, kind, read_at: null, created_at: "2026-06-22T16:00:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null } });
     }
   }
