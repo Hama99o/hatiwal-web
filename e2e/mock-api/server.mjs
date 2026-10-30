@@ -171,6 +171,8 @@ function catRef(id) {
 // Seller 1 (the logged-in buyer persona) owns a listing in every lifecycle state,
 // so the seller dashboard's status tabs are all populated.
 const IMAGE_SEARCHES = [];
+// Sell with a photo: the filenames sent for a suggestion, and the outcomes.
+const CATEGORY_SUGGESTIONS = { requests: [], outcomes: [] };
 
 const LISTINGS = [
   { id: 1, title: "iPhone 13 Pro", price: 45000, currency: "AFN", status: "active", location: "Kabul", address: "Shar-e-Naw", condition: "good", category_id: 101, seller_id: 1, views_count: 120, created_at: "2026-06-20T10:00:00Z", price_drop_percent: 12, price_dropped_at: "2026-06-19T10:00:00Z", description: "Barely used iPhone 13 Pro, 256GB." },
@@ -1240,7 +1242,11 @@ function route(req, res, method, path, q, body, raw = "") {
   if (method === "GET" && path === "/app_config") {
     return send(res, 200, {
       platform: null, min_version: null, latest_version: null, store_url: null, status: "ok",
-      features: { image_search: !process.env.MOCK_NO_IMAGE_SEARCH, voice_messages: !process.env.MOCK_NO_VOICE },
+      features: {
+        image_search: !process.env.MOCK_NO_IMAGE_SEARCH,
+        voice_messages: !process.env.MOCK_NO_VOICE,
+        category_suggestion: true,
+      },
     });
   }
 
@@ -1646,6 +1652,35 @@ function route(req, res, method, path, q, body, raw = "") {
     const listings = empty ? [] : myListings();
     return send(res, 200, { listings, meta: onePage(listings) });
   }
+  // Sell with a photo (hatiwal-api docs/SELL_WITH_PHOTO.md). No model here: the
+  // PHOTO'S FILENAME picks the answer — *nosuggest* → 204 (not sure),
+  // *slow* → the answer after 1.5 s, anything else → Phones & Tablets (101).
+  if (method === "POST" && path === "/my/listings/category_suggestion") {
+    if (!requireAuth()) return;
+    const filename = (raw.match(/name="image"; filename="([^"]*)"/) || [])[1];
+    if (filename === undefined) return send(res, 422, { error: "Add one photo.", code: "image_missing" });
+    CATEGORY_SUGGESTIONS.requests.push(filename);
+    if (filename.includes("nosuggest")) { res.writeHead(204); return res.end(); }
+    const answer = () => send(res, 200, { category_id: 101, parent_id: 1, confidence: 0.62 });
+    if (filename.includes("slow")) return void setTimeout(answer, 1500);
+    return answer();
+  }
+  if (method === "POST" && path === "/my/listings/category_suggestion/outcome") {
+    if (!requireAuth()) return;
+    CATEGORY_SUGGESTIONS.outcomes.push({ outcome: body.outcome, category_id: body.category_id });
+    res.writeHead(204);
+    return res.end();
+  }
+  // Test hooks: which photos were sent for a suggestion, and what the seller did.
+  if (method === "GET" && path === "/__category_suggestions") {
+    return send(res, 200, CATEGORY_SUGGESTIONS);
+  }
+  if (method === "POST" && path === "/__category_suggestions/reset") {
+    CATEGORY_SUGGESTIONS.requests = [];
+    CATEGORY_SUGGESTIONS.outcomes = [];
+    return send(res, 200, CATEGORY_SUGGESTIONS);
+  }
+
   if (path === "/my/listings" && method === "POST") {
     if (!requireAuth()) return;
     return send(res, 201, { listing: myListingView(1001) }); // created draft (Rails: 201)

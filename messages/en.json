@@ -290,7 +290,14 @@
       "howManySold": "How many did you sell?",
       "quantityBelowSoldUnits": "You've already sold {count, number} of these. Set the quantity to {count, number} or more, or undo a sale first.",
       "quantityBelowHeldUnits": "A buyer is holding {count, number} of these. Release the hold first, or set the quantity to {count, number} or more.",
-      "pinRequired": "Pick the spot on the map — buyers search by area, so a listing with no pin cannot be found."
+      "pinRequired": "Pick the spot on the map — buyers search by area, so a listing with no pin cannot be found.",
+      "suggestion": {
+        "looksLike": "Looks like:",
+        "use": "Use category: {name}",
+        "dismiss": "Dismiss suggestion",
+        "accepted": "Category set: {name}",
+        "suggestedGroup": "Suggested"
+      }
     },
     "analytics": {
       "title": "Views (last 7 days)",

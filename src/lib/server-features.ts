@@ -9,19 +9,26 @@ export interface ServerFeatures {
   imageSearch?: boolean;
   /** Voice messages in chat (hatiwal-api docs/VOICE_MESSAGES.md, 1.2.1). */
   voiceMessages?: boolean;
+  /** Sell with a photo (hatiwal-api docs/SELL_WITH_PHOTO.md, 1.2.1). */
+  categorySuggestion?: boolean;
 }
 
 /**
- * Whether THIS server offers a feature. False until it answers, on any failure,
- * and on an API that predates the flag — so a button never appears in front of
- * a server that cannot serve it. One request (and one cache entry) for all of them.
+ * What THIS server offers. Every flag is false until it answers, on any
+ * failure, and on an API that predates it — so a button never appears in front
+ * of a server that cannot serve it. One request (and one cache entry) for all.
  */
-export function useServerFeature(name: keyof ServerFeatures): boolean {
+export function useServerFeatures(): ServerFeatures {
   const { data } = useQuery({
     queryKey: ["app-config", "features"],
     queryFn: () => apiGet<{ features?: ServerFeatures }>("app_config"),
     staleTime: 5 * 60_000,
     retry: false,
   });
-  return data?.features?.[name] === true;
+  return data?.features ?? {};
+}
+
+/** Whether THIS server offers one feature (see useServerFeatures). */
+export function useServerFeature(name: keyof ServerFeatures): boolean {
+  return useServerFeatures()[name] === true;
 }
