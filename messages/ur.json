@@ -1160,7 +1160,8 @@
         "looksLike": "ایسا لگتا ہے:",
         "use": "یہ زمرہ چنیں: {name}",
         "dismiss": "تجویز ہٹائیں",
-        "accepted": "زمرہ منتخب ہو گیا: {name}"
+        "accepted": "زمرہ منتخب ہو گیا: {name}",
+        "suggestedGroup": "تجویز کردہ"
       }
     },
     "analytics": {

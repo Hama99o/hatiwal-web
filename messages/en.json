@@ -295,7 +295,8 @@
         "looksLike": "Looks like:",
         "use": "Use category: {name}",
         "dismiss": "Dismiss suggestion",
-        "accepted": "Category set: {name}"
+        "accepted": "Category set: {name}",
+        "suggestedGroup": "Suggested"
       }
     },
     "analytics": {

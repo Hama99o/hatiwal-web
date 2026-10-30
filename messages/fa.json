@@ -295,7 +295,8 @@
         "looksLike": "به نظر می‌رسد:",
         "use": "انتخاب دسته‌بندی: {name}",
         "dismiss": "رد کردن پیشنهاد",
-        "accepted": "دسته‌بندی انتخاب شد: {name}"
+        "accepted": "دسته‌بندی انتخاب شد: {name}",
+        "suggestedGroup": "پیشنهادی"
       }
     },
     "analytics": {

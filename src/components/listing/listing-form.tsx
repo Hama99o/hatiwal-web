@@ -72,6 +72,9 @@ interface DraftSnapshot {
 }
 const SELECT_CLASS = nativeSelectClass({ variant: "field" });
 
+/** Value prefix of the category picker's "Suggested" row (sell with a photo). */
+const SUGGESTED_OPTION = "suggested:";
+
 interface NewPhoto {
   file: File;
   url: string;
@@ -231,6 +234,7 @@ export function ListingForm({
   });
 
   const condition = watch("condition");
+  const { onChange: onCategorySelect, ...categoryField } = register("categoryId");
   const categoryId = watch("categoryId");
   // Stays (api STAYS_DESIGN): the chosen category's kind swaps the item
   // condition for the room's own fields. Kept beside the form (not in zod):
@@ -668,10 +672,34 @@ export function ListingForm({
               what their listing was set to. Organising the list is the win;
               changing what is savable is a separate decision with a data
               migration attached. */}
-          <select id="categoryId" className={SELECT_CLASS} {...register("categoryId")}>
+          <select
+            id="categoryId"
+            className={SELECT_CLASS}
+            {...categoryField}
+            onChange={(e) => {
+              // The "Suggested" row carries its own value (a native select must
+              // never hold two options with the same value: when the chip left,
+              // React removed the selected duplicate and the select went blank).
+              // It sets the REAL id, so the regular option is what stays selected.
+              const { value } = e.target;
+              if (value.startsWith(SUGGESTED_OPTION)) {
+                setValue("categoryId", value.slice(SUGGESTED_OPTION.length), { shouldValidate: true, shouldDirty: true });
+                return;
+              }
+              return onCategorySelect(e);
+            }}
+          >
             <option value="">
               {t("listing.form.selectCategoryPlaceholder")}
             </option>
+            {suggestion.shown ? (
+              // Vinted's "Suggested": the chip's category on top of the list too.
+              <optgroup label={t("listing.form.suggestion.suggestedGroup")}>
+                <option value={`${SUGGESTED_OPTION}${suggestion.shown.category.id}`}>
+                  {categoryName(suggestion.shown.category, locale)}
+                </option>
+              </optgroup>
+            ) : null}
             {categories.map((parent) =>
               parent.subcategories?.length ? (
                 <optgroup key={parent.id} label={categoryName(parent, locale)}>

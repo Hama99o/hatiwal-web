@@ -295,7 +295,8 @@
         "looksLike": "داسې ښکاري:",
         "use": "دا ډله وټاکئ: {name}",
         "dismiss": "وړاندیز لرې کړئ",
-        "accepted": "ډله وټاکل شوه: {name}"
+        "accepted": "ډله وټاکل شوه: {name}",
+        "suggestedGroup": "وړاندیز شوې"
       }
     },
     "analytics": {
