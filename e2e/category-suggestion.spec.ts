@@ -56,6 +56,22 @@ test.describe("Sell with a photo (web)", () => {
     await expect.poll(async () => (await suggestionLog(page)).outcomes).toEqual([{ outcome: "accepted", category_id: 101 }]);
   });
 
+  test("the picker offers it on top too (Suggested): choosing it there sets the real category", async ({ page }) => {
+    await page.goto("/en/listings/new");
+    await addPhoto(page);
+    await expect(chip(page)).toBeVisible();
+
+    const suggested = category(page).locator("optgroup[label='Suggested'] option");
+    await expect(suggested).toHaveText("Phones & Tablets");
+    await expect(category(page)).toHaveValue(""); // offered, not chosen
+
+    await category(page).selectOption({ value: await suggested.getAttribute("value") ?? "" });
+    await expect(category(page)).toHaveValue("101");
+    await expect(chip(page)).toBeHidden();
+    await expect(category(page).locator("optgroup[label='Suggested']")).toHaveCount(0);
+    await expect.poll(async () => (await suggestionLog(page)).outcomes).toEqual([{ outcome: "accepted", category_id: 101 }]);
+  });
+
   test("✕ dismisses it for good: another photo does not ask again", async ({ page }) => {
     await page.goto("/en/listings/new");
     await addPhoto(page);
