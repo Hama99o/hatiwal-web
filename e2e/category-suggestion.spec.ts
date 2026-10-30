@@ -101,9 +101,12 @@ test.describe("Sell with a photo (web)", () => {
   test("a category chosen WHILE the answer is on its way: the late answer shows nothing", async ({ page }) => {
     await page.goto("/en/listings/new");
     await addPhoto(page, "slow.png");
+    // The request is ON ITS WAY first (the mock holds the answer 1.5 s); only
+    // then the seller picks. Picking before it is sent is a different case
+    // (no request at all), and on a busy machine the pick could win the race.
+    await expect.poll(async () => (await suggestionLog(page)).requests).toEqual([ "slow.png" ]);
     await category(page).selectOption({ label: "Vehicles" });
 
-    await expect.poll(async () => (await suggestionLog(page)).requests).toEqual([ "slow.png" ]);
     await page.waitForTimeout(2000);
     await expect(chip(page)).toBeHidden();
     await expect(category(page)).not.toHaveValue("101");
