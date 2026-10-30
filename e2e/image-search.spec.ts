@@ -109,20 +109,29 @@ test.describe("Search by image (web: signed in)", () => {
     await expect(page.locator('[data-testid="image-search-button"]')).toHaveCount(0);
   });
 
-  test("keyboard: Tab from the search field reaches 📷, and Enter and Space open the file chooser", async ({ page }) => {
-    await page.goto("/en/saved");
-    const button = visibleButton(page);
-    await expect(button).toBeVisible();
-    await page.locator('header input[name="q"]').first().focus();
-    await page.keyboard.press("Tab");
-    await expect(button).toBeFocused();
-    for (const key of ["Enter", "Space"]) {
-      const chooser = page.waitForEvent("filechooser", { timeout: 5000 });
-      await page.keyboard.press(key);
-      expect(await chooser, key).toBeTruthy();
-      await button.focus();
-    }
-  });
+  // Playwright turns file-chooser interception on with an async call when the FIRST listener is
+  // added. Enter clicks during keydown, sooner than Space (keyup), so a `waitForEvent` made right
+  // before the key press could miss Enter's chooser: 1–2/10 on /bazaar in headed AND headless
+  // Chromium, 10/10 once the listener exists first (QA 2026-10-30; WebKit 10/10). So the listener
+  // is registered once, before any key press.
+  for (const path of ["/en/saved", "/en/bazaar"]) {
+    test(`keyboard on ${path}: Tab from the search field reaches 📷, and Enter and Space open the file chooser`, async ({ page }) => {
+      let choosers = 0;
+      page.on("filechooser", () => choosers++);
+      await page.goto(path);
+      const button = visibleButton(page);
+      await expect(button).toBeVisible();
+      await page.locator('header input[name="q"]').first().focus();
+      await page.keyboard.press("Tab");
+      await expect(button).toBeFocused();
+      for (const key of ["Enter", "Space"]) {
+        const before = choosers;
+        await page.keyboard.press(key);
+        await expect.poll(() => choosers, { message: key, timeout: 5000 }).toBe(before + 1);
+        await button.focus();
+      }
+    });
+  }
 
   test("Pashto: right-to-left, translated", async ({ page }) => {
     await page.goto("/ps");
