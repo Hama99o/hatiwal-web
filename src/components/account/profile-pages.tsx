@@ -21,6 +21,7 @@ import { SellerNumbersCard } from "./seller-numbers-card";
 import { ShareButton } from "@/components/shared/share-button";
 import { PUBLIC_SITE } from "@/components/shops/shop-page-view";
 import { DeleteAccountButton } from "./delete-account-section";
+import { SavedSearchAlertsRow } from "./saved-search-alerts-row";
 import { ContactSupportRow, InfoRow, ProfileRowLink } from "./profile-view";
 
 function PageShell({ title, testId, children }: { title: string; testId: string; children: React.ReactNode }) {
@@ -187,6 +188,8 @@ export function ProfileSettingsView() {
           <LocaleSwitcher />
         </div>
       </div>
+
+      <SavedSearchAlertsRow />
     </PageShell>
   );
 }

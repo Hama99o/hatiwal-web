@@ -50,6 +50,7 @@ import { useImageSearchEnabled } from "@/lib/image-search/use-image-search-enabl
 import { useSearchHistory } from "@/lib/use-search-history";
 import { publishBrowseQuery } from "@/lib/use-browse-query";
 import { SavedSearches } from "./saved-searches";
+import { SearchAlertBanner } from "./search-alert-banner";
 import { LocationMap } from "@/components/map/location-map";
 import { LocationBar } from "@/components/location/location-bar";
 import { LocationSheet } from "@/components/location/location-sheet";
@@ -1018,6 +1019,9 @@ export function BrowseClient({
               </div>
             </div>
           )}
+
+          {/* Saved-search alerts: follow the search on screen (signed-in only). */}
+          <SearchAlertBanner filters={filters} categories={categories} />
 
           {query.isError ? (
             <EmptyState

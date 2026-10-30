@@ -1,7 +1,8 @@
 import { meRequest } from "./me";
 
 // Mirrors the mobile saved-searches contract (src/api/saved-searches.ts).
-// A saved search captures category + price + location only (not free-text/sort).
+// A saved search captures category + price + location and, since 1.2.1, the
+// keyword (`query`) and the alert opt-in (hatiwal-api docs/SAVED_SEARCH_ALERTS.md).
 export interface SavedSearch {
   id: number;
   location: string | null;
@@ -16,6 +17,10 @@ export interface SavedSearch {
   createdAt: string;
   lastViewedAt: string | null;
   newMatchesCount: number;
+  /** The browse keyword it was saved with (1.2.1; absent on an older API). */
+  query?: string | null;
+  /** Followed: a new match is pushed to the phone (1.2.1). */
+  alert?: boolean;
 }
 
 export interface SavedSearchInput {
@@ -26,6 +31,8 @@ export interface SavedSearchInput {
   latitude?: number;
   longitude?: number;
   radius?: number;
+  query?: string;
+  alert?: boolean;
 }
 
 export async function getSavedSearches(): Promise<SavedSearch[]> {
@@ -48,6 +55,15 @@ export async function createSavedSearch(
 
 export async function deleteSavedSearch(id: number): Promise<void> {
   await meRequest(`users/saved_searches/${id}`, { method: "DELETE" });
+}
+
+/** Follow / unfollow one saved search. A 6th followed search: 422 code alerts_limit. */
+export async function setSavedSearchAlert(id: number, alert: boolean): Promise<SavedSearch> {
+  const d = await meRequest<{ savedSearch: SavedSearch }>(`users/saved_searches/${id}`, {
+    method: "PUT",
+    json: { alert },
+  });
+  return d.savedSearch;
 }
 
 /** Reset the new-matches counter after the user runs the search (mobile parity). */

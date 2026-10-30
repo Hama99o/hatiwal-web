@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { describeApiError } from "@/lib/api/error-codes";
-import { Bookmark, BookmarkPlus, X } from "lucide-react";
+import { Bell, BellOff, Bookmark, BookmarkPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-provider";
 import { categoryName, flattenCategories } from "@/lib/api/categories";
@@ -16,6 +16,8 @@ import {
   type SavedSearch,
 } from "@/lib/api/saved-searches";
 import { formatNumber } from "@/lib/format";
+import { searchCriteria } from "@/lib/saved-search-alerts";
+import { useSearchAlert } from "@/lib/use-search-alert";
 import type { BrowseFilters } from "./filters";
 import type { Category } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -49,24 +51,17 @@ export function SavedSearches({
     enabled: status === "authed",
   });
 
+  // The keyword is part of a saved search since 1.2.1 (saved-search alerts).
   const createMut = useMutation({
-    mutationFn: () => {
-      const cat = flat.find((c) => c.slug === filters.categorySlug);
-      return createSavedSearch({
-        categoryId: cat?.id,
-        priceMin: filters.priceMin ? Number(filters.priceMin) : undefined,
-        priceMax: filters.priceMax ? Number(filters.priceMax) : undefined,
-        latitude: filters.lat ? Number(filters.lat) : undefined,
-        longitude: filters.lng ? Number(filters.lng) : undefined,
-        radius: filters.radius ? Number(filters.radius) : undefined,
-      });
-    },
+    mutationFn: () => createSavedSearch(searchCriteria(filters, flat)),
     onSuccess: () => {
       toast.success(t("browse.savedSearchCreated"));
       qc.invalidateQueries({ queryKey: ["saved-searches"] });
     },
     onError: (error) => toast.error(describeApiError(error, t)),
   });
+
+  const alertMut = useSearchAlert();
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteSavedSearch(id),
@@ -91,7 +86,8 @@ export function SavedSearches({
 
   // Something worth saving = at least one of category / price / location set.
   const canSave = Boolean(
-    filters.categorySlug ||
+    filters.q.trim() ||
+      filters.categorySlug ||
       filters.priceMin ||
       filters.priceMax ||
       (filters.lat && filters.lng),
@@ -99,6 +95,8 @@ export function SavedSearches({
 
   function summarize(s: SavedSearch): string {
     const parts: string[] = [];
+    // The keyword first, isolated so a Latin word reads right inside ps/fa.
+    if (s.query) parts.push(`«\u2068${s.query}\u2069»`);
     if (s.categoryId) {
       const cat = flat.find((c) => c.id === s.categoryId);
       parts.push(cat ? categoryName(cat, locale) : (s.categoryName ?? ""));
@@ -124,6 +122,7 @@ export function SavedSearches({
       ? flat.find((c) => c.id === s.categoryId)
       : undefined;
     onApply({
+      q: s.query ?? "",
       categorySlug: cat?.slug ?? "",
       priceMin: s.priceMin != null ? String(s.priceMin) : "",
       priceMax: s.priceMax != null ? String(s.priceMax) : "",
@@ -193,6 +192,23 @@ export function SavedSearches({
                   {t("browse.newMatches", { count: s.newMatchesCount })}
                 </Badge>
               )}
+              {/* Saved-search alerts: a plain bell (house rule for secondary
+                  actions), a switch for screen readers. */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(s.alert)}
+                aria-label={t("browse.alerts.toggleLabel")}
+                data-testid={`saved-search-alert-${s.id}`}
+                onClick={() => alertMut.mutate({ saved: s, alert: !s.alert })}
+                disabled={alertMut.isPending}
+                className={cn(
+                  "grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  s.alert ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s.alert ? <Bell className="size-3.5" /> : <BellOff className="size-3.5" />}
+              </button>
               <button
                 type="button"
                 aria-label={t("browse.deleteSavedSearch")}

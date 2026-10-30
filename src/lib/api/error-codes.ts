@@ -32,6 +32,8 @@ import { ApiError } from "./client";
  * here as a type error rather than as an unmapped failure in production.
  */
 export const API_ERROR_CODES = {
+  /** A 6th followed saved search. `PUT`/`POST /users/saved_searches`. */
+  alertsLimit: "alerts_limit",
   /** Edit lowered `quantity` under what has already SOLD. `PATCH /my/listings/:id`. */
   quantityBelowSoldUnits: "quantity_below_sold_units",
   /** Edit lowered `quantity` under what is currently HELD for a buyer. Same endpoint. */
@@ -83,6 +85,7 @@ export type ApiErrorCode =
  * a given code happens to live under.
  */
 const MESSAGES: Record<ApiErrorCode, { key: string; needsCount: boolean }> = {
+  [API_ERROR_CODES.alertsLimit]: { key: "browse.alerts.limit", needsCount: false },
   // Mobile: listing.json `form.quantityBelowSoldUnits` — {count} is how many are
   // already sold, which the client reads off the listing it is editing.
   [API_ERROR_CODES.quantityBelowSoldUnits]: {
