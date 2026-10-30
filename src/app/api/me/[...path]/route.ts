@@ -112,6 +112,10 @@ const ALLOWED: Array<[string, RegExp]> = [
   // Search by image (multipart, one photo; nothing stored): signed in, Rails
   // also leaves out the viewer's hidden listings and blocked sellers.
   ["POST", /^listings\/image_search$/],
+  // Sell with a photo (multipart, one photo; nothing stored): a category for a
+  // new listing's first photo, and what the seller did with it (tuning log).
+  ["POST", /^my\/listings\/category_suggestion$/],
+  ["POST", /^my\/listings\/category_suggestion\/outcome$/],
   // Hidden ("not interested") listings — hide/restore + the management list.
   ["POST", /^listings\/\d+\/hide$/],
   ["DELETE", /^listings\/\d+\/unhide$/],

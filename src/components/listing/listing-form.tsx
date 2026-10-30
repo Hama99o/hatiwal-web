@@ -13,6 +13,8 @@ import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createListing, updateListing, listingLifecycle, relaunchMyListing, deleteListingVideo } from "@/lib/api/me";
 import { VideoField, type VideoValue } from "@/components/listing/video-field";
+import { CategorySuggestionChip } from "@/components/listing/category-suggestion-chip";
+import { useCategorySuggestion } from "@/lib/category-suggestion/use-category-suggestion";
 import { discardListingVideoUpload, startListingVideoUpload } from "@/lib/listing-video-upload";
 import {
   API_ERROR_CODES,
@@ -229,10 +231,11 @@ export function ListingForm({
   });
 
   const condition = watch("condition");
+  const categoryId = watch("categoryId");
   // Stays (api STAYS_DESIGN): the chosen category's kind swaps the item
   // condition for the room's own fields. Kept beside the form (not in zod):
   // they are optional, typed, and cleaned on the way out.
-  const isStay = isStayCategoryId(categories, Number(watch("categoryId")) || null);
+  const isStay = isStayCategoryId(categories, Number(categoryId) || null);
   const [priceUnit, setPriceUnit] = useState<PriceUnit>(listing?.priceUnit ?? "night");
   // A room with no facts yet (new, or posted from the 1.1.6 app) starts at what
   // the steppers show — 2 guests, 1 bed — so what is shown is what is saved.
@@ -332,6 +335,21 @@ export function ListingForm({
     clearDraft();
     setRestorableDraft(null);
   }
+
+  // Sell with a photo (docs/design/SELL_WITH_PHOTO.md, mobile): the first photo
+  // of a NEW listing may bring one category chip; it never overrides a choice.
+  const suggestion = useCategorySuggestion({
+    isEdit,
+    firstPhoto: newPhotos[0] ? { key: newPhotos[0].url, file: newPhotos[0].file } : null,
+    photoKeys: [...existing.map((img) => img.id), ...newPhotos.map((p) => p.url)],
+    categoryId,
+    categories,
+    onAccept: (id) => {
+      setValue("categoryId", String(id), { shouldValidate: true, shouldDirty: true });
+      const picked = categories.flatMap((c) => [c, ...(c.subcategories ?? [])]).find((c) => c.id === id);
+      if (picked) toast.success(t("listing.form.suggestion.accepted", { name: categoryName(picked, locale) }));
+    },
+  });
 
   function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -584,6 +602,12 @@ export function ListingForm({
             {t("listing.form.photosHint")}
           </p>
         </div>
+
+        <CategorySuggestionChip
+          shown={suggestion.shown}
+          onAccept={suggestion.accept}
+          onDismiss={suggestion.dismiss}
+        />
 
         {/* VID: the optional video, right under the photos. */}
         <VideoField value={video} onChange={setVideo} listingId={isEdit ? listing?.id : null} />

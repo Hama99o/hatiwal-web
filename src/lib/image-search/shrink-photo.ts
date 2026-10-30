@@ -9,7 +9,7 @@
  */
 export const SHRINK_MAX_SIDE = 1024;
 
-export async function shrinkPhoto(file: Blob): Promise<Blob> {
+export async function shrinkPhoto(file: Blob, maxSide = SHRINK_MAX_SIDE): Promise<Blob> {
   if (typeof createImageBitmap !== "function") return file;
   let bitmap: ImageBitmap;
   try {
@@ -18,7 +18,7 @@ export async function shrinkPhoto(file: Blob): Promise<Blob> {
     return file;
   }
   try {
-    const { width, height } = shrunkSize(bitmap.width, bitmap.height);
+    const { width, height } = shrunkSize(bitmap.width, bitmap.height, maxSide);
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -35,8 +35,12 @@ export async function shrinkPhoto(file: Blob): Promise<Blob> {
   }
 }
 
-/** The size that fits SHRINK_MAX_SIDE, keeping the shape; never upscales. */
-export function shrunkSize(width: number, height: number): { width: number; height: number } {
-  const scale = Math.min(1, SHRINK_MAX_SIDE / Math.max(width, height, 1));
+/** The size that fits `maxSide`, keeping the shape; never upscales. */
+export function shrunkSize(
+  width: number,
+  height: number,
+  maxSide = SHRINK_MAX_SIDE,
+): { width: number; height: number } {
+  const scale = Math.min(1, maxSide / Math.max(width, height, 1));
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }

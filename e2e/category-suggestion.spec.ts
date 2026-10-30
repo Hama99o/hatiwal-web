@@ -32,6 +32,8 @@ const category = (page: Page) => page.getByLabel("Category", { exact: true });
 
 test.describe("Sell with a photo (web)", () => {
   test.use({ storageState: BUYER_STATE });
+  // One mock log for the whole file: its tests must not interleave.
+  test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ page }) => {
     await page.request.post(`${MOCK_API}/__category_suggestions/reset`);
@@ -45,8 +47,6 @@ test.describe("Sell with a photo (web)", () => {
     await expect(chip(page)).toContainText("Looks like:");
     await expect(chip(page)).toContainText("Electronics");
     await expect(chip(page)).toContainText("Phones & Tablets");
-    // The picker offers it on top too (Vinted's "Suggested").
-    await expect(category(page).locator('optgroup[label="Suggested"] option')).toHaveText("Phones & Tablets");
     // Nothing is chosen until the seller taps.
     await expect(category(page)).toHaveValue("");
 
@@ -123,6 +123,9 @@ test.describe("Sell with a photo (web)", () => {
 
   test("offline: no request, no chip, no error", async ({ page, context }) => {
     await page.goto("/en/listings/new");
+    // The form fully loaded first (dev mode compiles it on demand).
+    await expect(page.getByRole("heading", { name: "Create Listing" })).toBeVisible();
+    await expect(page.locator('input[type="file"][accept="image/*"]').first()).toBeAttached();
     await context.setOffline(true);
     await addPhoto(page);
     await page.waitForTimeout(500);

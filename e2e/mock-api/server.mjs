@@ -1251,35 +1251,6 @@ function route(req, res, method, path, q, body, raw = "") {
       meta: { pagination },
     });
   }
-  // Sell with a photo (hatiwal-api docs/SELL_WITH_PHOTO.md). No model here: the
-  // PHOTO'S FILENAME picks the answer — *nosuggest* → 204 (not sure),
-  // *slow* → the answer after 1.5 s, anything else → Phones & Tablets (101).
-  if (method === "POST" && path === "/my/listings/category_suggestion") {
-    if (!requireAuth()) return;
-    const filename = (raw.match(/name="image"; filename="([^"]*)"/) || [])[1];
-    if (filename === undefined) return send(res, 422, { error: "Add one photo.", code: "image_missing" });
-    CATEGORY_SUGGESTIONS.requests.push(filename);
-    if (filename.includes("nosuggest")) { res.writeHead(204); return res.end(); }
-    const answer = () => send(res, 200, { category_id: 101, parent_id: 1, confidence: 0.62 });
-    if (filename.includes("slow")) return void setTimeout(answer, 1500);
-    return answer();
-  }
-  if (method === "POST" && path === "/my/listings/category_suggestion/outcome") {
-    if (!requireAuth()) return;
-    CATEGORY_SUGGESTIONS.outcomes.push({ outcome: body.outcome, category_id: body.category_id });
-    res.writeHead(204);
-    return res.end();
-  }
-  // Test hooks: which photos were sent for a suggestion, and what the seller did.
-  if (method === "GET" && path === "/__category_suggestions") {
-    return send(res, 200, CATEGORY_SUGGESTIONS);
-  }
-  if (method === "POST" && path === "/__category_suggestions/reset") {
-    CATEGORY_SUGGESTIONS.requests = [];
-    CATEGORY_SUGGESTIONS.outcomes = [];
-    return send(res, 200, CATEGORY_SUGGESTIONS);
-  }
-
   // Test hook: which photos were searched, and as whom (never a photo's bytes).
   if (method === "GET" && path === "/__image_searches") {
     return send(res, 200, { searches: IMAGE_SEARCHES });
@@ -1653,6 +1624,35 @@ function route(req, res, method, path, q, body, raw = "") {
     const listings = empty ? [] : myListings();
     return send(res, 200, { listings, meta: onePage(listings) });
   }
+  // Sell with a photo (hatiwal-api docs/SELL_WITH_PHOTO.md). No model here: the
+  // PHOTO'S FILENAME picks the answer — *nosuggest* → 204 (not sure),
+  // *slow* → the answer after 1.5 s, anything else → Phones & Tablets (101).
+  if (method === "POST" && path === "/my/listings/category_suggestion") {
+    if (!requireAuth()) return;
+    const filename = (raw.match(/name="image"; filename="([^"]*)"/) || [])[1];
+    if (filename === undefined) return send(res, 422, { error: "Add one photo.", code: "image_missing" });
+    CATEGORY_SUGGESTIONS.requests.push(filename);
+    if (filename.includes("nosuggest")) { res.writeHead(204); return res.end(); }
+    const answer = () => send(res, 200, { category_id: 101, parent_id: 1, confidence: 0.62 });
+    if (filename.includes("slow")) return void setTimeout(answer, 1500);
+    return answer();
+  }
+  if (method === "POST" && path === "/my/listings/category_suggestion/outcome") {
+    if (!requireAuth()) return;
+    CATEGORY_SUGGESTIONS.outcomes.push({ outcome: body.outcome, category_id: body.category_id });
+    res.writeHead(204);
+    return res.end();
+  }
+  // Test hooks: which photos were sent for a suggestion, and what the seller did.
+  if (method === "GET" && path === "/__category_suggestions") {
+    return send(res, 200, CATEGORY_SUGGESTIONS);
+  }
+  if (method === "POST" && path === "/__category_suggestions/reset") {
+    CATEGORY_SUGGESTIONS.requests = [];
+    CATEGORY_SUGGESTIONS.outcomes = [];
+    return send(res, 200, CATEGORY_SUGGESTIONS);
+  }
+
   if (path === "/my/listings" && method === "POST") {
     if (!requireAuth()) return;
     return send(res, 201, { listing: myListingView(1001) }); // created draft (Rails: 201)
