@@ -19,6 +19,7 @@
  */
 import { createServer } from "node:http";
 import { deflateSync } from "node:zlib";
+import { readFileSync } from "node:fs";
 
 const PORT = Number(process.env.MOCK_API_PORT || 4010);
 
@@ -880,6 +881,9 @@ const CLOSED_SHOP_CHAT = {
 
 const ALL_CONVERSATIONS = [...CONVERSATIONS, ...ARCHIVED_CONVERSATIONS, SHOP_42_CHAT, CLOSED_SHOP_CHAT];
 
+// A 64-bar waveform as Rails measures it (0–100), for voice messages.
+const VOICE_WAVEFORM = Array.from({ length: 64 }, (_, i) => Math.round(30 + 60 * Math.abs(Math.sin(i / 5))));
+
 const MESSAGES = {
   // Returned newest-first (Rails order); chat.ts reverses for display.
   // Conversation 1 spans TWO local days (id 1 on 06-20, the rest on 06-21) so the
@@ -1072,6 +1076,26 @@ const server = createServer((req, res) => {
   const path = url.pathname.replace(/^\/api\/v1/, "");
   const q = url.searchParams;
 
+  // ── Voice messages (1.2.1, e2e/voice-messages.spec.ts) ────────────────────
+  // /media/voice-*: a real 3-second clip. Rails stores AAC .m4a, but
+  // Playwright's Chromium is an open-source build with NO AAC decoder
+  // (canPlayType('audio/mp4; codecs="mp4a.40.2"') === ""), so this serves the
+  // same 3 s as Opus/WebM: the suite tests the player, not the codec. AAC
+  // playback is proven against the real API in WebKit (hatiwal-mobile
+  // docs/qa-1.2.1/voice/web/). Honours Range (a browser seeks with one).
+  if (url.pathname.startsWith("/media/voice-")) {
+    const file = readFileSync(new URL("../fixtures/voice-3s.webm", import.meta.url));
+    const range = /bytes=(\d+)-(\d*)/.exec(req.headers.range || "");
+    if (range) {
+      const start = Number(range[1]);
+      const end = range[2] ? Number(range[2]) : file.length - 1;
+      res.writeHead(206, { "Content-Type": "audio/webm", "Content-Range": `bytes ${start}-${end}/${file.length}`, "Accept-Ranges": "bytes", "Content-Length": end - start + 1, "Cache-Control": "no-store" });
+      return res.end(file.subarray(start, end + 1));
+    }
+    res.writeHead(200, { "Content-Type": "audio/webm", "Content-Length": file.length, "Accept-Ranges": "bytes", "Cache-Control": "no-store" });
+    return res.end(file);
+  }
+
   // ── Photos (1.1.6 photo variants, e2e/photo-variants.spec.ts) ─────────────
   // /media/<name>: a real PNG whose size is in the name ("…-300x900.png"; 64x64
   // when none), so tiny / portrait / panorama photos can be measured (also the
@@ -1216,7 +1240,7 @@ function route(req, res, method, path, q, body, raw = "") {
   if (method === "GET" && path === "/app_config") {
     return send(res, 200, {
       platform: null, min_version: null, latest_version: null, store_url: null, status: "ok",
-      features: { image_search: !process.env.MOCK_NO_IMAGE_SEARCH },
+      features: { image_search: !process.env.MOCK_NO_IMAGE_SEARCH, voice_messages: !process.env.MOCK_NO_VOICE },
     });
   }
 
@@ -1912,6 +1936,15 @@ function route(req, res, method, path, q, body, raw = "") {
     const cid = Number(msgMatch[1]);
     if (method === "GET") return send(res, 200, { messages: MESSAGES[cid] ?? [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: (MESSAGES[cid] ?? []).length, total_pages: 1 } } });
     if (method === "POST") {
+      // 1.2.1: a voice message (multipart). Rails re-encodes it and answers
+      // with its own m4a, duration and waveform; the body is "🎤 m:ss".
+      // A recording whose filename has "busy" is the 503 voice_busy refusal.
+      if (/name="kind"\r\n\r\nvoice_message/.test(raw)) {
+        if (!/name="attachment"; filename="voice\.(m4a|webm|ogg)"/.test(raw)) {
+          return send(res, 422, { error: "Record a voice message to send.", code: "voice_missing" });
+        }
+        return send(res, 201, { message: { id: 9998, body: "🎤 0:03", kind: "voice_message", read_at: null, created_at: "2026-06-22T16:00:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: `http://localhost:${PORT}/media/voice-sent.m4a`, voice: { url: `http://localhost:${PORT}/media/voice-sent.m4a`, duration_ms: 3000, waveform: VOICE_WAVEFORM } } });
+      }
       const text = body && body.body ? body.body : "photo.jpg";
       const kind = body && body.kind ? body.kind : "text";
       return send(res, 200, { message: { id: 9999, body: text, kind, read_at: null, created_at: "2026-06-22T16:00:00Z", responds_to_id: null, sender: { id: 1, name: "Ahmad Karimi", avatar_url: null }, attachment_url: null } });
@@ -1954,12 +1987,12 @@ function route(req, res, method, path, q, body, raw = "") {
     return send(res, 204);
   }
 
-  // Reports — Listing, User, and (privacy-b) Shop; anything else is 422
+  // Reports — Listing, User, (privacy-b) Shop and (1.2.1) a voice Message; anything else is 422
   // unknown_reportable_type like Rails.
   if (path === "/reports" && method === "POST") {
     if (!requireAuth()) return;
     const type = body?.report?.reportable_type;
-    if (type && !["Listing", "User", "Shop"].includes(type)) {
+    if (type && !["Listing", "User", "Shop", "Message"].includes(type)) {
       return send(res, 422, { error: "Unknown reportable type", code: "unknown_reportable_type" });
     }
     return send(res, 201, { report: { id: 1, status: "pending" } });

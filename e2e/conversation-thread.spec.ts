@@ -16,12 +16,17 @@ test.describe("Conversation thread", () => {
       page.locator("p", { hasText: "Is this still available?" }),
     ).toBeVisible();
     await expect(page.getByPlaceholder("Type a message...")).toBeVisible();
+    // 1.2.1: with nothing typed, 🎤 takes Send's place (voice messages);
+    // typing brings Send back.
+    await expect(page.getByRole("button", { name: "Record a voice message" })).toBeVisible();
+    await page.getByPlaceholder("Type a message...").fill("Salaam");
     // `exact` matters: the accessible-name match is a SUBSTRING by default, and
     // the composer's quick-reply chip "I can send more photos" contains "send"
     // — two matches is a strict-mode violation. The send button is aria-labelled.
     await expect(
       page.getByRole("button", { name: "Send", exact: true }),
     ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Record a voice message" })).toHaveCount(0);
   });
 
   test("sending a message appends it to the thread", async ({ page }) => {

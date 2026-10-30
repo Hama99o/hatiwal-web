@@ -990,7 +990,8 @@
       "offerDeclined": "Offer declined",
       "photo": "Photo",
       "file": "File",
-      "counterOffer": "Counter-offer: {price}"
+      "counterOffer": "Counter-offer: {price}",
+      "voice": "Voice message"
     },
     "thread": {
       "closedNotice": "This conversation is closed.",
@@ -1192,6 +1193,50 @@
       "minutes": "{n}m",
       "hours": "{n}h",
       "days": "{n}d"
+    },
+    "voice": {
+      "record": "Record a voice message",
+      "recording": "Recording",
+      "paused": "Paused",
+      "pause": "Pause recording",
+      "resume": "Resume recording",
+      "stop": "Stop and listen",
+      "send": "Send voice message",
+      "delete": "Delete voice message",
+      "play": "Play voice message",
+      "pausePlayback": "Pause voice message",
+      "speed": "Playback speed {speed}",
+      "seek": "Voice message position",
+      "label": "Voice message, {duration}",
+      "maxReached": "Voice messages are up to 2 minutes.",
+      "tooShort": "Hold on a little longer: voice messages need at least 1 second.",
+      "permissionTitle": "Microphone access is off",
+      "permissionDenied": "Hatiwal needs the microphone to record voice messages.",
+      "permissionHowToWeb": "Allow the microphone for this site in your browser's address bar, then try again.",
+      "openSettings": "Open settings",
+      "tryAgain": "Try again",
+      "noMicrophone": "No microphone was found on this device.",
+      "unsupported": "This browser can't record voice messages.",
+      "discardTitle": "Discard voice message?",
+      "discardBody": "Your recording will be lost.",
+      "discard": "Discard",
+      "keepRecording": "Keep recording",
+      "sending": "Sending voice message…",
+      "loading": "Loading voice message…",
+      "playFailed": "This voice message couldn't be played.",
+      "recordFailed": "Recording stopped. Please try again.",
+      "diskFull": "Not enough space on your phone to record.",
+      "interrupted": "Recording paused",
+      "report": "Report voice message",
+      "errors": {
+        "voice_missing": "Record a voice message to send.",
+        "voice_too_large": "This voice message is too large (2 MB max).",
+        "voice_too_short": "Voice messages need at least 1 second.",
+        "voice_too_long": "Voice messages are up to 2 minutes.",
+        "voice_invalid": "This file is not a voice recording we can play.",
+        "voice_messages_unavailable": "Voice messages are not available right now.",
+        "voice_busy": "Busy. Sending again in a moment."
+      }
     }
   },
   "warnings": {

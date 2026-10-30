@@ -62,6 +62,16 @@ export const API_ERROR_CODES = {
   listingRemoved: "listing_removed",
   /** Duplicate of a deleted (or taken-down) listing (422). */
   duplicateRemoved: "duplicate_removed",
+  /** Voice messages (1.2.1), `POST /conversations/:id/messages` kind voice_message (422). */
+  voiceMissing: "voice_missing",
+  voiceTooLarge: "voice_too_large",
+  voiceTooShort: "voice_too_short",
+  voiceTooLong: "voice_too_long",
+  voiceInvalid: "voice_invalid",
+  /** 503: this server takes no voice messages (no ffmpeg, or switched off). */
+  voiceUnavailable: "voice_messages_unavailable",
+  /** 503 + Retry-After: another clip held the server's transcoder. Try again. */
+  voiceBusy: "voice_busy",
 } as const;
 
 export type ApiErrorCode =
@@ -105,6 +115,14 @@ const MESSAGES: Record<ApiErrorCode, { key: string; needsCount: boolean }> = {
   [API_ERROR_CODES.shopUnavailable]: { key: "shops.team.errors.shop_unavailable", needsCount: false },
   [API_ERROR_CODES.listingRemoved]: { key: "listing.move.errors.removed", needsCount: false },
   [API_ERROR_CODES.duplicateRemoved]: { key: "listing.move.errors.removed", needsCount: false },
+  // Mobile: chat.json `voice.errors.*` (1.2.1).
+  [API_ERROR_CODES.voiceMissing]: { key: "chat.voice.errors.voice_missing", needsCount: false },
+  [API_ERROR_CODES.voiceTooLarge]: { key: "chat.voice.errors.voice_too_large", needsCount: false },
+  [API_ERROR_CODES.voiceTooShort]: { key: "chat.voice.errors.voice_too_short", needsCount: false },
+  [API_ERROR_CODES.voiceTooLong]: { key: "chat.voice.errors.voice_too_long", needsCount: false },
+  [API_ERROR_CODES.voiceInvalid]: { key: "chat.voice.errors.voice_invalid", needsCount: false },
+  [API_ERROR_CODES.voiceUnavailable]: { key: "chat.voice.errors.voice_messages_unavailable", needsCount: false },
+  [API_ERROR_CODES.voiceBusy]: { key: "chat.voice.errors.voice_busy", needsCount: false },
 };
 
 function isKnownCode(code: string | undefined): code is ApiErrorCode {

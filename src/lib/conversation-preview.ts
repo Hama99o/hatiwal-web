@@ -89,6 +89,9 @@ export function conversationPreviewText(
       return t("chat.preview.file");
     case "image_message":
       return t("chat.preview.photo");
+    // 1.2.1: never the "🎤 0:12" body, which is for apps that predate the kind.
+    case "voice_message":
+      return t("chat.preview.voice");
     default:
       return conversation.lastMessageBody || t("chat.noMessages");
   }
