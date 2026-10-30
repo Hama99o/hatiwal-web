@@ -2026,5 +2026,16 @@
       "offline": "Search with a photo needs the internet. Check your connection and try again.",
       "generic": "Something went wrong. Please try again."
     }
+  },
+  "qrCard": {
+    "button": "QR code",
+    "title": "QR code to print",
+    "hint": "Put it in your shop window, on your counter or on a sticker. A phone camera opens this page in Hatiwal.",
+    "language": "Card language",
+    "download": "Save image",
+    "print": "Print (A6 PDF)",
+    "alt": "QR code card",
+    "error": "Couldn't make the card. Check your connection and try again.",
+    "retry": "Try again"
   }
 }

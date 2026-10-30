@@ -173,6 +173,8 @@ function catRef(id) {
 const IMAGE_SEARCHES = [];
 // Sell with a photo: the filenames sent for a suggestion, and the outcomes.
 const CATEGORY_SUGGESTIONS = { requests: [], outcomes: [] };
+// IDEA-8: the share visits the web forwarded (?src=&lang= on a listing / shop detail GET).
+const SHARE_VISITS = [];
 
 const LISTINGS = [
   { id: 1, title: "iPhone 13 Pro", price: 45000, currency: "AFN", status: "active", location: "Kabul", address: "Shar-e-Naw", condition: "good", category_id: 101, seller_id: 1, views_count: 120, created_at: "2026-06-20T10:00:00Z", price_drop_percent: 12, price_dropped_at: "2026-06-19T10:00:00Z", description: "Barely used iPhone 13 Pro, 256GB." },
@@ -326,6 +328,8 @@ const SHOP_42 = {
   hours: { sat: [["08:00", "18:00"]], sun: [["08:00", "18:00"]], mon: [["08:00", "18:00"]], tue: [["08:00", "18:00"]], wed: [["08:00", "18:00"]], thu: [["08:00", "18:00"]], fri: [] },
   created_at: "2026-10-05T10:00:00Z",
   cover_url: null,
+  // IDEA-8: the cover's link-preview variant; null without a cover.
+  share_image_url: null,
   phone: "+93 700 111 222",
   listings_count: 1,
   verified_at: "2026-10-05T12:00:00Z",
@@ -707,6 +711,8 @@ function detailView(l, { team = false } = {}) {
     price_drop_percent: l.price_drop_percent,
     // `Listing.share_url_for` is nil unless PUBLIC_SHARE_BASE_URL is set.
     share_url: null,
+    // IDEA-8: the link-preview image (PublicImageUrl::SHARE, 1200 x 630 JPEG), nil without a photo.
+    image_share_url: (l.photos || l.originalsOnly) ? `${MEDIA}/${l.id}-share-0-1200x630.jpg` : null,
   };
 }
 
@@ -1098,6 +1104,16 @@ const server = createServer((req, res) => {
     return res.end(file);
   }
 
+  // IDEA-8: the printable QR card (ShareCard on the API). A real PNG (A6 proportions) or a stub
+  // PDF; listing 404 is "not public" (the dialog's error state).
+  const qrCard = /^\/api\/v1\/(shops|listings)\/(\d+)\/qr_card\.(png|pdf)$/.exec(url.pathname);
+  if (qrCard) {
+    if (qrCard[2] === "404") return send(res, 404, { error: "Not found" });
+    const body = qrCard[3] === "pdf" ? Buffer.from("%PDF-1.4\n%%EOF\n") : mediaPng(124, 175);
+    res.writeHead(200, { "Content-Type": qrCard[3] === "pdf" ? "application/pdf" : "image/png", "Content-Length": body.length });
+    return res.end(body);
+  }
+
   // ── Photos (1.1.6 photo variants, e2e/photo-variants.spec.ts) ─────────────
   // /media/<name>: a real PNG whose size is in the name ("…-300x900.png"; 64x64
   // when none), so tiny / portrait / panorama photos can be measured (also the
@@ -1279,6 +1295,10 @@ function route(req, res, method, path, q, body, raw = "") {
       meta: { pagination },
     });
   }
+  // Test hook (IDEA-8): the share visits the web's detail fetches carried.
+  if (method === "GET" && path === "/__share_visits") {
+    return send(res, 200, { visits: SHARE_VISITS });
+  }
   // Test hook: which photos were searched, and as whom (never a photo's bytes).
   if (method === "GET" && path === "/__image_searches") {
     return send(res, 200, { searches: IMAGE_SEARCHES });
@@ -1383,6 +1403,7 @@ function route(req, res, method, path, q, body, raw = "") {
   }
   const shopMatch = path.match(/^\/shops\/(\d+)$/);
   if (method === "GET" && shopMatch) {
+    if (q.get("src")) SHARE_VISITS.push({ kind: "shop", id: Number(shopMatch[1]), src: q.get("src"), lang: q.get("lang") });
     return shopMatch[1] === "42" ? send(res, 200, { shop: { ...SHOP_42, ...shopMedia() } }) : send(res, 404, { error: "Not found" });
   }
 
@@ -2069,6 +2090,7 @@ function route(req, res, method, path, q, body, raw = "") {
   // Public listing detail (after authed routes so /my/listings/:id wins).
   const showMatch = path.match(/^\/listings\/(\d+)$/);
   if (showMatch && method === "GET") {
+    if (q.get("src")) SHARE_VISITS.push({ kind: "listing", id: Number(showMatch[1]), src: q.get("src"), lang: q.get("lang") });
     const l = findListing(showMatch[1]);
     return l ? send(res, 200, { listing: detailView(l) }) : send(res, 404, { error: "Listing not found" });
   }

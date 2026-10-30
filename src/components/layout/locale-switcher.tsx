@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
  * Keyed to `routing.locales` instead, adding a locale without a label is a
  * COMPILE error rather than a blank row someone has to notice.
  */
-const LOCALE_LABEL: Record<(typeof routing.locales)[number], string> = {
+export const LOCALE_LABEL: Record<(typeof routing.locales)[number], string> = {
   en: "English",
   ps: "پښتو",
   fa: "دری",

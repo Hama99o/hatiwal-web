@@ -16,6 +16,8 @@ import {
   useListingLifecycle,
 } from "@/components/account/listing-actions";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
+import { QrCardButton } from "@/components/shared/qr-card-button";
+import { isLive } from "@/lib/stock";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { CountBadge } from "@/components/shared/count-badge";
 import {
@@ -263,6 +265,10 @@ export function OwnerListingBar({
               <span>{t("common.edit")}</span>
             </Link>
           </Button>
+          {/* IDEA-8: the printable QR card — a plain icon beside Edit, not a band of
+            the stack (which stays at four). Only while the listing is on the market:
+            the API answers 404 for a draft, sold or expired one. */}
+          {isLive({ status }) && !expired && <QrCardButton kind="listing" id={listingId} iconOnly />}
         </div>
 
         {/* The action stack: the next transition, Renew when the clock is running

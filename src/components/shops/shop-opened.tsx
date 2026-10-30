@@ -108,7 +108,7 @@ export function ShopOpened({ shop }: { shop: Shop }) {
             categoryLabel: shop.category ? categoryName(shop.category, locale) : null,
             openText: shopOpenText(shop, t as never, locale)?.text ?? null,
           })}
-          url={shopShareUrl(shop)}
+          url={shopShareUrl(shop, locale)}
           label={t("form.done.share")}
           className="w-full"
           testId="shop-opened-share-button"

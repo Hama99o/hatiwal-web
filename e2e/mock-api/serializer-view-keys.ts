@@ -187,6 +187,8 @@ export const DETAILED_VIEW_KEYS = [
   "price_dropped_at",
   "price_drop_percent",
   "share_url",
+  // IDEA-8: the link-preview image (1200 x 630 JPEG), the web's og:image.
+  "image_share_url",
 ] as const;
 
 /** `view :owner_detailed` — `include_view :detailed` + the owner-only `sale`.

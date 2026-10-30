@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/client";
 import { getShop, type Shop } from "@/lib/api/shops";
 import { categoryName } from "@/lib/api/categories";
 import { SHOP_DAYS } from "@/lib/shop-hours";
+import { shareVisitParams } from "@/lib/share-link";
 import { shopShareDescription, shopShareTitle } from "@/lib/shop-share";
 import { ShopPageView } from "@/components/shops/shop-page-view";
 
@@ -18,9 +19,9 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ locale: string; id: string }>;
 
-async function loadShop(id: string): Promise<Shop | null> {
+async function loadShop(id: string, visit?: { src: string; lang?: string }): Promise<Shop | null> {
   try {
-    return await getShop(id);
+    return await getShop(id, { visit });
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null;
     throw e;
@@ -43,7 +44,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   // back through metadataBase.
   const description = shopShareDescription(shop, { t: t as never, locale, categoryLabel: categoryLabel(shop, locale) });
   const title = shopShareTitle(shop, t as never);
-  const image = shop.coverUrl ?? shop.logoUrl ?? "/opengraph-image.png";
+  // IDEA-8: the cover's 1200 × 630 share variant first — WhatsApp drops a large
+  // image, and the full cover can be over 1 MB.
+  const image = shop.shareImageUrl ?? shop.coverUrl ?? shop.logoUrl ?? "/opengraph-image.png";
   return {
     title,
     description,
@@ -54,7 +57,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       url: shop.shareUrl && /^https:\/\//i.test(shop.shareUrl) ? shop.shareUrl : `https://hatiwal.com/s/${shop.id}`,
       title,
       description,
-      images: [{ url: image, alt: shop.name }],
+      images: [{ url: image, alt: shop.name, ...(shop.shareImageUrl && { width: 1200, height: 630, type: "image/jpeg" }) }],
       type: "website",
       siteName: "Hatiwal",
       locale,
@@ -63,10 +66,17 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default async function ShopPage({ params }: { params: Params }) {
+export default async function ShopPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { locale, id } = await params;
   setRequestLocale(locale);
-  const shop = await loadShop(id);
+  // IDEA-8: a visit from a share link (?src=wa|share|qr) is counted by the API's log.
+  const shop = await loadShop(id, shareVisitParams(await searchParams));
   if (!shop || shop.status === "suspended") notFound();
 
   const openingHours = SHOP_DAYS.flatMap((day) =>

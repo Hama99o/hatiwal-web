@@ -38,7 +38,8 @@ test.describe("Share my shop: links", () => {
   test("the share button shares https, never hatiwal://", async ({ page }) => {
     await page.goto(`/en/shops/${SHOP_ID}`);
     const link = await page.getByTestId("shop-share-button").getAttribute("data-share-url");
-    expect(link).toBe(`https://hatiwal.com/s/${SHOP_ID}`);
+    // IDEA-8: the sharer's language and the source ride along (docs/design/SHARE_AND_QR.md §3.1).
+    expect(link).toBe(`https://hatiwal.com/s/${SHOP_ID}?lang=en&src=share`);
     expect(link).not.toContain("hatiwal://");
   });
 
@@ -67,7 +68,7 @@ test.describe("Share my shop: links", () => {
     expect(lines[0]).toBe(`${SHOP_NAME} ✓ Verified`);
     expect(lines[1]).toMatch(/· Kabul$/);
     expect(shared[0].text).toMatch(/1 product$/m);
-    expect(shared[0].url).toBe(`https://hatiwal.com/s/${SHOP_ID}`);
+    expect(shared[0].url).toBe(`https://hatiwal.com/s/${SHOP_ID}?lang=en&src=share`);
   });
 
   test("the link preview carries the details (title ✓, description, absolute image, large card)", async ({ page }) => {

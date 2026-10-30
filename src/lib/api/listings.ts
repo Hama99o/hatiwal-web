@@ -247,9 +247,12 @@ export async function getSimilarListings(
 
 export async function getListing(
   id: number | string,
-  opts: { revalidate?: number } = {},
+  // IDEA-8: `visit` is lib/share-link's shareVisitParams ({ src: "wa", lang: "ps" })
+  // — the page's own fetch passes it so the API logs a visit from a share.
+  opts: { revalidate?: number; visit?: { src: string; lang?: string } } = {},
 ): Promise<Listing> {
   const data = await apiGet<{ listing: RawListing }>(`listings/${id}`, {
+    params: opts.visit,
     revalidate: opts.revalidate,
   });
   return normalizeListing(data.listing);
