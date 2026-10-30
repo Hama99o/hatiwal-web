@@ -23,6 +23,8 @@ export interface Shop extends ShopCard {
   timeZone?: string | null;
   createdAt: string;
   coverUrl: string | null;
+  /** IDEA-8: the cover as the link preview (1200 × 630 JPEG, ≤ 200 KB); null without a cover. */
+  shareImageUrl?: string | null;
   /** 1.1.6 photo variants: the 1200px cover for the shop page (fallback: coverUrl). */
   coverMediumUrl?: string | null;
   /** SHOP-MEDIA (docs/SHOP_MEDIA.md): one optional video ("▶ Video" on the cover). Absent on an older API. */
@@ -108,8 +110,12 @@ export interface ShopInput {
 }
 
 /** Public shop page (guests too); server-rendered. */
-export async function getShop(id: number | string, opts: { revalidate?: number } = {}): Promise<Shop> {
-  return (await apiGet<{ shop: Shop }>(`shops/${id}`, opts)).shop;
+// IDEA-8: `visit` (lib/share-link shareVisitParams) lets the API log a visit from a share.
+export async function getShop(
+  id: number | string,
+  opts: { revalidate?: number; visit?: { src: string; lang?: string } } = {},
+): Promise<Shop> {
+  return (await apiGet<{ shop: Shop }>(`shops/${id}`, { revalidate: opts.revalidate, params: opts.visit })).shop;
 }
 
 /** Owner view, signed in (Edit shop prefill). */

@@ -18,6 +18,8 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { ShopChip } from "@/components/shared/shop-chip";
 import { ShareButton } from "@/components/shared/share-button";
+import { QrCardButton } from "@/components/shared/qr-card-button";
+import { shareLink } from "@/lib/share-link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListingGrid, ListingGridSkeleton } from "@/components/shared/listing-grid";
 import { RemoteImage } from "@/components/shared/remote-image";
@@ -40,8 +42,9 @@ type Tab = "products" | "reviews" | "about";
 export const PUBLIC_SITE = "https://hatiwal.com";
 
 /** "Share my shop" link: always https://hatiwal.com/s/<id> (docs/SHOPS.md). */
-export function shopShareUrl(shop: Pick<Shop, "id" | "shareUrl">): string {
-  return shop.shareUrl && /^https:\/\//i.test(shop.shareUrl) ? shop.shareUrl : `${PUBLIC_SITE}/s/${shop.id}`;
+// IDEA-8: the sharer's language and src=share ride along (lib/share-link).
+export function shopShareUrl(shop: Pick<Shop, "id" | "shareUrl">, locale?: string): string {
+  return shareLink("shop", shop.id, { shareUrl: shop.shareUrl, lang: locale, src: locale ? "share" : undefined });
 }
 
 function OpenLine({ shop }: { shop: Shop }) {
@@ -245,13 +248,15 @@ export function ShopPageView({ shop, categoryLabel }: { shop: Shop; categoryLabe
           <ShareButton
             shareTitle={shop.name}
             text={shareText}
-            url={shopShareUrl(shop)}
+            url={shopShareUrl(shop, locale)}
             label={isMember ? t("share.button") : t("share.buttonOther")}
             // Primary only for members (sharing IS their main action here); for a
             // buyer Message is the one primary, so Share must not compete with it.
             variant={isMember ? "default" : "outline"}
             testId="shop-share-button"
           />
+          {/* IDEA-8: the printable QR card (shop window, counter, stickers) — the team's tool. */}
+          {isMember && <QrCardButton kind="shop" id={shop.id} iconOnly />}
         </div>
 
         {/* The shop's own warnings — members only (owner + team), never a buyer. */}

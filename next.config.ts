@@ -26,6 +26,14 @@ const nextConfig: NextConfig = {
   // the locale middleware then adds /en, /ps or /fa.
   async redirects() {
     return [
+      // IDEA-8: a share link carries the SHARER's language (?lang=ps), so WhatsApp's
+      // crawler (English Accept-Language) builds the link preview in Pashto / Dari and
+      // a reader without the app lands on the page in that language. Whitelisted by
+      // the regex: an unknown value falls through to the plain rules below (the
+      // reader's locale), and nothing but en|ps|fa can reach the destination.
+      // The query (src=…) is kept by Next. docs/design/SHARE_AND_QR.md §3.1.
+      { source: "/l/:id(\\d+)", has: [{ type: "query", key: "lang", value: "(?<lang>en|ps|fa)" }], destination: "/:lang/listings/:id", permanent: false },
+      { source: "/s/:id(\\d+)", has: [{ type: "query", key: "lang", value: "(?<lang>en|ps|fa)" }], destination: "/:lang/shops/:id", permanent: false },
       { source: "/l/:id(\\d+)", destination: "/listings/:id", permanent: false },
       { source: "/u/:id(\\d+)", destination: "/sellers/:id", permanent: false },
       // SHOP-1: Shop.share_url_for → /s/<id>.

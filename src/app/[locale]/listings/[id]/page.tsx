@@ -11,6 +11,8 @@ import type { ListingCondition } from "@/lib/types";
 import { categoryName } from "@/lib/api/categories";
 import { safe, unlessNotFound } from "@/lib/api/safe";
 import { formatPrice, formatRelativeDate } from "@/lib/format";
+import { listingShareDescription, listingShareTitle } from "@/lib/listing-share";
+import { shareLink, shareVisitParams } from "@/lib/share-link";
 import { PriceTag } from "@/components/shared/price-tag";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConditionBadge } from "@/components/shared/condition-badge";
@@ -75,6 +77,19 @@ export async function generateMetadata({
 
   const description =
     listing.description?.slice(0, 200) || listing.title;
+  // IDEA-8: the WhatsApp / Telegram card. WhatsApp draws og:title and
+  // og:description itself, so the price and the city go there (no text burnt
+  // into the image), in the page's language — a share link's ?lang= brings the
+  // crawler to /ps or /fa (next.config). The image is the 1200 × 630 share
+  // variant (the full photo is up to 1.1 MB, which WhatsApp drops).
+  const tc = await getTranslations({ locale, namespace: "common" });
+  const cardTitle = listingShareTitle(listing, locale);
+  const cardDescription = listingShareDescription(listing, {
+    locale,
+    categoryLabel: listing.category ? categoryName(listing.category, locale) : null,
+    soldLabel: tc("sold"),
+  });
+  const image = listing.imageShareUrl ?? listing.images[0] ?? null;
   return {
     title: listing.title,
     description,
@@ -90,20 +105,30 @@ export async function generateMetadata({
     // (lands on this listing), "Get" when it is not. See lib/app-links.ts.
     itunes: smartAppBanner({ kind: "listing", id }),
     openGraph: {
-      title: listing.title,
-      description,
-      images: listing.images.slice(0, 1),
+      url: shareLink("listing", listing.id, { shareUrl: listing.shareUrl }),
+      title: cardTitle,
+      description: cardDescription,
+      images: image
+        ? [{ url: image, alt: listing.title, ...(listing.imageShareUrl && { width: 1200, height: 630, type: "image/jpeg" }) }]
+        : undefined,
       type: "website",
+      siteName: "Hatiwal",
+      locale,
     },
+    twitter: { card: image ? "summary_large_image" : "summary", title: cardTitle, description: cardDescription, images: image ? [image] : undefined },
   };
 }
 
 export default async function ListingDetailPage({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale, id } = await params;
+  // IDEA-8: a visit from a share link (?src=wa|share|qr) is counted by the API's log.
+  const visit = shareVisitParams(await searchParams);
   setRequestLocale(locale);
   const t = await getTranslations();
 
@@ -119,7 +144,7 @@ export default async function ListingDetailPage({
   // 404 → the "no longer available" page; a 500 / Rails down → the error
   // boundary with Retry, never "404".
   const [listing, viewerId] = await Promise.all([
-    unlessNotFound(getListing(id), null),
+    unlessNotFound(getListing(id, { visit }), null),
     readViewerIdFromCookies(),
   ]);
   if (!listing) notFound();
@@ -343,6 +368,10 @@ export default async function ListingDetailPage({
                     beside the price instead of on a row of its own. */}
                 <ShareButton
                   shareTitle={listing.title}
+                  // IDEA-8: the short app-link (/l/<id>: opens the app when installed),
+                  // in the sharer's language, counted as a share.
+                  url={shareLink("listing", listing.id, { shareUrl: listing.shareUrl, lang: locale, src: "share" })}
+                  testId="listing-share-button"
                   text={t("listing.share.body", {
                     title: listing.title,
                     price: formatPrice(listing.price, listing.currency, locale),

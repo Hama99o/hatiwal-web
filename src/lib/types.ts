@@ -229,6 +229,10 @@ export interface Listing {
   thumbnailUrl: string | null;
   /** Unified, non-empty-when-possible list of full-size (ORIGINAL) image urls. */
   images: string[];
+  /** `view :detailed`: https://hatiwal.com/l/<id> when the API has PUBLIC_SHARE_BASE_URL. */
+  shareUrl?: string | null;
+  /** IDEA-8 (`view :detailed`): the link-preview image, 1200 × 630 JPEG — the og:image. */
+  imageShareUrl?: string | null;
   /**
    * Photo variants (1.1.6, api image_thumb_urls / image_medium_urls), one per
    * photo, same order as `images`, filled by normalizeListing with the
