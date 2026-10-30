@@ -226,6 +226,27 @@ export async function sendFile(
 }
 
 /**
+ * Send a recorded voice message (1.2.1). The browser's own format goes up as it
+ * is (m4a from Safari, WebM/Opus from Chrome and Firefox); the server re-encodes
+ * it to the one m4a every client plays and sets `body` ("🎤 0:12") itself.
+ * Refusals come back coded (voice_too_short, voice_busy…), see `voiceErrorKey`.
+ */
+export async function sendVoice(
+  conversationId: number,
+  recording: Blob,
+): Promise<Message> {
+  const ext = recording.type.includes("mp4") ? "m4a" : recording.type.includes("ogg") ? "ogg" : "webm";
+  const form = new FormData();
+  form.append("kind", "voice_message");
+  form.append("attachment", recording, `voice.${ext}`);
+  const d = await meRequest<{ message: Message }>(
+    `conversations/${conversationId}/messages`,
+    { method: "POST", form },
+  );
+  return d.message;
+}
+
+/**
  * Soft-delete (retract) one of your own messages. The server flips it to a
  * tombstone (body/attachment suppressed) and broadcasts the update over the
  * conversation channel so the other participant sees it live. Returns the

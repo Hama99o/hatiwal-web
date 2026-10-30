@@ -393,7 +393,19 @@ export type MessageKind =
   | "offer_declined"
   | "system"
   | "document"
-  | "image_message";
+  | "image_message"
+  | "voice_message";
+
+/**
+ * A voice message's audio (1.2.1, hatiwal-api docs/VOICE_MESSAGES.md): always
+ * the server's AAC .m4a, its duration and a 64-bar waveform (0–100) measured by
+ * the server, so a bubble draws without downloading the file.
+ */
+export interface VoiceClip {
+  url: string;
+  durationMs: number;
+  waveform: number[];
+}
 
 export interface Message {
   id: number;
@@ -433,6 +445,8 @@ export interface Message {
     shopClosed?: boolean;
   };
   attachmentUrl?: string | null;
+  /** `voice_message` only; null on every other kind and once deleted. */
+  voice?: VoiceClip | null;
   /**
    * For `offer` and `offer_counter` kinds, the server pre-parses the pipe-encoded
    * body ("amount|currency|listedPrice") into these fields. Absent on other kinds.

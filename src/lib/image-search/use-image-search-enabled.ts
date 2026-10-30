@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/api/client";
+import { useServerFeature } from "@/lib/server-features";
 
 /**
  * Whether THIS server offers search by image: `GET /app_config` →
@@ -10,11 +9,5 @@ import { apiGet } from "@/lib/api/client";
  * button never appears in front of a server that cannot search.
  */
 export function useImageSearchEnabled(): boolean {
-  const { data } = useQuery({
-    queryKey: ["app-config", "features"],
-    queryFn: () => apiGet<{ features?: { imageSearch?: boolean } }>("app_config"),
-    staleTime: 5 * 60_000,
-    retry: false,
-  });
-  return data?.features?.imageSearch === true;
+  return useServerFeature("imageSearch");
 }

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HighlightedText } from "@/components/shared/highlighted-text";
+import { ReportButton } from "@/components/shared/report-button";
+import { VoicePlayer } from "@/components/chat/voice-player";
 import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/lib/types";
@@ -264,6 +266,13 @@ export function MessageBubble({
               </div>
             )}
           </div>
+        ) : m.kind === "voice_message" && m.voice ? (
+          <VoicePlayer
+            src={m.voice.url}
+            durationMs={m.voice.durationMs}
+            waveform={m.voice.waveform}
+            tone={mine ? "mine" : "default"}
+          />
         ) : m.attachmentUrl ? (
           m.kind === "image_message" ? (
             // Active Storage disk URLs carry no extension, so key off the kind.
@@ -362,6 +371,16 @@ export function MessageBubble({
           )}
         </div>
       </div>
+      {/* 1.2.1: a voice message is reported on its own, so a moderator can hear it. */}
+      {!mine && m.kind === "voice_message" && m.voice && (
+        <ReportButton
+          reportableType="Message"
+          reportableId={m.id}
+          ownerId={m.sender.id}
+          label={t("chat.voice.report")}
+          className="size-7 shrink-0 justify-center gap-0 p-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 [&>span]:sr-only"
+        />
+      )}
     </div>
   );
 }

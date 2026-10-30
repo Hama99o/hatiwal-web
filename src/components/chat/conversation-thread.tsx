@@ -16,6 +16,7 @@ import {
   Clock,
   LockOpen,
   Search,
+  Mic,
   Send,
   ShieldBan,
   ShieldCheck,
@@ -34,6 +35,7 @@ import {
   isSupportThread,
   markRead,
   sendFile,
+  sendVoice,
   sendMessage,
   unblockShop,
   unblockUser,
@@ -48,6 +50,9 @@ import { EmptyState } from "@/components/shared/empty-state";
 import type { Message, Transaction } from "@/lib/types";
 import { UserIdentity } from "@/components/shared/user-identity";
 import { ReportButton } from "@/components/shared/report-button";
+import { VoiceComposer } from "@/components/chat/voice-composer";
+import { useServerFeature } from "@/lib/server-features";
+import type { VoiceRecording } from "@/lib/voice/use-voice-recorder";
 import { SafetyTips } from "@/components/shared/safety-tips";
 import { ReviewPromptDialog } from "@/components/shared/review-prompt-dialog";
 import {
@@ -125,6 +130,8 @@ export function ConversationThread({ id }: { id: string }) {
   const [counterAmount, setCounterAmount] = useState("");
   const [sendingCounter, setSendingCounter] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // 1.2.1: the voice message row replaces the composer while it is open.
+  const [voiceOpen, setVoiceOpen] = useState(false);
   // Seller lifecycle from the pinned listing header: reserve/mark-sold → buyer
   // picker → (on sold) review prompt. Mirrors mobile's ListingHeader. The
   // transitions, prompts, toasts and invalidation come from the shared brain
@@ -438,6 +445,9 @@ export function ConversationThread({ id }: { id: string }) {
   // Decided from `kind`, never from `listing == null`, which also means
   // "listing removed" — and a support thread reports `listingDeleted: true`.
   const isSupport = isSupportThread(conversation);
+  // Voice messages: when the server takes them (app_config), and never in
+  // Support (the admins' Support screen has no player; the API refuses it).
+  const voiceOffered = useServerFeature("voiceMessages") && !isSupport;
   // Support (owner, 2026-10-12: per identity): in the PERSON's own thread,
   // tell the admin whether it was written in Buyer mode or as Me. A shop's
   // thread (it has a shop) is stamped by the server with the member and role.
@@ -522,6 +532,22 @@ export function ConversationThread({ id }: { id: string }) {
       toast.error(describeApiError(error, t, { fallbackKey: "chat.thread.sendFailed" }));
     } finally {
       setUploading(false);
+    }
+  }
+
+  /** Upload a recorded voice message; true when it is in the thread. */
+  async function sendVoiceMessage(recording: VoiceRecording): Promise<boolean> {
+    try {
+      const m = await sendVoice(cid, recording.blob);
+      setMessages((prev) =>
+        prev.some((x) => x.id === m.id) ? prev : [...prev, m],
+      );
+      return true;
+    } catch (error) {
+      // voice_too_short / voice_busy / offline… in the user's language; the
+      // preview stays so they can send it again.
+      toast.error(describeApiError(error, t, { fallbackKey: "chat.thread.sendFailed" }));
+      return false;
     }
   }
 
@@ -1044,6 +1070,8 @@ export function ConversationThread({ id }: { id: string }) {
               ? t("chat.block.messagingUnavailable")
               : t("shops.messageErrors.unavailable")}
         </div>
+      ) : voiceOpen ? (
+        <VoiceComposer onSend={sendVoiceMessage} onClose={() => setVoiceOpen(false)} />
       ) : (
         <form
           method="post"
@@ -1099,6 +1127,19 @@ export function ConversationThread({ id }: { id: string }) {
             placeholder={t("chat.messagePlaceholder")}
             aria-label={t("chat.messagePlaceholder")}
           />
+          {/* 🎤 takes Send's place while there is nothing typed (WhatsApp). */}
+          {voiceOffered && hydrated && !input.trim() && !sending ? (
+            <Button
+              type="button"
+              size="icon"
+              className="shrink-0"
+              aria-label={t("chat.voice.record")}
+              onClick={() => setVoiceOpen(true)}
+              data-testid="voice-record"
+            >
+              <Mic className="size-4" />
+            </Button>
+          ) : (
           <Button
             type="submit"
             size="icon"
@@ -1112,6 +1153,7 @@ export function ConversationThread({ id }: { id: string }) {
               <Send className="size-4 rtl:-scale-x-100" />
             )}
           </Button>
+          )}
         </form>
       )}
 

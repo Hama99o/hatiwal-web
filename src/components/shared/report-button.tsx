@@ -87,6 +87,7 @@ export function ReportButton({
   ownerShopId,
   className,
   onBlocked,
+  label,
 }: {
   reportableType: ReportableType;
   reportableId: number;
@@ -102,6 +103,8 @@ export function ReportButton({
    * failure.
    */
   onBlocked?: () => void;
+  /** The trigger's text (and accessible name) when "Report" alone is too vague, e.g. on a voice message. */
+  label?: string;
 }) {
   const t = useTranslations();
   const qc = useQueryClient();
@@ -280,7 +283,7 @@ export function ReportButton({
         ) : (
           <Flag className="size-4 shrink-0" />
         )}
-        <span>{t("report.title")}</span>
+        <span>{label ?? t("report.title")}</span>
       </Button>
 
       <Dialog
