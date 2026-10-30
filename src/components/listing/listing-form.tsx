@@ -14,6 +14,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { createListing, updateListing, listingLifecycle, relaunchMyListing, deleteListingVideo } from "@/lib/api/me";
 import { VideoField, type VideoValue } from "@/components/listing/video-field";
 import { CategorySuggestionChip } from "@/components/listing/category-suggestion-chip";
+import { PriceGuideLine } from "@/components/listing/price-guide-line";
 import { useCategorySuggestion } from "@/lib/category-suggestion/use-category-suggestion";
 import { discardListingVideoUpload, startListingVideoUpload } from "@/lib/listing-video-upload";
 import {
@@ -650,6 +651,8 @@ export function ListingForm({
             </select>
           </Field>
         </div>
+        {/* IDEA-4: what similar items sold for (only when the server published a range). */}
+        <PriceGuideLine categoryId={Number(categoryId) || null} currency={watch("currency") ?? "AFN"} />
 
         <Field
           label={t("common.category")}
