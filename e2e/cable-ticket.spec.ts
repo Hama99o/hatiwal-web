@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { BUYER_STATE } from "./auth-paths";
 
 // The chat's live connection (privacy review 2026-10-28): a browser cannot set

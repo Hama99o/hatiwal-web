@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { BUYER_STATE } from "./auth-paths";
 import en from "../messages/en.json";
 

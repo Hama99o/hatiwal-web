@@ -1145,6 +1145,16 @@ const server = createServer((req, res) => {
   // when none), so tiny / portrait / panorama photos can be measured (also the
   // Rails-shaped /rails/active_storage/… avatar urls); a name
   // with "missing" is a 404, for the load-error fallback.
+  // Card 387: a listing / shop video ("…-video.mp4") is a real, playable clip. It
+  // used to fall through to the PNG below: the <video> then fired onError, the
+  // dialog swapped the player for "not available", and a test that looked for
+  // the player raced that error (shop-media 4–6 failures in 10). WebM because
+  // Playwright's Chromium has no H.264 decoder (same as the voice clips above).
+  if (/^\/media\/[\w-]+-video\.mp4$/.test(url.pathname)) {
+    const file = readFileSync(new URL("../fixtures/clip-1s.webm", import.meta.url));
+    res.writeHead(200, { "Content-Type": "video/webm", "Content-Length": file.length, "Accept-Ranges": "bytes", "Cache-Control": "no-store" });
+    return res.end(file);
+  }
   if (url.pathname.startsWith("/media/") || url.pathname.startsWith("/rails/active_storage/")) {
     if (url.pathname.includes("missing")) return send(res, 404, { error: "not found" });
     const m = /-(\d+)x(\d+)\.\w+$/.exec(url.pathname);

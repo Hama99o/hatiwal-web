@@ -36,8 +36,9 @@ export async function patchJsonRoute(
       await route.fulfill({ response: res, json });
     } catch (e) {
       // The context can be mid-teardown with page.isClosed() still false, so
-      // Playwright's own "has been closed" error counts too (mode-switch:68).
-      if (page.isClosed() || /Target page, context or browser has been closed/.test(String(e))) return;
+      // Playwright's own "has been closed" error counts too (mode-switch:68), and
+      // "Response has been disposed" (shop-media:122, saved-search alerts run, card 390).
+      if (page.isClosed() || /Target page, context or browser has been closed|Response has been disposed/.test(String(e))) return;
       throw e;
     }
   });
