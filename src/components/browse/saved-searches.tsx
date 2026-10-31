@@ -30,6 +30,10 @@ import { cn } from "@/lib/utils";
  * category + price + location filters, then one-tap re-apply or delete them.
  * Auth-only — hidden for guests.
  */
+
+/** How long a saved-search delete can be undone (mobile's UNDO_TOAST_DURATION_MS). */
+const UNDO_TOAST_MS = 8_000;
+
 export function SavedSearches({
   filters,
   categories,
@@ -66,8 +70,39 @@ export function SavedSearches({
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteSavedSearch(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
-    onError: (error) => toast.error(describeApiError(error, t)),
+    onError: (error) => {
+      toast.error(describeApiError(error, t));
+      qc.invalidateQueries({ queryKey: ["saved-searches"] }); // the row comes back
+    },
   });
+
+  // Card 388 (mobile parity): the row goes at once with "Search removed · Undo";
+  // the DELETE is sent only when that toast closes without Undo — a server
+  // delete cannot be undone.
+  const removeWithUndo = (id: number) => {
+    const previous = qc.getQueryData<SavedSearch[]>(["saved-searches"]);
+    qc.setQueryData<SavedSearch[]>(["saved-searches"], (old) => (old ?? []).filter((s) => s.id !== id));
+    let settled = false;
+    const commit = () => {
+      if (settled) return;
+      settled = true;
+      deleteMut.mutate(id);
+    };
+    toast(t("browse.savedSearchRemoved"), {
+      duration: UNDO_TOAST_MS,
+      action: {
+        label: t("common.undo"),
+        onClick: () => {
+          if (settled) return;
+          settled = true;
+          if (previous) qc.setQueryData(["saved-searches"], previous);
+          else qc.invalidateQueries({ queryKey: ["saved-searches"] });
+        },
+      },
+      onAutoClose: commit,
+      onDismiss: commit,
+    });
+  };
 
   // Running a search with new matches resets its counter (mobile parity).
   // Optimistically clear the badge, then re-sync the list from the server.
@@ -212,8 +247,7 @@ export function SavedSearches({
               <button
                 type="button"
                 aria-label={t("browse.deleteSavedSearch")}
-                onClick={() => deleteMut.mutate(s.id)}
-                disabled={deleteMut.isPending}
+                onClick={() => removeWithUndo(s.id)}
                 className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <X className="size-3.5" />

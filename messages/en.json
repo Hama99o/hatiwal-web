@@ -522,7 +522,8 @@
       "off": "Alerts off for this search.",
       "toggleLabel": "Alerts for this search",
       "limit": "You can follow up to 5 searches. Turn one off first."
-    }
+    },
+    "savedSearchRemoved": "Search removed"
   },
   "profile": {
     "title": "Profile",
