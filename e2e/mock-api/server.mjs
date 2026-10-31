@@ -1120,6 +1120,16 @@ const server = createServer((req, res) => {
     return res.end(file);
   }
 
+  // 1.2.1: a message's file through the never-expiring, participant-only route — like Rails, a 302 to a fresh
+  // signed file (here /media/…); signed out → 401. Message 7001 is a voice clip, 7002 a photo.
+  const attachment = /^\/api\/v1\/conversations\/(\d+)\/messages\/(\d+)\/attachment$/.exec(url.pathname);
+  if (attachment) {
+    if (!req.headers["access-token"]) return send(res, 401, { errors: ["You need to sign in or sign up before continuing."] });
+    const file = attachment[2] === "7002" ? "/media/chat-photo-300x200.png" : `/media/voice-in-${attachment[2]}.m4a`;
+    res.writeHead(302, { Location: `http://localhost:${PORT}${file}` });
+    return res.end();
+  }
+
   // IDEA-8: the printable QR card (ShareCard on the API). A real PNG (A6 proportions) or a stub
   // PDF; listing 404 is "not public" (the dialog's error state).
   const qrCard = /^\/api\/v1\/(shops|listings)\/(\d+)\/qr_card\.(png|pdf)$/.exec(url.pathname);
