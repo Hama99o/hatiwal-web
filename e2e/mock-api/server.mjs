@@ -2164,6 +2164,10 @@ function route(req, res, method, path, q, body, raw = "") {
   const ssDelete = path.match(/^\/users\/saved_searches\/(\d+)$/);
   if (ssDelete && method === "DELETE") {
     if (!requireAuth()) return;
+    // Card 388: a delete really removes the row (stateful copy, reset by the alerts hook).
+    const list = alertSearches();
+    const i = list.findIndex((x) => x.id === Number(ssDelete[1]));
+    if (i >= 0) list.splice(i, 1);
     return send(res, 204);
   }
 
