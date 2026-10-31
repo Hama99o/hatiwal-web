@@ -242,3 +242,47 @@ test.describe("Voice messages: RTL", () => {
     await page.getByRole("button", { name: "غږیز پیغام ړنګ کړئ" }).click();
   });
 });
+
+// 1.2.1 (device run 2026-10-30): a clip tapped 7 minutes after its thread loaded got a 404 — the JSON's URL was a
+// 5-minute signed file. The API now sends a never-expiring, participant-only route instead; the browser cannot
+// send the session to it, so the web goes through its own /api/me proxy, which answers with the fresh file.
+test.describe("Voice messages and photos: the never-expiring link", () => {
+  const ROUTE = (id: number) => `${MOCK}/api/v1/conversations/1/messages/${id}/attachment`;
+
+  test("a voice clip whose url is the API route plays (through the session proxy)", async ({ page }) => {
+    await page.route("**/api/me/conversations/1/messages*", async (route) => {
+      if (route.request().method() !== "GET" || /\/attachment$/.test(route.request().url())) return route.fallback();
+      const response = await route.fetch();
+      const body = (await response.json()) as { messages: unknown[] };
+      const voice = {
+        id: 7001, body: "🎤 0:03", kind: "voice_message", read_at: null, created_at: "2026-06-21T16:10:00Z", responds_to_id: null,
+        sender: { id: 2, name: "Sara Ahmadi", avatar_url: null }, attachment_url: null, attachment_stable_url: ROUTE(7001),
+        voice: { url: ROUTE(7001), duration_ms: 3000, waveform: Array.from({ length: 64 }, (_, i) => 20 + ((i * 7) % 70)) },
+      };
+      return route.fulfill({ response, json: { ...body, messages: [voice, ...body.messages] } });
+    });
+    await page.goto("/en/conversations/1");
+    const bubble = page.getByTestId("voice-player").first();
+    await bubble.getByRole("button", { name: v.play }).click();
+    await expect(bubble.getByRole("button", { name: v.pausePlayback })).toBeVisible();
+    await expect.poll(async () => Number(await bubble.getByRole("slider").getAttribute("aria-valuenow")), { timeout: 8_000 }).toBeGreaterThan(0);
+  });
+
+  test("a photo with attachment_stable_url loads through the session proxy", async ({ page }) => {
+    await page.route("**/api/me/conversations/1/messages*", async (route) => {
+      if (route.request().method() !== "GET" || /\/attachment$/.test(route.request().url())) return route.fallback();
+      const response = await route.fetch();
+      const body = (await response.json()) as { messages: unknown[] };
+      const photo = {
+        id: 7002, body: "photo.png", kind: "image_message", read_at: null, created_at: "2026-06-21T16:11:00Z", responds_to_id: null,
+        sender: { id: 2, name: "Sara Ahmadi", avatar_url: null },
+        attachment_url: `${MOCK}/rails/active_storage/disk/expired/photo.png`, attachment_stable_url: ROUTE(7002), voice: null,
+      };
+      return route.fulfill({ response, json: { ...body, messages: [photo, ...body.messages] } });
+    });
+    await page.goto("/en/conversations/1");
+    const img = page.locator('img[src="/api/me/conversations/1/messages/7002/attachment"]');
+    await expect(img).toHaveCount(1);
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  });
+});

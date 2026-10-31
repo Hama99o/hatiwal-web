@@ -1,0 +1,20 @@
+    Error: Timed out 15000ms waiting for expect(locator).toHaveCount(expected)
+    Expected: 1
+    Received: 0
+      - expect.toHaveCount with timeout 15000ms
+    > 285 |     await expect(img).toHaveCount(1);
+    Error: Timed out 15000ms waiting for expect(locator).toHaveCount(expected)
+    Expected: 1
+    Received: 0
+      - expect.toHaveCount with timeout 15000ms
+    > 285 |     await expect(img).toHaveCount(1);
+    Error: Timed out 15000ms waiting for expect(locator).toBeVisible()
+    Expected: visible
+    Received: <element(s) not found>
+      - expect.toBeVisible with timeout 15000ms
+    > 267 |     await expect(bubble.getByRole("button", { name: v.pausePlayback })).toBeVisible();
+    Error: Timed out 15000ms waiting for expect(locator).toBeVisible()
+    Expected: visible
+    Received: <element(s) not found>
+      - expect.toBeVisible with timeout 15000ms
+    > 267 |     await expect(bubble.getByRole("button", { name: v.pausePlayback })).toBeVisible();
