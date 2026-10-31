@@ -1257,6 +1257,14 @@ function route(req, res, method, path, q, body, raw = "") {
   // `?with_counts` (any value, like Rails' params[:with_counts].present?) adds
   // active_listings_count to parents *and* subcategories; without it the plain
   // tree is returned, so both call sites stay covered.
+  // IDEA-4: the price guide — published only for Phones & Tablets (101) in AFN;
+  // every other bucket is "not enough sales" (the server sends nothing else).
+  if (method === "GET" && path === "/price_guide") {
+    const published = q.get("category_id") === "101" && q.get("currency") === "AFN";
+    return send(res, 200, { price_guide: published
+      ? { available: true, low: 8000, high: 11000, count: 7, currency: "AFN", window_days: 90 }
+      : { available: false } });
+  }
   // IDEA-6: the switched-on meetup spots (public). Kabul + Mazar; the client
   // keeps the ones near the listing.
   if (method === "GET" && path === "/meetup_spots") {

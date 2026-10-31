@@ -444,6 +444,9 @@
       "needsApp": "This browser can't prepare this video. Add it from the Hatiwal app, or pick a clip under 60 seconds and 25 MB.",
       "compressing": "Preparing video… {percent}%",
       "choose": "Choose a video"
+    },
+    "priceGuide": {
+      "line": "Similar items sold for {low}–{high} {currency}, based on {n} sales"
     }
   },
   "browse": {
