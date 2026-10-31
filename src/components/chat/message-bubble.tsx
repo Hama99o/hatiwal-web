@@ -20,6 +20,7 @@ import { formatPrice, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/lib/types";
 import { userTextProps } from "@/lib/text-direction";
+import { viaSession } from "@/lib/chat-media";
 
 type RespondKind =
   | "meetup_accepted"
@@ -53,6 +54,8 @@ export function MessageBubble({
   const t = useTranslations();
   const locale = useLocale();
   const m = message;
+  // 1.2.1: the never-expiring link (through our session proxy) when the API sent one; else the signed URL.
+  const fileUrl = viaSession(m.attachmentStableUrl) ?? m.attachmentUrl ?? null;
 
   // Tombstone — a retracted message. Shown quietly to BOTH participants with no
   // original content, preserving thread order. Takes precedence over every kind.
@@ -268,25 +271,25 @@ export function MessageBubble({
           </div>
         ) : m.kind === "voice_message" && m.voice ? (
           <VoicePlayer
-            src={m.voice.url}
+            src={viaSession(m.voice.url) ?? m.voice.url}
             durationMs={m.voice.durationMs}
             waveform={m.voice.waveform}
             tone={mine ? "mine" : "default"}
           />
-        ) : m.attachmentUrl ? (
+        ) : fileUrl ? (
           m.kind === "image_message" ? (
             // Active Storage disk URLs carry no extension, so key off the kind.
-            <a href={m.attachmentUrl} target="_blank" rel="noopener noreferrer">
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={m.attachmentUrl}
+                src={fileUrl}
                 alt={m.body || t("chat.preview.photo")}
                 className="max-h-60 w-auto max-w-full rounded-lg object-cover"
               />
             </a>
           ) : (
             <a
-              href={m.attachmentUrl}
+              href={fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 underline"

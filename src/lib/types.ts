@@ -449,6 +449,8 @@ export interface Message {
     shopClosed?: boolean;
   };
   attachmentUrl?: string | null;
+  /** 1.2.1: the same file through the never-expiring, participant-only API route (see lib/chat-media). */
+  attachmentStableUrl?: string | null;
   /** `voice_message` only; null on every other kind and once deleted. */
   voice?: VoiceClip | null;
   /**

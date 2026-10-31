@@ -12,6 +12,9 @@ import { isSameOrigin } from "@/lib/auth/origin";
  * to the whole Rails API. Only the endpoints the web client actually needs are
  * permitted; everything else is 403. Extend this list as new authed calls land.
  */
+/** A chat message's file: Rails answers 302 to a fresh signed file (lib/chat-media). */
+const ATTACHMENT = /^conversations\/\d+\/messages\/\d+\/attachment$/;
+
 const ALLOWED: Array<[string, RegExp]> = [
   ["GET", /^my\/saved_listings$/],
   ["GET", /^my\/viewed_listings$/],
@@ -155,6 +158,8 @@ const ALLOWED: Array<[string, RegExp]> = [
   ["POST", /^shop_invites\/[A-Za-z0-9_-]+\/(accept|decline)$/],
   // "Invitations to join a shop" (owner, 1.1.6): the caller's pending email invites.
   ["GET", /^my\/shop_invites$/],
+  // 1.2.1: a chat file (voice clip, photo) through the never-expiring route — answered with a redirect, below.
+  ["GET", ATTACHMENT],
 ];
 
 async function handle(
@@ -202,9 +207,15 @@ async function handle(
 
   let upstream: Response;
   try {
-    upstream = await fetch(target, init);
+    // A file: hand the browser Rails' redirect (to the fresh signed file, on the public host) instead of piping
+    // the bytes — it then loads the file itself, with the Range requests <audio> seeks with.
+    upstream = await fetch(target, ATTACHMENT.test(joined) ? { ...init, redirect: "manual" } : init);
   } catch {
     return NextResponse.json({ error: "upstream_failed" }, { status: 502 });
+  }
+  const location = upstream.headers.get("location");
+  if (ATTACHMENT.test(joined) && upstream.status >= 300 && upstream.status < 400 && location) {
+    return NextResponse.redirect(rewriteRailsHost(location), 302);
   }
 
   const text = rewriteRailsHost(await upstream.text());
