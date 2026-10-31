@@ -446,7 +446,7 @@
       "choose": "Choose a video"
     },
     "priceGuide": {
-      "line": "Similar items sold for {low}–{high} {currency} · based on {n} sales"
+      "line": "Similar items sold for {low}–{high} {currency}, based on {n} sales"
     }
   },
   "browse": {
