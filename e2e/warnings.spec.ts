@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { BUYER_STATE } from "./auth-paths";
 import { patchJsonRoute, withSessionUser, shopEntry } from "./session-user";
 import { shopWarnings } from "../src/lib/api/shops";

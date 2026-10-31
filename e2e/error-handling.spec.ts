@@ -1,5 +1,5 @@
 import path from "node:path";
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "./fixtures";
 import { BUYER_STATE } from "./auth-paths";
 import { patchJsonRoute, shopEntry, withSessionUser } from "./session-user";
 import en from "../messages/en.json";

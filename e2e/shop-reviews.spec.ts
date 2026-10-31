@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 
 /**
  * The shop page's Reviews tab shows the SHOP's reviews (GET /shops/:id/reviews),

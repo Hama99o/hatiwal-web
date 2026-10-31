@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { BUYER_STATE, EMPTY_STATE } from "./auth-paths";
 import { hold } from "./route-gate";
 
